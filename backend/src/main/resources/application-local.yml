@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/swimming?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&characterEncoding=UTF-8
-    username: root
-    password: devpass
+    username: swimming
+    password: swimming1234
   jpa:
     hibernate:
       ddl-auto: update
@@ -10,12 +10,15 @@ spring:
 
 jwt:
   secret: local-dev-secret-key-change-me-at-least-32-chars
-  access-token-validity-sec: 3600
-  refresh-token-validity-sec: 1209600
+  access-token-validity: 1h
+  refresh-token-validity: 14d
 
 app:
   cors:
-    allowed-origins: http://localhost:5173
+    allowed-origins:
+      - http://localhost:5173
+  auth:
+    secure-cookie: false
 
 logging:
   level:

@@ -1,21 +1,51 @@
 :root {
-  --color-background: #f4f7f5;
-  --color-surface: #ffffff;
-  --color-text-primary: #1f2925;
-  --color-text-secondary: #66736d;
-  --color-accent: #39735c;
-  --color-border: #dce5e0;
+  --color-background: #f7f9f8;
+  --color-surface-lowest: #ffffff;
+  --color-surface-low: #f1f3f2;
+  --color-surface: #f7f9f8;
+  --color-surface-container: #ebeeec;
+  --color-surface-high: #e5e8e6;
+  --color-surface-highest: #dee2df;
+  --color-text-primary: #1a1c1b;
+  --color-text-secondary: #414845;
+  --color-text-muted: #68716d;
+  --color-accent: #206d80;
+  --color-accent-strong: #004e5e;
+  --color-on-accent: #ffffff;
+  --color-border: #d4d9d6;
+  --color-outline: #727a76;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --space-10: 2.5rem;
   --space-12: 3rem;
+  --space-16: 4rem;
 
-  --radius-card: 1rem;
-  --font-family-sans: Inter, Pretendard, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  --shadow-card: 0 1rem 2.5rem rgb(31 41 37 / 8%);
+  --radius-control: 0.25rem;
+  --radius-panel: 0.5rem;
+  --radius-full: 9999px;
+
+  --font-family-sans: Geist, Pretendard, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+
+  --text-display: clamp(2.5rem, 7vw, 3.5rem);
+  --text-heading: 1.75rem;
+  --text-body: 1rem;
+  --text-label: 0.875rem;
+  --text-meta: 0.75rem;
+
+  --control-height: 3rem;
+  --content-width: 78rem;
+  --form-width: 30rem;
+
+  --transition-short: 140ms;
 }

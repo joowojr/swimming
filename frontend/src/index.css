@@ -5,6 +5,7 @@
 }
 
 html {
+  color-scheme: light;
   font-family: var(--font-family-sans);
   color: var(--color-text-primary);
   background: var(--color-background);
@@ -18,6 +19,11 @@ body {
   min-width: 20rem;
   min-height: 100vh;
   margin: 0;
+  background: var(--color-background);
+}
+
+#root {
+  min-height: 100vh;
 }
 
 button,
@@ -25,4 +31,27 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button,
+input {
+  border-radius: var(--radius-control);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: var(--color-on-accent);
+  background: var(--color-accent);
 }

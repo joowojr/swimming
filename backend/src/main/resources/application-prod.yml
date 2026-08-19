@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-validity-sec: 3600
+  refresh-token-validity-sec: 1209600
+
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS}
+
+logging:
+  level:
+    root: INFO

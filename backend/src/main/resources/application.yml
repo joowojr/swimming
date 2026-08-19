@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: backend
+  profiles:
+    active: local
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    time-zone: UTC
+  mvc:
+    problemdetails:
+      enabled: true

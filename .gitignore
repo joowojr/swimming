@@ -1,0 +1,15 @@
+# Backend
+backend/build/
+backend/.gradle/
+backend/src/main/resources/application-local-*.yml
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# IDE and OS
+.idea/
+.DS_Store
+*.log

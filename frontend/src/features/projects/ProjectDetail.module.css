@@ -94,7 +94,7 @@
   margin-top: var(--space-8);
   overflow: clip;
   padding: var(--space-6);
-  border: var(--border-width) solid var(--color-border-subtle);
+  border: var(--border-width) solid var(--color-primary-outline);
   border-radius: var(--radius-panel);
   background: var(--color-surface-lowest);
 }
@@ -104,7 +104,7 @@
   inset: 0 0 auto;
   height: var(--progress-height);
   overflow: clip;
-  background: var(--color-surface-highest);
+  background: var(--color-primary-outline);
 }
 
 .journey-rail::after {
@@ -175,7 +175,7 @@
   margin-top: var(--space-3);
   overflow: clip;
   border-radius: var(--radius-full);
-  background: var(--color-surface-highest);
+  background: var(--color-primary-outline);
 }
 
 .progress-fill {
@@ -197,7 +197,7 @@
 .target-date {
   margin: 0;
   padding-top: var(--space-5);
-  border-top: var(--border-width) solid var(--color-border-subtle);
+  border-top: var(--border-width) solid var(--color-primary-outline);
 }
 
 .target-date dt,
@@ -256,10 +256,11 @@
 }
 
 .task-filters {
+  flex-wrap: wrap;
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: var(--radius-lg);
-  background: var(--color-surface-highest);
+  background: var(--color-surface-container);
 }
 
 .task-filters button,
@@ -407,7 +408,8 @@
   .task-filters button:hover:not([aria-pressed='true']),
   .create-task-button:hover {
     color: var(--color-text-primary);
-    background: var(--color-surface-low);
+    border-color: var(--color-primary-outline);
+    background: var(--color-primary-soft);
   }
 }
 
@@ -439,7 +441,7 @@
     padding-block: 0;
     padding-inline-start: var(--space-6);
     border-top: 0;
-    border-inline-start: var(--border-width) solid var(--color-border-subtle);
+    border-inline-start: var(--border-width) solid var(--color-primary-outline);
   }
 }
 

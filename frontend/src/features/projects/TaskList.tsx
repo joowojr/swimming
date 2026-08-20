@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import { updateTask } from '../tasks/taskApi'
+import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
 
@@ -11,13 +12,6 @@ interface TaskListProps {
   emptyDescription?: string
   connected?: boolean
   onTaskUpdated?: () => void
-}
-
-const statusLabel: Record<TaskStatus, string> = {
-  TODO: '시작 전',
-  DOING: '하는 중',
-  DONE: '완료',
-  HOLD: '잠시 멈춤',
 }
 
 function clampCompletionPct(value: number) {
@@ -124,8 +118,8 @@ export default function TaskList({
                   disabled={isPending}
                   onChange={(event) => void changeTaskStatus(task, event.target.value as TaskStatus)}
                 >
-                  {(Object.keys(statusLabel) as TaskStatus[]).map((status) => (
-                    <option value={status} key={status}>{statusLabel[status]}</option>
+                  {TASK_STATUS_VALUES.map((status) => (
+                    <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
                   ))}
                 </select>
               </div>

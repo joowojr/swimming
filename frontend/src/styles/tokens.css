@@ -55,10 +55,11 @@
   --color-background: #fcf9f8;
   --color-on-background: #1c1b1b;
   --color-surface-variant: #e5e2e1;
-  --color-surface-muted: #f9fafb;
-  --color-border-subtle: #e5e7eb;
-  --color-primary-soft: rgb(0 101 120 / 10%);
-  --color-primary-outline: rgb(0 101 120 / 24%);
+  --color-surface-muted: #f8f3f1;
+  --color-border-subtle: #ded7d4;
+  --color-primary-soft: #e5f0f2;
+  --color-primary-outline: #b9d2d7;
+  --color-tertiary-soft: #fcebe7;
 
   /* Dashboard illustration roles from the approved dashboard reference */
   --color-dashboard-blue-soft: #eff6ff;
@@ -156,7 +157,7 @@
   --form-width: 30rem;
   --border-width: 1px;
   --focus-ring-width: 2px;
-  --focus-ring-color: rgb(0 101 120 / 20%);
+  --focus-ring-color: #cce0e4;
   --focus-ring-strong: #000607;
   --shadow-floating: 0 4px 20px rgb(17 24 39 / 5%);
   --shadow-control: 0 1px 3px rgb(17 24 39 / 8%);

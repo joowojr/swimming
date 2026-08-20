@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import type { ApiError } from '../../api/client'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
+import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus } from '../tasks/taskTypes'
 import { getProject } from './projectApi'
 import type { ProjectDetail as ProjectDetailData, ProjectStatus } from './projectTypes'
@@ -19,12 +20,14 @@ type DetailState =
   | { status: 'ready'; project: ProjectDetailData }
   | { status: 'error'; notFound: boolean }
 
-type TaskFilter = 'ALL' | Extract<TaskStatus, 'DOING' | 'DONE'>
+type TaskFilter = 'ALL' | TaskStatus
 
 const taskFilters: Array<{ value: TaskFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
-  { value: 'DOING', label: '하는 중' },
-  { value: 'DONE', label: '끝냄' },
+  ...TASK_STATUS_VALUES.map((status) => ({
+    value: status,
+    label: TASK_STATUS_LABEL[status],
+  })),
 ]
 
 const projectStatusLabel: Record<ProjectStatus, string> = {
@@ -123,6 +126,10 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       title: '등록된 task가 없습니다.',
       description: 'task가 추가되면 진행 순서대로 이곳에 표시됩니다.',
     },
+    TODO: {
+      title: '시작 전인 task가 없습니다.',
+      description: '새로운 task를 추가하면 이곳에서 확인할 수 있습니다.',
+    },
     DOING: {
       title: '하는 중인 task가 없습니다.',
       description: '진행을 시작한 task가 생기면 이곳에 표시됩니다.',
@@ -130,6 +137,10 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     DONE: {
       title: '끝낸 task가 없습니다.',
       description: '완료한 task가 생기면 이곳에 차곡차곡 표시됩니다.',
+    },
+    HOLD: {
+      title: '잠시 멈춘 task가 없습니다.',
+      description: '잠시 멈춘 task가 생기면 이곳에서 다시 확인할 수 있습니다.',
     },
   }[taskFilter]
 

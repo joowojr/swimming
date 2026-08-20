@@ -51,7 +51,7 @@
   min-height: var(--control-height);
   flex: 1;
   padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-outline-variant);
+  border: var(--border-width) solid var(--color-outline);
   border-radius: var(--radius-control);
   color: var(--color-text-primary);
   background: var(--color-surface-lowest);
@@ -95,7 +95,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .row input:hover:not(:disabled) {
-    background: var(--color-surface-low);
+    border-color: var(--color-primary-outline);
+    background: var(--color-surface-lowest);
   }
 
   .submit:hover:not(:disabled) .submit-visual {

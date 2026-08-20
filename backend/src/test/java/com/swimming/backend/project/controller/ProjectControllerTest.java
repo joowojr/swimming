@@ -13,7 +13,7 @@ import com.swimming.backend.project.dto.ProjectTagResponse;
 import com.swimming.backend.project.dto.UpdateProjectRequest;
 import com.swimming.backend.project.usecase.ProjectUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.TaskSummaryResponse;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

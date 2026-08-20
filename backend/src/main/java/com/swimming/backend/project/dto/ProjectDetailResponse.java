@@ -2,7 +2,7 @@ package com.swimming.backend.project.dto;
 
 import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.domain.ProjectStatus;
-import com.swimming.backend.task.dto.TaskSummaryResponse;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
 
 import java.time.LocalDate;
 import java.util.List;

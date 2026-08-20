@@ -1,10 +1,10 @@
 package com.swimming.backend.task.controller;
 
 import com.swimming.backend.common.security.AuthUser;
-import com.swimming.backend.task.dto.CreateTaskRequest;
-import com.swimming.backend.task.dto.ReorderTasksRequest;
-import com.swimming.backend.task.dto.TaskResponse;
-import com.swimming.backend.task.dto.UpdateTaskRequest;
+import com.swimming.backend.task.dto.web.CreateTaskRequest;
+import com.swimming.backend.task.dto.web.ReorderTasksRequest;
+import com.swimming.backend.task.dto.web.TaskResponse;
+import com.swimming.backend.task.dto.web.UpdateTaskRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

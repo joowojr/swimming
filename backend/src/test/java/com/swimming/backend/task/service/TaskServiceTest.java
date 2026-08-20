@@ -4,7 +4,8 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.TaskSummaryResponse;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
+import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,6 +78,22 @@ class TaskServiceTest {
         assertThat(result.getTitle()).isEqualTo("수정 Task");
         assertThat(result.getStatus()).isEqualTo(TaskStatus.HOLD);
         assertThat(result.getCompletionPct()).isEqualTo(65);
+    }
+
+    @Test
+    @DisplayName("사용자가 소유한 여러 Task를 프로젝트 정보가 포함된 조회 DTO로 반환한다")
+    void returnsTaskReferencesByIds() {
+        List<TaskReference> expected = List.of(
+                new TaskReference(1L, 10L, "첫 프로젝트", "첫째", TaskStatus.TODO, 0),
+                new TaskReference(2L, 20L, "둘 프로젝트", "둘째", TaskStatus.DOING, 40)
+        );
+        when(taskRepository.findAllOwnedByIds(1L, List.of(2L, 1L)))
+                .thenReturn(expected);
+
+        List<TaskReference> references = taskService.getAllByIds(1L, List.of(2L, 1L));
+
+        assertThat(references).isSameAs(expected);
+        assertThat(references.get(1).projectName()).isEqualTo("둘 프로젝트");
     }
 
     @Test

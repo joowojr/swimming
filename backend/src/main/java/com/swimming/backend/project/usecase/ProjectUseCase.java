@@ -11,7 +11,7 @@ import com.swimming.backend.project.dto.UpdateProjectRequest;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.project.service.ProjectTagService;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.TaskSummaryResponse;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
 import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -4,7 +4,8 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.TaskSummaryResponse;
+import com.swimming.backend.task.dto.projection.TaskReference;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,10 @@ public class TaskService {
 
     public List<Task> getAll(Long projectId) {
         return taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(projectId);
+    }
+
+    public List<TaskReference> getAllByIds(Long userId, List<Long> taskIds) {
+        return taskRepository.findAllOwnedByIds(userId, taskIds);
     }
 
     public List<TaskSummaryResponse> getSummaries(Long projectId) {

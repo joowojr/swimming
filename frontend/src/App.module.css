@@ -1,0 +1,105 @@
+.auth-loading {
+  display: flex;
+  align-items: center;
+  min-height: 100svh;
+  width: min(100%, var(--content-width));
+  margin: 0 auto;
+  padding: var(--space-8);
+}
+
+.route-label,
+.eyebrow {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-overview {
+  max-width: var(--form-width);
+  padding: var(--space-8);
+}
+
+.home-overview h1 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--text-headline-lg-size);
+  line-height: var(--text-headline-lg-line-height);
+}
+
+.home-overview .connection-status {
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-lowest);
+}
+
+.description {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+.account-email {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-meta);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.connection-status strong {
+  margin-left: auto;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.status-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.logout-button {
+  min-height: var(--control-height);
+  margin-top: var(--space-8);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  background: transparent;
+  transition:
+    color var(--transition-short),
+    border-color var(--transition-short),
+    background-color var(--transition-short);
+}
+
+.logout-button:hover {
+  border-color: var(--color-outline);
+  color: var(--color-text-primary);
+  background: var(--color-surface-high);
+}
+
+
+@media (max-width: 48rem) {
+  .auth-loading {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .home-overview {
+    padding: var(--space-6) var(--space-4);
+  }
+}

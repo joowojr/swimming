@@ -20,12 +20,12 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public Optional<UserAuthInfo> findAuthInfoByEmail(String email) {
+    public Optional<UserAuthInfo> getAuthInfoByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
                 .map(this::toAuthInfo);
     }
 
-    public Optional<UserAuthInfo> findAuthInfoById(Long id) {
+    public Optional<UserAuthInfo> getAuthInfoById(Long id) {
         return userRepository.findById(id)
                 .map(this::toAuthInfo);
     }

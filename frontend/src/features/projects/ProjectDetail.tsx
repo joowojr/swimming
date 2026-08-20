@@ -137,12 +137,18 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     <article className={styles.page} aria-labelledby="project-detail-title">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
         <Link to="/projects">프로젝트</Link>
-        <IconChevronRight size={14} aria-hidden="true" />
+        {project.tag && (
+            <>
+              <IconChevronRight size={14} aria-hidden="true" />
+              <span aria-current="page">{project.tag.name}</span>
+            </>
+        )}
+        <IconChevronRight size={14} aria-hidden="true"/>
         <span aria-current="page">{project.name}</span>
       </nav>
 
       <header className={styles.header}>
-        <div className={styles.badges}>
+      <div className={styles.badges}>
           {project.tag && <span className={styles.tag}>{project.tag.name}</span>}
           <span className={styles['project-status']}>{projectStatusLabel[project.status]}</span>
         </div>

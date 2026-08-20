@@ -1,13 +1,14 @@
 import LoginForm from '../features/auth/LoginForm'
 import { authActions } from '../store/authStore'
+import styles from './LoginPage.module.css'
 
 export default function LoginPage() {
   return (
-    <main className="login-page">
-      <section className="login-panel" aria-labelledby="login-title">
+    <div className={styles['login-page']}>
+      <section className={styles['login-panel']} aria-labelledby="login-title">
         <h1 id="login-title">로그인</h1>
         <LoginForm onSuccess={authActions.completeLogin} />
       </section>
-    </main>
+    </div>
   )
 }

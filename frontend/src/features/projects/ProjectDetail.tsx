@@ -243,41 +243,41 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
-            {isDeleteMode && (
-              <button
+            <button
                 type="button"
                 className={styles['delete-task-button']}
-                disabled={selectedTaskIds.size === 0 || isDeletingTasks}
-                onClick={() => void removeSelectedTasks()}
-              >
-                <IconTrash size={16} aria-hidden="true" />
-                {isDeletingTasks ? '삭제 중' : `${selectedTaskIds.size}개 삭제`}
-              </button>
-            )}
-            <button
-              type="button"
-              className={styles['delete-task-button']}
-              aria-pressed={isDeleteMode}
-              disabled={isDeletingTasks}
-              onClick={() => {
-                if (isDeleteMode) leaveDeleteMode()
-                else setIsDeleteMode(true)
-              }}
+                aria-pressed={isDeleteMode}
+                disabled={isDeletingTasks}
+                onClick={() => {
+                  if (isDeleteMode) leaveDeleteMode()
+                  else setIsDeleteMode(true)
+                }}
             >
-              {!isDeleteMode && <IconTrash size={16} aria-hidden="true" />}
+              {!isDeleteMode && <IconTrash size={16} aria-hidden="true"/>}
               {isDeleteMode ? '취소' : <span className="sr-only">Task 삭제 선택</span>}
             </button>
+            {isDeleteMode && (
+                <button
+                    type="button"
+                    className={styles['delete-task-button']}
+                    disabled={selectedTaskIds.size === 0 || isDeletingTasks}
+                    onClick={() => void removeSelectedTasks()}
+                >
+                  <IconTrash size={16} aria-hidden="true"/>
+                  {isDeletingTasks ? '삭제 중' : ``}
+                </button>
+            )}
           </div>
         </div>
         {deleteError && <p className={styles['delete-error']} role="alert">{deleteError}</p>}
         <div className={styles['task-list-stack']}>
           <CreateTaskComposer
-            projectId={project.id}
-            inputRef={taskInputRef}
-            onCreated={() => {
-              setTaskFilter('ALL')
-              setRequestKey((key) => key + 1)
-            }}
+              projectId={project.id}
+              inputRef={taskInputRef}
+              onCreated={() => {
+                setTaskFilter('ALL')
+                setRequestKey((key) => key + 1)
+              }}
           />
           <div className={styles['task-list-toolbar']}>
             <div className={styles['task-filters']} role="group" aria-label="Task 상태 필터">

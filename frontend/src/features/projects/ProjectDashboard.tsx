@@ -8,6 +8,7 @@ import {
   IconTags,
   IconTargetArrow,
 } from '@tabler/icons-react'
+import DailyPlanSection from '../plans/DailyPlanSection'
 import type { Project } from './projectTypes'
 import styles from './ProjectDashboard.module.css'
 
@@ -151,6 +152,8 @@ export default function ProjectDashboard({
                 </article>
               ))}
             </section>
+
+            <DailyPlanSection projects={projects} />
 
             <div className={styles['project-section-heading']}>
               <h2>최근 활동 프로젝트</h2>

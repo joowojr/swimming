@@ -34,7 +34,7 @@ class UserServiceTest {
         when(userRepository.findByEmailIgnoreCase("joowojr@gmail.com"))
                 .thenReturn(Optional.of(user));
 
-        Optional<UserAuthInfo> result = userService.findAuthInfoByEmail("joowojr@gmail.com");
+        Optional<UserAuthInfo> result = userService.getAuthInfoByEmail("joowojr@gmail.com");
 
         assertThat(result).contains(expectedAuthInfo());
     }
@@ -44,7 +44,7 @@ class UserServiceTest {
         User user = user();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        Optional<UserAuthInfo> result = userService.findAuthInfoById(1L);
+        Optional<UserAuthInfo> result = userService.getAuthInfoById(1L);
 
         assertThat(result).contains(expectedAuthInfo());
     }
@@ -53,7 +53,7 @@ class UserServiceTest {
     void returnsEmptyWhenUserDoesNotExist() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThat(userService.findAuthInfoById(99L)).isEmpty();
+        assertThat(userService.getAuthInfoById(99L)).isEmpty();
     }
 
     private User user() {

@@ -33,7 +33,7 @@ public class AuthUseCase {
     private final JwtProperties jwtProperties;
 
     public LoginResult login(LoginRequest request) {
-        UserAuthInfo user = userService.findAuthInfoByEmail(request.email())
+        UserAuthInfo user = userService.getAuthInfoByEmail(request.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
@@ -54,7 +54,7 @@ public class AuthUseCase {
         }
 
         Jwt jwt = jwtTokenService.decodeRefreshToken(refreshToken);
-        UserAuthInfo user = findRefreshUser(jwt);
+        UserAuthInfo user = getRefreshUser(jwt);
 
         JwtTokenService.TokenPair tokenPair = jwtTokenService.issue(user.id(), user.email());
         return new RefreshResult(
@@ -70,11 +70,11 @@ public class AuthUseCase {
                 .toString();
     }
 
-    private UserAuthInfo findRefreshUser(Jwt jwt) {
+    private UserAuthInfo getRefreshUser(Jwt jwt) {
         try {
             Long userId = Long.valueOf(jwt.getSubject());
             String email = jwt.getClaimAsString("email");
-            return userService.findAuthInfoById(userId)
+            return userService.getAuthInfoById(userId)
                     .filter(user -> user.email().equalsIgnoreCase(email))
                     .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
         } catch (NumberFormatException | NullPointerException exception) {

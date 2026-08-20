@@ -60,7 +60,7 @@ class AuthUseCaseTest {
     @Test
     void logsInStoredAccount() {
         UserAuthInfo user = user(1L, "joowojr@gmail.com", "1234", "joowojr", "Asia/Seoul");
-        when(userService.findAuthInfoByEmail("joowojr@gmail.com"))
+        when(userService.getAuthInfoByEmail("joowojr@gmail.com"))
                 .thenReturn(Optional.of(user));
         when(jwtTokenService.issue(1L, "joowojr@gmail.com"))
                 .thenReturn(new JwtTokenService.TokenPair("access-token", "refresh-token"));
@@ -85,7 +85,7 @@ class AuthUseCaseTest {
 
     @Test
     void rejectsUnknownEmail() {
-        when(userService.findAuthInfoByEmail("other@example.com"))
+        when(userService.getAuthInfoByEmail("other@example.com"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authUseCase.login(
@@ -97,7 +97,7 @@ class AuthUseCaseTest {
     @Test
     void rejectsWrongPassword() {
         UserAuthInfo user = user(1L, "joowojr@gmail.com", "1234", "joowojr", "Asia/Seoul");
-        when(userService.findAuthInfoByEmail("joowojr@gmail.com"))
+        when(userService.getAuthInfoByEmail("joowojr@gmail.com"))
                 .thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> authUseCase.login(
@@ -113,7 +113,7 @@ class AuthUseCaseTest {
         when(refreshJwt.getSubject()).thenReturn("1");
         when(refreshJwt.getClaimAsString("email")).thenReturn("joowojr@gmail.com");
         when(jwtTokenService.decodeRefreshToken("old-refresh-token")).thenReturn(refreshJwt);
-        when(userService.findAuthInfoById(1L)).thenReturn(Optional.of(user));
+        when(userService.getAuthInfoById(1L)).thenReturn(Optional.of(user));
         when(jwtTokenService.issue(1L, "joowojr@gmail.com"))
                 .thenReturn(new JwtTokenService.TokenPair("new-access-token", "new-refresh-token"));
 
@@ -153,7 +153,7 @@ class AuthUseCaseTest {
         when(refreshJwt.getSubject()).thenReturn("99");
         when(refreshJwt.getClaimAsString("email")).thenReturn("deleted@example.com");
         when(jwtTokenService.decodeRefreshToken("refresh-token")).thenReturn(refreshJwt);
-        when(userService.findAuthInfoById(99L)).thenReturn(Optional.empty());
+        when(userService.getAuthInfoById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authUseCase.refresh("refresh-token"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

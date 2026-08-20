@@ -222,6 +222,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             emptyTitle={emptyCopy.title}
             emptyDescription={emptyCopy.description}
             connected
+            onTaskUpdated={() => setRequestKey((key) => key + 1)}
           />
         </div>
       </section>

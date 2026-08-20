@@ -14,6 +14,10 @@ export interface ReorderTasksRequest {
   taskIds: number[]
 }
 
+export interface DeleteTasksRequest {
+  taskIds: number[]
+}
+
 export interface TaskResponse {
   id: number
   projectId: number

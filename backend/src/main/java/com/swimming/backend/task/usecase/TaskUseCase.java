@@ -6,6 +6,7 @@ import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.web.CreateTaskRequest;
+import com.swimming.backend.task.dto.web.DeleteTasksRequest;
 import com.swimming.backend.task.dto.web.ReorderTasksRequest;
 import com.swimming.backend.task.dto.web.TaskResponse;
 import com.swimming.backend.task.dto.web.UpdateTaskRequest;
@@ -62,8 +63,19 @@ public class TaskUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void delete(Long userId, Long taskId) {
-        taskService.delete(getOwnedTask(userId, taskId));
+    public void deleteTasks(Long userId, DeleteTasksRequest request) {
+        List<Long> taskIds = request.taskIds().stream().distinct().toList();
+        List<Task> tasks = taskService.getAllEntitiesByIds(taskIds);
+
+        if (tasks.size() != taskIds.size()) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
+        }
+
+        tasks.stream()
+                .map(Task::getProjectId)
+                .distinct()
+                .forEach(projectId -> verifyProjectOwnership(userId, projectId));
+        taskService.deleteAll(tasks);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -78,14 +90,18 @@ public class TaskUseCase {
 
     private Task getOwnedTask(Long userId, Long taskId) {
         Task task = taskService.getOne(taskId);
+        verifyProjectOwnership(userId, task.getProjectId());
+        return task;
+    }
+
+    private void verifyProjectOwnership(Long userId, Long projectId) {
         try {
-            projectService.getReference(userId, task.getProjectId());
+            projectService.getReference(userId, projectId);
         } catch (BusinessException exception) {
             if (exception.getErrorCode() == ErrorCode.PROJECT_NOT_FOUND) {
                 throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
             }
             throw exception;
         }
-        return task;
     }
 }

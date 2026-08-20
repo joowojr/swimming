@@ -7,6 +7,7 @@ import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.web.CreateTaskRequest;
+import com.swimming.backend.task.dto.web.DeleteTasksRequest;
 import com.swimming.backend.task.dto.web.ReorderTasksRequest;
 import com.swimming.backend.task.dto.web.TaskResponse;
 import com.swimming.backend.task.dto.web.UpdateTaskRequest;
@@ -118,6 +119,66 @@ class TaskUseCaseTest {
                 TaskStatus.DOING,
                 40
         );
+    }
+
+    @Test
+    @DisplayName("소유권을 확인한 여러 Task를 한 번에 삭제한다")
+    void deletesOwnedTasksAtOnce() {
+        Task first = task(1L, 10L, "첫째", 0);
+        Task second = task(2L, 10L, "둘째", 1);
+        when(taskService.getAllEntitiesByIds(List.of(1L, 2L)))
+                .thenReturn(List.of(first, second));
+        when(projectService.getReference(1L, 10L))
+                .thenReturn(new ProjectReference(10L));
+
+        taskUseCase.deleteTasks(
+                1L,
+                new DeleteTasksRequest(List.of(1L, 2L, 2L))
+        );
+
+        verify(taskService).deleteAll(List.of(first, second));
+        verify(projectService).getReference(1L, 10L);
+    }
+
+    @Test
+    @DisplayName("삭제 대상 중 찾을 수 없는 Task가 있으면 아무것도 삭제하지 않는다")
+    void rejectsDeletionWhenAnyTaskIsMissing() {
+        Task first = task(1L, 10L, "첫째", 0);
+        when(taskService.getAllEntitiesByIds(List.of(1L, 2L)))
+                .thenReturn(List.of(first));
+
+        assertThatThrownBy(() -> taskUseCase.deleteTasks(
+                1L,
+                new DeleteTasksRequest(List.of(1L, 2L))
+        ))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(
+                        ((BusinessException) exception).getErrorCode()
+                ).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskService, never()).deleteAll(List.of(first));
+    }
+
+    @Test
+    @DisplayName("삭제 대상 중 다른 사용자의 Task가 있으면 아무것도 삭제하지 않는다")
+    void rejectsDeletionWhenAnyTaskIsNotOwned() {
+        Task owned = task(1L, 10L, "내 Task", 0);
+        Task notOwned = task(2L, 20L, "다른 Task", 0);
+        when(taskService.getAllEntitiesByIds(List.of(1L, 2L)))
+                .thenReturn(List.of(owned, notOwned));
+        when(projectService.getReference(1L, 10L))
+                .thenReturn(new ProjectReference(10L));
+        when(projectService.getReference(1L, 20L))
+                .thenThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        assertThatThrownBy(() -> taskUseCase.deleteTasks(
+                1L,
+                new DeleteTasksRequest(List.of(1L, 2L))
+        ))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(
+                        ((BusinessException) exception).getErrorCode()
+                ).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskService, never()).deleteAll(List.of(owned, notOwned));
     }
 
     @Test

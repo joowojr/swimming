@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import type { ApiError } from '../../api/client'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
+import { deleteTasks } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus } from '../tasks/taskTypes'
 import { getProject } from './projectApi'
@@ -58,7 +59,45 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   )
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('ALL')
   const [isDeleteMode, setIsDeleteMode] = useState(false)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
+  const [isDeletingTasks, setIsDeletingTasks] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const taskInputRef = useRef<HTMLInputElement>(null)
+
+  const leaveDeleteMode = () => {
+    setIsDeleteMode(false)
+    setSelectedTaskIds(new Set())
+    setDeleteError(null)
+  }
+
+  const toggleTaskSelection = (taskId: number) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current)
+      if (next.has(taskId)) next.delete(taskId)
+      else next.add(taskId)
+      return next
+    })
+    setDeleteError(null)
+  }
+
+  const removeSelectedTasks = async () => {
+    if (selectedTaskIds.size === 0) return
+
+    setIsDeletingTasks(true)
+    setDeleteError(null)
+    try {
+      await deleteTasks({ taskIds: [...selectedTaskIds] })
+      leaveDeleteMode()
+      setRequestKey((key) => key + 1)
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null
+        ? (error as ApiError).message
+        : undefined
+      setDeleteError(apiMessage ?? '선택한 task를 삭제하지 못했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsDeletingTasks(false)
+    }
+  }
 
   const retry = useCallback(() => {
     setState({ status: 'loading' })
@@ -124,24 +163,24 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     : project.tasks.filter((task) => task.status === taskFilter)
   const emptyCopy = {
     ALL: {
-      title: '등록된 task가 없습니다.',
-      description: 'task가 추가되면 진행 순서대로 이곳에 표시됩니다.',
+      title: '등록된 할 일이 없어요.',
+      description: '할 일이 추가되면 진행 순서대로 이곳에 표시됩니다.',
     },
     TODO: {
-      title: '시작 전인 task가 없습니다.',
+      title: '시작 전인 할 일이 없어요.',
       description: '새로운 task를 추가하면 이곳에서 확인할 수 있습니다.',
     },
     DOING: {
-      title: '하는 중인 task가 없습니다.',
-      description: '진행을 시작한 task가 생기면 이곳에 표시됩니다.',
+      title: '등록된 할 일이 없어요.',
+      description: '진행을 시작한 할 일이 생기면 이곳에 표시됩니다.',
     },
     DONE: {
-      title: '끝낸 task가 없습니다.',
-      description: '완료한 task가 생기면 이곳에 차곡차곡 표시됩니다.',
+      title: '끝낸 할 일이 없어요.',
+      description: '완료한 할 일이 생기면 이곳에 차곡차곡 표시됩니다.',
     },
     HOLD: {
-      title: '잠시 멈춘 task가 없습니다.',
-      description: '잠시 멈춘 task가 생기면 이곳에서 다시 확인할 수 있습니다.',
+      title: '잠시 멈춘 할 일이 없어요.',
+      description: '',
     },
   }[taskFilter]
 
@@ -204,6 +243,43 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
+            {isDeleteMode && (
+              <button
+                type="button"
+                className={styles['delete-task-button']}
+                disabled={selectedTaskIds.size === 0 || isDeletingTasks}
+                onClick={() => void removeSelectedTasks()}
+              >
+                <IconTrash size={16} aria-hidden="true" />
+                {isDeletingTasks ? '삭제 중' : `${selectedTaskIds.size}개 삭제`}
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles['delete-task-button']}
+              aria-pressed={isDeleteMode}
+              disabled={isDeletingTasks}
+              onClick={() => {
+                if (isDeleteMode) leaveDeleteMode()
+                else setIsDeleteMode(true)
+              }}
+            >
+              {!isDeleteMode && <IconTrash size={16} aria-hidden="true" />}
+              {isDeleteMode ? '취소' : <span className="sr-only">Task 삭제 선택</span>}
+            </button>
+          </div>
+        </div>
+        {deleteError && <p className={styles['delete-error']} role="alert">{deleteError}</p>}
+        <div className={styles['task-list-stack']}>
+          <CreateTaskComposer
+            projectId={project.id}
+            inputRef={taskInputRef}
+            onCreated={() => {
+              setTaskFilter('ALL')
+              setRequestKey((key) => key + 1)
+            }}
+          />
+          <div className={styles['task-list-toolbar']}>
             <div className={styles['task-filters']} role="group" aria-label="Task 상태 필터">
               {taskFilters.map((filter) => (
                 <button
@@ -216,32 +292,16 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className={styles['delete-task-button']}
-              aria-pressed={isDeleteMode}
-              onClick={() => setIsDeleteMode((active) => !active)}
-            >
-              <IconTrash size={16} aria-hidden="true" />
-              {isDeleteMode ? '취소' : ''}
-            </button>
           </div>
-        </div>
-        <div className={styles['task-list-stack']}>
-          <CreateTaskComposer
-            projectId={project.id}
-            inputRef={taskInputRef}
-            onCreated={() => {
-              setTaskFilter('ALL')
-              setRequestKey((key) => key + 1)
-            }}
-          />
           <TaskList
             tasks={visibleTasks}
             emptyTitle={emptyCopy.title}
             emptyDescription={emptyCopy.description}
             connected
             isDeleteMode={isDeleteMode}
+            selectedTaskIds={selectedTaskIds}
+            isDeleting={isDeletingTasks}
+            onTaskSelectionChange={toggleTaskSelection}
             onTaskUpdated={() => setRequestKey((key) => key + 1)}
           />
         </div>

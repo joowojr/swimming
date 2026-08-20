@@ -281,6 +281,11 @@
   outline-color: var(--color-tertiary);
 }
 
+.delete-control button[aria-pressed='true'] {
+  color: var(--color-on-primary);
+  background: var(--color-tertiary);
+}
+
 .spinner {
   animation: spinner-rotate calc(var(--dur-modal) * 3) linear infinite;
 }

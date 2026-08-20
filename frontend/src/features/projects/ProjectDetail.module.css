@@ -257,9 +257,10 @@
 .task-filters {
   flex-wrap: wrap;
   gap: var(--space-1);
+  margin: 0;
   padding: var(--space-1);
   border-radius: var(--radius-lg);
-  background: var(--color-surface-container);
+  background: var(--color-surface-lowest);
 }
 
 .task-filters button,
@@ -284,9 +285,20 @@
   background: var(--color-surface-lowest);
 }
 
+.task-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+  border: 0;
+  background: var(--color-surface-lowest);
+}
+
 .task-filters button {
   border: var(--border-width) solid transparent;
   background: transparent;
+  --shadow-floating: none;
 }
 
 .task-filters button[aria-pressed='true'] {
@@ -299,7 +311,7 @@
   gap: var(--space-2);
   border: var(--border-width) solid var(--color-border-subtle);
   color: var(--color-text-primary);
-  background: var(--color-surface-lowest);
+  background: white;
 }
 
 .task-filters button:active,
@@ -310,6 +322,17 @@
 .delete-task-button[aria-pressed='true'] {
   border-color: var(--color-tertiary);
   color: var(--color-tertiary);
+}
+
+.delete-task-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.delete-error {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
 }
 
 .state-page {

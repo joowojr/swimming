@@ -71,23 +71,23 @@ export default function ProjectDashboard({
   const metrics = useMemo(
     () => [
       {
-        label: '진행 중인 프로젝트',
+        label: '총 프로젝트',
         value: projects.length,
         icon: IconFolders,
         tone: styles['is-blue'],
       },
+        {
+            label: '진행 중',
+            value: projects.filter((project) => project.tag !== null).length,
+            icon: IconTags,
+            tone: styles['is-green'],
+        },
       {
-        label: '목표일 설정',
+        label: '완료',
         value: projects.filter((project) => project.targetDate !== null).length,
         icon: IconTargetArrow,
         tone: styles['is-orange'],
-      },
-      {
-        label: '태그 연결',
-        value: projects.filter((project) => project.tag !== null).length,
-        icon: IconTags,
-        tone: styles['is-green'],
-      },
+      }
     ],
     [projects],
   )

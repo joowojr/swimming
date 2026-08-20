@@ -1,3 +1,5 @@
+import type { TaskSummaryResponse } from '../tasks/taskTypes'
+
 export type ProjectStatus = 'IN_PROGRESS' | 'ARCHIVED'
 
 export interface ProjectTag {
@@ -14,6 +16,23 @@ export interface Project {
   tag: ProjectTag | null
   createdAt: string
   updatedAt: string
+}
+
+export interface ProjectProgress {
+  totalTaskCount: number
+  completedTaskCount: number
+  completionPct: number
+}
+
+export interface ProjectDetail {
+  id: number
+  name: string
+  description: string
+  targetDate: string | null
+  status: ProjectStatus
+  tag: ProjectTag | null
+  progress: ProjectProgress
+  tasks: TaskSummaryResponse[]
 }
 
 export interface CreateProjectRequest {

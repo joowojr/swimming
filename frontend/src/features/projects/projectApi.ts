@@ -2,6 +2,7 @@ import { client } from '../../api/client'
 import type {
   CreateProjectRequest,
   Project,
+  ProjectDetail,
   ProjectTag,
   UpdateProjectRequest,
 } from './projectTypes'
@@ -18,8 +19,8 @@ export async function createProject(
   return response.data
 }
 
-export async function getProject(projectId: number): Promise<Project> {
-  const response = await client.get<Project>(`/projects/${projectId}`)
+export async function getProject(projectId: number): Promise<ProjectDetail> {
+  const response = await client.get<ProjectDetail>(`/projects/${projectId}`)
   return response.data
 }
 

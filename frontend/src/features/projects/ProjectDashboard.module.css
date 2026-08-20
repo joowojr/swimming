@@ -175,14 +175,10 @@
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
   background: var(--color-surface-lowest);
+  text-decoration: none;
   transition:
     border-color var(--transition-short),
     background-color var(--transition-short);
-}
-
-.project-card:hover {
-  border-color: var(--color-primary-outline);
-  background: var(--color-surface-low);
 }
 
 .project-route {
@@ -211,10 +207,6 @@
 .project-route.is-sky {
   --route-accent: var(--color-primary-fixed-dim);
   --route-length: 42%;
-}
-
-.project-card:hover .project-route::after {
-  width: calc(var(--route-length) + 8%);
 }
 
 .project-card-heading {
@@ -413,6 +405,17 @@
   }
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .project-card:hover {
+    border-color: var(--color-primary-outline);
+    background: var(--color-surface-low);
+  }
+
+  .project-card:hover .project-route::after {
+    width: calc(var(--route-length) + 8%);
+  }
+}
+
 @media (max-width: 72rem) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -467,4 +470,3 @@
     min-height: 13rem;
   }
 }
-

@@ -236,7 +236,6 @@
 }
 
 .section-title span {
-  color: var(--color-accent);
   white-space: nowrap;
 }
 
@@ -264,7 +263,7 @@
 }
 
 .task-filters button,
-.create-task-button {
+.delete-task-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -296,7 +295,7 @@
   box-shadow: var(--shadow-control);
 }
 
-.create-task-button {
+.delete-task-button {
   gap: var(--space-2);
   border: var(--border-width) solid var(--color-border-subtle);
   color: var(--color-text-primary);
@@ -304,8 +303,13 @@
 }
 
 .task-filters button:active,
-.create-task-button:active {
+.delete-task-button:active {
   transform: translateY(var(--border-width));
+}
+
+.delete-task-button[aria-pressed='true'] {
+  border-color: var(--color-tertiary);
+  color: var(--color-tertiary);
 }
 
 .state-page {
@@ -406,7 +410,7 @@
   }
 
   .task-filters button:hover:not([aria-pressed='true']),
-  .create-task-button:hover {
+  .delete-task-button:hover:not([aria-pressed='true']) {
     color: var(--color-text-primary);
     border-color: var(--color-primary-outline);
     background: var(--color-primary-soft);

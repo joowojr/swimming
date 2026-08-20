@@ -210,14 +210,14 @@
   padding: 0;
   border: 0;
   border-radius: var(--radius-full);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   background: transparent;
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
 }
 
 .play-control button:focus-visible {
-  outline-color: var(--color-tertiary);
+  outline-color: var(--color-primary);
 }
 
 .play-control button:active:not(:disabled) {
@@ -267,8 +267,18 @@
 }
 
 .play-control:hover button {
+  color: var(--color-primary);
+  background: white;
+}
+
+.delete-control button,
+.delete-control:hover button {
   color: var(--color-tertiary);
-  background: var(--color-tertiary-soft);
+  background: var(--color-surface-muted);
+}
+
+.delete-control button:focus-visible {
+  outline-color: var(--color-tertiary);
 }
 
 .spinner {
@@ -310,11 +320,10 @@
   }
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .item:hover {
-    background: var(--color-surface-muted);
-  }
-}
+/*@media (hover: hover) and (pointer: fine) {*/
+/*  .item:hover {*/
+/*  }*/
+/*}*/
 
 @media (prefers-reduced-motion: reduce) {
   .tooltip {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconChevronRight, IconPlus } from '@tabler/icons-react'
+import { IconChevronRight, IconTrash } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import type { ApiError } from '../../api/client'
@@ -57,6 +57,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     projectId === null ? { status: 'error', notFound: true } : { status: 'loading' },
   )
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('ALL')
+  const [isDeleteMode, setIsDeleteMode] = useState(false)
   const taskInputRef = useRef<HTMLInputElement>(null)
 
   const retry = useCallback(() => {
@@ -200,7 +201,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
             <h2 id="project-tasks-title">해야 할 일</h2>
-            <span>task {visibleTasks.length}개 표시</span>
+            <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
             <div className={styles['task-filters']} role="group" aria-label="Task 상태 필터">
@@ -217,11 +218,12 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             </div>
             <button
               type="button"
-              className={styles['create-task-button']}
-              onClick={() => taskInputRef.current?.focus()}
+              className={styles['delete-task-button']}
+              aria-pressed={isDeleteMode}
+              onClick={() => setIsDeleteMode((active) => !active)}
             >
-              <IconPlus size={16} aria-hidden="true" />
-              task
+              <IconTrash size={16} aria-hidden="true" />
+              {isDeleteMode ? '취소' : ''}
             </button>
           </div>
         </div>
@@ -239,6 +241,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             emptyTitle={emptyCopy.title}
             emptyDescription={emptyCopy.description}
             connected
+            isDeleteMode={isDeleteMode}
             onTaskUpdated={() => setRequestKey((key) => key + 1)}
           />
         </div>

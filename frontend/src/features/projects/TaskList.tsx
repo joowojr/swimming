@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
+import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
-import { updateTask } from '../tasks/taskApi'
+import { deleteTask, updateTask } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
@@ -11,6 +11,7 @@ interface TaskListProps {
   emptyTitle?: string
   emptyDescription?: string
   connected?: boolean
+  isDeleteMode?: boolean
   onTaskUpdated?: () => void
 }
 
@@ -30,6 +31,7 @@ export default function TaskList({
   emptyTitle = '등록된 task가 없습니다.',
   emptyDescription = 'task가 추가되면 진행 순서대로 이곳에 표시됩니다.',
   connected = false,
+  isDeleteMode = false,
   onTaskUpdated,
 }: TaskListProps) {
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
@@ -68,6 +70,24 @@ export default function TaskList({
       select.showPicker()
     } catch {
       select.focus()
+    }
+  }
+
+  const removeTask = async (task: TaskSummaryResponse) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+
+    try {
+      await deleteTask(task.id)
+      onTaskUpdated?.()
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null
+        ? (error as ApiError).message
+        : undefined
+      const message = apiMessage ?? 'task를 삭제하지 못했습니다. 다시 시도해 주세요.'
+      setUpdateError({ taskId: task.id, message })
+    } finally {
+      setPendingTaskId(null)
     }
   }
 
@@ -128,20 +148,27 @@ export default function TaskList({
                 <p className={styles.error} role="alert">{updateError.message}</p>
               )}
             </div>
-            <span className={styles['play-control']}>
+            <span
+              className={`${styles['play-control']} ${isDeleteMode ? styles['delete-control'] : ''}`}
+            >
               <button
                 type="button"
                 disabled={isPending}
-                aria-describedby={`task-${task.id}-play-tooltip`}
-                onClick={() => void changeTaskStatus(task, 'DOING')}
+                aria-describedby={`task-${task.id}-action-tooltip`}
+                onClick={() => {
+                  if (isDeleteMode) void removeTask(task)
+                  else void changeTaskStatus(task, 'DOING')
+                }}
               >
                 {isPending
                   ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true" />
-                  : <IconPlayerPlay size={16} stroke={2} aria-hidden="true" />}
-                <span className="sr-only">세션 시작</span>
+                  : isDeleteMode
+                    ? <IconTrash size={16} stroke={2} aria-hidden="true" />
+                    : <IconPlayerPlay size={16} stroke={2} aria-hidden="true" />}
+                <span className="sr-only">{isDeleteMode ? '삭제' : '세션 시작'}</span>
               </button>
-              <span className={styles.tooltip} id={`task-${task.id}-play-tooltip`} role="tooltip">
-                세션 시작
+              <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
+                {isDeleteMode ? '' : '세션 시작'}
               </span>
             </span>
           </li>

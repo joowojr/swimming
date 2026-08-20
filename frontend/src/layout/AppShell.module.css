@@ -1,0 +1,28 @@
+.app-shell {
+  min-height: 100svh;
+  background: var(--color-background);
+}
+
+.app-shell-body {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  min-height: calc(100svh - 3.5rem);
+}
+
+.app-content {
+  min-width: 0;
+  padding: 0;
+  background: var(--color-background);
+}
+
+@media (max-width: 48rem) {
+  .app-shell-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-content {
+    padding: 0;
+  }
+}
+

@@ -6,6 +6,7 @@ import type {
   LoginFieldErrors,
   LoginRequest,
 } from './authTypes'
+import styles from './LoginForm.module.css'
 
 interface LoginFormProps {
   onSuccess: (response: AuthResponse) => void
@@ -80,8 +81,8 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   return (
-    <form className="login-form" onSubmit={handleSubmit} noValidate>
-      <div className="form-field">
+    <form className={styles['login-form']} onSubmit={handleSubmit} noValidate>
+      <div className={styles['form-field']}>
         <label htmlFor="login-email">이메일</label>
         <input
           id="login-email"
@@ -97,13 +98,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           }}
         />
         {fieldErrors.email && (
-          <p className="field-error" id="login-email-error" role="alert">
+          <p className={styles['field-error']} id="login-email-error" role="alert">
             {fieldErrors.email}
           </p>
         )}
       </div>
 
-      <div className="form-field">
+      <div className={styles['form-field']}>
         <label htmlFor="login-password">비밀번호</label>
         <input
           id="login-password"
@@ -121,19 +122,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           }}
         />
         {fieldErrors.password && (
-          <p className="field-error" id="login-password-error" role="alert">
+          <p className={styles['field-error']} id="login-password-error" role="alert">
             {fieldErrors.password}
           </p>
         )}
       </div>
 
       {requestError && (
-        <p className="form-error" role="alert">
+        <p className={styles['form-error']} role="alert">
           {requestError}
         </p>
       )}
 
-      <button className="login-submit" type="submit" disabled={isSubmitting}>
+      <button className={styles['login-submit']} type="submit" disabled={isSubmitting}>
         {isSubmitting ? '로그인 중…' : '로그인'}
       </button>
     </form>

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   IconCalendarDue,
   IconFilter,
@@ -32,7 +33,11 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
   const routeTone = [styles['is-clay'], styles['is-sky'], styles['is-pale']][index % 3]
 
   return (
-    <article className={styles['project-card']}>
+    <Link
+      className={styles['project-card']}
+      to={`/projects/${project.id}`}
+      aria-label={`${project.name} 상세 보기`}
+    >
       <span className={`${styles['project-route']} ${routeTone}`} aria-hidden="true" />
       <div className={styles['project-card-heading']}>
         <div className={styles['project-card-title-group']}>
@@ -58,7 +63,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           {project.targetDate ? formatTargetDate(project.targetDate) : '설정하지 않음'}
         </strong>
       </div>
-    </article>
+    </Link>
   )
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   IconBell,
   IconHelpCircle,
@@ -32,12 +33,12 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
   return (
     <header className={styles['top-bar']}>
       <div className={styles['top-bar-primary']}>
-        <a className={styles.brand} href="#main-content" aria-label="Swimming 홈">
+        <Link className={styles.brand} to="/projects" aria-label="Swimming 프로젝트">
           <span className={styles['brand-mark']} aria-hidden="true">
             <IconHexagon size={20} stroke={2} />
           </span>
           <span className={styles['brand-name']}>swimming</span>
-        </a>
+        </Link>
         <nav className={styles['workspace-navigation']} aria-label="워크스페이스">
         </nav>
       </div>

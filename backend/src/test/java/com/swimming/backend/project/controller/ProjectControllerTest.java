@@ -6,10 +6,14 @@ import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.project.domain.ProjectStatus;
 import com.swimming.backend.project.dto.CreateProjectRequest;
+import com.swimming.backend.project.dto.ProjectDetailResponse;
+import com.swimming.backend.project.dto.ProjectProgressResponse;
 import com.swimming.backend.project.dto.ProjectResponse;
 import com.swimming.backend.project.dto.ProjectTagResponse;
 import com.swimming.backend.project.dto.UpdateProjectRequest;
 import com.swimming.backend.project.usecase.ProjectUseCase;
+import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -193,18 +197,42 @@ class ProjectControllerTest {
     @Test
     @DisplayName("인증 사용자가 소유한 프로젝트 상세를 반환한다")
     void returnsOwnedProjectDetail() throws Exception {
-        when(projectUseCase.getOne(1L, 10L)).thenReturn(response(
+        when(projectUseCase.getOne(1L, 10L)).thenReturn(new ProjectDetailResponse(
                 10L,
                 "프로젝트",
                 "설명",
                 null,
-                ProjectStatus.ARCHIVED
+                ProjectStatus.ARCHIVED,
+                null,
+                new ProjectProgressResponse(2, 1, 50),
+                List.of(
+                        new TaskSummaryResponse(
+                                1L,
+                                "완료 Task",
+                                TaskStatus.DONE,
+                                100,
+                                0
+                        ),
+                        new TaskSummaryResponse(
+                                2L,
+                                "진행 Task",
+                                TaskStatus.DOING,
+                                40,
+                                1
+                        )
+                )
         ));
 
         mockMvc.perform(get("/api/projects/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
-                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+                .andExpect(jsonPath("$.status").value("ARCHIVED"))
+                .andExpect(jsonPath("$.progress.totalTaskCount").value(2))
+                .andExpect(jsonPath("$.progress.completedTaskCount").value(1))
+                .andExpect(jsonPath("$.progress.completionPct").value(50))
+                .andExpect(jsonPath("$.tasks[0].id").value(1))
+                .andExpect(jsonPath("$.tasks[0].status").value("DONE"))
+                .andExpect(jsonPath("$.tasks[1].orderIdx").value(1));
     }
 
     @Test

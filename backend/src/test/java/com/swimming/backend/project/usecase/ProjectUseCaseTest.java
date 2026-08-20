@@ -6,10 +6,14 @@ import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.domain.ProjectStatus;
 import com.swimming.backend.project.domain.ProjectTag;
 import com.swimming.backend.project.dto.CreateProjectRequest;
+import com.swimming.backend.project.dto.ProjectDetailResponse;
 import com.swimming.backend.project.dto.ProjectResponse;
 import com.swimming.backend.project.dto.UpdateProjectRequest;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.project.service.ProjectTagService;
+import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
+import com.swimming.backend.task.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,11 +41,18 @@ class ProjectUseCaseTest {
     @Mock
     private ProjectTagService projectTagService;
 
+    @Mock
+    private TaskService taskService;
+
     private ProjectUseCase projectUseCase;
 
     @BeforeEach
     void setUp() {
-        projectUseCase = new ProjectUseCase(projectService, projectTagService);
+        projectUseCase = new ProjectUseCase(
+                projectService,
+                projectTagService,
+                taskService
+        );
     }
 
     @Test
@@ -149,15 +160,39 @@ class ProjectUseCaseTest {
     }
 
     @Test
-    @DisplayName("프로젝트 상세를 응답 DTO로 변환한다")
+    @DisplayName("프로젝트 상세에 Task 목록과 완료 Task 비율을 포함한다")
     void returnsProjectDetailAsResponse() {
         when(projectService.getOne(1L, 10L))
                 .thenReturn(project(10L, "프로젝트", "설명", null));
+        when(taskService.getSummaries(10L)).thenReturn(List.of(
+                new TaskSummaryResponse(1L, "첫째", TaskStatus.DONE, 100, 0),
+                new TaskSummaryResponse(2L, "둘째", TaskStatus.DOING, 50, 1)
+        ));
 
-        ProjectResponse response = projectUseCase.getOne(1L, 10L);
+        ProjectDetailResponse response = projectUseCase.getOne(1L, 10L);
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.description()).isEqualTo("설명");
+        assertThat(response.progress().totalTaskCount()).isEqualTo(2);
+        assertThat(response.progress().completedTaskCount()).isEqualTo(1);
+        assertThat(response.progress().completionPct()).isEqualTo(50);
+        assertThat(response.tasks()).extracting(TaskSummaryResponse::title)
+                .containsExactly("첫째", "둘째");
+    }
+
+    @Test
+    @DisplayName("Task가 없는 프로젝트의 완료 비율은 0이다")
+    void returnsZeroProgressWhenProjectHasNoTasks() {
+        when(projectService.getOne(1L, 10L))
+                .thenReturn(project(10L, "프로젝트", "설명", null));
+        when(taskService.getSummaries(10L)).thenReturn(List.of());
+
+        ProjectDetailResponse response = projectUseCase.getOne(1L, 10L);
+
+        assertThat(response.progress().totalTaskCount()).isZero();
+        assertThat(response.progress().completedTaskCount()).isZero();
+        assertThat(response.progress().completionPct()).isZero();
+        assertThat(response.tasks()).isEmpty();
     }
 
     @Test

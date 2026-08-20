@@ -5,28 +5,22 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.domain.ProjectStatus;
 import com.swimming.backend.project.domain.ProjectTag;
+import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(
-        propagation = Propagation.REQUIRED,
-        readOnly = true
-)
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectTagRepository projectTagRepository;
 
-    @Transactional(propagation = Propagation.REQUIRED)
     public Project create(
             Long userId,
             String name,
@@ -42,7 +36,7 @@ public class ProjectService {
                 .description(description.trim())
                 .targetDate(targetDate)
                 .build();
-        return projectRepository.save(project);
+         return projectRepository.save(project);
     }
 
     public List<Project> getAll(Long userId) {
@@ -57,7 +51,10 @@ public class ProjectService {
         return getOwnedProject(userId, projectId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    public ProjectReference getReference(Long userId, Long projectId) {
+        return ProjectReference.from(getOwnedProject(userId, projectId));
+    }
+
     public Project update(
             Long userId,
             Long projectId,

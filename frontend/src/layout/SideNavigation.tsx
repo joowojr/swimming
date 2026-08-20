@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { NavLink } from 'react-router-dom'
 import type { IconProps } from '@tabler/icons-react'
 import {
   IconCalendar,
@@ -13,12 +14,12 @@ import styles from './SideNavigation.module.css'
 interface NavigationItem {
   label: string
   icon: ComponentType<IconProps>
-  current?: boolean
+  href?: string
   badge?: string
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: '대시보드', icon: IconLayoutDashboard, current: true },
+  { label: '대시보드', icon: IconLayoutDashboard, href: '/projects' },
   { label: '프로젝트', icon: IconFolder },
   { label: '그룹 세션', icon: IconUsers },
   { label: '통계', icon: IconChartBar },
@@ -57,15 +58,21 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
 
             return (
               <li key={item.label}>
-                {item.current ? (
-                  <a
-                    className={`${styles['navigation-item']} ${styles['is-active']}`}
-                    href="#main-content"
-                    aria-current="page"
+                {item.href ? (
+                  <NavLink
+                    className={({ isActive }) => (
+                      `${styles['navigation-item']} ${isActive ? styles['is-active'] : ''}`
+                    )}
+                    to={item.href}
                   >
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>
-                  </a>
+                    {badge && (
+                      <span className={styles['navigation-badge']} aria-label={`프로젝트 ${badge}개`}>
+                        {badge}
+                      </span>
+                    )}
+                  </NavLink>
                 ) : (
                   <button
                     className={styles['navigation-item']}

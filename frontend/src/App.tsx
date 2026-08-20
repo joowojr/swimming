@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { client } from './api/client'
 import CreateProjectModal from './features/projects/CreateProjectModal'
 import ProjectDashboard from './features/projects/ProjectDashboard'
 import type { ProjectLoadStatus } from './features/projects/ProjectDashboard'
+import ProjectDetail from './features/projects/ProjectDetail'
 import { getProjects } from './features/projects/projectApi'
 import type { Project } from './features/projects/projectTypes'
 import AppShell from './layout/AppShell'
@@ -17,6 +19,16 @@ interface HealthResponse {
 
 type ResourceStatus = 'checking' | 'up' | 'unavailable'
 type GuestView = 'home' | 'login'
+
+function ProjectDetailRoute() {
+  const { projectId } = useParams()
+  const parsedProjectId = Number(projectId)
+  const validProjectId = Number.isSafeInteger(parsedProjectId) && parsedProjectId > 0
+    ? parsedProjectId
+    : null
+
+  return <ProjectDetail key={projectId ?? 'invalid'} projectId={validProjectId} />
+}
 
 function App() {
   const auth = useAuthStore()
@@ -97,29 +109,38 @@ function App() {
       {auth.status === 'unauthenticated' && guestView === 'login' ? (
         <LoginPage />
       ) : auth.status === 'authenticated' ? (
-        <>
-          <ProjectDashboard
-            projects={visibleProjects}
-            status={visibleProjectStatus}
-            onOpenCreate={() => setIsCreateModalOpen(true)}
-            onRetry={() => {
-              setProjectsOwnerId(auth.user?.id ?? null)
-              setProjectStatus('loading')
-              setProjectRequestKey((key) => key + 1)
-            }}
+        <Routes>
+          <Route
+            path="/projects"
+            element={(
+              <>
+                <ProjectDashboard
+                  projects={visibleProjects}
+                  status={visibleProjectStatus}
+                  onOpenCreate={() => setIsCreateModalOpen(true)}
+                  onRetry={() => {
+                    setProjectsOwnerId(auth.user?.id ?? null)
+                    setProjectStatus('loading')
+                    setProjectRequestKey((key) => key + 1)
+                  }}
+                />
+                {isCreateModalOpen && (
+                  <CreateProjectModal
+                    onClose={() => setIsCreateModalOpen(false)}
+                    onCreated={(project) => {
+                      setProjects((currentProjects) => [project, ...currentProjects])
+                      setProjectsOwnerId(auth.user?.id ?? null)
+                      setProjectStatus('ready')
+                      setIsCreateModalOpen(false)
+                    }}
+                  />
+                )}
+              </>
+            )}
           />
-          {isCreateModalOpen && (
-            <CreateProjectModal
-              onClose={() => setIsCreateModalOpen(false)}
-              onCreated={(project) => {
-                setProjects((currentProjects) => [project, ...currentProjects])
-                setProjectsOwnerId(auth.user?.id ?? null)
-                setProjectStatus('ready')
-                setIsCreateModalOpen(false)
-              }}
-            />
-          )}
-        </>
+          <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
+          <Route path="*" element={<Navigate to="/projects" replace />} />
+        </Routes>
       ) : (
         <section className={styles['home-overview']} aria-live="polite">
           <p className={styles.eyebrow}>Swimming workspace</p>

@@ -4,10 +4,15 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.domain.ProjectTag;
 import com.swimming.backend.project.dto.CreateProjectRequest;
+import com.swimming.backend.project.dto.ProjectDetailResponse;
+import com.swimming.backend.project.dto.ProjectProgressResponse;
 import com.swimming.backend.project.dto.ProjectResponse;
 import com.swimming.backend.project.dto.UpdateProjectRequest;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.project.service.ProjectTagService;
+import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.dto.web.TaskSummaryResponse;
+import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -21,6 +26,7 @@ public class ProjectUseCase {
 
     private final ProjectService projectService;
     private final ProjectTagService projectTagService;
+    private final TaskService taskService;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public ProjectResponse create(Long userId, CreateProjectRequest request) {
@@ -43,6 +49,10 @@ public class ProjectUseCase {
         ));
     }
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
     public List<ProjectResponse> getAll(Long userId) {
         return projectService.getAll(userId)
                 .stream()
@@ -50,10 +60,29 @@ public class ProjectUseCase {
                 .toList();
     }
 
-    public ProjectResponse getOne(Long userId, Long projectId) {
-        return ProjectResponse.from(projectService.getOne(userId, projectId));
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
+    public ProjectDetailResponse getOne(Long userId, Long projectId) {
+        var project = projectService.getOne(userId, projectId);
+        List<TaskSummaryResponse> tasks = taskService.getSummaries(project.getId());
+        int totalTaskCount = tasks.size();
+        int completedTaskCount = (int) tasks.stream()
+                .filter(task -> task.status() == TaskStatus.DONE)
+                .count();
+        int completionPct = totalTaskCount == 0
+                ? 0
+                : completedTaskCount * 100 / totalTaskCount;
+        ProjectProgressResponse progress = new ProjectProgressResponse(
+                totalTaskCount,
+                completedTaskCount,
+                completionPct
+        );
+        return ProjectDetailResponse.from(project, progress, tasks);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
     public ProjectResponse update(
             Long userId,
             Long projectId,

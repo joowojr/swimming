@@ -2,6 +2,7 @@ package com.swimming.backend.project.controller;
 
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.project.dto.CreateProjectRequest;
+import com.swimming.backend.project.dto.ProjectDetailResponse;
 import com.swimming.backend.project.dto.ProjectResponse;
 import com.swimming.backend.project.dto.UpdateProjectRequest;
 import com.swimming.backend.project.usecase.ProjectUseCase;
@@ -49,7 +50,7 @@ public class ProjectController {
     }
 
     @GetMapping("/{projectId}")
-    public ResponseEntity<ProjectResponse> getOne(
+    public ResponseEntity<ProjectDetailResponse> getOne(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long projectId
     ) {

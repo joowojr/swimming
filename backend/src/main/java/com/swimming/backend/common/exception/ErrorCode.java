@@ -15,7 +15,10 @@ public enum ErrorCode {
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다"),
     PROJECT_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "프로젝트 태그를 찾을 수 없습니다"),
     PROJECT_TAG_SELECTION_CONFLICT(HttpStatus.BAD_REQUEST, "기존 태그와 새 태그를 동시에 선택할 수 없습니다"),
-    PROJECT_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 프로젝트 태그가 이미 있습니다");
+    PROJECT_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 프로젝트 태그가 이미 있습니다"),
+
+    TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task를 찾을 수 없습니다"),
+    INVALID_TASK_ORDER(HttpStatus.BAD_REQUEST, "Task 순서가 올바르지 않습니다");
 
     private final HttpStatus status;
     private final String message;

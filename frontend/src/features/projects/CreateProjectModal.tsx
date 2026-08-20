@@ -16,8 +16,9 @@ interface CreateProjectModalProps {
 }
 
 type TagsStatus = 'loading' | 'ready' | 'error'
-type FieldErrors = Partial<Record<'name' | 'description' | 'newTagName', string>>
-type TouchedFields = Partial<Record<'name' | 'description' | 'newTagName', boolean>>
+type ProjectFormField = 'name' | 'description' | 'targetDate' | 'newTagName'
+type FieldErrors = Partial<Record<ProjectFormField, string>>
+type TouchedFields = Partial<Record<ProjectFormField, boolean>>
 
 function validateName(value: string) {
   if (!value.trim()) return '프로젝트 이름을 입력해 주세요.'
@@ -27,6 +28,18 @@ function validateName(value: string) {
 
 function validateDescription(value: string) {
   if (!value.trim()) return '프로젝트 설명을 입력해 주세요.'
+  return undefined
+}
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function validateTargetDate(value: string, minimumDate: string) {
+  if (value && value < minimumDate) return '목표일은 오늘 또는 이후 날짜로 선택해 주세요.'
   return undefined
 }
 
@@ -48,8 +61,7 @@ export default function CreateProjectModal({
   const [description, setDescription] = useState('')
   const [targetDate, setTargetDate] = useState('')
 
-  const [newTagName, setNewTagName] = useState('')
-  const [selectedTagId, setSelectedTagId] = useState<number | null>(null)
+  const [tagName, setTagName] = useState('')
   const [tags, setTags] = useState<ProjectTag[]>([])
   const [tagsStatus, setTagsStatus] = useState<TagsStatus>('loading')
   const [touchedFields, setTouchedFields] = useState<TouchedFields>({})
@@ -57,6 +69,7 @@ export default function CreateProjectModal({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [tagError, setTagError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const minimumTargetDate = formatLocalDate(new Date())
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -106,21 +119,23 @@ export default function CreateProjectModal({
     const nextErrors: FieldErrors = {
       name: validateName(name),
       description: validateDescription(description),
-      newTagName: validateNewTagName(newTagName),
+      targetDate: validateTargetDate(targetDate, minimumTargetDate),
+      newTagName: validateNewTagName(tagName),
     }
 
-    const normalizedNewTagName = newTagName.trim()
-    const duplicateTag = normalizedNewTagName
+    const normalizedTagName = tagName.trim()
+    const matchedTag = normalizedTagName
       ? tags.find(
-          (tag) => tag.name.toLocaleLowerCase() === normalizedNewTagName.toLocaleLowerCase(),
+          (tag) => tag.name.toLocaleLowerCase() === normalizedTagName.toLocaleLowerCase(),
         )
       : undefined
 
-    if (duplicateTag) {
-      nextErrors.newTagName = '이미 있는 태그입니다. 위 목록에서 선택해 주세요.'
-    }
-
-    setTouchedFields({ name: true, description: true, newTagName: true })
+    setTouchedFields({
+      name: true,
+      description: true,
+      targetDate: true,
+      newTagName: true,
+    })
     setFieldErrors(nextErrors)
     setSubmitError(null)
     setTagError(null)
@@ -133,8 +148,8 @@ export default function CreateProjectModal({
       name: name.trim(),
       description: description.trim(),
       targetDate: targetDate || null,
-      tagId: selectedTagId,
-      newTagName: normalizedNewTagName || null,
+      tagId: matchedTag?.id ?? null,
+      newTagName: normalizedTagName && !matchedTag ? normalizedTagName : null,
     }
 
     setIsSubmitting(true)
@@ -145,6 +160,7 @@ export default function CreateProjectModal({
         setFieldErrors({
           name: error.errors.name,
           description: error.errors.description,
+          targetDate: error.errors.targetDate,
           newTagName: error.errors.newTagName,
         })
       }
@@ -160,6 +176,20 @@ export default function CreateProjectModal({
       setIsSubmitting(false)
     }
   }
+
+  const normalizedTagName = tagName.trim()
+  const matchedTag = normalizedTagName
+    ? tags.find(
+        (tag) => tag.name.toLocaleLowerCase() === normalizedTagName.toLocaleLowerCase(),
+      )
+    : undefined
+  const visibleTags = matchedTag
+    ? tags
+    : normalizedTagName
+      ? tags.filter((tag) =>
+          tag.name.toLocaleLowerCase().includes(normalizedTagName.toLocaleLowerCase()),
+        )
+      : tags
 
   return (
     <dialog
@@ -178,7 +208,7 @@ export default function CreateProjectModal({
         <header className={styles['modal-header']}>
           <div>
             <h2 id="create-project-title">새 프로젝트</h2>
-            <p id="create-project-description">프로젝트의 기본 정보를 입력하세요.</p>
+            <p id="create-project-description">새 프로젝트 정보를 입력해 주세요.</p>
           </div>
           <button
             type="button"
@@ -228,7 +258,7 @@ export default function CreateProjectModal({
                 id="project-description-input"
                 value={description}
                 rows={3}
-                placeholder="예: 개인 작업을 정리해 새 포트폴리오로 완성합니다."
+                placeholder="예: 프로젝트에서 이루고 싶은 목표를 적어주세요."
                 aria-required="true"
                 aria-invalid={Boolean(fieldErrors.description)}
                 aria-describedby={fieldErrors.description ? 'project-description-error' : undefined}
@@ -256,89 +286,109 @@ export default function CreateProjectModal({
                 id="project-target-date"
                 type="date"
                 value={targetDate}
-                onChange={(event) => setTargetDate(event.target.value)}
+                min={minimumTargetDate}
+                aria-invalid={Boolean(fieldErrors.targetDate)}
+                aria-describedby={
+                  fieldErrors.targetDate ? 'project-target-date-error' : undefined
+                }
+                onBlur={() => {
+                  setTouchedFields((fields) => ({ ...fields, targetDate: true }))
+                  setFieldErrors((errors) => ({
+                    ...errors,
+                    targetDate: validateTargetDate(targetDate, minimumTargetDate),
+                  }))
+                }}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setTargetDate(value)
+                  if (touchedFields.targetDate) {
+                    setFieldErrors((errors) => ({
+                      ...errors,
+                      targetDate: validateTargetDate(value, minimumTargetDate),
+                    }))
+                  }
+                }}
                 disabled={isSubmitting}
               />
+              <p
+                className={styles['modal-field-message']}
+                id="project-target-date-error"
+                aria-live="polite"
+              >
+                {fieldErrors.targetDate ?? '\u00a0'}
+              </p>
             </div>
 
             <fieldset className={styles['modal-field']}>
-              <legend>태그 선택 <span>선택</span></legend>
-              {tagsStatus === 'loading' ? (
-                <p className={styles['tag-status']} role="status">태그를 불러오고 있습니다.</p>
-              ) : tagsStatus === 'error' ? (
-                <p className={styles['tag-status']}>기존 태그 목록을 불러오지 못했습니다.</p>
-              ) : tags.length > 0 ? (
-                <div className={styles['tag-options']}>
-                  <button
-                    type="button"
-                    aria-pressed={selectedTagId === null}
-                    onClick={() => {
-                      setSelectedTagId(null)
-                      setNewTagName('')
-                      setFieldErrors((errors) => ({ ...errors, newTagName: undefined }))
-                      setTagError(null)
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    선택 안 함
-                  </button>
-                  {tags.map((tag) => (
-                    <button
-                      type="button"
-                      key={tag.id}
-                      aria-pressed={selectedTagId === tag.id}
-                      onClick={() => {
-                        setSelectedTagId(tag.id)
-                        setNewTagName('')
-                        setFieldErrors((errors) => ({ ...errors, newTagName: undefined }))
+              <legend>태그 <span>선택</span></legend>
+              <div className={styles['tag-input-wrap']}>
+                {!matchedTag && (
+                  <>
+                    <label className="sr-only" htmlFor="project-tag">태그 이름</label>
+                    <input
+                      id="project-tag"
+                      value={tagName}
+                      maxLength={30}
+                      placeholder="태그를 선택하거나 새 이름을 입력하세요"
+                      autoComplete="off"
+                      aria-invalid={Boolean(fieldErrors.newTagName || tagError)}
+                      aria-describedby="project-tag-error"
+                      onBlur={() => {
+                        setTouchedFields((fields) => ({ ...fields, newTagName: true }))
+                        setFieldErrors((errors) => ({
+                          ...errors,
+                          newTagName: validateNewTagName(tagName),
+                        }))
+                      }}
+                      onChange={(event) => {
+                        const value = event.target.value
+                        setTagName(value)
                         setTagError(null)
+                        if (touchedFields.newTagName) {
+                          setFieldErrors((errors) => ({
+                            ...errors,
+                            newTagName: validateNewTagName(value),
+                          }))
+                        }
                       }}
                       disabled={isSubmitting}
-                    >
-                      {tag.name}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className={styles['tag-status']}>만들어진 태그가 아직 없습니다.</p>
-              )}
+                    />
+                  </>
+                )}
 
-              <div className={styles['new-tag-field']}>
-                <label htmlFor="project-new-tag">새 태그 직접 입력</label>
-                <input
-                  id="project-new-tag"
-                  value={newTagName}
-                  maxLength={30}
-                  placeholder="예: 포트폴리오"
-                  aria-invalid={Boolean(fieldErrors.newTagName || tagError)}
-                  aria-describedby="project-new-tag-hint project-new-tag-error"
-                  onBlur={() => {
-                    setTouchedFields((fields) => ({ ...fields, newTagName: true }))
-                    setFieldErrors((errors) => ({
-                      ...errors,
-                      newTagName: validateNewTagName(newTagName),
-                    }))
-                  }}
-                  onChange={(event) => {
-                    const value = event.target.value
-                    setNewTagName(value)
-                    setTagError(null)
-                    if (value.trim()) setSelectedTagId(null)
-                    if (touchedFields.newTagName) {
-                      setFieldErrors((errors) => ({
-                        ...errors,
-                        newTagName: validateNewTagName(value),
-                      }))
-                    }
-                  }}
-                  disabled={isSubmitting}
-                />
-                <p className={styles['new-tag-hint']} id="project-new-tag-hint">
-                  입력한 태그는 프로젝트를 만들 때 함께 생성됩니다.
-                </p>
+                {tagsStatus === 'loading' ? (
+                  <p className={styles['tag-status']} role="status">태그를 불러오는 중...</p>
+                ) : tagsStatus === 'error' ? (
+                  <p className={styles['tag-status']}>
+                    기존 태그를 확인하지 못했습니다. 입력한 이름으로 생성을 시도합니다.
+                  </p>
+                ) : visibleTags.length > 0 ? (
+                  <div className={styles['tag-options']} aria-label="태그 제안">
+                    {visibleTags.map((tag) => (
+                      <button
+                        type="button"
+                        key={tag.id}
+                        aria-pressed={matchedTag?.id === tag.id}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setTagName(matchedTag?.id === tag.id ? '' : tag.name)
+                          setFieldErrors((errors) => ({
+                            ...errors,
+                            newTagName: undefined,
+                          }))
+                          setTagError(null)
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
                 <p
                   className={styles['modal-field-message']}
-                  id="project-new-tag-error"
+                  id="project-tag-error"
                   aria-live="polite"
                 >
                   {fieldErrors.newTagName ?? tagError ?? '\u00a0'}

@@ -59,7 +59,7 @@
 .group ul { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .group li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-lg); }
 .group li span { min-width: 0; overflow-wrap: anywhere; }
-.group li button { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.25rem; padding: 0 var(--space-3); border: var(--border-width) solid var(--color-primary); border-radius: var(--radius-default); color: var(--color-primary); background: var(--color-primary-soft); font-weight: var(--text-button-weight); }
+.group li button { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--button-height); padding: 0 var(--button-padding-inline); border: var(--border-width) solid var(--color-primary); border-radius: var(--radius-default); color: var(--color-primary); background: var(--color-primary-soft); font-weight: var(--text-button-weight); }
 .group li button:disabled { border-color: var(--color-border-subtle); color: var(--color-text-muted); background: var(--color-surface-low); }
 .spinner { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

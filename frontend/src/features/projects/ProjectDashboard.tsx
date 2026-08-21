@@ -112,7 +112,7 @@ export default function ProjectDashboard({
       <section className={styles['project-dashboard']} aria-labelledby="project-dashboard-title">
         <header className={styles['dashboard-heading']}>
           <div>
-            <h1 id="project-dashboard-title">내 프로젝트</h1>
+            <h2 id="project-dashboard-title">안녕하세요</h2>
             <p>현재 진행 중인 프로젝트 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>

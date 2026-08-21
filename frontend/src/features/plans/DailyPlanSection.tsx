@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { IconArrowDown, IconArrowUp, IconCalendar, IconCheck, IconDots, IconLoader2, IconPlus, IconTrash } from '@tabler/icons-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { IconArrowDown, IconArrowUp, IconCalendar, IconDots, IconLoader2, IconPlayerPlay, IconPlus, IconTrash } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
+import InlineEditableText from '../../components/InlineEditableText'
+import { useNavigate } from 'react-router-dom'
 import type { Project, ProjectDetail } from '../projects/projectTypes'
+import CreateSessionModal from '../sessions/CreateSessionModal'
+import { updateTask } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL } from '../tasks/taskLabels'
 import { getDailyPlans, updateDailyPlan } from './dailyPlanApi'
 import type { DailyPlan, DailyPlanItem } from './dailyPlanTypes'
@@ -28,6 +32,7 @@ const weekdayFormatter = new Intl.DateTimeFormat('ko-KR', { weekday: 'short' })
 const rangeFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
 
 export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
+  const navigate = useNavigate()
   const today = useMemo(() => formatLocalDate(new Date()), [])
   const [fromDate, setFromDate] = useState(today)
   const [toDate, setToDate] = useState(addDays(today, 6))
@@ -36,9 +41,11 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
   const [drafts, setDrafts] = useState<Record<string, DailyPlanItem[]>>({})
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [dirtyDates, setDirtyDates] = useState<Set<string>>(new Set())
-  const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [sessionTaskId, setSessionTaskId] = useState<number | null>(null)
+  const planRevisionRef = useRef(new Map<string, number>())
+  const savingDatesRef = useRef(new Set<string>())
 
   useEffect(() => {
     let active = true
@@ -48,6 +55,7 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
         setPlans(response)
         setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
         setDirtyDates(new Set())
+        planRevisionRef.current.clear()
         setStatus('ready')
       })
       .catch(() => { if (active) setStatus('error') })
@@ -55,7 +63,49 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
   }, [fromDate, toDate])
 
   const draftItems = drafts[selectedDate] ?? []
-  const isDirty = dirtyDates.has(selectedDate)
+  const todayTasks = drafts[today] ?? plans.find((plan) => plan.date === today)?.items ?? []
+
+  useEffect(() => {
+    if (dirtyDates.size === 0) return
+
+    const timeoutId = window.setTimeout(() => {
+      dirtyDates.forEach((date) => {
+        if (savingDatesRef.current.has(date)) return
+
+        const items = drafts[date] ?? []
+        const revision = planRevisionRef.current.get(date) ?? 0
+        savingDatesRef.current.add(date)
+
+        void updateDailyPlan({ date, taskIds: items.map((item) => item.taskId) })
+          .then(() => {
+            if ((planRevisionRef.current.get(date) ?? 0) !== revision) return
+
+            setPlans((current) => current.map((plan) => plan.date === date
+              ? { ...plan, items: items.map((item, orderIdx) => ({ ...item, orderIdx })) }
+              : plan))
+            setDirtyDates((dates) => {
+              const next = new Set(dates)
+              next.delete(date)
+              return next
+            })
+          })
+          .catch((error: unknown) => {
+            const apiMessage = typeof error === 'object' && error !== null
+              ? (error as ApiError).message
+              : undefined
+            setMessage(apiMessage ?? '계획을 자동 저장하지 못했습니다. 변경 내용을 확인해 주세요.')
+          })
+          .finally(() => {
+            savingDatesRef.current.delete(date)
+            if ((planRevisionRef.current.get(date) ?? 0) !== revision) {
+              setDirtyDates((dates) => new Set(dates))
+            }
+          })
+      })
+    }, 500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [dirtyDates, drafts])
 
   const retry = async () => {
     setStatus('loading')
@@ -64,6 +114,7 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
       setPlans(response)
       setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
       setDirtyDates(new Set())
+      planRevisionRef.current.clear()
       setStatus('ready')
     } catch {
       setStatus('error')
@@ -85,6 +136,12 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
 
   const changeToDate = (value: string) => setRange(fromDate, value)
 
+  const markDateDirty = (date: string) => {
+    planRevisionRef.current.set(date, (planRevisionRef.current.get(date) ?? 0) + 1)
+    setDirtyDates((dates) => new Set(dates).add(date))
+    setMessage(null)
+  }
+
   const moveItem = (index: number, offset: number) => {
     const target = index + offset
     if (target < 0 || target >= draftItems.length) return
@@ -94,8 +151,7 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
       ;[next[index], next[target]] = [next[target], next[index]]
       return { ...current, [selectedDate]: next }
     })
-    setDirtyDates((dates) => new Set(dates).add(selectedDate))
-    setMessage(null)
+    markDateDirty(selectedDate)
   }
 
   const addTasks = (tasks: ProjectDetail['tasks'], project: Project) => {
@@ -119,71 +175,72 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
         ],
       }
     })
-    setDirtyDates((dates) => new Set(dates).add(selectedDate))
-    setMessage(null)
+    markDateDirty(selectedDate)
   }
 
-  const save = async () => {
-    setIsSaving(true)
-    setMessage(null)
-    try {
-      await updateDailyPlan({ date: selectedDate, taskIds: draftItems.map((item) => item.taskId) })
-      setPlans((current) => current.map((plan) => plan.date === selectedDate
-        ? { ...plan, items: draftItems.map((item, orderIdx) => ({ ...item, orderIdx })) }
-        : plan))
-      setDirtyDates((dates) => {
-        const next = new Set(dates)
-        next.delete(selectedDate)
-        return next
-      })
-    } catch (error: unknown) {
-      const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-      setMessage(apiMessage ?? '계획을 저장하지 못했습니다. 다시 시도해 주세요.')
-    } finally {
-      setIsSaving(false)
-    }
+  const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
+    await updateTask(item.taskId, {
+      title,
+      status: item.status,
+      completionPct: item.completionPct,
+    })
+
+    const replaceTitle = (items: DailyPlanItem[]) => items.map((candidate) => (
+      candidate.taskId === item.taskId ? { ...candidate, title } : candidate
+    ))
+    setDrafts((current) => Object.fromEntries(
+      Object.entries(current).map(([date, items]) => [date, replaceTitle(items)]),
+    ))
+    setPlans((current) => current.map((plan) => ({
+      ...plan,
+      items: replaceTitle(plan.items),
+    })))
+  }
+
+  const getTaskTitleError = (error: unknown) => {
+    const apiError = typeof error === 'object' && error !== null
+      ? error as ApiError
+      : undefined
+    return apiError?.errors?.title
+      ?? apiError?.message
+      ?? 'Task 제목을 저장하지 못했습니다.'
   }
 
   return (
     <section className={styles.section} aria-labelledby="daily-plan-title">
       <header className={styles.heading}>
         <div className={styles['title-group']}>
-          <div>
             <h2 id="daily-plan-title">오늘의 계획</h2>
-            <p>날짜별로 이어갈 Task를 정리합니다.</p>
+            <div className={styles['database-toolbar']}>
+              <details className={styles.range}>
+                <summary aria-label="계획 조회 기간 변경">
+                  <IconCalendar size={16} aria-hidden="true"/>
+                  {rangeFormatter.format(new Date(`${fromDate}T00:00:00`))}–{rangeFormatter.format(new Date(`${toDate}T00:00:00`))}
+                </summary>
+                <div className={styles['range-popover']} aria-label="계획 조회 기간">
+                  <p>시작일을 포함해 최대 7일까지 볼 수 있습니다.</p>
+                  <label><span>시작일</span><input type="date" value={fromDate}
+                                                onChange={(event) => changeFromDate(event.target.value)}/></label>
+                  <label><span>종료일</span><input type="date" value={toDate} min={fromDate} max={addDays(fromDate, 6)}
+                                                onChange={(event) => changeToDate(event.target.value)}/></label>
+                </div>
+              </details>
+              {message && <p className={styles['save-status']} role="alert">{message}</p>}
           </div>
-        </div>
-        <div className={styles['primary-actions']}>
-          <button type="button" className={styles['save-button']} disabled={!isDirty || isSaving} onClick={() => void save()}>
-            {isSaving ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true" /> : <IconCheck size={16} aria-hidden="true" />}
-            {isSaving ? '저장 중…' : '계획 저장'}
-          </button>
         </div>
       </header>
 
-      <div className={styles['database-toolbar']}>
-        <details className={styles.range}>
-          <summary aria-label="계획 조회 기간 변경">
-            <IconCalendar size={16} aria-hidden="true" />
-            {rangeFormatter.format(new Date(`${fromDate}T00:00:00`))}–{rangeFormatter.format(new Date(`${toDate}T00:00:00`))}
-          </summary>
-          <div className={styles['range-popover']} aria-label="계획 조회 기간">
-            <label><span>시작일</span><input type="date" value={fromDate} onChange={(event) => changeFromDate(event.target.value)} /></label>
-            <label><span>종료일</span><input type="date" value={toDate} min={fromDate} max={addDays(fromDate, 6)} onChange={(event) => changeToDate(event.target.value)} /></label>
-            <p>시작일을 포함해 최대 7일까지 볼 수 있습니다.</p>
-          </div>
-        </details>
-        {message && <p className={styles['save-status']} role="alert">{message}</p>}
-      </div>
-
       {status === 'loading' ? (
-        <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19} />계획을 불러오는 중…</div>
+          <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19}/>계획을 불러오는 중…
+          </div>
       ) : status === 'error' ? (
-        <div className={styles.state}><p>계획을 불러오지 못했습니다.</p><button type="button" onClick={() => void retry()}>다시 불러오기</button></div>
+          <div className={styles.state}><p>계획을 불러오지 못했습니다.</p>
+            <button type="button" onClick={() => void retry()}>다시 불러오기</button>
+          </div>
       ) : (
-        <>
-          <div className={styles['board-scroll']}>
-            <div className={styles.board} role="tablist" aria-label="날짜별 계획 보드">
+          <>
+            <div className={styles['board-scroll']}>
+              <div className={styles.board} role="tablist" aria-label="날짜별 계획 보드">
               {plans.map((plan) => {
                 const date = new Date(`${plan.date}T00:00:00`)
                 const items = drafts[plan.date] ?? plan.items
@@ -199,23 +256,34 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
                     >
                       <span className={styles['date-name']}><strong>{weekdayFormatter.format(date)}</strong>{dayFormatter.format(date)}</span>
                       <span className={styles.count}>{items.length}</span>
-                      {dirtyDates.has(plan.date) && <span className={styles['dirty-dot']}><span className="sr-only">저장하지 않은 변경 있음</span></span>}
                     </button>
                     <ol className={styles.list}>
                       {items.map((item, index) => (
                         <li className={`${styles.card} ${styles[`project-tone-${item.projectId % 3}`]}`} key={item.taskId}>
-                          <button type="button" className={styles['card-select']} onClick={() => setSelectedDate(plan.date)} aria-label={`${item.title}이 있는 ${dayFormatter.format(date)} 선택`}>
-                            <span className={styles['project-label']}><span className={styles['project-mark']} aria-hidden="true" />{item.projectName}</span>
-                            <strong>{item.title}</strong>
+                          <div className={styles['card-select']} onClick={() => setSelectedDate(plan.date)}>
+                            <button type="button" className={styles['project-label']} aria-label={`${item.title}이 있는 ${dayFormatter.format(date)} 선택`}>
+                              <span className={styles['project-mark']} aria-hidden="true" />{item.projectName}
+                            </button>
+                            <strong>
+                              <InlineEditableText
+                                value={item.title}
+                                ariaLabel="Task 제목"
+                                maxLength={255}
+                                requiredMessage="Task 제목을 입력해 주세요."
+                                onSave={(title) => changeTaskTitle(item, title)}
+                                getErrorMessage={getTaskTitleError}
+                              />
+                            </strong>
                             <span className={styles.meta}><span>{TASK_STATUS_LABEL[item.status]}</span><span>{item.completionPct}% 진행</span></span>
-                          </button>
+                          </div>
                           {selected && (
                             <details className={styles['card-menu']}>
                               <summary aria-label={`${item.title} 카드 메뉴`}><IconDots size={17} aria-hidden="true" /></summary>
                               <div className={styles.actions}>
+                                {plan.date === today && <button type="button" onClick={() => setSessionTaskId(item.taskId)}><IconPlayerPlay size={15} aria-hidden="true" />세션 시작</button>}
                                 <button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}><IconArrowUp size={15} aria-hidden="true" />위로</button>
                                 <button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}><IconArrowDown size={15} aria-hidden="true" />아래로</button>
-                                <button type="button" onClick={() => { setDrafts((current) => ({ ...current, [selectedDate]: (current[selectedDate] ?? []).filter((task) => task.taskId !== item.taskId) })); setDirtyDates((dates) => new Set(dates).add(selectedDate)); setMessage(null) }}><IconTrash size={15} aria-hidden="true" /></button>
+                                <button type="button" onClick={() => { setDrafts((current) => ({ ...current, [selectedDate]: (current[selectedDate] ?? []).filter((task) => task.taskId !== item.taskId) })); markDateDirty(selectedDate) }}><IconTrash size={15} aria-hidden="true" /></button>
                               </div>
                             </details>
                           )}
@@ -233,6 +301,17 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
       )}
 
       {isPickerOpen && <TaskPickerModal projects={projects} selectedTaskIds={new Set(draftItems.map((item) => item.taskId))} onAdd={addTasks} onClose={() => setIsPickerOpen(false)} />}
+      {sessionTaskId !== null && (
+        <CreateSessionModal
+          todayTasks={todayTasks}
+          initialTaskId={sessionTaskId}
+          onClose={() => setSessionTaskId(null)}
+          onStarted={(session) => {
+            setSessionTaskId(null)
+            navigate(`/sessions/${session.id}`)
+          }}
+        />
+      )}
     </section>
   )
 }

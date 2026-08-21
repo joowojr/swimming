@@ -216,6 +216,19 @@ class SessionUseCaseTest {
         verify(sessionService, never()).getOwned(1L, 5L);
     }
 
+    @Test
+    @DisplayName("영상이나 재생목록을 가리키지 않는 YouTube URL은 저장하지 않는다")
+    void rejectsYouTubeUrlWithoutPlayableTarget() {
+        assertThatThrownBy(() -> sessionUseCase.updateMusicUrl(
+                1L,
+                5L,
+                new UpdateSessionMusicUrlRequest("https://www.youtube.com/watch?v=")
+        )).isInstanceOfSatisfying(BusinessException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_MUSIC_URL));
+
+        verify(sessionService, never()).getOwned(1L, 5L);
+    }
+
     private Session startedSession(Instant startedAt) {
         return Session.restore(
                 5L,

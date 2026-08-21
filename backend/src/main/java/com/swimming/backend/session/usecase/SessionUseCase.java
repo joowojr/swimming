@@ -2,6 +2,7 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.common.util.UrlUtils;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.place.dto.PlaceReference;
 import com.swimming.backend.place.service.PlaceService;
@@ -26,7 +27,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -148,54 +148,34 @@ public class SessionUseCase {
             return false;
         }
 
-        try {
-            URI uri = new URI(musicUrl);
-            String scheme = uri.getScheme();
-            String host = uri.getHost();
-            if (scheme == null || host == null
-                    || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
-                return false;
-            }
-
-            String normalizedHost = host.toLowerCase();
-            String path = uri.getPath();
-            if (normalizedHost.equals("youtu.be")) {
-                return path != null && path.length() > 1;
-            }
-
-            boolean youtubeHost = normalizedHost.equals("youtube.com")
-                    || normalizedHost.endsWith(".youtube.com");
-            boolean youtubeNoCookieHost = normalizedHost.equals("youtube-nocookie.com")
-                    || normalizedHost.endsWith(".youtube-nocookie.com");
-            if (!youtubeHost && !youtubeNoCookieHost) {
-                return false;
-            }
-
-            if (path != null && (path.startsWith("/embed/") || path.startsWith("/shorts/"))) {
-                return path.length() > path.indexOf('/', 1) + 1;
-            }
-            if (!youtubeHost || path == null) {
-                return false;
-            }
-            return path.equals("/watch") && hasQueryParameter(uri.getRawQuery(), "v")
-                    || path.equals("/playlist") && hasQueryParameter(uri.getRawQuery(), "list");
-        } catch (URISyntaxException exception) {
-            return false;
-        }
+        return UrlUtils.parseHttpUrl(musicUrl)
+                .map(this::isYouTubeVideoOrPlaylistUrl)
+                .orElse(false);
     }
 
-    private boolean hasQueryParameter(String rawQuery, String parameterName) {
-        if (rawQuery == null) {
+    private boolean isYouTubeVideoOrPlaylistUrl(URI uri) {
+        String path = uri.getPath();
+        if (UrlUtils.hasHostOrSubdomain(uri, "youtu.be")) {
+            return path != null && path.length() > 1;
+        }
+
+        boolean youtubeHost = UrlUtils.hasHostOrSubdomain(uri, "youtube.com");
+        boolean youtubeNoCookieHost = UrlUtils.hasHostOrSubdomain(
+                uri,
+                "youtube-nocookie.com"
+        );
+        if (!youtubeHost && !youtubeNoCookieHost) {
             return false;
         }
-        for (String parameter : rawQuery.split("&")) {
-            int separator = parameter.indexOf('=');
-            if (separator > 0
-                    && parameter.substring(0, separator).equals(parameterName)
-                    && separator < parameter.length() - 1) {
-                return true;
-            }
+
+        if (path != null && (path.startsWith("/embed/") || path.startsWith("/shorts/"))) {
+            return path.length() > path.indexOf('/', 1) + 1;
         }
-        return false;
+        if (!youtubeHost || path == null) {
+            return false;
+        }
+        return (path.equals("/watch") && UrlUtils.hasNonEmptyQueryParameter(uri, "v"))
+                || (path.equals("/playlist")
+                && UrlUtils.hasNonEmptyQueryParameter(uri, "list"));
     }
 }

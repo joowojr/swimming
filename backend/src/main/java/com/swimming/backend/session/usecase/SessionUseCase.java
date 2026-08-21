@@ -22,11 +22,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +37,10 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SessionUseCase {
+
+    private static final String YOUTUBE_DOMAIN = "youtube.com";
+    private static final String YOUTUBE_SHORT_DOMAIN = "youtu.be";
+    private static final String YOUTUBE_NO_COOKIE_DOMAIN = "youtube-nocookie.com";
 
     private final SessionService sessionService;
     private final DailyPlanService dailyPlanService;
@@ -155,14 +159,14 @@ public class SessionUseCase {
 
     private boolean isYouTubeVideoOrPlaylistUrl(URI uri) {
         String path = uri.getPath();
-        if (UrlUtils.hasHostOrSubdomain(uri, "youtu.be")) {
+        if (UrlUtils.hasHostOrSubdomain(uri, YOUTUBE_SHORT_DOMAIN)) {
             return path != null && path.length() > 1;
         }
 
-        boolean youtubeHost = UrlUtils.hasHostOrSubdomain(uri, "youtube.com");
+        boolean youtubeHost = UrlUtils.hasHostOrSubdomain(uri, YOUTUBE_DOMAIN);
         boolean youtubeNoCookieHost = UrlUtils.hasHostOrSubdomain(
                 uri,
-                "youtube-nocookie.com"
+                YOUTUBE_NO_COOKIE_DOMAIN
         );
         if (!youtubeHost && !youtubeNoCookieHost) {
             return false;

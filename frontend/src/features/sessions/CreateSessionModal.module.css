@@ -15,7 +15,7 @@
     padding: 0;
     overflow: visible;
     border: 0;
-    color: var(--color-text-primary);
+    color: var(--color-primary);
     background: transparent;
     animation: modal-enter var(--dur-modal) var(--ease-out);
 }
@@ -32,7 +32,7 @@
     border: var(--border-width) solid var(--color-border-subtle);
     border-radius: var(--radius-panel);
     flex-direction: column;
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
     box-shadow: var(--shadow-floating);
 }
 
@@ -44,7 +44,7 @@
     gap: var(--space-3);
     padding: var(--space-5) var(--space-6);
     border-bottom: var(--border-width) solid var(--color-outline-variant);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .header-icon {
@@ -54,8 +54,8 @@
     width: 2.5rem;
     height: 2.5rem;
     border-radius: var(--radius-lg);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .header h2 {
@@ -68,7 +68,7 @@
 
 .header p {
     margin: 0;
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-body-sm-size);
 }
 
@@ -98,7 +98,7 @@
     gap: var(--space-6);
     padding: var(--space-6);
     overflow-y: auto;
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .fieldset {
@@ -108,7 +108,7 @@
     margin: 0;
     padding: 0;
     border: 0;
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .fieldset legend {
@@ -128,8 +128,8 @@
     height: 1.375rem;
     border: var(--border-width) solid var(--color-outline-variant);
     border-radius: var(--radius-full);
-    color: var(--color-text-secondary);
-    background: var(--color-surface-lowest);
+    color: var(--color-mute);
+    background: var(--color-surface-container-lowest);
     font-family: var(--font-family-mono);
     font-size: var(--text-label-caps-size);
 }
@@ -146,7 +146,7 @@
     gap: var(--space-1);
     padding: 0;
     border-radius: var(--radius-lg);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .tabs button {
@@ -154,7 +154,7 @@
     padding: 0 var(--space-3);
     border: var(--border-width) solid transparent;
     border-radius: var(--radius-default);
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     background: transparent;
     font-size: var(--text-label-caps-size);
     font-weight: var(--text-button-weight);
@@ -163,8 +163,8 @@
 
 .tabs button[aria-selected='true'] {
     border-color: var(--color-outline-variant);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .choices {
@@ -181,7 +181,7 @@
     padding: var(--space-3);
     border: var(--border-width) solid var(--color-outline-variant);
     border-radius: var(--radius-lg);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
     cursor: pointer;
 }
 
@@ -205,13 +205,13 @@
 
 .task-choice:has(input:checked), .mode-choice:has(input:checked), .place-choice:has(input:checked) {
     border-color: var(--color-outline);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .task-choice:has(input:checked)::before {
     border: 4px solid var(--color-on-surface);
     background: var(--color-on-surface);
-    box-shadow: inset 0 0 0 2px var(--color-surface-lowest);
+    box-shadow: inset 0 0 0 2px var(--color-surface-container-lowest);
 }
 
 .task-choice:has(input:focus-visible), .mode-choice:has(input:focus-visible), .place-choice:has(input:focus-visible), .durations label:has(input:focus-visible) {
@@ -233,7 +233,7 @@
 
 .task-choice small, .mode-choice small, .place-choice small {
     overflow: hidden;
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-label-caps-size);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -249,8 +249,8 @@
     min-height: 2.75rem;
     padding: 0 var(--space-3);
     border: var(--border-width) solid var(--color-border-subtle);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .mode-grid {
@@ -266,16 +266,16 @@
 
 .mode-choice > svg, .place-choice > svg {
     flex: 0 0 auto;
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
 }
 
 .mode-choice:has(input:checked) > svg, .place-choice:has(input:checked) > svg {
-    color: var(--color-text-primary);
+    color: var(--color-primary);
 }
 
 .hint, .empty {
     margin: 0;
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-label-caps-size);
 }
 
@@ -284,7 +284,7 @@
     border: var(--border-width) solid var(--color-outline-variant);
     border-radius: var(--radius-lg);
     text-align: center;
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .place-grid {
@@ -305,13 +305,13 @@
 
 .label {
     margin: 0 0 var(--space-2);
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-label-caps-size);
 }
 
 .label span {
     margin-left: var(--space-1);
-    color: var(--color-text-muted);
+    color: var(--color-mute);
 }
 
 .durations {
@@ -333,7 +333,7 @@
     padding: 0 var(--space-2);
     border: var(--border-width) solid var(--color-outline-variant);
     border-radius: var(--radius-default);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
     font-size: var(--text-body-sm-size);
     white-space: nowrap;
     cursor: pointer;
@@ -341,8 +341,8 @@
 
 .durations label:has(input:checked) > span {
     border-color: var(--color-outline);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .custom {
@@ -351,7 +351,7 @@
     align-items: center;
     gap: var(--space-2);
     margin-top: var(--space-3);
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-body-sm-size);
 }
 
@@ -360,8 +360,8 @@
     min-height: 2.75rem;
     padding: 0 var(--space-3);
     border: var(--border-width) solid var(--color-border-subtle);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .custom input[aria-invalid='true'] {
@@ -379,8 +379,8 @@
     height: 2.5rem;
     padding: 0;
     border: var(--border-width) solid var(--color-border-subtle);
-    color: var(--color-text-secondary);
-    background: var(--color-surface-lowest);
+    color: var(--color-mute);
+    background: var(--color-surface-container-lowest);
 }
 
 .repeat strong {
@@ -400,31 +400,31 @@
     padding: var(--space-3);
     border: var(--border-width) solid var(--color-outline-variant);
     border-radius: var(--radius-lg);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .summary p {
     margin: 0;
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-body-sm-size);
 }
 
 .summary strong {
-    color: var(--color-text-primary);
+    color: var(--color-primary);
 }
 
 .review {
     margin: 0;
     padding: var(--space-3) 0 0;
     border-top: var(--border-width) solid var(--color-outline-variant);
-    color: var(--color-text-secondary);
-    background: var(--color-surface-lowest);
+    color: var(--color-mute);
+    background: var(--color-surface-container-lowest);
     font-size: var(--text-body-sm-size);
 }
 
 .review strong {
-    color: var(--color-text-primary);
+    color: var(--color-primary);
 }
 
 .error, .notice {
@@ -435,15 +435,15 @@
 }
 
 .error {
-    color: var(--color-text-primary);
+    color: var(--color-primary);
     border: var(--border-width) solid var(--color-outline-variant);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .notice {
-    color: var(--color-text-primary);
+    color: var(--color-primary);
     border: var(--border-width) solid var(--color-outline-variant);
-    background: var(--color-surface-lowest);
+    background: var(--color-surface-container-lowest);
 }
 
 .footer {
@@ -452,7 +452,7 @@
     justify-content: flex-end;
     gap: var(--space-3);
     padding: var(--space-4) var(--space-6);
-    background: var(--color-surface-low);
+    background: var(--color-surface-soft);
 }
 
 .cancel, .submit {
@@ -470,8 +470,8 @@
 
 .cancel {
     border: var(--border-width) solid var(--color-border-subtle);
-    color: var(--color-text-primary);
-    background: var(--color-surface-lowest);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
 }
 
 .submit {
@@ -491,7 +491,7 @@
 
 @media (hover: hover) and (pointer: fine) {
     .close:hover:not(:disabled), .tabs button:hover, .task-choice:hover, .mode-choice:hover, .place-choice:hover, .durations label:hover > span, .repeat button:hover:not(:disabled), .cancel:hover:not(:disabled) {
-        background: var(--color-surface-high);
+        background: var(--color-surface-container-high);
     }
 
     .submit:hover:not(:disabled) {

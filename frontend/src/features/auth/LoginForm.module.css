@@ -65,9 +65,9 @@
 
 .login-submit {
   width: 100%;
-  min-height: var(--control-height);
+  min-height: var(--button-height);
   margin-top: var(--space-1);
-  padding: 0 var(--space-5);
+  padding: 0 var(--button-padding-inline);
   border: var(--border-width) solid var(--color-accent);
   border-radius: var(--radius-default);
   color: var(--color-on-accent);
@@ -93,4 +93,3 @@
   cursor: wait;
   opacity: 0.6;
 }
-

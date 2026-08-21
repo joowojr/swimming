@@ -61,6 +61,21 @@
   --color-primary-outline: #b9d2d7;
   --color-tertiary-soft: #fcebe7;
 
+  /* Immersive session scene */
+  --color-session-night: #2e2a4a;
+  --color-session-violet: #77506f;
+  --color-session-coral: #cf756d;
+  --color-session-sunset: #efb473;
+  --color-session-glow: rgb(255 211 148 / 66%);
+  --color-session-hill: rgb(48 32 58 / 52%);
+  --color-session-silhouette: rgb(34 24 42 / 84%);
+  --color-session-ground: rgb(20 14 26 / 94%);
+  --color-session-vignette: rgb(28 27 27 / 28%);
+  --color-session-glass: rgb(252 249 248 / 86%);
+  --color-session-glass-dark: rgb(49 48 48 / 88%);
+  --color-session-glass-border: rgb(252 249 248 / 14%);
+  --color-session-inverse-muted: rgb(243 240 239 / 64%);
+
   /* Dashboard illustration roles from the approved dashboard reference */
   --color-dashboard-blue-soft: #eff6ff;
   --color-dashboard-blue: #2563eb;
@@ -153,6 +168,8 @@
 
   /* Component dimensions and motion */
   --control-height: 3rem;
+  --button-height: 2.25rem;
+  --button-padding-inline: var(--space-3);
   --content-width: var(--layout-container-max);
   --form-width: 30rem;
   --border-width: 1px;
@@ -178,5 +195,11 @@
 @media (max-width: 48rem) {
   :root {
     --text-display: var(--text-headline-xl-mobile-size);
+  }
+}
+
+@media (pointer: coarse) {
+  :root {
+    --button-height: 2.75rem;
   }
 }

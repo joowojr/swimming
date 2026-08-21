@@ -1,6 +1,6 @@
 package com.swimming.backend.plan.repository;
 
-import com.swimming.backend.plan.domain.DailyPlan;
+import com.swimming.backend.plan.repository.entity.DailyPlanEntity;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,13 +10,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface DailyPlanRepository extends JpaRepository<DailyPlan, Long> {
+public interface DailyPlanRepository extends JpaRepository<DailyPlanEntity, Long> {
 
     @EntityGraph(attributePaths = "items")
-    Optional<DailyPlan> findByUserIdAndPlanDate(Long userId, LocalDate planDate);
+    Optional<DailyPlanEntity> findByUserIdAndPlanDate(Long userId, LocalDate planDate);
 
     @EntityGraph(attributePaths = "items")
-    List<DailyPlan> findAllByUserIdAndPlanDateBetweenOrderByPlanDateAsc(
+    List<DailyPlanEntity> findAllByUserIdAndPlanDateBetweenOrderByPlanDateAsc(
             Long userId,
             LocalDate fromDate,
             LocalDate toDate
@@ -24,7 +24,7 @@ public interface DailyPlanRepository extends JpaRepository<DailyPlan, Long> {
 
     @Query("""
             select (count(item) > 0)
-            from DailyPlan dailyPlan
+            from DailyPlanEntity dailyPlan
             join dailyPlan.items item
             where dailyPlan.userId = :userId
               and dailyPlan.planDate = :planDate

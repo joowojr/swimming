@@ -1,54 +1,59 @@
 package com.swimming.backend.plan.domain;
 
-import com.swimming.backend.common.entity.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Entity
-@Table(
-        name = "daily_plan_items",
-        uniqueConstraints = @UniqueConstraint(
-                name = "daily_plan_items_plan_task_unique",
-                columnNames = {"daily_plan_id", "task_id"}
-        )
-)
+import java.time.LocalDateTime;
+
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class DailyPlanItem extends BaseTimeEntity {
+public class DailyPlanItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "daily_plan_id", nullable = false)
-    private DailyPlan dailyPlan;
-
-    @Column(name = "task_id", nullable = false)
-    private Long taskId;
-
-    @Column(name = "order_idx", nullable = false)
+    private final Long id;
+    private final Long taskId;
+    private String title;
     private int orderIdx;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
 
-    private DailyPlanItem(DailyPlan dailyPlan, Long taskId, int orderIdx) {
-        this.dailyPlan = dailyPlan;
+    private DailyPlanItem(
+            Long id,
+            Long taskId,
+            String title,
+            int orderIdx,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
         this.taskId = taskId;
+        this.title = title;
         this.orderIdx = orderIdx;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    static DailyPlanItem create(DailyPlan dailyPlan, Long taskId, int orderIdx) {
-        return new DailyPlanItem(dailyPlan, taskId, orderIdx);
+    public static DailyPlanItem createTask(Long taskId) {
+        return new DailyPlanItem(null, taskId, null, 0, null, null);
+    }
+
+    public static DailyPlanItem createAdHoc(String title) {
+        return new DailyPlanItem(null, null, title.trim(), 0, null, null);
+    }
+
+    public static DailyPlanItem restore(
+            Long id,
+            Long taskId,
+            String title,
+            int orderIdx,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        return new DailyPlanItem(id, taskId, title, orderIdx, createdAt, updatedAt);
+    }
+
+    public void changeAdHocTitle(String title) {
+        if (taskId != null) {
+            throw new IllegalStateException("Task 기반 계획 항목의 제목은 변경할 수 없습니다");
+        }
+        this.title = title.trim();
     }
 
     void changeOrder(int orderIdx) {

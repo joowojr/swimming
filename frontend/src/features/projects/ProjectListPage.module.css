@@ -19,7 +19,7 @@
 .heading h1 {
   min-width: 0;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-headline-lg-size);
   font-style: normal;
   font-weight: var(--text-headline-lg-weight);
@@ -55,14 +55,8 @@
 .secondary,
 .state button {
   border: var(--border-width) solid var(--color-border-subtle);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: var(--color-surface-lowest);
-}
-
-.primary {
-  border: var(--border-width) solid var(--color-primary);
-  color: var(--color-on-primary);
-  background: var(--color-primary);
 }
 
 .actions button:disabled {
@@ -78,7 +72,7 @@
 
 .section-heading h2 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
@@ -126,15 +120,9 @@
 
 .empty h3 {
   margin: var(--space-4) 0 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .primary:hover {
-    background: var(--color-primary-container);
-  }
 }
 
 @media (max-width: 72rem) {

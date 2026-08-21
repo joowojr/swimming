@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, MouseEvent } from 'react'
-import { IconLoader2, IconX } from '@tabler/icons-react'
+import { IconX } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
+import ActionButton from '../../components/ActionButton'
 import { createProject, getProjectTags } from './projectApi'
 import type {
   CreateProjectRequest,
@@ -405,10 +406,14 @@ export default function CreateProjectModal({
             <button type="button" className={styles['modal-cancel']} onClick={requestClose} disabled={isSubmitting}>
               취소
             </button>
-            <button type="submit" className={styles['modal-submit']} disabled={isSubmitting}>
-              {isSubmitting && <IconLoader2 className={styles['modal-submit-spinner']} size={17} aria-hidden="true" />}
-              {isSubmitting ? '만드는 중…' : '프로젝트 만들기'}
-            </button>
+            <ActionButton
+              type="submit"
+              className={styles['modal-submit']}
+              isLoading={isSubmitting}
+              loadingLabel="만드는 중…"
+            >
+              만들기
+            </ActionButton>
           </footer>
         </form>
       </section>

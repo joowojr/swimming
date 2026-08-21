@@ -22,7 +22,7 @@
   min-height: var(--control-height);
   padding: 0 var(--space-4);
   border: var(--border-width) solid var(--color-border-subtle);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: var(--color-surface-lowest);
   transition:
     border-color var(--transition-short),

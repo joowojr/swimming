@@ -53,7 +53,7 @@
   padding-inline: var(--space-3);
   border: var(--border-width) solid var(--color-outline);
   border-radius: var(--radius-control);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: var(--color-surface-lowest);
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);

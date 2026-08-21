@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconArrowDown, IconArrowUp, IconCalendar, IconDots, IconLoader2, IconPlayerPlay, IconPlus, IconTrash } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
+import ActionButton from '../../components/ActionButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import { useNavigate } from 'react-router-dom'
 import type { Project, ProjectDetail } from '../projects/projectTypes'
@@ -300,7 +301,15 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
                             <details className={styles['card-menu']}>
                               <summary aria-label={`${item.title} 카드 메뉴`}><IconDots size={17} aria-hidden="true" /></summary>
                               <div className={styles.actions}>
-                                {plan.date === today && item.taskId !== null && <button type="button" onClick={() => setSessionTaskId(item.taskId)}><IconPlayerPlay size={15} aria-hidden="true" />세션 시작</button>}
+                                {plan.date === today && item.taskId !== null && (
+                                  <ActionButton
+                                    variant="plain"
+                                    icon={<IconPlayerPlay size={15} aria-hidden="true" />}
+                                    onClick={() => setSessionTaskId(item.taskId)}
+                                  >
+                                    세션 시작
+                                  </ActionButton>
+                                )}
                                 <button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}><IconArrowUp size={15} aria-hidden="true" />위로</button>
                                 <button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}><IconArrowDown size={15} aria-hidden="true" />아래로</button>
                                 <button type="button" aria-label="계획에서 제거" onClick={() => void removeItem(plan.date, item.id)}><IconTrash size={15} aria-hidden="true" /></button>

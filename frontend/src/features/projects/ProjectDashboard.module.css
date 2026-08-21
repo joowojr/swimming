@@ -25,7 +25,7 @@
 .dashboard-heading h2 {
   min-width: 0;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-headline-lg-size);
   font-style: normal;
   font-weight: var(--text-headline-lg-weight);
@@ -36,7 +36,7 @@
 
 .dashboard-heading p {
   margin: var(--space-1) 0 0;
-  color: var(--color-text-secondary);
+  color: var(--color-ink);
   font-size: var(--text-body-md-size);
 }
 
@@ -62,14 +62,8 @@
 .secondary-action,
 .dashboard-state button {
   border: var(--border-width) solid var(--color-border-subtle);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: var(--color-surface-lowest);
-}
-
-.primary-action {
-  border: var(--border-width) solid var(--color-primary);
-  color: var(--color-on-primary);
-  background: var(--color-primary);
 }
 
 .dashboard-actions button:disabled {
@@ -116,8 +110,8 @@
 }
 
 .metric-icon.is-green {
-  color: var(--color-dashboard-green);
-  background: var(--color-dashboard-green-soft);
+  color: var(#059669);
+  background: var(#059669);
 }
 
 .metric-card p {
@@ -129,7 +123,7 @@
 .metric-card strong {
   display: block;
   margin-top: var(--space-1);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-headline-md-size);
   font-weight: var(--text-headline-md-weight);
   line-height: var(--text-headline-md-line-height);
@@ -144,7 +138,7 @@
 .project-section-heading h2,
 .dashboard-aside h2 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
@@ -192,7 +186,7 @@
 
 .projects-empty h3 {
   margin: var(--space-4) 0 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
 }
@@ -228,7 +222,7 @@
 
 .upcoming-list li > div strong {
   overflow: hidden;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   text-overflow: ellipsis;
   white-space: nowrap;

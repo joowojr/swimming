@@ -15,12 +15,13 @@ interface NavigationItem {
   label: string
   icon: ComponentType<IconProps>
   href?: string
+  end?: boolean
   badge?: string
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: '대시보드', icon: IconLayoutDashboard, href: '/projects' },
-  { label: '프로젝트', icon: IconFolder },
+  { label: '대시보드', icon: IconLayoutDashboard, href: '/dashboard', end: true },
+  { label: '프로젝트', icon: IconFolder, href: '/projects', end: true },
   { label: '그룹 세션', icon: IconUsers },
   { label: '통계', icon: IconChartBar },
   { label: '캘린더', icon: IconCalendar },
@@ -64,6 +65,7 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
                       `${styles['navigation-item']} ${isActive ? styles['is-active'] : ''}`
                     )}
                     to={item.href}
+                    end={item.end}
                   >
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>

@@ -283,7 +283,7 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
                                 {plan.date === today && <button type="button" onClick={() => setSessionTaskId(item.taskId)}><IconPlayerPlay size={15} aria-hidden="true" />세션 시작</button>}
                                 <button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}><IconArrowUp size={15} aria-hidden="true" />위로</button>
                                 <button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}><IconArrowDown size={15} aria-hidden="true" />아래로</button>
-                                <button type="button" onClick={() => { setDrafts((current) => ({ ...current, [selectedDate]: (current[selectedDate] ?? []).filter((task) => task.taskId !== item.taskId) })); markDateDirty(selectedDate) }}><IconTrash size={15} aria-hidden="true" /></button>
+                                <button type="button" aria-label="계획에서 제거" onClick={() => { setDrafts((current) => ({ ...current, [selectedDate]: (current[selectedDate] ?? []).filter((task) => task.taskId !== item.taskId) })); markDateDirty(selectedDate) }}><IconTrash size={15} aria-hidden="true" /></button>
                               </div>
                             </details>
                           )}

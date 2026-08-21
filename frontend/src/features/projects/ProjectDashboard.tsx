@@ -1,7 +1,5 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import {
-  IconCalendarDue,
   IconFilter,
   IconFolders,
   IconPlus,
@@ -9,6 +7,7 @@ import {
   IconTargetArrow,
 } from '@tabler/icons-react'
 import DailyPlanSection from '../plans/DailyPlanSection'
+import ProjectCard from './ProjectCard'
 import type { Project } from './projectTypes'
 import styles from './ProjectDashboard.module.css'
 
@@ -21,51 +20,10 @@ interface ProjectDashboardProps {
   onOpenCreate: () => void
 }
 
-const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  month: 'short',
-  day: 'numeric',
-})
+const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
 
 function formatTargetDate(targetDate: string) {
   return dateFormatter.format(new Date(`${targetDate}T00:00:00`))
-}
-
-function ProjectCard({ project, index }: { project: Project; index: number }) {
-  const routeTone = [styles['is-clay'], styles['is-sky'], styles['is-pale']][index % 3]
-
-  return (
-    <Link
-      className={styles['project-card']}
-      to={`/projects/${project.id}`}
-      aria-label={`${project.name} 상세 보기`}
-    >
-      <span className={`${styles['project-route']} ${routeTone}`} aria-hidden="true" />
-      <div className={styles['project-card-heading']}>
-        <div className={styles['project-card-title-group']}>
-          {project.tag && <span className={styles['project-tag']}>{project.tag.name}</span>}
-          <h3>{project.name}</h3>
-        </div>
-        {project.targetDate && (
-          <span className={styles['project-target-date']}>
-            <IconCalendarDue size={15} stroke={1.8} aria-hidden="true" />
-            <span>
-              <span className="sr-only">목표일 </span>
-              {formatTargetDate(project.targetDate)}
-            </span>
-          </span>
-        )}
-      </div>
-      <p className={styles['project-description']}>
-        {project.description || '프로젝트 설명이 아직 없습니다.'}
-      </p>
-      <div className={styles['project-card-footer']}>
-        <span>목표일</span>
-        <strong>
-          {project.targetDate ? formatTargetDate(project.targetDate) : '설정하지 않음'}
-        </strong>
-      </div>
-    </Link>
-  )
 }
 
 export default function ProjectDashboard({
@@ -105,6 +63,20 @@ export default function ProjectDashboard({
         .sort((a, b) => a.targetDate.localeCompare(b.targetDate))
         .slice(0, 3),
     [projects],
+  )
+
+  const projectCollection = projects.length === 0 ? (
+    <div className={styles['projects-empty']}>
+      <IconFolders size={28} stroke={1.5} aria-hidden="true" />
+      <h3>프로젝트를 시작할 준비가 되었습니다.</h3>
+      <p>새 프로젝트를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
+    </div>
+  ) : (
+    <div className={styles['project-grid']}>
+      {projects.map((project, index) => (
+        <ProjectCard key={project.id} project={project} index={index} />
+      ))}
+    </div>
   )
 
   return (
@@ -160,19 +132,7 @@ export default function ProjectDashboard({
               <span>{projects.length}개</span>
             </div>
 
-            {projects.length === 0 ? (
-              <div className={styles['projects-empty']}>
-                <IconFolders size={28} stroke={1.5} aria-hidden="true" />
-                <h3>프로젝트를 시작할 준비가 되었습니다.</h3>
-                <p>새 프로젝트를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
-              </div>
-            ) : (
-              <div className={styles['project-grid']}>
-                {projects.map((project, index) => (
-                  <ProjectCard key={project.id} project={project} index={index} />
-                ))}
-              </div>
-            )}
+            {projectCollection}
           </>
         )}
       </section>

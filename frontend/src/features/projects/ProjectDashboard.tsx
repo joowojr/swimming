@@ -114,28 +114,29 @@ export default function ProjectDashboard({
           </div>
         ) : (
           <>
-            <section className={styles['project-metrics']} aria-label="프로젝트 요약">
-              {metrics.map(({ label, value, icon: Icon, tone }) => (
-                <article className={styles['metric-card']} key={label}>
-                  <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">
-                    <Icon size={24} stroke={1.7} />
-                  </span>
-                  <div>
-                    <p>{label}</p>
-                    <strong>{value}</strong>
-                  </div>
-                </article>
-              ))}
-            </section>
+              {/*프로젝트 정리 표*/}
+            {/*<section className={styles['project-metrics']} aria-label="프로젝트 요약">*/}
+            {/*  {metrics.map(({ label, value, icon: Icon, tone }) => (*/}
+            {/*    <article className={styles['metric-card']} key={label}>*/}
+            {/*      <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">*/}
+            {/*        <Icon size={24} stroke={1.7} />*/}
+            {/*      </span>*/}
+            {/*      <div>*/}
+            {/*        <p>{label}</p>*/}
+            {/*        <strong>{value}</strong>*/}
+            {/*      </div>*/}
+            {/*    </article>*/}
+            {/*  ))}*/}
+            {/*</section>*/}
 
             <DailyPlanSection projects={projects} />
 
-            <div className={styles['project-section-heading']}>
-              <h2>최근 활동 프로젝트</h2>
-              <span>{projects.length}개</span>
-            </div>
+              {/*최근 활동 프로젝트 카드*/}
+            {/*<div className={styles['project-section-heading']}>*/}
+            {/*  <h2>최근 활동 프로젝트</h2>*/}
+            {/*</div>*/}
 
-            {projectCollection}
+            {/*{projectCollection}*/}
           </>
         )}
       </section>

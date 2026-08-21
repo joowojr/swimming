@@ -51,7 +51,7 @@
   height: var(--space-8);
   flex: 0 0 auto;
   padding: 0;
-  border: var(--focus-ring-width) solid var(--color-outline);
+  border: var(--focus-ring-width) solid var(--color-mute);
   border-radius: var(--radius-full);
   color: var(--color-mute);
   background: var(--color-surface-container-lowest);
@@ -130,13 +130,13 @@
 .is-done .task-title {
   color: var(--color-mute);
   text-decoration: line-through;
-  text-decoration-color: var(--color-outline-variant);
+  text-decoration-color: var(--color-mute-variant);
 }
 
 .status {
   flex: 0 0 auto;
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-outline);
+  border: var(--border-width) solid var(--color-mute);
   border-radius: var(--radius-full);
   color: var(--color-mute);
   font-family: var(--font-family-mono);

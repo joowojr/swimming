@@ -30,7 +30,7 @@
 }
 
 .form-field input:hover {
-  border-color: var(--color-outline);
+  border-color: var(--color-mute);
 }
 
 .form-field input:focus-visible {

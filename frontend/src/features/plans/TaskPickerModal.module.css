@@ -23,7 +23,7 @@
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
-  border: var(--border-width) solid var(--color-outline-variant);
+  border: var(--border-width) solid var(--color-mute-variant);
   border-radius: var(--radius-panel);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);
@@ -48,7 +48,7 @@
   padding: 0;
   border: 0;
   border-radius: var(--radius-full);
-  color: var(--color-on-surface-variant);
+  color: var(--color-mute);
   background: transparent;
 }
 

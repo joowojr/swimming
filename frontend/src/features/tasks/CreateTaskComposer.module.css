@@ -51,7 +51,7 @@
   min-height: var(--control-height);
   flex: 1;
   padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-outline);
+  border: var(--border-width) solid var(--color-mute);
   border-radius: var(--radius-control);
   color: var(--color-primary);
   background: var(--color-surface-lowest);

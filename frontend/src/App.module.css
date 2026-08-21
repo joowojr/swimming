@@ -88,7 +88,7 @@
 }
 
 .logout-button:hover {
-  border-color: var(--color-outline);
+  border-color: var(--color-mute);
   color: var(--color-primary);
   background: var(--color-surface-high);
 }

@@ -43,7 +43,7 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-5) var(--space-6);
-    border-bottom: var(--border-width) solid var(--color-outline-variant);
+    border-bottom: var(--border-width) solid var(--color-mute-variant);
     background: var(--color-surface-container-lowest);
 }
 
@@ -81,7 +81,7 @@
     padding: 0;
     border: 0;
     border-radius: var(--radius-full);
-    color: var(--color-on-surface-variant);
+    color: var(--color-mute);
     background: transparent;
 }
 
@@ -126,7 +126,7 @@
     justify-content: center;
     width: 1.375rem;
     height: 1.375rem;
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     border-radius: var(--radius-full);
     color: var(--color-mute);
     background: var(--color-surface-container-lowest);
@@ -162,7 +162,7 @@
 }
 
 .tabs button[aria-selected='true'] {
-    border-color: var(--color-outline-variant);
+    border-color: var(--color-mute-variant);
     color: var(--color-primary);
     background: var(--color-surface-container-lowest);
 }
@@ -179,7 +179,7 @@
     min-width: 0;
     gap: var(--space-3);
     padding: var(--space-3);
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     border-radius: var(--radius-lg);
     background: var(--color-surface-container-lowest);
     cursor: pointer;
@@ -198,13 +198,13 @@
     width: var(--space-4);
     height: var(--space-4);
     flex: 0 0 auto;
-    border: 2px solid var(--color-outline-variant);
+    border: 2px solid var(--color-mute-variant);
     border-radius: var(--radius-sm);
     content: '';
 }
 
 .task-choice:has(input:checked), .mode-choice:has(input:checked), .place-choice:has(input:checked) {
-    border-color: var(--color-outline);
+    border-color: var(--color-mute);
     background: var(--color-surface-container-lowest);
 }
 
@@ -281,7 +281,7 @@
 
 .empty {
     padding: var(--space-4);
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     border-radius: var(--radius-lg);
     text-align: center;
     background: var(--color-surface-container-lowest);
@@ -331,7 +331,7 @@
     justify-content: center;
     min-height: 2.75rem;
     padding: 0 var(--space-2);
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     border-radius: var(--radius-default);
     background: var(--color-surface-container-lowest);
     font-size: var(--text-body-sm-size);
@@ -340,7 +340,7 @@
 }
 
 .durations label:has(input:checked) > span {
-    border-color: var(--color-outline);
+    border-color: var(--color-mute);
     color: var(--color-primary);
     background: var(--color-surface-container-lowest);
 }
@@ -365,7 +365,7 @@
 }
 
 .custom input[aria-invalid='true'] {
-    border-color: var(--color-outline);
+    border-color: var(--color-mute);
 }
 
 .repeat {
@@ -398,7 +398,7 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3);
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     border-radius: var(--radius-lg);
     color: var(--color-primary);
     background: var(--color-surface-container-lowest);
@@ -417,7 +417,7 @@
 .review {
     margin: 0;
     padding: var(--space-3) 0 0;
-    border-top: var(--border-width) solid var(--color-outline-variant);
+    border-top: var(--border-width) solid var(--color-mute-variant);
     color: var(--color-mute);
     background: var(--color-surface-container-lowest);
     font-size: var(--text-body-sm-size);
@@ -436,13 +436,13 @@
 
 .error {
     color: var(--color-primary);
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     background: var(--color-surface-container-lowest);
 }
 
 .notice {
     color: var(--color-primary);
-    border: var(--border-width) solid var(--color-outline-variant);
+    border: var(--border-width) solid var(--color-mute-variant);
     background: var(--color-surface-container-lowest);
 }
 

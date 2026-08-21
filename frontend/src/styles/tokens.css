@@ -7,16 +7,8 @@
     --color-surface-container-high: #ebe7e7;
     --color-surface-container-highest: #e5e2e1;
     --color-on-surface: #1c1b1b;
-    --color-on-surface-variant: #3e484c;
-    --color-inverse-surface: #313030;
-    --color-inverse-on-surface: #eef1ff;
-    --color-outline: #6e797d;
-    --color-outline-variant: #bec8cc;
+    --color-mute-variant: #bec8cc;
     --color-on-primary-container: #f9fdff;
-
-    --color-secondary: #5d5e5f;
-    --color-secondary-container: #e0dfe0;
-    --color-on-secondary-container: #626364;
 
     --color-tertiary: #EF4444;
     --color-on-tertiary: #ffffff;

@@ -3,11 +3,15 @@ package com.swimming.backend.session.usecase;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.service.DailyPlanService;
+import com.swimming.backend.place.dto.PlaceReference;
+import com.swimming.backend.place.service.PlaceService;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.dto.web.ActiveSessionResponse;
 import com.swimming.backend.session.dto.web.ActiveSessionTaskResponse;
 import com.swimming.backend.session.dto.web.SessionResponse;
+import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
 import com.swimming.backend.session.service.SessionService;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
@@ -21,6 +25,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +42,7 @@ public class SessionUseCase {
     private final DailyPlanService dailyPlanService;
     private final UserService userService;
     private final TaskService taskService;
+    private final PlaceService placeService;
     private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -54,13 +61,15 @@ public class SessionUseCase {
         if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
             throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
         }
+        PlaceReference place = placeService.getReference(request.placeId());
 
         Session session = Session.startPersonal(
                 userId,
+                place.id(),
                 taskIds,
                 request.plannedDurationSec()
         );
-        return SessionResponse.from(sessionService.save(session));
+        return SessionResponse.from(sessionService.save(session), place);
     }
 
     @Transactional(
@@ -72,14 +81,49 @@ public class SessionUseCase {
                 .map(session -> toActiveResponse(userId, session));
     }
 
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
+    public SessionDetailResponse get(Long userId, Long sessionId) {
+        return toDetailResponse(userId, sessionService.getOwned(userId, sessionId));
+    }
+
     @Transactional(propagation = Propagation.REQUIRED)
     public SessionResponse end(Long userId, Long sessionId) {
         Session session = sessionService.getOwned(userId, sessionId);
         session.end(clock.instant());
-        return SessionResponse.from(sessionService.save(session));
+        Session savedSession = sessionService.save(session);
+        PlaceReference place = placeService.getReference(savedSession.getPlaceId());
+        return SessionResponse.from(savedSession, place);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updateMusicUrl(
+            Long userId,
+            Long sessionId,
+            UpdateSessionMusicUrlRequest request
+    ) {
+        if (!isValidMusicUrl(request.musicUrl())) {
+            throw new BusinessException(ErrorCode.INVALID_MUSIC_URL);
+        }
+
+        Session session = sessionService.getOwned(userId, sessionId);
+        session.updateMusicUrl(request.musicUrl());
+        sessionService.save(session);
     }
 
     private ActiveSessionResponse toActiveResponse(Long userId, Session session) {
+        PlaceReference place = placeService.getReference(session.getPlaceId());
+        return ActiveSessionResponse.from(session, place, getTasks(userId, session));
+    }
+
+    private SessionDetailResponse toDetailResponse(Long userId, Session session) {
+        PlaceReference place = placeService.getReference(session.getPlaceId());
+        return SessionDetailResponse.from(session, place, getTasks(userId, session));
+    }
+
+    private List<ActiveSessionTaskResponse> getTasks(Long userId, Session session) {
         Map<Long, TaskReference> tasksById = taskService
                 .getAllByIds(userId, session.getTaskIds())
                 .stream()
@@ -89,11 +133,69 @@ public class SessionUseCase {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
-        List<ActiveSessionTaskResponse> tasks = session.getTaskIds()
+        return session.getTaskIds()
                 .stream()
                 .map(tasksById::get)
                 .map(ActiveSessionTaskResponse::from)
                 .toList();
-        return ActiveSessionResponse.from(session, tasks);
+    }
+
+    private boolean isValidMusicUrl(String musicUrl) {
+        if (musicUrl == null) {
+            return true;
+        }
+        if (musicUrl.isBlank()) {
+            return false;
+        }
+
+        try {
+            URI uri = new URI(musicUrl);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            if (scheme == null || host == null
+                    || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                return false;
+            }
+
+            String normalizedHost = host.toLowerCase();
+            String path = uri.getPath();
+            if (normalizedHost.equals("youtu.be")) {
+                return path != null && path.length() > 1;
+            }
+
+            boolean youtubeHost = normalizedHost.equals("youtube.com")
+                    || normalizedHost.endsWith(".youtube.com");
+            boolean youtubeNoCookieHost = normalizedHost.equals("youtube-nocookie.com")
+                    || normalizedHost.endsWith(".youtube-nocookie.com");
+            if (!youtubeHost && !youtubeNoCookieHost) {
+                return false;
+            }
+
+            if (path != null && (path.startsWith("/embed/") || path.startsWith("/shorts/"))) {
+                return path.length() > path.indexOf('/', 1) + 1;
+            }
+            if (!youtubeHost || path == null) {
+                return false;
+            }
+            return path.equals("/watch") && hasQueryParameter(uri.getRawQuery(), "v")
+                    || path.equals("/playlist") && hasQueryParameter(uri.getRawQuery(), "list");
+        } catch (URISyntaxException exception) {
+            return false;
+        }
+    }
+
+    private boolean hasQueryParameter(String rawQuery, String parameterName) {
+        if (rawQuery == null) {
+            return false;
+        }
+        for (String parameter : rawQuery.split("&")) {
+            int separator = parameter.indexOf('=');
+            if (separator > 0
+                    && parameter.substring(0, separator).equals(parameterName)
+                    && separator < parameter.length() - 1) {
+                return true;
+            }
+        }
+        return false;
     }
 }

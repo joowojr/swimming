@@ -4,12 +4,17 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.util.List;
 
 public record StartPersonalSessionRequest(
         @NotEmpty(message = "Task를 하나 이상 선택해 주세요")
         List<@NotNull(message = "Task ID는 비어 있을 수 없습니다") Long> taskIds,
+
+        @NotNull(message = "공간을 선택해 주세요")
+        @Positive(message = "공간 ID는 양수여야 합니다")
+        Long placeId,
 
         @NotNull(message = "집중 시간을 입력해 주세요")
         @Min(value = 60, message = "집중 시간은 60초 이상이어야 합니다")

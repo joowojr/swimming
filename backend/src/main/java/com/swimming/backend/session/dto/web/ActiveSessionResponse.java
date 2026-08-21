@@ -3,6 +3,7 @@ package com.swimming.backend.session.dto.web;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionType;
+import com.swimming.backend.place.dto.PlaceReference;
 
 import java.time.Instant;
 import java.util.List;
@@ -13,10 +14,13 @@ public record ActiveSessionResponse(
         SessionStatus status,
         int plannedDurationSec,
         Instant startedAt,
+        SessionPlaceResponse place,
+        String musicUrl,
         List<ActiveSessionTaskResponse> tasks
 ) {
     public static ActiveSessionResponse from(
             Session session,
+            PlaceReference place,
             List<ActiveSessionTaskResponse> tasks
     ) {
         return new ActiveSessionResponse(
@@ -25,6 +29,8 @@ public record ActiveSessionResponse(
                 session.getStatus(),
                 session.getPlannedDurationSec(),
                 session.getStartedAt(),
+                SessionPlaceResponse.from(place),
+                session.getMusicUrl(),
                 List.copyOf(tasks)
         );
     }

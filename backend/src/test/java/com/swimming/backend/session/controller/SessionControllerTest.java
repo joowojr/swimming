@@ -9,7 +9,12 @@ import com.swimming.backend.session.domain.SessionType;
 import com.swimming.backend.session.dto.web.ActiveSessionResponse;
 import com.swimming.backend.session.dto.web.ActiveSessionTaskResponse;
 import com.swimming.backend.session.dto.web.SessionResponse;
+import com.swimming.backend.session.dto.web.SessionDetailResponse;
+import com.swimming.backend.session.dto.web.SessionPlaceResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
+import com.swimming.backend.place.domain.BackgroundAssetType;
+import com.swimming.backend.place.dto.BackgroundAssetResponse;
 import com.swimming.backend.session.usecase.SessionUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -60,11 +66,15 @@ class SessionControllerTest {
     @Test
     @DisplayName("개인 세션을 생성하면 Location과 진행 상태를 반환한다")
     void startsPersonalSession() throws Exception {
-        StartPersonalSessionRequest request = new StartPersonalSessionRequest(List.of(10L, 11L), 1500);
+        StartPersonalSessionRequest request = new StartPersonalSessionRequest(
+                List.of(10L, 11L), 20L, 1500
+        );
         when(sessionUseCase.startPersonal(1L, request)).thenReturn(new SessionResponse(
                 5L,
                 SessionType.PERSONAL,
                 List.of(10L, 11L),
+                sessionPlace(),
+                null,
                 1500,
                 null,
                 STARTED_AT,
@@ -77,6 +87,7 @@ class SessionControllerTest {
                         .content("""
                                 {
                                   "taskIds":[10,11],
+                                  "placeId":20,
                                   "plannedDurationSec":1500
                                 }
                                 """))
@@ -117,6 +128,8 @@ class SessionControllerTest {
                         SessionStatus.IN_PROGRESS,
                         1500,
                         STARTED_AT,
+                        sessionPlace(),
+                        "https://youtu.be/example",
                         List.of(
                                 new ActiveSessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"),
                                 new ActiveSessionTaskResponse(11L, 2L, "프로젝트", "다음 Task")
@@ -149,6 +162,8 @@ class SessionControllerTest {
                 5L,
                 SessionType.PERSONAL,
                 List.of(10L, 11L),
+                sessionPlace(),
+                null,
                 1500,
                 600,
                 STARTED_AT,
@@ -166,7 +181,9 @@ class SessionControllerTest {
     @Test
     @DisplayName("진행 중인 세션이 있으면 ProblemDetail 충돌 응답을 반환한다")
     void returnsConflictForExistingActiveSession() throws Exception {
-        StartPersonalSessionRequest request = new StartPersonalSessionRequest(List.of(10L, 11L), 1500);
+        StartPersonalSessionRequest request = new StartPersonalSessionRequest(
+                List.of(10L, 11L), 20L, 1500
+        );
         doThrow(new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS))
                 .when(sessionUseCase).startPersonal(1L, request);
 
@@ -175,12 +192,82 @@ class SessionControllerTest {
                         .content("""
                                 {
                                   "taskIds":[10,11],
+                                  "placeId":20,
                                   "plannedDurationSec":1500
                                 }
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("ACTIVE_SESSION_ALREADY_EXISTS"));
+    }
+
+    @Test
+    @DisplayName("세션 단건 조회는 공간과 마지막 음악 URL을 반환한다")
+    void getsSessionDetail() throws Exception {
+        when(sessionUseCase.get(1L, 5L)).thenReturn(new SessionDetailResponse(
+                5L,
+                SessionType.PERSONAL,
+                SessionStatus.IN_PROGRESS,
+                1500,
+                null,
+                STARTED_AT,
+                null,
+                sessionPlace(),
+                "https://youtu.be/example",
+                List.of(new ActiveSessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"))
+        ));
+
+        mockMvc.perform(get("/api/sessions/5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.place.id").value(20))
+                .andExpect(jsonPath("$.place.backgroundAsset.type").value("VIDEO"))
+                .andExpect(jsonPath("$.musicUrl").value("https://youtu.be/example"));
+    }
+
+    @Test
+    @DisplayName("세션의 마지막 음악 URL을 저장하면 본문 없이 응답한다")
+    void updatesMusicUrl() throws Exception {
+        UpdateSessionMusicUrlRequest request = new UpdateSessionMusicUrlRequest(
+                "https://www.youtube.com/watch?v=example"
+        );
+
+        mockMvc.perform(put("/api/sessions/5/music-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "musicUrl":"https://www.youtube.com/watch?v=example"
+                                }
+                                """))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(sessionUseCase).updateMusicUrl(1L, 5L, request);
+    }
+
+    @Test
+    @DisplayName("음악 URL이 최대 길이를 넘으면 필드 오류를 반환한다")
+    void rejectsTooLongMusicUrl() throws Exception {
+        String longUrl = "https://www.youtube.com/watch?v=" + "a".repeat(2049);
+
+        mockMvc.perform(put("/api/sessions/5/music-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"musicUrl\":\"" + longUrl + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.musicUrl").exists());
+    }
+
+    private SessionPlaceResponse sessionPlace() {
+        return new SessionPlaceResponse(
+                20L,
+                3L,
+                "Lisbon",
+                "Alfama Cafe",
+                new BackgroundAssetResponse(
+                        BackgroundAssetType.VIDEO,
+                        "https://cdn.example.com/alfama.webm"
+                ),
+                "https://youtu.be/default"
+        );
     }
 
     private record AuthUserArgumentResolver(AuthUser authUser)

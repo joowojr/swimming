@@ -18,11 +18,12 @@ class SessionTest {
     @Test
     @DisplayName("개인 세션을 진행 상태로 생성한다")
     void startsPersonalSession() {
-        Session session = Session.startPersonal(1L, List.of(10L, 11L), 1500);
+        Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
 
         assertThat(session.getId()).isNull();
         assertThat(session.getUserId()).isEqualTo(1L);
         assertThat(session.getType()).isEqualTo(SessionType.PERSONAL);
+        assertThat(session.getPlaceId()).isEqualTo(20L);
         assertThat(session.getTaskIds()).containsExactly(10L, 11L);
         assertThat(session.getPlannedDurationSec()).isEqualTo(1500);
         assertThat(session.getStartedAt()).isNull();
@@ -35,7 +36,7 @@ class SessionTest {
     @DisplayName("생성 시 전달한 Task 목록을 외부에서 변경할 수 없다")
     void protectsTaskIds() {
         List<Long> taskIds = new java.util.ArrayList<>(List.of(10L, 11L));
-        Session session = Session.startPersonal(1L, taskIds, 1500);
+        Session session = Session.startPersonal(1L, 20L, taskIds, 1500);
 
         taskIds.add(12L);
 
@@ -92,12 +93,37 @@ class SessionTest {
                                 .isEqualTo(ErrorCode.SESSION_ALREADY_ENDED));
     }
 
+    @Test
+    @DisplayName("진행 중인 세션은 마지막 음악 URL을 새 값으로 교체한다")
+    void replacesMusicUrl() {
+        Session session = startedSession();
+
+        session.updateMusicUrl("https://www.youtube.com/watch?v=first");
+        session.updateMusicUrl("https://youtu.be/second");
+
+        assertThat(session.getMusicUrl()).isEqualTo("https://youtu.be/second");
+    }
+
+    @Test
+    @DisplayName("종료한 세션의 음악 URL은 변경할 수 없다")
+    void rejectsMusicUpdateAfterEnd() {
+        Session session = startedSession();
+        session.end(STARTED_AT.plusSeconds(600));
+
+        assertThatThrownBy(() -> session.updateMusicUrl("https://youtu.be/example"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.SESSION_NOT_FOUND));
+    }
+
     private Session startedSession() {
         return Session.restore(
                 5L,
                 1L,
                 SessionType.PERSONAL,
+                20L,
                 List.of(10L, 11L),
+                null,
                 1500,
                 null,
                 STARTED_AT,

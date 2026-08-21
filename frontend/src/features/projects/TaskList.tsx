@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
-import { deleteTask, updateTask } from '../tasks/taskApi'
+import InlineEditableText from '../../components/InlineEditableText'
+import { updateTask } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
@@ -12,6 +13,9 @@ interface TaskListProps {
   emptyDescription?: string
   connected?: boolean
   isDeleteMode?: boolean
+  selectedTaskIds?: ReadonlySet<number>
+  isDeleting?: boolean
+  onTaskSelectionChange?: (taskId: number) => void
   onTaskUpdated?: () => void
 }
 
@@ -28,10 +32,13 @@ function getTaskMeta(status: TaskStatus, completionPct: number) {
 
 export default function TaskList({
   tasks,
-  emptyTitle = '등록된 task가 없습니다.',
+  emptyTitle = '등록된 할 일이 없어요.',
   emptyDescription = 'task가 추가되면 진행 순서대로 이곳에 표시됩니다.',
   connected = false,
   isDeleteMode = false,
+  selectedTaskIds = new Set<number>(),
+  isDeleting = false,
+  onTaskSelectionChange,
   onTaskUpdated,
 }: TaskListProps) {
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
@@ -61,6 +68,31 @@ export default function TaskList({
     }
   }
 
+  const changeTaskTitle = async (task: TaskSummaryResponse, title: string) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+
+    try {
+      await updateTask(task.id, {
+        title,
+        status: task.status,
+        completionPct: task.completionPct,
+      })
+      onTaskUpdated?.()
+    } finally {
+      setPendingTaskId(null)
+    }
+  }
+
+  const getTaskTitleError = (error: unknown) => {
+    const apiError = typeof error === 'object' && error !== null
+      ? error as ApiError
+      : undefined
+    return apiError?.errors?.title
+      ?? apiError?.message
+      ?? 'Task 제목을 저장하지 못했습니다.'
+  }
+
   const openStatusPicker = (taskId: number) => {
     const select = statusSelectRefs.current.get(taskId)
     if (!select || select.disabled) return
@@ -70,24 +102,6 @@ export default function TaskList({
       select.showPicker()
     } catch {
       select.focus()
-    }
-  }
-
-  const removeTask = async (task: TaskSummaryResponse) => {
-    setPendingTaskId(task.id)
-    setUpdateError(null)
-
-    try {
-      await deleteTask(task.id)
-      onTaskUpdated?.()
-    } catch (error: unknown) {
-      const apiMessage = typeof error === 'object' && error !== null
-        ? (error as ApiError).message
-        : undefined
-      const message = apiMessage ?? 'task를 삭제하지 못했습니다. 다시 시도해 주세요.'
-      setUpdateError({ taskId: task.id, message })
-    } finally {
-      setPendingTaskId(null)
     }
   }
 
@@ -106,6 +120,7 @@ export default function TaskList({
       {orderedTasks.map((task) => {
         const completionPct = clampCompletionPct(task.completionPct)
         const isPending = pendingTaskId === task.id
+        const isSelected = selectedTaskIds.has(task.id)
 
         return (
           <li
@@ -126,7 +141,18 @@ export default function TaskList({
             </button>
             <div className={styles.content}>
               <div className={styles.heading}>
-                <h3>{task.title}</h3>
+                <h3>
+                  <InlineEditableText
+                    className={styles['task-title']}
+                    value={task.title}
+                    ariaLabel="Task 제목"
+                    maxLength={255}
+                    requiredMessage="Task 제목을 입력해 주세요."
+                    disabled={isPending || isDeleteMode}
+                    onSave={(title) => changeTaskTitle(task, title)}
+                    getErrorMessage={getTaskTitleError}
+                  />
+                </h3>
                 <select
                   ref={(element) => {
                     if (element) statusSelectRefs.current.set(task.id, element)
@@ -153,22 +179,27 @@ export default function TaskList({
             >
               <button
                 type="button"
-                disabled={isPending}
+                disabled={isPending || isDeleting}
+                aria-pressed={isDeleteMode ? isSelected : undefined}
                 aria-describedby={`task-${task.id}-action-tooltip`}
                 onClick={() => {
-                  if (isDeleteMode) void removeTask(task)
+                  if (isDeleteMode) onTaskSelectionChange?.(task.id)
                   else void changeTaskStatus(task, 'DOING')
                 }}
               >
-                {isPending
+                {isPending || (isDeleting && isSelected)
                   ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true" />
                   : isDeleteMode
-                    ? <IconTrash size={16} stroke={2} aria-hidden="true" />
+                    ? isSelected
+                      ? <IconCheck size={16} stroke={2.2} aria-hidden="true" />
+                      : <IconTrash size={16} stroke={2} aria-hidden="true" />
                     : <IconPlayerPlay size={16} stroke={2} aria-hidden="true" />}
-                <span className="sr-only">{isDeleteMode ? '삭제' : '세션 시작'}</span>
+                <span className="sr-only">
+                  {isDeleteMode ? (isSelected ? '삭제 선택 해제' : '삭제 선택') : '세션 시작'}
+                </span>
               </button>
               <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
-                {isDeleteMode ? '' : '세션 시작'}
+                {isDeleteMode ? (isSelected ? '선택 해제' : '삭제 선택') : '세션 시작'}
               </span>
             </span>
           </li>

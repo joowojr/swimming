@@ -11,8 +11,6 @@
 
 .dashboard-heading,
 .dashboard-actions,
-.project-card-heading,
-.project-card-footer,
 .project-section-heading {
   display: flex;
   align-items: center;
@@ -24,7 +22,7 @@
   margin-bottom: var(--space-8);
 }
 
-.dashboard-heading h1 {
+.dashboard-heading h2 {
   min-width: 0;
   margin: 0;
   color: var(--color-text-primary);
@@ -52,9 +50,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.5rem;
+  min-height: var(--button-height);
   gap: var(--space-2);
-  padding: 0 var(--space-4);
+  padding: 0 var(--button-padding-inline);
   border-radius: var(--radius-default);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-button-weight);
@@ -162,132 +160,6 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
-}
-
-.project-card {
-  position: relative;
-  display: flex;
-  min-width: 0;
-  min-height: 15rem;
-  flex-direction: column;
-  overflow: hidden;
-  padding: var(--space-6);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface-lowest);
-  text-decoration: none;
-  transition:
-    border-color var(--transition-short),
-    background-color var(--transition-short);
-}
-
-.project-route {
-  --route-accent: var(--color-primary-fixed);
-  --route-length: 38%;
-  position: absolute;
-  inset: 0 0 auto;
-  height: var(--progress-height);
-  background: var(--color-surface-highest);
-}
-
-.project-route::after {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--route-length);
-  background: var(--route-accent);
-  content: '';
-  transition: width var(--transition-short) ease-out;
-}
-
-.project-route.is-clay {
-  --route-accent: var(--color-tertiary-fixed-dim);
-  --route-length: 32%;
-}
-
-.project-route.is-sky {
-  --route-accent: var(--color-primary-fixed-dim);
-  --route-length: 42%;
-}
-
-.project-card-heading {
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.project-card-title-group {
-  min-width: 0;
-}
-
-.project-tag {
-  display: inline-flex;
-  max-width: 100%;
-  margin-bottom: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  overflow: hidden;
-  border-radius: var(--radius-default);
-  color: var(--color-text-secondary);
-  font-family: var(--font-family-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.04em;
-  line-height: 1rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: var(--color-surface-highest);
-}
-
-.project-card h3 {
-  min-width: 0;
-  margin: 0;
-  color: var(--color-text-primary);
-  font-size: var(--text-body-lg-size);
-  font-style: normal;
-  font-weight: var(--text-button-weight);
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.project-target-date {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  font-family: var(--font-family-mono);
-  font-size: var(--text-label-caps-size);
-  white-space: nowrap;
-  background: var(--color-surface-muted);
-}
-
-.project-description {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.project-card-footer {
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: auto;
-  padding-top: var(--space-4);
-  border-top: var(--border-width) solid var(--color-border-subtle);
-  color: var(--color-text-muted);
-  font-size: var(--text-label-caps-size);
-}
-
-.project-card-footer strong {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  text-align: right;
 }
 
 .dashboard-state,
@@ -399,23 +271,6 @@
 }
 
 
-@media (prefers-reduced-motion: reduce) {
-  .project-route::after {
-    transition: none;
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .project-card:hover {
-    border-color: var(--color-primary-outline);
-    background: var(--color-surface-low);
-  }
-
-  .project-card:hover .project-route::after {
-    width: calc(var(--route-length) + 8%);
-  }
-}
-
 @media (max-width: 72rem) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -466,7 +321,4 @@
     margin-bottom: var(--space-6);
   }
 
-  .project-card {
-    min-height: 13rem;
-  }
 }

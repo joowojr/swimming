@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { client } from './api/client'
 import CreateProjectModal from './features/projects/CreateProjectModal'
 import ProjectDashboard from './features/projects/ProjectDashboard'
 import type { ProjectLoadStatus } from './features/projects/ProjectDashboard'
 import ProjectDetail from './features/projects/ProjectDetail'
+import ProjectListPage from './features/projects/ProjectListPage'
+import PersonalSessionPage from './features/sessions/PersonalSessionPage'
 import { getProjects } from './features/projects/projectApi'
 import type { Project } from './features/projects/projectTypes'
 import AppShell from './layout/AppShell'
@@ -31,6 +33,7 @@ function ProjectDetailRoute() {
 }
 
 function App() {
+  const location = useLocation()
   const auth = useAuthStore()
   const [mysqlStatus, setMysqlStatus] = useState<ResourceStatus>('checking')
   const [guestView, setGuestView] = useState<GuestView>('home')
@@ -100,6 +103,15 @@ function App() {
   const visibleProjects = auth.user?.id === projectsOwnerId ? projects : []
   const visibleProjectStatus = auth.user?.id === projectsOwnerId ? projectStatus : 'idle'
 
+  if (auth.status === 'authenticated' && location.pathname.startsWith('/sessions/')) {
+    return (
+      <Routes>
+        <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
+        <Route path="*" element={<Navigate to="/projects" replace />} />
+      </Routes>
+    )
+  }
+
   return (
     <AppShell
       userEmail={auth.user?.email ?? null}
@@ -112,6 +124,34 @@ function App() {
         <Routes>
           <Route
             path="/projects"
+            element={(
+              <>
+                <ProjectListPage
+                  projects={visibleProjects}
+                  status={visibleProjectStatus}
+                  onOpenCreate={() => setIsCreateModalOpen(true)}
+                  onRetry={() => {
+                    setProjectsOwnerId(auth.user?.id ?? null)
+                    setProjectStatus('loading')
+                    setProjectRequestKey((key) => key + 1)
+                  }}
+                />
+                {isCreateModalOpen && (
+                  <CreateProjectModal
+                    onClose={() => setIsCreateModalOpen(false)}
+                    onCreated={(project) => {
+                      setProjects((currentProjects) => [project, ...currentProjects])
+                      setProjectsOwnerId(auth.user?.id ?? null)
+                      setProjectStatus('ready')
+                      setIsCreateModalOpen(false)
+                    }}
+                  />
+                )}
+              </>
+            )}
+          />
+          <Route
+            path="/dashboard"
             element={(
               <>
                 <ProjectDashboard

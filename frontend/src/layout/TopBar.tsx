@@ -1,12 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import {
-  IconBell,
-  IconHelpCircle,
-  IconHexagon,
-  IconSearch,
-  IconSettings,
-} from '@tabler/icons-react'
+import {useEffect, useRef, useState} from 'react'
+import {Link} from 'react-router-dom'
+import {IconHexagon, IconSearch,} from '@tabler/icons-react'
 import styles from './TopBar.module.css'
 
 interface TopBarProps {
@@ -51,7 +45,7 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
             ref={searchInputRef}
             type="search"
             value={searchQuery}
-            placeholder="검색..."
+            placeholder="검색어를 입력하세요"
             aria-label="전체 검색"
             onChange={(event) => setSearchQuery(event.target.value)}
           />
@@ -62,15 +56,15 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
         </label>
 
         <div className={styles['global-actions']} aria-label="전역 도구">
-          <button type="button" aria-label="알림 — 준비 중" title="알림 · 준비 중" disabled>
-            <IconBell size={18} aria-hidden="true" />
-          </button>
-          <button type="button" aria-label="도움말 — 준비 중" title="도움말 · 준비 중" disabled>
-            <IconHelpCircle size={18} aria-hidden="true" />
-          </button>
-          <button type="button" aria-label="설정 — 준비 중" title="설정 · 준비 중" disabled>
-            <IconSettings size={18} aria-hidden="true" />
-          </button>
+          {/*<button type="button" aria-label="알림 — 준비 중" title="알림 · 준비 중" disabled>*/}
+          {/*  <IconBell size={18} aria-hidden="true" />*/}
+          {/*</button>*/}
+          {/*<button type="button" aria-label="도움말 — 준비 중" title="도움말 · 준비 중" disabled>*/}
+          {/*  <IconHelpCircle size={18} aria-hidden="true" />*/}
+          {/*</button>*/}
+          {/*<button type="button" aria-label="설정 — 준비 중" title="설정 · 준비 중" disabled>*/}
+          {/*  <IconSettings size={18} aria-hidden="true" />*/}
+          {/*</button>*/}
         </div>
 
         <div className={styles['account-menu']}>

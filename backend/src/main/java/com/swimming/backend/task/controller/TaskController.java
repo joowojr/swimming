@@ -2,6 +2,7 @@ package com.swimming.backend.task.controller;
 
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.web.CreateTaskRequest;
+import com.swimming.backend.task.dto.web.DeleteTasksRequest;
 import com.swimming.backend.task.dto.web.ReorderTasksRequest;
 import com.swimming.backend.task.dto.web.TaskResponse;
 import com.swimming.backend.task.dto.web.UpdateTaskRequest;
@@ -62,12 +63,12 @@ public class TaskController {
         return ResponseEntity.ok(taskUseCase.update(authUser.id(), taskId, request));
     }
 
-    @DeleteMapping("/tasks/{taskId}")
+    @DeleteMapping("/tasks")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long taskId
+            @Valid @RequestBody DeleteTasksRequest request
     ) {
-        taskUseCase.delete(authUser.id(), taskId);
+        taskUseCase.deleteTasks(authUser.id(), request);
         return ResponseEntity.noContent().build();
     }
 

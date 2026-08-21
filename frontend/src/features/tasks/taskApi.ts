@@ -1,6 +1,7 @@
 import { client } from '../../api/client'
 import type {
   CreateTaskRequest,
+  DeleteTasksRequest,
   ReorderTasksRequest,
   TaskResponse,
   UpdateTaskRequest,
@@ -30,8 +31,8 @@ export async function updateTask(
   return response.data
 }
 
-export async function deleteTask(taskId: number): Promise<void> {
-  await client.delete(`/tasks/${taskId}`)
+export async function deleteTasks(request: DeleteTasksRequest): Promise<void> {
+  await client.delete('/tasks', { data: request })
 }
 
 export async function reorderTasks(

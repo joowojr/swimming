@@ -6,6 +6,7 @@ import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.web.CreateTaskRequest;
+import com.swimming.backend.task.dto.web.DeleteTasksRequest;
 import com.swimming.backend.task.dto.web.ReorderTasksRequest;
 import com.swimming.backend.task.dto.web.TaskResponse;
 import com.swimming.backend.task.dto.web.UpdateTaskRequest;
@@ -139,13 +140,32 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("Task를 삭제하면 본문 없이 성공한다")
-    void deletesTask() throws Exception {
-        mockMvc.perform(delete("/api/tasks/1"))
+    @DisplayName("여러 Task를 삭제하면 본문 없이 성공한다")
+    void deletesTasks() throws Exception {
+        DeleteTasksRequest request = new DeleteTasksRequest(List.of(1L, 2L));
+
+        mockMvc.perform(delete("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"taskIds":[1,2]}
+                                """))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        verify(taskUseCase).delete(1L, 1L);
+        verify(taskUseCase).deleteTasks(1L, request);
+    }
+
+    @Test
+    @DisplayName("삭제할 Task ID 배열이 비어 있으면 요청을 거부한다")
+    void rejectsEmptyTaskDeletion() throws Exception {
+        mockMvc.perform(delete("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"taskIds":[]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errors.taskIds").exists());
     }
 
     @Test

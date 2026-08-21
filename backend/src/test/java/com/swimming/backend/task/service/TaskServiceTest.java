@@ -115,13 +115,16 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("Task를 프로젝트 목록에서 삭제한다")
-    void deletesTask() {
-        Task task = task(1L, 10L, "삭제 Task", 0);
+    @DisplayName("여러 Task를 배치로 삭제한다")
+    void deletesTasksInBatch() {
+        List<Task> tasks = List.of(
+                task(1L, 10L, "첫째", 0),
+                task(2L, 10L, "둘째", 1)
+        );
 
-        taskService.delete(task);
+        taskService.deleteAll(tasks);
 
-        verify(taskRepository).delete(task);
+        verify(taskRepository).deleteAllInBatch(tasks);
     }
 
     @Test

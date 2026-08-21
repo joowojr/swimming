@@ -18,7 +18,20 @@ public enum ErrorCode {
     PROJECT_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 프로젝트 태그가 이미 있습니다"),
 
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task를 찾을 수 없습니다"),
-    INVALID_TASK_ORDER(HttpStatus.BAD_REQUEST, "Task 순서가 올바르지 않습니다");
+    INVALID_TASK_ORDER(HttpStatus.BAD_REQUEST, "Task 순서가 올바르지 않습니다"),
+
+    // PLAN DOMAIN
+    INVALID_DAILY_PLAN_TASKS(HttpStatus.BAD_REQUEST, "오늘의 계획 Task 목록이 올바르지 않습니다"),
+    INVALID_DAILY_PLAN_DATE_RANGE(HttpStatus.BAD_REQUEST, "데일리 플랜 조회 기간이 올바르지 않습니다"),
+
+    // SESSION DOMAIN
+    DAILY_PLAN_TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "오늘의 계획에서 Task를 찾을 수 없습니다"),
+    ACTIVE_SESSION_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 진행 중인 개인 세션이 있습니다"),
+    SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "세션을 찾을 수 없습니다"),
+    SESSION_ALREADY_ENDED(HttpStatus.CONFLICT, "이미 종료된 세션입니다"),
+
+    // USER DOMAIN
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다");
 
     private final HttpStatus status;
     private final String message;

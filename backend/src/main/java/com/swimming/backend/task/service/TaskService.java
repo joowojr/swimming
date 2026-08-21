@@ -54,6 +54,10 @@ public class TaskService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
     }
 
+    public List<Task> getAllEntitiesByIds(List<Long> taskIds) {
+        return taskRepository.findAllById(taskIds);
+    }
+
     public Task update(
             Task task,
             String title,
@@ -64,8 +68,8 @@ public class TaskService {
         return task;
     }
 
-    public void delete(Task task) {
-        taskRepository.delete(task);
+    public void deleteAll(List<Task> tasks) {
+        taskRepository.deleteAllInBatch(tasks);
     }
 
     public void updateOrder(Long projectId, List<Long> taskIds) {

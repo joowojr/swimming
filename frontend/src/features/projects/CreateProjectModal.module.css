@@ -226,8 +226,8 @@
 
 .modal-cancel,
 .modal-submit {
-  min-height: 2.75rem;
-  padding: 0 var(--space-4);
+  min-height: var(--button-height);
+  padding: 0 var(--button-padding-inline);
   border-radius: var(--radius-lg);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-button-weight);

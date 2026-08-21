@@ -8,7 +8,8 @@ import styles from './TaskPickerModal.module.css'
 interface TaskPickerModalProps {
   projects: Project[]
   selectedTaskIds: ReadonlySet<number>
-  onAdd: (tasks: ProjectDetail['tasks'], project: Project) => void
+  onAdd: (tasks: ProjectDetail['tasks']) => Promise<void>
+  onAddAdHoc: (title: string, projectId: number | null) => Promise<void>
   onClose: () => void
 }
 
@@ -21,10 +22,15 @@ export default function TaskPickerModal({
   projects,
   selectedTaskIds,
   onAdd,
+  onAddAdHoc,
   onClose,
 }: TaskPickerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
+  const [title, setTitle] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -58,8 +64,8 @@ export default function TaskPickerModal({
       <section className={styles.modal}>
         <header className={styles.header}>
           <div>
-            <h2 id="task-picker-title">계획에 Task 추가</h2>
-            <p>오늘 이어가고 싶은 Task를 골라 주세요.</p>
+            <h2 id="task-picker-title">계획에 할 일 추가</h2>
+            <p>새 할 일을 만들거나 기존 Task를 골라 주세요.</p>
           </div>
           <button type="button" aria-label="Task 선택 창 닫기" onClick={() => dialogRef.current?.close()}>
             <IconX size={20} aria-hidden="true" />
@@ -67,6 +73,44 @@ export default function TaskPickerModal({
         </header>
 
         <div className={styles.body}>
+          <form
+            className={styles['quick-add']}
+            onSubmit={(event) => {
+              event.preventDefault()
+              const trimmedTitle = title.trim()
+              if (!trimmedTitle || isSubmitting) return
+              setIsSubmitting(true)
+              setSubmitError(null)
+              void onAddAdHoc(trimmedTitle, projectId ? Number(projectId) : null)
+                .then(() => dialogRef.current?.close())
+                .catch(() => setSubmitError('할 일을 추가하지 못했습니다. 다시 시도해 주세요.'))
+                .finally(() => setIsSubmitting(false))
+            }}
+          >
+            <label htmlFor="daily-plan-ad-hoc-title">할 일 직접 추가</label>
+            <select
+              aria-label="할 일을 추가할 프로젝트"
+              value={projectId}
+              disabled={isSubmitting}
+              onChange={(event) => setProjectId(event.target.value)}
+            >
+              <option value="">프로젝트 선택</option>
+              {projects.map((project) => (
+                <option value={project.id} key={project.id}>{project.name}</option>
+              ))}
+            </select>
+            <div className={styles['quick-add-row']}>
+              <input
+                id="daily-plan-ad-hoc-title"
+                value={title}
+                maxLength={255}
+                placeholder="할 일을 입력해 주세요"
+                onChange={(event) => setTitle(event.target.value)}
+              />
+              <button type="submit" disabled={!title.trim() || isSubmitting}>추가</button>
+            </div>
+            {submitError && <p role="alert">{submitError}</p>}
+          </form>
           {state.status === 'loading' ? (
             <p className={styles.state} role="status">
               <IconLoader2 className={styles.spinner} size={18} aria-hidden="true" />
@@ -78,8 +122,7 @@ export default function TaskPickerModal({
             <p className={styles.state}>계획에 추가할 Task가 아직 없습니다.</p>
           ) : (
             state.details.map((detail) => {
-              const project = projects.find((item) => item.id === detail.id)
-              if (!project || detail.tasks.length === 0) return null
+              if (detail.tasks.length === 0) return null
               return (
                 <section className={styles.group} key={detail.id} aria-labelledby={`picker-project-${detail.id}`}>
                   <h3 id={`picker-project-${detail.id}`}>{detail.name}</h3>
@@ -91,10 +134,14 @@ export default function TaskPickerModal({
                           <span>{task.title}</span>
                           <button
                             type="button"
-                            disabled={selected}
+                            disabled={selected || isSubmitting}
                             onClick={() => {
-                              onAdd([task], project)
-                              dialogRef.current?.close()
+                              setIsSubmitting(true)
+                              setSubmitError(null)
+                              void onAdd([task])
+                                .then(() => dialogRef.current?.close())
+                                .catch(() => setSubmitError('Task를 추가하지 못했습니다. 다시 시도해 주세요.'))
+                                .finally(() => setIsSubmitting(false))
                             }}
                           >
                             {!selected && <IconPlus size={16} aria-hidden="true" />}

@@ -240,6 +240,7 @@
 .project-tone-0 { --project-tone: var(--color-primary); }
 .project-tone-1 { --project-tone: var(--color-tertiary); }
 .project-tone-2 { --project-tone: var(--color-dashboard-green); }
+.ad-hoc-card { --project-tone: var(--color-text-muted); }
 
 .card-select {
   display: grid;

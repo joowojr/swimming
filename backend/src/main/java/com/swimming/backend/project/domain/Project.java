@@ -1,68 +1,87 @@
 package com.swimming.backend.project.domain;
 
-import com.swimming.backend.common.entity.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "projects")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Project extends BaseTimeEntity {
+public class Project {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
+    private final Long id;
+    private final Long userId;
     private ProjectTag tag;
-
-    @Column(nullable = false)
     private String name;
-
-    @Column(columnDefinition = "text")
     private String description;
-
-    @Column(name = "target_date")
     private LocalDate targetDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private ProjectStatus status;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
 
-    @Builder
     private Project(
+            Long id,
+            Long userId,
+            ProjectTag tag,
+            String name,
+            String description,
+            LocalDate targetDate,
+            ProjectStatus status,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
+        this.userId = userId;
+        this.tag = tag;
+        this.name = name;
+        this.description = description;
+        this.targetDate = targetDate;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static Project create(
             Long userId,
             ProjectTag tag,
             String name,
             String description,
             LocalDate targetDate
     ) {
-        this.userId = userId;
-        this.tag = tag;
-        this.name = name;
-        this.description = description;
-        this.targetDate = targetDate;
-        this.status = ProjectStatus.IN_PROGRESS;
+        return new Project(
+                null,
+                userId,
+                tag,
+                name.trim(),
+                description.trim(),
+                targetDate,
+                ProjectStatus.IN_PROGRESS,
+                null,
+                null
+        );
+    }
+
+    public static Project restore(
+            Long id,
+            Long userId,
+            ProjectTag tag,
+            String name,
+            String description,
+            LocalDate targetDate,
+            ProjectStatus status,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        return new Project(
+                id,
+                userId,
+                tag,
+                name,
+                description,
+                targetDate,
+                status,
+                createdAt,
+                updatedAt
+        );
     }
 
     public void update(
@@ -72,8 +91,8 @@ public class Project extends BaseTimeEntity {
             ProjectStatus status,
             ProjectTag tag
     ) {
-        this.name = name;
-        this.description = description;
+        this.name = name.trim();
+        this.description = description.trim();
         this.targetDate = targetDate;
         this.status = status;
         this.tag = tag;

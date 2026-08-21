@@ -2,6 +2,7 @@ package com.swimming.backend.project.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.domain.ProjectTag;
 import com.swimming.backend.project.dto.CreateProjectRequest;
 import com.swimming.backend.project.dto.ProjectDetailResponse;
@@ -34,25 +35,23 @@ public class ProjectUseCase {
             throw new BusinessException(ErrorCode.PROJECT_TAG_SELECTION_CONFLICT);
         }
 
-        Long tagId = request.tagId();
+        ProjectTag tag = null;
         if (request.newTagName() != null) {
-            ProjectTag createdTag = projectTagService.create(userId, request.newTagName());
-            tagId = createdTag.getId();
+            tag = projectTagService.create(ProjectTag.create(userId, request.newTagName()));
+        } else if (request.tagId() != null) {
+            tag = projectTagService.getOne(userId, request.tagId());
         }
 
-        return ProjectResponse.from(projectService.create(
+        Project project = Project.create(
                 userId,
+                tag,
                 request.name(),
                 request.description(),
-                request.targetDate(),
-                tagId
-        ));
+                request.targetDate()
+        );
+        return ProjectResponse.from(projectService.create(project));
     }
 
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
     public List<ProjectResponse> getAll(Long userId) {
         return projectService.getAll(userId)
                 .stream()
@@ -60,10 +59,6 @@ public class ProjectUseCase {
                 .toList();
     }
 
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
     public ProjectDetailResponse getOne(Long userId, Long projectId) {
         var project = projectService.getOne(userId, projectId);
         List<TaskSummaryResponse> tasks = taskService.getSummaries(project.getId());
@@ -88,14 +83,17 @@ public class ProjectUseCase {
             Long projectId,
             UpdateProjectRequest request
     ) {
-        return ProjectResponse.from(projectService.update(
-                userId,
-                projectId,
+        Project project = projectService.getOne(userId, projectId);
+        ProjectTag tag = request.tagId() == null
+                ? null
+                : projectTagService.getOne(userId, request.tagId());
+        project.update(
                 request.name(),
                 request.description(),
                 request.targetDate(),
                 request.status(),
-                request.tagId()
-        ));
+                tag
+        );
+        return ProjectResponse.from(projectService.update(project));
     }
 }

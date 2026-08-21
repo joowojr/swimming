@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconChevronRight, IconTrash } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import type { ApiError } from '../../api/client'
+import InlineEditableText from '../../components/InlineEditableText'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import { deleteTasks } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus } from '../tasks/taskTypes'
-import { getProject } from './projectApi'
+import { getProject, updateProject } from './projectApi'
 import type { ProjectDetail as ProjectDetailData, ProjectStatus } from './projectTypes'
 import TaskList from './TaskList'
 import styles from './ProjectDetail.module.css'
@@ -22,6 +23,7 @@ type DetailState =
   | { status: 'error'; notFound: boolean }
 
 type TaskFilter = 'ALL' | TaskStatus
+type EditableProjectTextField = 'name' | 'description'
 
 const taskFilters: Array<{ value: TaskFilter; label: string }> = [
   { value: 'ALL', label: '전체' },
@@ -62,6 +64,10 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [isSavingProject, setIsSavingProject] = useState(false)
   const taskInputRef = useRef<HTMLInputElement>(null)
 
   const leaveDeleteMode = () => {
@@ -96,6 +102,108 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       setDeleteError(apiMessage ?? '선택한 task를 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsDeletingTasks(false)
+    }
+  }
+
+  const startEditingTargetDate = (value: string | null) => {
+    if (isSavingProject) return
+    setIsEditingTargetDate(true)
+    setEditValue(value ?? '')
+    setEditError(null)
+  }
+
+  const cancelEditingTargetDate = () => {
+    if (isSavingProject) return
+    setIsEditingTargetDate(false)
+    setEditValue('')
+    setEditError(null)
+  }
+
+  const applyUpdatedProject = (project: ProjectDetailData, updated: Awaited<ReturnType<typeof updateProject>>) => {
+    setState({
+      status: 'ready',
+      project: {
+        ...project,
+        name: updated.name,
+        description: updated.description,
+        targetDate: updated.targetDate,
+        status: updated.status,
+        tag: updated.tag,
+      },
+    })
+  }
+
+  const saveProjectTextField = async (
+    project: ProjectDetailData,
+    field: EditableProjectTextField,
+    value: string,
+  ) => {
+    setIsSavingProject(true)
+    try {
+      const updated = await updateProject(project.id, {
+        name: field === 'name' ? value : project.name,
+        description: field === 'description' ? value : project.description,
+        targetDate: project.targetDate,
+        status: project.status,
+        tagId: project.tag?.id ?? null,
+      })
+      applyUpdatedProject(project, updated)
+    } finally {
+      setIsSavingProject(false)
+    }
+  }
+
+  const getProjectFieldError = (error: unknown, field: EditableProjectTextField) => {
+    const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
+    return apiError?.errors?.[field]
+      ?? apiError?.message
+      ?? '프로젝트 정보를 저장하지 못했습니다.'
+  }
+
+  const saveTargetDate = async (project: ProjectDetailData) => {
+    if (!isEditingTargetDate || isSavingProject) return
+    const targetDate = editValue || null
+    if (targetDate === project.targetDate) {
+      cancelEditingTargetDate()
+      return
+    }
+
+    setIsSavingProject(true)
+    setEditError(null)
+    try {
+      const updated = await updateProject(project.id, {
+        name: project.name,
+        description: project.description,
+        targetDate,
+        status: project.status,
+        tagId: project.tag?.id ?? null,
+      })
+      applyUpdatedProject(project, updated)
+      setIsEditingTargetDate(false)
+      setEditValue('')
+    } catch (error: unknown) {
+      const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
+      setEditError(apiError?.errors?.targetDate ?? apiError?.message ?? '목표일을 저장하지 못했습니다.')
+    } finally {
+      setIsSavingProject(false)
+    }
+  }
+
+  const handleTargetDateDisplayKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Enter' && event.key !== 'F2') return
+    event.preventDefault()
+    startEditingTargetDate(state.status === 'ready' ? state.project.targetDate : null)
+  }
+
+  const handleTargetDateEditorKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      cancelEditingTargetDate()
+      return
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      event.currentTarget.blur()
     }
   }
 
@@ -203,8 +311,32 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
           {project.tag && <span className={styles.tag}>{project.tag.name}</span>}
           <span className={styles['project-status']}>{projectStatusLabel[project.status]}</span>
         </div>
-        <h1 id="project-detail-title">{project.name}</h1>
-        <p>{project.description || '프로젝트 설명이 아직 없습니다.'}</p>
+        <div className={styles['editable-group']}>
+          <h1 id="project-detail-title">
+            <InlineEditableText
+              value={project.name}
+              ariaLabel="프로젝트 제목"
+              maxLength={255}
+              requiredMessage="프로젝트 이름을 입력해 주세요."
+              disabled={isSavingProject}
+              onSave={(value) => saveProjectTextField(project, 'name', value)}
+              getErrorMessage={(error) => getProjectFieldError(error, 'name')}
+            />
+          </h1>
+        </div>
+        <div className={styles['editable-group']}>
+          <p>
+            <InlineEditableText
+              value={project.description}
+              emptyText="프로젝트 설명이 아직 없습니다."
+              ariaLabel="프로젝트 설명"
+              requiredMessage="프로젝트 설명을 입력해 주세요."
+              disabled={isSavingProject}
+              onSave={(value) => saveProjectTextField(project, 'description', value)}
+              getErrorMessage={(error) => getProjectFieldError(error, 'description')}
+            />
+          </p>
+        </div>
       </header>
 
       <section className={styles.summary} aria-labelledby="project-progress-title">
@@ -232,7 +364,34 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         <dl className={styles['target-date']}>
           <div>
             <dt>목표일</dt>
-            <dd>{formatTargetDate(project.targetDate)}</dd>
+            <dd>
+              {isEditingTargetDate ? (
+                <div className={styles['date-editor']}>
+                  <input
+                    type="date"
+                    value={editValue}
+                    aria-label="프로젝트 목표일"
+                    aria-invalid={Boolean(editError)}
+                    disabled={isSavingProject}
+                    autoFocus
+                    onChange={(event) => { setEditValue(event.target.value); setEditError(null) }}
+                    onBlur={() => void saveTargetDate(project)}
+                    onKeyDown={handleTargetDateEditorKeyDown}
+                  />
+                  {editError && <p role="alert">{editError}</p>}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles['editable-display']}
+                  title="더블 클릭하여 목표일 수정"
+                  onDoubleClick={() => startEditingTargetDate(project.targetDate)}
+                  onKeyDown={handleTargetDateDisplayKeyDown}
+                >
+                  {formatTargetDate(project.targetDate)}
+                </button>
+              )}
+            </dd>
           </div>
         </dl>
       </section>

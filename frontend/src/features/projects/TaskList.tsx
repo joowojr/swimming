@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
+import InlineEditableText from '../../components/InlineEditableText'
 import { updateTask } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
@@ -67,6 +68,31 @@ export default function TaskList({
     }
   }
 
+  const changeTaskTitle = async (task: TaskSummaryResponse, title: string) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+
+    try {
+      await updateTask(task.id, {
+        title,
+        status: task.status,
+        completionPct: task.completionPct,
+      })
+      onTaskUpdated?.()
+    } finally {
+      setPendingTaskId(null)
+    }
+  }
+
+  const getTaskTitleError = (error: unknown) => {
+    const apiError = typeof error === 'object' && error !== null
+      ? error as ApiError
+      : undefined
+    return apiError?.errors?.title
+      ?? apiError?.message
+      ?? 'Task 제목을 저장하지 못했습니다.'
+  }
+
   const openStatusPicker = (taskId: number) => {
     const select = statusSelectRefs.current.get(taskId)
     if (!select || select.disabled) return
@@ -115,7 +141,18 @@ export default function TaskList({
             </button>
             <div className={styles.content}>
               <div className={styles.heading}>
-                <h3>{task.title}</h3>
+                <h3>
+                  <InlineEditableText
+                    className={styles['task-title']}
+                    value={task.title}
+                    ariaLabel="Task 제목"
+                    maxLength={255}
+                    requiredMessage="Task 제목을 입력해 주세요."
+                    disabled={isPending || isDeleteMode}
+                    onSave={(title) => changeTaskTitle(task, title)}
+                    getErrorMessage={getTaskTitleError}
+                  />
+                </h3>
                 <select
                   ref={(element) => {
                     if (element) statusSelectRefs.current.set(task.id, element)

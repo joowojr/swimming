@@ -86,6 +86,84 @@
   line-height: var(--text-body-lg-line-height);
 }
 
+.editable-group {
+  display: grid;
+  max-width: 100%;
+  min-width: 0;
+  justify-items: start;
+}
+
+.editable-group > h1,
+.editable-group > p {
+  width: 100%;
+  min-width: 0;
+}
+
+.editable-display {
+  display: inline-block;
+  width: max-content;
+  max-width: none;
+  margin-inline: calc(-1 * var(--space-1));
+  padding-inline: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-align: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.date-editor input {
+  max-width: 100%;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  background: transparent;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+}
+
+.date-editor {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.date-editor > p {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.date-editor input {
+  field-sizing: content;
+  width: auto;
+  min-height: var(--space-8);
+  padding: 0 var(--space-2);
+  font-size: var(--text-body-sm-size);
+}
+
+.date-editor input:focus-visible {
+  border-color: transparent;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+  background: var(--color-surface-low);
+}
+
+.date-editor input:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.date-editor input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
 .summary {
   position: relative;
   display: grid;
@@ -422,6 +500,10 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .editable-display:hover {
+    background: var(--color-surface-low);
+  }
+
   .breadcrumb a:hover {
     color: var(--color-text-primary);
   }

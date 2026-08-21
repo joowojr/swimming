@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,6 +27,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,11 +59,7 @@ class ProjectUseCaseTest {
     @DisplayName("프로젝트를 생성하고 응답 DTO로 변환한다")
     void createsProjectAndMapsResponse() {
         LocalDate targetDate = LocalDate.of(2026, 9, 30);
-        ProjectTag tag = ProjectTag.builder()
-                .userId(1L)
-                .name("취준")
-                .build();
-        ReflectionTestUtils.setField(tag, "id", 3L);
+        ProjectTag tag = ProjectTag.restore(3L, 1L, "취준", null, null);
         CreateProjectRequest request = new CreateProjectRequest(
                 "프로젝트",
                 "설명",
@@ -71,16 +67,12 @@ class ProjectUseCaseTest {
                 3L,
                 null
         );
-        Project project = Project.builder()
-                .userId(1L)
-                .tag(tag)
-                .name("프로젝트")
-                .description("설명")
-                .targetDate(targetDate)
-                .build();
-        ReflectionTestUtils.setField(project, "id", 10L);
-        when(projectService.create(1L, "프로젝트", "설명", targetDate, 3L))
-                .thenReturn(project);
+        Project project = Project.restore(
+                10L, 1L, tag, "프로젝트", "설명", targetDate,
+                ProjectStatus.IN_PROGRESS, null, null
+        );
+        when(projectTagService.getOne(1L, 3L)).thenReturn(tag);
+        when(projectService.create(any(Project.class))).thenReturn(project);
 
         ProjectResponse response = projectUseCase.create(1L, request);
 
@@ -89,23 +81,22 @@ class ProjectUseCaseTest {
         assertThat(response.status()).isEqualTo(ProjectStatus.IN_PROGRESS);
         assertThat(response.tag().id()).isEqualTo(3L);
         assertThat(response.tag().name()).isEqualTo("취준");
-        verify(projectService).create(1L, "프로젝트", "설명", targetDate, 3L);
+        verify(projectTagService).getOne(1L, 3L);
+        verify(projectService).create(argThat(created ->
+                created.getUserId().equals(1L)
+                        && created.getTag().getId().equals(3L)
+                        && created.getTargetDate().equals(targetDate)
+        ));
     }
 
     @Test
     @DisplayName("새 태그를 생성한 뒤 같은 트랜잭션에서 프로젝트에 연결한다")
     void createsNewTagAndConnectsItToProject() {
-        ProjectTag tag = ProjectTag.builder()
-                .userId(1L)
-                .name("포트폴리오")
-                .build();
-        ReflectionTestUtils.setField(tag, "id", 4L);
-        Project project = Project.builder()
-                .userId(1L)
-                .tag(tag)
-                .name("프로젝트")
-                .description("설명")
-                .build();
+        ProjectTag tag = ProjectTag.restore(4L, 1L, "포트폴리오", null, null);
+        Project project = Project.restore(
+                10L, 1L, tag, "프로젝트", "설명", null,
+                ProjectStatus.IN_PROGRESS, null, null
+        );
         CreateProjectRequest request = new CreateProjectRequest(
                 "프로젝트",
                 "설명",
@@ -113,16 +104,17 @@ class ProjectUseCaseTest {
                 null,
                 " 포트폴리오 "
         );
-        when(projectTagService.create(1L, " 포트폴리오 ")).thenReturn(tag);
-        when(projectService.create(1L, "프로젝트", "설명", null, 4L))
-                .thenReturn(project);
+        when(projectTagService.create(any(ProjectTag.class))).thenReturn(tag);
+        when(projectService.create(any(Project.class))).thenReturn(project);
 
         ProjectResponse response = projectUseCase.create(1L, request);
 
         assertThat(response.tag().id()).isEqualTo(4L);
         assertThat(response.tag().name()).isEqualTo("포트폴리오");
-        verify(projectTagService).create(1L, " 포트폴리오 ");
-        verify(projectService).create(1L, "프로젝트", "설명", null, 4L);
+        verify(projectTagService).create(argThat(created ->
+                created.getUserId().equals(1L) && created.getName().equals("포트폴리오")
+        ));
+        verify(projectService).create(argThat(created -> created.getTag().getId().equals(4L)));
     }
 
     @Test
@@ -141,8 +133,8 @@ class ProjectUseCaseTest {
                 .satisfies(exception -> assertThat(
                         ((BusinessException) exception).getErrorCode()
                 ).isEqualTo(ErrorCode.PROJECT_TAG_SELECTION_CONFLICT));
-        verify(projectTagService, never()).create(any(), any());
-        verify(projectService, never()).create(any(), any(), any(), any(), any());
+        verify(projectTagService, never()).create(any(ProjectTag.class));
+        verify(projectService, never()).create(any(Project.class));
     }
 
     @Test
@@ -205,30 +197,19 @@ class ProjectUseCaseTest {
                 ProjectStatus.ARCHIVED,
                 null
         );
-        Project project = project(10L, "수정 프로젝트", "수정 설명", null);
-        project.update("수정 프로젝트", "수정 설명", null, ProjectStatus.ARCHIVED, null);
-        when(projectService.update(
-                1L,
-                10L,
-                "수정 프로젝트",
-                "수정 설명",
-                null,
-                ProjectStatus.ARCHIVED,
-                null
-        )).thenReturn(project);
+        Project project = project(10L, "기존 프로젝트", "기존 설명", null);
+        when(projectService.getOne(1L, 10L)).thenReturn(project);
+        when(projectService.update(any(Project.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         ProjectResponse response = projectUseCase.update(1L, 10L, request);
 
         assertThat(response.status()).isEqualTo(ProjectStatus.ARCHIVED);
-        verify(projectService).update(
-                1L,
-                10L,
-                "수정 프로젝트",
-                "수정 설명",
-                null,
-                ProjectStatus.ARCHIVED,
-                null
-        );
+        verify(projectService).update(argThat(updated ->
+                updated.getId().equals(10L)
+                        && updated.getName().equals("수정 프로젝트")
+                        && updated.getStatus() == ProjectStatus.ARCHIVED
+        ));
     }
 
     private Project project(
@@ -237,13 +218,9 @@ class ProjectUseCaseTest {
             String description,
             LocalDate targetDate
     ) {
-        Project project = Project.builder()
-                .userId(1L)
-                .name(name)
-                .description(description)
-                .targetDate(targetDate)
-                .build();
-        ReflectionTestUtils.setField(project, "id", id);
-        return project;
+        return Project.restore(
+                id, 1L, null, name, description, targetDate,
+                ProjectStatus.IN_PROGRESS, null, null
+        );
     }
 }

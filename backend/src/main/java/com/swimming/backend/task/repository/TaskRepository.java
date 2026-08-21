@@ -25,7 +25,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
                 task.completionPct
             )
             FROM Task task
-            JOIN Project project ON project.id = task.projectId
+            JOIN ProjectEntity project ON project.id = task.projectId
             WHERE project.userId = :userId
               AND task.id IN :taskIds
             """)

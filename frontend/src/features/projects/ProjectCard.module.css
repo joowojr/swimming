@@ -1,0 +1,166 @@
+/* Hallmark · component: project-card · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: pass
+ */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+
+.card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 15rem;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  color: var(--color-text-primary);
+  background: var(--color-surface-lowest);
+  text-decoration: none;
+  transition:
+    border-color var(--transition-short),
+    background-color var(--transition-short);
+}
+
+.route {
+  --route-accent: var(--color-primary-fixed);
+  --route-length: 38%;
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--progress-height);
+  background: var(--color-surface-highest);
+}
+
+.route::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--route-length);
+  background: var(--route-accent);
+  content: '';
+  transition: width var(--transition-short) var(--ease-out);
+}
+
+.route.is-clay {
+  --route-accent: var(--color-tertiary-fixed-dim);
+  --route-length: 32%;
+}
+
+.route.is-sky {
+  --route-accent: var(--color-primary-fixed-dim);
+  --route-length: 42%;
+}
+
+.heading,
+.footer {
+  display: flex;
+  align-items: center;
+}
+
+.heading {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.title-group {
+  min-width: 0;
+}
+
+.tag {
+  display: inline-flex;
+  max-width: 100%;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-default);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: .625rem;
+  letter-spacing: .04em;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--color-surface-highest);
+}
+
+.card h3 {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--text-body-lg-size);
+  font-style: normal;
+  font-weight: var(--text-button-weight);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.target-date {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  white-space: nowrap;
+  background: var(--color-surface-muted);
+}
+
+.description {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.footer {
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--text-label-caps-size);
+}
+
+.footer strong {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.card:active {
+  transform: translateY(var(--border-width));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border-color: var(--color-primary-outline);
+    background: var(--color-surface-low);
+  }
+
+  .card:hover .route::after {
+    width: calc(var(--route-length) + 8%);
+  }
+}
+
+@media (max-width: 48rem) {
+  .card {
+    min-height: 13rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .route::after {
+    transition: none;
+  }
+}

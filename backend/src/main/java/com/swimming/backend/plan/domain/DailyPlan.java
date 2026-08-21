@@ -1,86 +1,98 @@
 package com.swimming.backend.plan.domain;
 
-import com.swimming.backend.common.entity.BaseTimeEntity;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderBy;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-@Entity
-@Table(
-        name = "daily_plans",
-        uniqueConstraints = @UniqueConstraint(
-                name = "daily_plans_user_date_unique",
-                columnNames = {"user_id", "plan_date"}
-        )
-)
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class DailyPlan extends BaseTimeEntity {
+public class DailyPlan {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private final Long id;
+    private final Long userId;
+    private final LocalDate planDate;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
+    private final List<DailyPlanItem> items;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Column(name = "plan_date", nullable = false)
-    private LocalDate planDate;
-
-    @OneToMany(mappedBy = "dailyPlan", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderIdx ASC")
-    private List<DailyPlanItem> items = new ArrayList<>();
-
-    private DailyPlan(Long userId, LocalDate planDate) {
+    private DailyPlan(
+            Long id,
+            Long userId,
+            LocalDate planDate,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            List<DailyPlanItem> items
+    ) {
+        this.id = id;
         this.userId = userId;
         this.planDate = planDate;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.items = new ArrayList<>(items);
+        this.items.sort((left, right) -> Integer.compare(left.getOrderIdx(), right.getOrderIdx()));
     }
 
-    public static DailyPlan create(Long userId, LocalDate planDate, List<Long> taskIds) {
-        DailyPlan dailyPlan = new DailyPlan(userId, planDate);
-        dailyPlan.replaceItems(taskIds);
-        return dailyPlan;
+    public static DailyPlan create(Long userId, LocalDate planDate) {
+        return new DailyPlan(null, userId, planDate, null, null, List.of());
     }
 
-    public void replaceItems(List<Long> taskIds) {
-        Set<Long> requestedTaskIds = new HashSet<>(taskIds);
-        items.removeIf(item -> !requestedTaskIds.contains(item.getTaskId()));
+    public static DailyPlan restore(
+            Long id,
+            Long userId,
+            LocalDate planDate,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            List<DailyPlanItem> items
+    ) {
+        return new DailyPlan(id, userId, planDate, createdAt, updatedAt, items);
+    }
 
-        Map<Long, DailyPlanItem> itemsByTaskId = new HashMap<>();
-        for (DailyPlanItem item : items) {
-            itemsByTaskId.put(item.getTaskId(), item);
+    public void addItem(DailyPlanItem item) {
+        if (item.getTaskId() != null && containsTask(item.getTaskId())) {
+            throw new IllegalArgumentException("같은 Task를 계획에 중복 추가할 수 없습니다");
         }
+        item.changeOrder(items.size());
+        items.add(item);
+    }
 
-        for (int orderIdx = 0; orderIdx < taskIds.size(); orderIdx++) {
-            Long taskId = taskIds.get(orderIdx);
-            DailyPlanItem item = itemsByTaskId.get(taskId);
-            if (item == null) {
-                item = DailyPlanItem.create(this, taskId, orderIdx);
-                items.add(item);
-                itemsByTaskId.put(taskId, item);
-            } else {
-                item.changeOrder(orderIdx);
-            }
+    public void reorder(List<Long> itemIds) {
+        Set<Long> currentIds = new HashSet<>(items.stream().map(DailyPlanItem::getId).toList());
+        if (itemIds.size() != items.size()
+                || new HashSet<>(itemIds).size() != itemIds.size()
+                || !currentIds.equals(new HashSet<>(itemIds))) {
+            throw new IllegalArgumentException("계획 항목 순서가 올바르지 않습니다");
         }
-
+        for (int orderIdx = 0; orderIdx < itemIds.size(); orderIdx++) {
+            getItem(itemIds.get(orderIdx)).changeOrder(orderIdx);
+        }
         items.sort((left, right) -> Integer.compare(left.getOrderIdx(), right.getOrderIdx()));
+    }
+
+    public void removeItem(Long itemId) {
+        items.remove(getItem(itemId));
+        for (int index = 0; index < items.size(); index++) {
+            items.get(index).changeOrder(index);
+        }
+    }
+
+    public DailyPlanItem getItem(Long itemId) {
+        return items.stream()
+                .filter(item -> Objects.equals(item.getId(), itemId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("계획 항목을 찾을 수 없습니다"));
+    }
+
+    public boolean containsTask(Long taskId) {
+        return items.stream().anyMatch(item -> Objects.equals(item.getTaskId(), taskId));
+    }
+
+    public List<DailyPlanItem> getItems() {
+        return Collections.unmodifiableList(items);
     }
 }

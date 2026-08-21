@@ -23,9 +23,14 @@ public enum ErrorCode {
     // PLAN DOMAIN
     INVALID_DAILY_PLAN_TASKS(HttpStatus.BAD_REQUEST, "오늘의 계획 Task 목록이 올바르지 않습니다"),
     INVALID_DAILY_PLAN_DATE_RANGE(HttpStatus.BAD_REQUEST, "데일리 플랜 조회 기간이 올바르지 않습니다"),
+    DAILY_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "데일리 플랜을 찾을 수 없습니다"),
+    DAILY_PLAN_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "데일리 플랜 항목을 찾을 수 없습니다"),
+    INVALID_DAILY_PLAN_ITEM(HttpStatus.BAD_REQUEST, "데일리 플랜 항목이 올바르지 않습니다"),
+    INVALID_DAILY_PLAN_ITEM_ORDER(HttpStatus.BAD_REQUEST, "데일리 플랜 항목 순서가 올바르지 않습니다"),
 
     // SESSION DOMAIN
     DAILY_PLAN_TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "오늘의 계획에서 Task를 찾을 수 없습니다"),
+    INVALID_SESSION_TASKS(HttpStatus.BAD_REQUEST, "세션 Task 목록이 올바르지 않습니다"),
     ACTIVE_SESSION_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 진행 중인 개인 세션이 있습니다"),
     SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "세션을 찾을 수 없습니다"),
     SESSION_ALREADY_ENDED(HttpStatus.CONFLICT, "이미 종료된 세션입니다"),

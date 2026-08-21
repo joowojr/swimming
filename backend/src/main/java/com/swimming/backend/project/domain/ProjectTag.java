@@ -1,43 +1,43 @@
 package com.swimming.backend.project.domain;
 
-import com.swimming.backend.common.entity.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Entity
-@Table(
-        name = "project_tags",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_project_tags_user_name",
-                columnNames = {"user_id", "name"}
-        )
-)
+import java.time.LocalDateTime;
+
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProjectTag extends BaseTimeEntity {
+public class ProjectTag {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private final Long id;
+    private final Long userId;
+    private final String name;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Column(nullable = false, length = 30)
-    private String name;
-
-    @Builder
-    private ProjectTag(Long userId, String name) {
+    private ProjectTag(
+            Long id,
+            Long userId,
+            String name,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
         this.userId = userId;
         this.name = name;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static ProjectTag create(Long userId, String name) {
+        return new ProjectTag(null, userId, name.trim(), null, null);
+    }
+
+    public static ProjectTag restore(
+            Long id,
+            Long userId,
+            String name,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        return new ProjectTag(id, userId, name, createdAt, updatedAt);
     }
 }

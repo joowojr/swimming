@@ -1,0 +1,87 @@
+/* Hallmark · component: inline-edit · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: pass
+ */
+/* Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V4 */
+
+.root {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  justify-items: start;
+}
+
+.display,
+.input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-inline: calc(-1 * var(--space-1));
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-align: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+
+.display {
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.display:active:not(:disabled) {
+  background: var(--color-surface-high);
+}
+
+.display:disabled,
+.input:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.input {
+  field-sizing: content;
+  width: auto;
+  min-width: 2ch;
+  max-width: 100%;
+  justify-self: start;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+  background: var(--color-surface-low);
+}
+
+.input:focus-visible {
+  outline-color: var(--focus-ring-color);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.error {
+  display: block;
+  min-height: var(--text-body-sm-line-height);
+  margin-top: var(--space-1);
+  color: var(--color-error);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-sm-size);
+  font-style: normal;
+  font-weight: var(--text-body-sm-weight);
+  letter-spacing: normal;
+  line-height: var(--text-body-sm-line-height);
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .display:hover:not(:disabled) {
+    background: var(--color-surface-low);
+  }
+}

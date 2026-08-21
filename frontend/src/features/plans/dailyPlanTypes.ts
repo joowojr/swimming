@@ -1,12 +1,13 @@
 import type { TaskStatus } from '../tasks/taskTypes'
 
 export interface DailyPlanItem {
-  taskId: number
-  projectId: number
-  projectName: string
+  id: number
+  taskId: number | null
+  projectId: number | null
+  projectName: string | null
   title: string
-  status: TaskStatus
-  completionPct: number
+  status: TaskStatus | null
+  completionPct: number | null
   orderIdx: number
 }
 
@@ -15,7 +16,12 @@ export interface DailyPlan {
   items: DailyPlanItem[]
 }
 
-export interface UpdateDailyPlanRequest {
-  date: string
-  taskIds: number[]
+export interface CreateDailyPlanItemRequest {
+  taskId?: number
+  projectId?: number
+  title?: string
+}
+
+export interface ReorderDailyPlanItemsRequest {
+  itemIds: number[]
 }

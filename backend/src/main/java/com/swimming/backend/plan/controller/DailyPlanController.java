@@ -1,26 +1,33 @@
 package com.swimming.backend.plan.controller;
 
 import com.swimming.backend.common.security.AuthUser;
+import com.swimming.backend.plan.dto.CreateDailyPlanItemRequest;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
-import com.swimming.backend.plan.dto.UpdateDailyPlanRequest;
+import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
+import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
 import com.swimming.backend.plan.usecase.DailyPlanUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/daily-plan")
+@RequestMapping("/api/daily-plans")
 @RequiredArgsConstructor
 public class DailyPlanController {
 
@@ -29,26 +36,51 @@ public class DailyPlanController {
     @GetMapping
     public ResponseEntity<List<DailyPlanResponse>> getRange(
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestParam(name = "from_date")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate fromDate,
-            @RequestParam(name = "to_date")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate toDate
+            @RequestParam(name = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(name = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
     ) {
-        return ResponseEntity.ok(dailyPlanUseCase.getRange(
-                authUser.id(),
-                fromDate,
-                toDate
-        ));
+        return ResponseEntity.ok(dailyPlanUseCase.getRange(authUser.id(), fromDate, toDate));
     }
 
-    @PutMapping
-    public ResponseEntity<Void> update(
+    @PutMapping("/{date}")
+    public ResponseEntity<DailyPlanResponse> reorder(
             @AuthenticationPrincipal AuthUser authUser,
-            @Valid @RequestBody UpdateDailyPlanRequest request
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Valid @RequestBody ReorderDailyPlanItemsRequest request
     ) {
-        dailyPlanUseCase.update(authUser.id(), request);
+        return ResponseEntity.ok(dailyPlanUseCase.reorder(authUser.id(), date, request));
+    }
+
+    @PostMapping("/{date}/items")
+    public ResponseEntity<DailyPlanResponse> addItem(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Valid @RequestBody CreateDailyPlanItemRequest request
+    ) {
+        DailyPlanResponse response = dailyPlanUseCase.addItem(authUser.id(), date, request);
+        Long itemId = response.items().getLast().id();
+        return ResponseEntity.created(URI.create(
+                "/api/daily-plans/" + date + "/items/" + itemId
+        )).body(response);
+    }
+
+    @PatchMapping("/{date}/items/{itemId}")
+    public ResponseEntity<DailyPlanResponse> updateItem(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateDailyPlanItemRequest request
+    ) {
+        return ResponseEntity.ok(dailyPlanUseCase.updateItem(authUser.id(), date, itemId, request));
+    }
+
+    @DeleteMapping("/{date}/items/{itemId}")
+    public ResponseEntity<Void> deleteItem(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @PathVariable Long itemId
+    ) {
+        dailyPlanUseCase.deleteItem(authUser.id(), date, itemId);
         return ResponseEntity.noContent().build();
     }
 }

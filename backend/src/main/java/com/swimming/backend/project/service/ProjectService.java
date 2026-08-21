@@ -8,10 +8,13 @@ import com.swimming.backend.project.domain.ProjectTag;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
+import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.project.repository.entity.ProjectTagEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -21,71 +24,52 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectTagRepository projectTagRepository;
 
-    public Project create(
-            Long userId,
-            String name,
-            String description,
-            LocalDate targetDate,
-            Long tagId
-    ) {
-        ProjectTag tag = getOwnedTag(userId, tagId);
-        Project project = Project.builder()
-                .userId(userId)
-                .tag(tag)
-                .name(name.trim())
-                .description(description.trim())
-                .targetDate(targetDate)
-                .build();
-         return projectRepository.save(project);
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Project create(Project project) {
+        ProjectTagEntity tagEntity = getOwnedTagEntity(project.getUserId(), project.getTag());
+        return projectRepository.saveAndFlush(ProjectEntity.from(project, tagEntity)).toDomain();
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Project> getAll(Long userId) {
         return projectRepository
                 .findAllByUserIdAndStatusNotOrderByCreatedAtDesc(
                         userId,
                         ProjectStatus.ARCHIVED
-                );
+                )
+                .stream()
+                .map(ProjectEntity::toDomain)
+                .toList();
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Project getOne(Long userId, Long projectId) {
-        return getOwnedProject(userId, projectId);
+        return getOwnedProjectEntity(userId, projectId).toDomain();
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public ProjectReference getReference(Long userId, Long projectId) {
-        return ProjectReference.from(getOwnedProject(userId, projectId));
+        return ProjectReference.from(getOwnedProjectEntity(userId, projectId).toDomain());
     }
 
-    public Project update(
-            Long userId,
-            Long projectId,
-            String name,
-            String description,
-            LocalDate targetDate,
-            ProjectStatus status,
-            Long tagId
-    ) {
-        Project project = getOwnedProject(userId, projectId);
-        ProjectTag tag = getOwnedTag(userId, tagId);
-        project.update(
-                name.trim(),
-                description.trim(),
-                targetDate,
-                status,
-                tag
-        );
-        return project;
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Project update(Project project) {
+        ProjectEntity projectEntity = getOwnedProjectEntity(project.getUserId(), project.getId());
+        ProjectTagEntity tagEntity = getOwnedTagEntity(project.getUserId(), project.getTag());
+        projectEntity.apply(project, tagEntity);
+        return projectRepository.saveAndFlush(projectEntity).toDomain();
     }
 
-    private Project getOwnedProject(Long userId, Long projectId) {
+    private ProjectEntity getOwnedProjectEntity(Long userId, Long projectId) {
         return projectRepository.findByIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
     }
 
-    private ProjectTag getOwnedTag(Long userId, Long tagId) {
-        if (tagId == null) {
+    private ProjectTagEntity getOwnedTagEntity(Long userId, ProjectTag tag) {
+        if (tag == null) {
             return null;
         }
-        return projectTagRepository.findByIdAndUserId(tagId, userId)
+        return projectTagRepository.findByIdAndUserId(tag.getId(), userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
     }
 }

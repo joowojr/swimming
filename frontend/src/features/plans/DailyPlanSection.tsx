@@ -7,7 +7,7 @@ import type { Project, ProjectDetail } from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import { updateTask } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL } from '../tasks/taskLabels'
-import { getDailyPlans, updateDailyPlan } from './dailyPlanApi'
+import { addDailyPlanItem, deleteDailyPlanItem, getDailyPlans, reorderDailyPlanItems, updateDailyPlanItem } from './dailyPlanApi'
 import type { DailyPlan, DailyPlanItem } from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanSection.module.css'
@@ -76,13 +76,14 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
         const revision = planRevisionRef.current.get(date) ?? 0
         savingDatesRef.current.add(date)
 
-        void updateDailyPlan({ date, taskIds: items.map((item) => item.taskId) })
-          .then(() => {
+        void reorderDailyPlanItems(date, { itemIds: items.map((item) => item.id) })
+          .then((savedPlan) => {
             if ((planRevisionRef.current.get(date) ?? 0) !== revision) return
 
             setPlans((current) => current.map((plan) => plan.date === date
-              ? { ...plan, items: items.map((item, orderIdx) => ({ ...item, orderIdx })) }
+              ? savedPlan
               : plan))
+            setDrafts((current) => ({ ...current, [date]: savedPlan.items }))
             setDirtyDates((dates) => {
               const next = new Set(dates)
               next.delete(date)
@@ -154,35 +155,34 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
     markDateDirty(selectedDate)
   }
 
-  const addTasks = (tasks: ProjectDetail['tasks'], project: Project) => {
-    setDrafts((current) => {
-      const items = current[selectedDate] ?? []
-      return {
-        ...current,
-        [selectedDate]: [
-          ...items,
-          ...tasks
-            .filter((task) => !items.some((item) => item.taskId === task.id))
-            .map((task, index) => ({
-              taskId: task.id,
-              projectId: project.id,
-              projectName: project.name,
-              title: task.title,
-              status: task.status,
-              completionPct: task.completionPct,
-              orderIdx: items.length + index,
-            })),
-        ],
-      }
-    })
-    markDateDirty(selectedDate)
+  const replacePlan = (savedPlan: DailyPlan) => {
+    setPlans((current) => current.map((plan) => plan.date === savedPlan.date ? savedPlan : plan))
+    setDrafts((current) => ({ ...current, [savedPlan.date]: savedPlan.items }))
   }
 
-  const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
+  const addTasks = async (tasks: ProjectDetail['tasks']) => {
+    const task = tasks[0]
+    if (!task) return
+    replacePlan(await addDailyPlanItem(selectedDate, { taskId: task.id }))
+  }
+
+  const addAdHoc = async (title: string, projectId: number | null) => {
+    replacePlan(await addDailyPlanItem(selectedDate, {
+      title,
+      ...(projectId === null ? {} : { projectId }),
+    }))
+  }
+
+  const changeTaskTitle = async (date: string, item: DailyPlanItem, title: string) => {
+    if (item.taskId === null) {
+      replacePlan(await updateDailyPlanItem(date, item.id, title))
+      return
+    }
+
     await updateTask(item.taskId, {
       title,
-      status: item.status,
-      completionPct: item.completionPct,
+      status: item.status!,
+      completionPct: item.completionPct!,
     })
 
     const replaceTitle = (items: DailyPlanItem[]) => items.map((candidate) => (
@@ -195,6 +195,22 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
       ...plan,
       items: replaceTitle(plan.items),
     })))
+  }
+
+  const removeItem = async (date: string, itemId: number) => {
+    try {
+      await deleteDailyPlanItem(date, itemId)
+      const remove = (items: DailyPlanItem[]) => items
+        .filter((item) => item.id !== itemId)
+        .map((item, orderIdx) => ({ ...item, orderIdx }))
+      setDrafts((current) => ({ ...current, [date]: remove(current[date] ?? []) }))
+      setPlans((current) => current.map((plan) => plan.date === date
+        ? { ...plan, items: remove(plan.items) }
+        : plan))
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+      setMessage(apiMessage ?? '계획에서 할 일을 제거하지 못했습니다.')
+    }
   }
 
   const getTaskTitleError = (error: unknown) => {
@@ -259,38 +275,42 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
                     </button>
                     <ol className={styles.list}>
                       {items.map((item, index) => (
-                        <li className={`${styles.card} ${styles[`project-tone-${item.projectId % 3}`]}`} key={item.taskId}>
+                        <li className={`${styles.card} ${item.projectId === null ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 3}`]}`} key={item.id}>
                           <div className={styles['card-select']} onClick={() => setSelectedDate(plan.date)}>
-                            <button type="button" className={styles['project-label']} aria-label={`${item.title}이 있는 ${dayFormatter.format(date)} 선택`}>
-                              <span className={styles['project-mark']} aria-hidden="true" />{item.projectName}
-                            </button>
+                            {item.projectName !== null && (
+                              <button type="button" className={styles['project-label']} aria-label={`${item.title}이 있는 ${dayFormatter.format(date)} 선택`}>
+                                <span className={styles['project-mark']} aria-hidden="true" />{item.projectName}
+                              </button>
+                            )}
                             <strong>
                               <InlineEditableText
                                 value={item.title}
                                 ariaLabel="Task 제목"
                                 maxLength={255}
                                 requiredMessage="Task 제목을 입력해 주세요."
-                                onSave={(title) => changeTaskTitle(item, title)}
+                                onSave={(title) => changeTaskTitle(plan.date, item, title)}
                                 getErrorMessage={getTaskTitleError}
                               />
                             </strong>
-                            <span className={styles.meta}><span>{TASK_STATUS_LABEL[item.status]}</span><span>{item.completionPct}% 진행</span></span>
+                            {item.status !== null && item.completionPct !== null && (
+                              <span className={styles.meta}><span>{TASK_STATUS_LABEL[item.status]}</span><span>{item.completionPct}% 진행</span></span>
+                            )}
                           </div>
                           {selected && (
                             <details className={styles['card-menu']}>
                               <summary aria-label={`${item.title} 카드 메뉴`}><IconDots size={17} aria-hidden="true" /></summary>
                               <div className={styles.actions}>
-                                {plan.date === today && <button type="button" onClick={() => setSessionTaskId(item.taskId)}><IconPlayerPlay size={15} aria-hidden="true" />세션 시작</button>}
+                                {plan.date === today && item.taskId !== null && <button type="button" onClick={() => setSessionTaskId(item.taskId)}><IconPlayerPlay size={15} aria-hidden="true" />세션 시작</button>}
                                 <button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}><IconArrowUp size={15} aria-hidden="true" />위로</button>
                                 <button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}><IconArrowDown size={15} aria-hidden="true" />아래로</button>
-                                <button type="button" aria-label="계획에서 제거" onClick={() => { setDrafts((current) => ({ ...current, [selectedDate]: (current[selectedDate] ?? []).filter((task) => task.taskId !== item.taskId) })); markDateDirty(selectedDate) }}><IconTrash size={15} aria-hidden="true" /></button>
+                                <button type="button" aria-label="계획에서 제거" onClick={() => void removeItem(plan.date, item.id)}><IconTrash size={15} aria-hidden="true" /></button>
                               </div>
                             </details>
                           )}
                         </li>
                       ))}
                     </ol>
-                    {items.length === 0 && <p className={styles.empty}>아직 계획된 Task가 없습니다.</p>}
+                    {items.length === 0 && <p className={styles.empty}>아직 계획된 할 일이 없습니다.</p>}
                     <button type="button" className={styles['column-add']} onClick={() => { setSelectedDate(plan.date); setIsPickerOpen(true) }}><IconPlus size={15} aria-hidden="true" /></button>
                   </section>
                 )
@@ -300,7 +320,7 @@ export default function DailyPlanSection({ projects }: DailyPlanSectionProps) {
         </>
       )}
 
-      {isPickerOpen && <TaskPickerModal projects={projects} selectedTaskIds={new Set(draftItems.map((item) => item.taskId))} onAdd={addTasks} onClose={() => setIsPickerOpen(false)} />}
+      {isPickerOpen && <TaskPickerModal projects={projects} selectedTaskIds={new Set(draftItems.flatMap((item) => item.taskId === null ? [] : [item.taskId]))} onAdd={addTasks} onAddAdHoc={addAdHoc} onClose={() => setIsPickerOpen(false)} />}
       {sessionTaskId !== null && (
         <CreateSessionModal
           todayTasks={todayTasks}

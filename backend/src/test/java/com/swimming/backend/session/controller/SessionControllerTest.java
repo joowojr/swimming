@@ -1,0 +1,205 @@
+package com.swimming.backend.session.controller;
+
+import com.swimming.backend.common.exception.BusinessException;
+import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.common.exception.GlobalExceptionHandler;
+import com.swimming.backend.common.security.AuthUser;
+import com.swimming.backend.session.domain.SessionStatus;
+import com.swimming.backend.session.domain.SessionType;
+import com.swimming.backend.session.dto.web.ActiveSessionResponse;
+import com.swimming.backend.session.dto.web.ActiveSessionTaskResponse;
+import com.swimming.backend.session.dto.web.SessionResponse;
+import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
+import com.swimming.backend.session.usecase.SessionUseCase;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
+
+import java.time.Instant;
+import java.util.List;
+
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class SessionControllerTest {
+
+    private static final Instant STARTED_AT = Instant.parse("2026-08-20T00:00:00Z");
+
+    private SessionUseCase sessionUseCase;
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        sessionUseCase = mock(SessionUseCase.class);
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(new SessionController(sessionUseCase))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new AuthUserArgumentResolver(
+                        new AuthUser(1L, "user@example.com")
+                ))
+                .build();
+    }
+
+    @Test
+    @DisplayName("개인 세션을 생성하면 Location과 진행 상태를 반환한다")
+    void startsPersonalSession() throws Exception {
+        StartPersonalSessionRequest request = new StartPersonalSessionRequest(List.of(10L, 11L), 1500);
+        when(sessionUseCase.startPersonal(1L, request)).thenReturn(new SessionResponse(
+                5L,
+                SessionType.PERSONAL,
+                List.of(10L, 11L),
+                1500,
+                null,
+                STARTED_AT,
+                null,
+                SessionStatus.IN_PROGRESS
+        ));
+
+        mockMvc.perform(post("/api/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "taskIds":[10,11],
+                                  "plannedDurationSec":1500
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/sessions/5"))
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.type").value("PERSONAL"))
+                .andExpect(jsonPath("$.taskIds[0]").value(10))
+                .andExpect(jsonPath("$.taskIds[1]").value(11))
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+
+        verify(sessionUseCase).startPersonal(1L, request);
+    }
+
+    @Test
+    @DisplayName("허용 범위를 벗어난 집중 시간은 필드 오류를 반환한다")
+    void rejectsInvalidDuration() throws Exception {
+        mockMvc.perform(post("/api/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "taskId":10,
+                                  "plannedDurationSec":59
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errors.plannedDurationSec").exists());
+    }
+
+    @Test
+    @DisplayName("진행 중인 세션과 선택한 Task 목록을 순서대로 반환한다")
+    void getsActiveSession() throws Exception {
+        when(sessionUseCase.getActive(1L)).thenReturn(java.util.Optional.of(
+                new ActiveSessionResponse(
+                        5L,
+                        SessionType.PERSONAL,
+                        SessionStatus.IN_PROGRESS,
+                        1500,
+                        STARTED_AT,
+                        List.of(
+                                new ActiveSessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"),
+                                new ActiveSessionTaskResponse(11L, 2L, "프로젝트", "다음 Task")
+                        )
+                )
+        ));
+
+        mockMvc.perform(get("/api/sessions/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.tasks[0].id").value(10))
+                .andExpect(jsonPath("$.tasks[0].projectName").value("프로젝트"))
+                .andExpect(jsonPath("$.tasks[1].id").value(11));
+    }
+
+    @Test
+    @DisplayName("진행 중인 세션이 없으면 본문 없이 응답한다")
+    void returnsNoContentWithoutActiveSession() throws Exception {
+        when(sessionUseCase.getActive(1L)).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/sessions/active"))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    @DisplayName("세션을 종료하면 서버가 확정한 실제 집중 시간을 반환한다")
+    void endsPersonalSession() throws Exception {
+        when(sessionUseCase.end(1L, 5L)).thenReturn(new SessionResponse(
+                5L,
+                SessionType.PERSONAL,
+                List.of(10L, 11L),
+                1500,
+                600,
+                STARTED_AT,
+                STARTED_AT.plusSeconds(600),
+                SessionStatus.INTERRUPTED
+        ));
+
+        mockMvc.perform(post("/api/sessions/5/end"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actualDurationSec").value(600))
+                .andExpect(jsonPath("$.endedAt").value("2026-08-20T00:10:00Z"))
+                .andExpect(jsonPath("$.status").value("INTERRUPTED"));
+    }
+
+    @Test
+    @DisplayName("진행 중인 세션이 있으면 ProblemDetail 충돌 응답을 반환한다")
+    void returnsConflictForExistingActiveSession() throws Exception {
+        StartPersonalSessionRequest request = new StartPersonalSessionRequest(List.of(10L, 11L), 1500);
+        doThrow(new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS))
+                .when(sessionUseCase).startPersonal(1L, request);
+
+        mockMvc.perform(post("/api/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "taskIds":[10,11],
+                                  "plannedDurationSec":1500
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("ACTIVE_SESSION_ALREADY_EXISTS"));
+    }
+
+    private record AuthUserArgumentResolver(AuthUser authUser)
+            implements HandlerMethodArgumentResolver {
+
+        @Override
+        public boolean supportsParameter(MethodParameter parameter) {
+            return parameter.getParameterType() == AuthUser.class
+                    && parameter.hasParameterAnnotation(AuthenticationPrincipal.class);
+        }
+
+        @Override
+        public Object resolveArgument(
+                MethodParameter parameter,
+                ModelAndViewContainer mavContainer,
+                NativeWebRequest webRequest,
+                WebDataBinderFactory binderFactory
+        ) {
+            return authUser;
+        }
+    }
+}

@@ -4,9 +4,10 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.domain.ProjectStatus;
-import com.swimming.backend.project.domain.ProjectTag;
 import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
+import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.project.repository.entity.ProjectTagEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,24 +36,26 @@ class ProjectServiceTest {
         projectRepository = mock(ProjectRepository.class);
         projectTagRepository = mock(ProjectTagRepository.class);
         projectService = new ProjectService(projectRepository, projectTagRepository);
+        when(projectRepository.saveAndFlush(any(ProjectEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
-    @DisplayName("인증된 사용자의 프로젝트를 생성한다")
+    @DisplayName("인증된 사용자의 프로젝트를 생성해 순수 도메인으로 반환한다")
     void createsProjectForAuthenticatedUser() {
-        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
-            Project project = invocation.getArgument(0);
-            ReflectionTestUtils.setField(project, "id", 10L);
-            return project;
+        when(projectRepository.saveAndFlush(any(ProjectEntity.class))).thenAnswer(invocation -> {
+            ProjectEntity entity = invocation.getArgument(0);
+            ReflectionTestUtils.setField(entity, "id", 10L);
+            return entity;
         });
 
-        Project project = projectService.create(
+        Project project = projectService.create(Project.create(
                 1L,
+                null,
                 " 새 프로젝트 ",
                 " 프로젝트 설명 ",
-                LocalDate.of(2026, 9, 30),
-                null
-        );
+                LocalDate.of(2026, 9, 30)
+        ));
 
         assertThat(project.getId()).isEqualTo(10L);
         assertThat(project.getName()).isEqualTo("새 프로젝트");
@@ -64,51 +67,43 @@ class ProjectServiceTest {
     @Test
     @DisplayName("사용자가 소유한 태그를 프로젝트에 하나 연결한다")
     void createsProjectWithOwnedTag() {
-        ProjectTag tag = tag(3L, 1L, "취준");
-        when(projectTagRepository.findByIdAndUserId(3L, 1L))
-                .thenReturn(Optional.of(tag));
-        when(projectRepository.save(any(Project.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        ProjectTagEntity tag = tagEntity(3L, 1L, "취준");
+        when(projectTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(tag));
 
-        Project project = projectService.create(
-                1L,
-                "프로젝트",
-                "설명",
-                null,
-                3L
-        );
+        Project project = projectService.create(Project.create(
+                1L, tag.toDomain(), "프로젝트", "설명", null
+        ));
 
-        assertThat(project.getTag()).isSameAs(tag);
+        assertThat(project.getTag().getId()).isEqualTo(3L);
+        assertThat(project.getTag().getName()).isEqualTo("취준");
     }
 
     @Test
     @DisplayName("다른 사용자의 태그를 프로젝트에 연결할 수 없다")
     void rejectsAnotherUsersTag() {
-        when(projectTagRepository.findByIdAndUserId(3L, 1L))
-                .thenReturn(Optional.empty());
+        when(projectTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> projectService.create(
+        Project project = Project.create(
                 1L,
+                com.swimming.backend.project.domain.ProjectTag.restore(3L, 1L, "취준", null, null),
                 "프로젝트",
                 "설명",
-                null,
-                3L
-        ))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> assertThat(
-                        ((BusinessException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
-        verify(projectRepository, never()).save(any(Project.class));
+                null
+        );
+
+        assertThatThrownBy(() -> projectService.create(project))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
+        verify(projectRepository, never()).saveAndFlush(any(ProjectEntity.class));
     }
 
     @Test
     @DisplayName("사용자의 보관되지 않은 프로젝트만 조회한다")
     void returnsOnlyNonArchivedProjectsForUser() {
-        Project newest = project(1L, "두 번째 프로젝트", null);
-        Project oldest = project(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1));
+        ProjectEntity newest = projectEntity(1L, "두 번째 프로젝트", null, null);
+        ProjectEntity oldest = projectEntity(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1), null);
         when(projectRepository.findAllByUserIdAndStatusNotOrderByCreatedAtDesc(
-                1L,
-                ProjectStatus.ARCHIVED
+                1L, ProjectStatus.ARCHIVED
         )).thenReturn(List.of(newest, oldest));
 
         List<Project> projects = projectService.getAll(1L);
@@ -118,12 +113,10 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("사용자가 소유한 프로젝트 상세를 조회한다")
+    @DisplayName("사용자가 소유한 프로젝트 상세를 순수 도메인으로 조회한다")
     void returnsOwnedProjectDetail() {
-        Project project = project(1L, "프로젝트", null);
-        ReflectionTestUtils.setField(project, "id", 10L);
-        when(projectRepository.findByIdAndUserId(10L, 1L))
-                .thenReturn(Optional.of(project));
+        ProjectEntity entity = projectEntity(1L, "프로젝트", null, null);
+        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
 
         Project result = projectService.getOne(1L, 10L);
 
@@ -134,47 +127,32 @@ class ProjectServiceTest {
     @Test
     @DisplayName("프로젝트를 수정하면서 목표일을 제거할 수 있다")
     void updatesProjectAndCanRemoveTargetDate() {
-        Project project = project(1L, "기존 프로젝트", LocalDate.of(2026, 8, 31));
-        when(projectRepository.findByIdAndUserId(10L, 1L))
-                .thenReturn(Optional.of(project));
-        Project result = projectService.update(
-                1L,
-                10L,
-                " 수정 프로젝트 ",
-                " 수정 설명 ",
-                null,
-                ProjectStatus.IN_PROGRESS,
-                null
-        );
+        ProjectEntity entity = projectEntity(1L, "기존 프로젝트", LocalDate.of(2026, 8, 31), null);
+        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Project project = entity.toDomain();
+        project.update(" 수정 프로젝트 ", " 수정 설명 ", null, ProjectStatus.IN_PROGRESS, null);
+
+        Project result = projectService.update(project);
 
         assertThat(result.getName()).isEqualTo("수정 프로젝트");
         assertThat(result.getDescription()).isEqualTo("수정 설명");
         assertThat(result.getTargetDate()).isNull();
         assertThat(result.getStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
+        verify(projectRepository).saveAndFlush(entity);
     }
 
     @Test
     @DisplayName("프로젝트에서 선택한 태그를 해제할 수 있다")
     void removesTagFromProject() {
-        ProjectTag tag = tag(3L, 1L, "취준");
-        Project project = Project.builder()
-                .userId(1L)
-                .tag(tag)
-                .name("프로젝트")
-                .description("설명")
-                .build();
-        when(projectRepository.findByIdAndUserId(10L, 1L))
-                .thenReturn(Optional.of(project));
+        ProjectTagEntity tag = tagEntity(3L, 1L, "취준");
+        ProjectEntity entity = projectEntity(1L, "프로젝트", null, tag);
+        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
 
-        Project result = projectService.update(
-                1L,
-                10L,
-                "프로젝트",
-                "설명",
-                null,
-                ProjectStatus.IN_PROGRESS,
-                null
-        );
+        Project project = entity.toDomain();
+        project.update("프로젝트", "설명", null, ProjectStatus.IN_PROGRESS, null);
+
+        Project result = projectService.update(project);
 
         assertThat(result.getTag()).isNull();
     }
@@ -182,51 +160,51 @@ class ProjectServiceTest {
     @Test
     @DisplayName("프로젝트를 삭제하지 않고 보관 상태로 변경한다")
     void archivesProjectWithoutDeletingIt() {
-        Project project = project(1L, "프로젝트", null);
-        when(projectRepository.findByIdAndUserId(10L, 1L))
-                .thenReturn(Optional.of(project));
-        Project result = projectService.update(
-                1L,
-                10L,
-                "프로젝트",
-                "설명",
-                null,
-                ProjectStatus.ARCHIVED,
-                null
-        );
+        ProjectEntity entity = projectEntity(1L, "프로젝트", null, null);
+        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Project project = entity.toDomain();
+        project.update("프로젝트", "설명", null, ProjectStatus.ARCHIVED, null);
+
+        Project result = projectService.update(project);
 
         assertThat(result.getStatus()).isEqualTo(ProjectStatus.ARCHIVED);
-        verify(projectRepository, never()).delete(any(Project.class));
+        verify(projectRepository, never()).delete(any(ProjectEntity.class));
     }
 
     @Test
     @DisplayName("다른 사용자의 프로젝트 존재 여부를 노출하지 않는다")
     void hidesWhetherAnotherUsersProjectExists() {
-        when(projectRepository.findByIdAndUserId(10L, 2L))
-                .thenReturn(Optional.empty());
+        when(projectRepository.findByIdAndUserId(10L, 2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> projectService.getOne(2L, 10L))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> assertThat(
-                        ((BusinessException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
     }
 
-    private Project project(Long userId, String name, LocalDate targetDate) {
-        return Project.builder()
-                .userId(userId)
-                .name(name)
-                .description("설명")
-                .targetDate(targetDate)
-                .build();
+    private ProjectEntity projectEntity(
+            Long userId,
+            String name,
+            LocalDate targetDate,
+            ProjectTagEntity tag
+    ) {
+        Project project = Project.create(
+                userId,
+                tag == null ? null : tag.toDomain(),
+                name,
+                "설명",
+                targetDate
+        );
+        ProjectEntity entity = ProjectEntity.from(project, tag);
+        ReflectionTestUtils.setField(entity, "id", 10L);
+        return entity;
     }
 
-    private ProjectTag tag(Long id, Long userId, String name) {
-        ProjectTag tag = ProjectTag.builder()
-                .userId(userId)
-                .name(name)
-                .build();
-        ReflectionTestUtils.setField(tag, "id", id);
-        return tag;
+    private ProjectTagEntity tagEntity(Long id, Long userId, String name) {
+        ProjectTagEntity entity = ProjectTagEntity.from(
+                com.swimming.backend.project.domain.ProjectTag.create(userId, name)
+        );
+        ReflectionTestUtils.setField(entity, "id", id);
+        return entity;
     }
 }

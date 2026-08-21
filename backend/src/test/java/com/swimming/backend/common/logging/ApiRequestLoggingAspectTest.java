@@ -74,7 +74,7 @@ class ApiRequestLoggingAspectTest {
 
         assertThat(result).isInstanceOf(ResponseEntity.class);
         assertThat(lastLog())
-                .contains("api_request method=GET")
+                .contains("[SWIMMING_API] method=GET")
                 .contains("path=/api/daily-plan")
                 .contains("query=\"from_date=2026-08-20&to_date=2026-08-26\"")
                 .contains("status=201")

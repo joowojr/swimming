@@ -57,3 +57,7 @@ export interface SessionDetailResponse {
 export interface UpdateSessionMusicUrlRequest {
   musicUrl: string | null
 }
+
+export interface UpdateSessionPlannedDurationRequest {
+  plannedDurationSec: number
+}

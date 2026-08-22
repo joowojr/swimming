@@ -9,12 +9,14 @@ import {
   IconFlag,
   IconLoader2,
   IconMusic,
+  IconMinus,
+  IconPlus,
   IconUsers,
 } from '@tabler/icons-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import { getCities } from '../places/placeApi'
-import { endSession, getSession, updateSessionMusicUrl } from './sessionApi'
+import { endSession, getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
 import SessionMusicPlayer from './music/SessionMusicPlayer'
 import type { SessionMusicOption } from './music/SessionMusicPlayer'
@@ -80,6 +82,8 @@ export default function PersonalSessionPage() {
   const [state, setState] = useState<PageState>({ status: 'loading' })
   const [nowKey, setNowKey] = useState(0)
   const [isEnding, setIsEnding] = useState(false)
+  const [isAdjustingDuration, setIsAdjustingDuration] = useState(false)
+  const [durationStepSec, setDurationStepSec] = useState(10)
   const [requestKey, setRequestKey] = useState(0)
   const [widgets, setWidgets] = useState<WidgetVisibility>(INITIAL_WIDGET_VISIBILITY)
   const [focusMode, setFocusMode] = useState(false)
@@ -192,6 +196,25 @@ export default function PersonalSessionPage() {
     setState((current) => current.status === 'ready'
       ? { ...current, session: { ...current.session, musicUrl: source } }
       : current)
+  }
+
+  const adjustDuration = async (direction: -1 | 1) => {
+    if (state.status !== 'ready' || isAdjustingDuration) return
+    const plannedDurationSec = Math.min(
+      86400,
+      Math.max(60, state.session.plannedDurationSec + direction * durationStepSec),
+    )
+    if (plannedDurationSec === state.session.plannedDurationSec) return
+
+    setIsAdjustingDuration(true)
+    try {
+      await updateSessionPlannedDuration(state.session.id, { plannedDurationSec })
+      setState((current) => current.status === 'ready'
+        ? { ...current, session: { ...current.session, plannedDurationSec } }
+        : current)
+    } finally {
+      setIsAdjustingDuration(false)
+    }
   }
 
   if (state.status === 'loading') {
@@ -308,9 +331,41 @@ export default function PersonalSessionPage() {
               <circle className={styles['ring-track']} cx="50" cy="50" r="44" />
               <circle className={styles['ring-progress']} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
             </svg>
-            <div><h2 id="session-timer-title">{formatTimer(remaining)}</h2><p>{formatMinutes(state.session.plannedDurationSec)} 중</p></div>
+            <div className={styles['timer-value']}>
+              <h2 id="session-timer-title">{formatTimer(remaining)}</h2>
+              <p>{formatMinutes(state.session.plannedDurationSec)} 중</p>
+            </div>
           </div>
-          <p className={styles['timer-note']}>{remaining === 0 ? '정한 시간을 채웠습니다. 준비되면 세션을 마쳐 주세요.' : `${state.session.tasks.length}개 Task와 함께 집중하고 있습니다.`}</p>
+          <div className={styles['timer-adjust']} aria-label="집중 시간 조절">
+            <button
+              type="button"
+              aria-label={`집중 시간 ${formatMinutes(durationStepSec)} 줄이기`}
+              disabled={isAdjustingDuration || state.session.plannedDurationSec <= 60}
+              onClick={() => void adjustDuration(-1)}
+            >
+              <IconMinus aria-hidden="true" />
+            </button>
+            <label>
+              <span className={styles['visually-hidden']}>시간 조절 단위</span>
+              <select
+                value={durationStepSec}
+                disabled={isAdjustingDuration}
+                onChange={(event) => setDurationStepSec(Number(event.target.value))}
+              >
+                <option value={10}>10초</option>
+                <option value={300}>5분</option>
+                <option value={600}>10분</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              aria-label={`집중 시간 ${formatMinutes(durationStepSec)} 늘리기`}
+              disabled={isAdjustingDuration || state.session.plannedDurationSec >= 86400}
+              onClick={() => void adjustDuration(1)}
+            >
+              <IconPlus aria-hidden="true" />
+            </button>
+          </div>
           <button className={styles.finish} type="button" disabled={isEnding} onClick={() => void finish()}>
             {isEnding ? <IconLoader2 className={styles.spinner} /> : <IconFlag />}
             {isEnding ? '기록 중…' : '세션 마치기'}

@@ -16,8 +16,7 @@
 .database-toolbar,
 .range,
 .column-header,
-.meta,
-.actions {
+.meta {
   width: max-content;
   display: flex;
   align-items: center;
@@ -236,8 +235,6 @@
   background: var(--color-surface-container-lowest);
 }
 
-.card:has(.card-menu[open]) { z-index: 3; }
-
 .project-tone-0 { --project-tone: var(--color-primary); }
 .project-tone-1 { --project-tone: var(--color-tertiary); }
 .project-tone-2 { --project-tone: var(--color-success-deep); }
@@ -304,30 +301,28 @@
 }
 
 .card-menu {
-  width: fit-content;
   position: absolute;
   inset: var(--space-2) var(--space-2) auto auto;
 }
 
-.card-menu > summary {
+.card-menu-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2rem;
   height: 2rem;
+  padding: 0;
+  border: 0;
   border-radius: var(--radius-default);
   color: var(--color-mute);
   background: var(--color-surface-container-lowest);
+  appearance: none;
   cursor: pointer;
-  list-style: none;
 }
 
-.card-menu > summary::-webkit-details-marker { display: none; }
-
-.actions {
-  position: absolute;
-  z-index: 2;
-  inset: calc(100% + var(--space-1)) 0 auto auto;
+.floating-card-menu {
+  position: fixed;
+  z-index: calc(var(--z-modal) - 1);
   display: grid;
   width: 10.5rem;
   gap: var(--space-1);
@@ -338,7 +333,7 @@
   box-shadow: var(--shadow-floating);
 }
 
-.actions button {
+.floating-card-menu button {
   display: inline-flex;
   align-items: center;
   width: 100%;
@@ -354,7 +349,7 @@
   white-space: nowrap;
 }
 
-.actions button:disabled { color: var(--color-mute); opacity: 0.45; }
+.floating-card-menu button:disabled { color: var(--color-mute); opacity: 0.45; }
 
 .empty {
   margin: var(--space-2) 0;
@@ -393,18 +388,18 @@
 .spinner { animation: spin 1s linear infinite; }
 
 @media (hover: hover) and (pointer: fine) {
-  .column-add:hover,
   .column-header:hover,
   .range summary:hover,
-  .card-menu > summary:hover,
-  .actions button:hover:not(:disabled) { background: var(--color-surface-container-high); }
+  .card-menu-trigger:hover,
+  .floating-card-menu button:hover:not(:disabled) {
+    background: var(--color-surface-container-high); }
 }
 
 .primary-actions button:active:not(:disabled),
 .column-add:active,
 .range summary:active,
-.card-menu > summary:active,
-.actions button:active:not(:disabled) { transform: translateY(1px); }
+.card-menu-trigger:active,
+.floating-card-menu button:active:not(:disabled) { transform: translateY(1px); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 

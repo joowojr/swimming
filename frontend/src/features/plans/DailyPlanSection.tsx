@@ -3,7 +3,6 @@ import {
     IconArrowDown,
     IconArrowUp,
     IconCalendar,
-    IconDots,
     IconLoader2,
     IconPlayerPlay,
     IconPlus,
@@ -25,6 +24,7 @@ import {
     updateDailyPlanItem
 } from './dailyPlanApi'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
+import DailyPlanCardMenu from './DailyPlanCardMenu'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanSection.module.css'
 
@@ -330,10 +330,8 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                         )}
                                                     </div>
                                                     {selected && (
-                                                        <details className={styles['card-menu']}>
-                                                            <summary aria-label={`${item.title} 카드 메뉴`}><IconDots
-                                                                size={17} aria-hidden="true"/></summary>
-                                                            <div className={styles.actions}>
+                                                        <DailyPlanCardMenu
+                                                            label={`${item.title} 카드 메뉴`}>
                                                                 {plan.date === today && item.taskId !== null && (
                                                                     <ActionButton
                                                                         variant="plain"
@@ -356,8 +354,7 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                                 <button type="button" aria-label="계획에서 제거"
                                                                         onClick={() => void removeItem(plan.date, item.id)}>
                                                                     <IconTrash size={15} aria-hidden="true"/></button>
-                                                            </div>
-                                                        </details>
+                                                        </DailyPlanCardMenu>
                                                     )}
                                                 </li>
                                             ))}

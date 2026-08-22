@@ -64,8 +64,8 @@ export default function TaskPickerModal({
       <section className={styles.modal}>
         <header className={styles.header}>
           <div>
-            <h2 id="task-picker-title">계획에 할 일 추가</h2>
-            <p>새 할 일을 만들거나 기존 Task를 골라 주세요.</p>
+            <h2 id="task-picker-title">할 일 추가</h2>
+            <p>새 할 일을 만들거나 기존 작업을 골라 주세요.</p>
           </div>
           <button type="button" aria-label="Task 선택 창 닫기" onClick={() => dialogRef.current?.close()}>
             <IconX size={20} aria-hidden="true" />
@@ -114,10 +114,10 @@ export default function TaskPickerModal({
           {state.status === 'loading' ? (
             <p className={styles.state} role="status">
               <IconLoader2 className={styles.spinner} size={18} aria-hidden="true" />
-              Task를 불러오는 중…
+              작업을 불러오는 중…
             </p>
           ) : state.status === 'error' ? (
-            <p className={styles.state} role="alert">Task를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
+            <p className={styles.state} role="alert">작업을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
           ) : state.details.every((detail) => detail.tasks.length === 0) ? (
             <p className={styles.state}>계획에 추가할 Task가 아직 없습니다.</p>
           ) : (
@@ -140,7 +140,7 @@ export default function TaskPickerModal({
                               setSubmitError(null)
                               void onAdd([task])
                                 .then(() => dialogRef.current?.close())
-                                .catch(() => setSubmitError('Task를 추가하지 못했습니다. 다시 시도해 주세요.'))
+                                .catch(() => setSubmitError('작업을 추가하지 못했습니다. 다시 시도해 주세요.'))
                                 .finally(() => setIsSubmitting(false))
                             }}
                           >

@@ -81,4 +81,20 @@ class SessionEntityTest {
 
         assertThat(entity.getMusicUrl()).isEqualTo("https://youtu.be/example");
     }
+
+    @Test
+    @DisplayName("수정된 계획 시간을 엔티티에 반영한다")
+    void appliesPlannedDuration() {
+        SessionEntity entity = SessionEntity.from(
+                Session.startPersonal(1L, 20L, List.of(10L), 1500)
+        );
+        ReflectionTestUtils.setField(entity, "id", 5L);
+        ReflectionTestUtils.setField(entity, "startedAt", STARTED_AT);
+        Session session = entity.toDomain();
+        session.updatePlannedDuration(1800);
+
+        entity.apply(session);
+
+        assertThat(entity.getPlannedDurationSec()).isEqualTo(1800);
+    }
 }

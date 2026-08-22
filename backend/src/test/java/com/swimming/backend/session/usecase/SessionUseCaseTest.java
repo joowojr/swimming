@@ -12,6 +12,7 @@ import com.swimming.backend.session.domain.SessionType;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.session.service.SessionService;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
@@ -227,6 +228,23 @@ class SessionUseCaseTest {
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_MUSIC_URL));
 
         verify(sessionService, never()).getOwned(1L, 5L);
+    }
+
+    @Test
+    @DisplayName("진행 중인 세션의 계획 시간을 저장한다")
+    void updatesPlannedDuration() {
+        Session session = startedSession(NOW);
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+        when(sessionService.save(session)).thenReturn(session);
+
+        sessionUseCase.updatePlannedDuration(
+                1L,
+                5L,
+                new UpdateSessionPlannedDurationRequest(1800)
+        );
+
+        assertThat(session.getPlannedDurationSec()).isEqualTo(1800);
+        verify(sessionService).save(session);
     }
 
     private Session startedSession(Instant startedAt) {

@@ -116,6 +116,39 @@ class SessionTest {
                                 .isEqualTo(ErrorCode.SESSION_NOT_FOUND));
     }
 
+    @Test
+    @DisplayName("진행 중인 세션의 계획 시간을 변경한다")
+    void updatesPlannedDuration() {
+        Session session = startedSession();
+
+        session.updatePlannedDuration(1800);
+
+        assertThat(session.getPlannedDurationSec()).isEqualTo(1800);
+    }
+
+    @Test
+    @DisplayName("허용 범위를 벗어난 계획 시간으로 변경할 수 없다")
+    void rejectsInvalidPlannedDuration() {
+        Session session = startedSession();
+
+        assertThatThrownBy(() -> session.updatePlannedDuration(59))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.INVALID_SESSION_DURATION));
+    }
+
+    @Test
+    @DisplayName("종료한 세션의 계획 시간은 변경할 수 없다")
+    void rejectsPlannedDurationUpdateAfterEnd() {
+        Session session = startedSession();
+        session.end(STARTED_AT.plusSeconds(600));
+
+        assertThatThrownBy(() -> session.updatePlannedDuration(1800))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.SESSION_NOT_FOUND));
+    }
+
     private Session startedSession() {
         return Session.restore(
                 5L,

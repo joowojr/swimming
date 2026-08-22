@@ -13,6 +13,7 @@ import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.SessionPlaceResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.place.dto.BackgroundAssetResponse;
 import com.swimming.backend.session.usecase.SessionUseCase;
@@ -254,6 +255,39 @@ class SessionControllerTest {
                         .content("{\"musicUrl\":\"" + longUrl + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.musicUrl").exists());
+    }
+
+    @Test
+    @DisplayName("진행 중인 세션의 집중 시간을 변경하면 본문 없이 응답한다")
+    void updatesPlannedDuration() throws Exception {
+        UpdateSessionPlannedDurationRequest request =
+                new UpdateSessionPlannedDurationRequest(1800);
+
+        mockMvc.perform(put("/api/sessions/5/planned-duration")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "plannedDurationSec":1800
+                                }
+                                """))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(sessionUseCase).updatePlannedDuration(1L, 5L, request);
+    }
+
+    @Test
+    @DisplayName("허용 범위를 벗어난 세션 집중 시간 변경은 필드 오류를 반환한다")
+    void rejectsInvalidPlannedDurationUpdate() throws Exception {
+        mockMvc.perform(put("/api/sessions/5/planned-duration")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "plannedDurationSec":59
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.plannedDurationSec").exists());
     }
 
     private SessionPlaceResponse sessionPlace() {

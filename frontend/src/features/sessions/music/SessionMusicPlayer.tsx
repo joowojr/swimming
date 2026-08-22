@@ -55,6 +55,8 @@ export default function SessionMusicPlayer({
   const [message, setMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  const markAsReady = () => setStatus('ready')
+
   const saveSource = async (nextSource: string | null) => {
     const normalizedSource = nextSource?.trim() || null
     if (normalizedSource && (
@@ -160,7 +162,10 @@ export default function SessionMusicPlayer({
             playsInline
             width="100%"
             height="100%"
-            onReady={() => setStatus('ready')}
+            onReady={markAsReady}
+            onCanPlay={markAsReady}
+            onLoadedMetadata={markAsReady}
+            onPlay={markAsReady}
             onError={() => {
               setStatus('error')
               setMessage('이 YouTube 콘텐츠를 재생할 수 없습니다. 공개 상태를 확인해 주세요.')

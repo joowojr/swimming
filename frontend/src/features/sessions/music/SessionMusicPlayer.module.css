@@ -156,6 +156,7 @@
   color: var(--color-session-inverse-muted);
   background: var(--color-session-night);
   font-size: var(--text-body-sm-size);
+  pointer-events: none;
 }
 
 .loading svg {

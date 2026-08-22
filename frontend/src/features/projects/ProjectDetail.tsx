@@ -99,7 +99,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
         : undefined
-      setDeleteError(apiMessage ?? '선택한 task를 삭제하지 못했습니다. 다시 시도해 주세요.')
+      setDeleteError(apiMessage ?? '선택한 작업을 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsDeletingTasks(false)
     }
@@ -276,7 +276,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     },
     TODO: {
       title: '시작 전인 할 일이 없어요.',
-      description: '새로운 task를 추가하면 이곳에서 확인할 수 있습니다.',
+      description: '새로운 작업을 추가하면 이곳에서 확인할 수 있습니다.',
     },
     DOING: {
       title: '등록된 할 일이 없어요.',

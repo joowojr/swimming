@@ -134,7 +134,7 @@ export default function CreateSessionModal({
     setMockNotice(null)
 
     if (selectedTaskIds.length === 0) {
-      setSubmitError('세션에서 진행할 Task를 하나 이상 선택해 주세요.')
+      setSubmitError('세션에서 진행할 작업을 하나 이상 선택해 주세요.')
       return
     }
     if (mode === 'group') {
@@ -193,7 +193,7 @@ export default function CreateSessionModal({
           <div className={styles.body}>
             <fieldset className={styles.fieldset}>
               <legend><span>1</span>무엇을 할까요</legend>
-              <p className={styles.hint}>오늘 계획에서 함께 진행할 Task를 모두 선택해 주세요.</p>
+              <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
               <div className={styles.choices}>
                 {linkedTasks.length === 0 ? <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p> : linkedTasks.map((task) => (
                   <label className={styles['task-choice']} key={task.taskId}>

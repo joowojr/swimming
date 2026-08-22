@@ -13,6 +13,7 @@ import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.session.service.SessionService;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
@@ -114,6 +115,17 @@ public class SessionUseCase {
 
         Session session = sessionService.getOwned(userId, sessionId);
         session.updateMusicUrl(request.musicUrl());
+        sessionService.save(session);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updatePlannedDuration(
+            Long userId,
+            Long sessionId,
+            UpdateSessionPlannedDurationRequest request
+    ) {
+        Session session = sessionService.getOwned(userId, sessionId);
+        session.updatePlannedDuration(request.plannedDurationSec());
         sessionService.save(session);
     }
 

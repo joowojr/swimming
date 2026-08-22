@@ -108,6 +108,7 @@ public class SessionEntity extends BaseTimeEntity {
     }
 
     public void apply(Session session) {
+        plannedDurationSec = session.getPlannedDurationSec();
         actualDurationSec = session.getActualDurationSec();
         endedAt = session.getEndedAt();
         status = session.getStatus();

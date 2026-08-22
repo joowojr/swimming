@@ -17,7 +17,7 @@ public class Session {
     private final Long placeId;
     private final List<Long> taskIds;
     private String musicUrl;
-    private final int plannedDurationSec;
+    private int plannedDurationSec;
     private Integer actualDurationSec;
     private final Instant startedAt;
     private Instant endedAt;
@@ -117,5 +117,15 @@ public class Session {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
         this.musicUrl = musicUrl;
+    }
+
+    public void updatePlannedDuration(int plannedDurationSec) {
+        if (status != SessionStatus.IN_PROGRESS) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+        if (plannedDurationSec < 60 || plannedDurationSec > 86400) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
+        }
+        this.plannedDurationSec = plannedDurationSec;
     }
 }

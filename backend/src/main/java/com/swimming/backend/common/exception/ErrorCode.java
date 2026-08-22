@@ -34,6 +34,7 @@ public enum ErrorCode {
     ACTIVE_SESSION_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 진행 중인 개인 세션이 있습니다"),
     SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "세션을 찾을 수 없습니다"),
     SESSION_ALREADY_ENDED(HttpStatus.CONFLICT, "이미 종료된 세션입니다"),
+    INVALID_SESSION_DURATION(HttpStatus.BAD_REQUEST, "세션 집중 시간이 올바르지 않습니다"),
     INVALID_MUSIC_URL(HttpStatus.BAD_REQUEST, "YouTube 음악 URL이 올바르지 않습니다"),
 
     // PLACE DOMAIN

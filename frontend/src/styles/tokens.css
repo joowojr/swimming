@@ -10,10 +10,10 @@
     --color-mute-variant: #bec8cc;
     --color-on-primary-container: #f9fdff;
 
-    --color-tertiary: #EF4444;
-    --color-on-tertiary: #ffffff;
-    --color-tertiary-container: #ffece9;
-    --color-on-tertiary-container: #EF4444;
+    --color-tertiary:         #F48067;  /* 채우기, 그래픽, 로고 물결 */
+    --color-tertiary-container: #FDEBE7;  /* 배지·칩 배경 */
+    --color-on-tertiary:  #FAC8BC;  /* 연한 면 위의 테두리 */
+    --color-on-tertiary-container:  #BB381B;  /* 텍스트, 링크, 눌림 상태 */
 
     --color-error: #EF4444;
     --color-on-error: #ffffff;

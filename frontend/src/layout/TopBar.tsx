@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import {Link} from 'react-router-dom'
-import {IconHexagon, IconSearch,} from '@tabler/icons-react'
+import {IconSearch,} from '@tabler/icons-react'
 import styles from './TopBar.module.css'
 
 interface TopBarProps {
@@ -29,9 +29,9 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
       <div className={styles['top-bar-primary']}>
         <Link className={styles.brand} to="/projects" aria-label="Swimming 프로젝트">
           <span className={styles['brand-mark']} aria-hidden="true">
-            <IconHexagon size={20} stroke={2} />
+            <img src="/logo.svg" alt=""/>
           </span>
-          <span className={styles['brand-name']}>swimming</span>
+          {/*<span className={styles['brand-name']}>swimming</span>*/}
         </Link>
         <nav className={styles['workspace-navigation']} aria-label="워크스페이스">
         </nav>

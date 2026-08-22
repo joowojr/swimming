@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182 32" width="182" height="32" role="img" aria-label="swimming">
+  <g fill="none" stroke="#1c1c1c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 18 C 8 6 16 6 23 16 S 37 28 44 16 S 58 4 62 12"/>
+  </g>
+  <text x="80" y="25"
+        font-family="Camera Plain Variable, Inter Variable, DM Sans, system-ui, sans-serif"
+        font-size="24" font-weight="480" letter-spacing="-0.6" fill="#1c1c1c"
+        style="font-feature-settings: 'liga' 0;">swimming</text>
+</svg>

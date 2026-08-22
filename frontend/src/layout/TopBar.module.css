@@ -45,12 +45,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  width: fit-content;
   height: 2rem;
-  border: var(--border-width) solid var(--color-primary-outline);
-  border-radius: var(--radius-lg);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+  color: var(--color-accent-purple-deep);
 }
 
 .brand-name {

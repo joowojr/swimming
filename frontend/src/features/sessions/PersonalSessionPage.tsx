@@ -164,28 +164,7 @@ export default function PersonalSessionPage() {
     ? backgroundAsset?.type
     : 'VIDEO'
 
-  useEffect(() => {
-    if (!session) return
-    console.log('[SESSION_BG] 렌더에 사용할 배경', {
-      key: backgroundAsset?.key ?? null,
-      apiUrl: backgroundAsset?.url ?? null,
-      사용중인URL: backgroundUrl,
-      type: backgroundType,
-      폴백여부: backgroundUrl !== configuredBackgroundUrl,
-      로드실패: hasBackgroundError,
-    })
-  }, [session, backgroundAsset, backgroundUrl, backgroundType, configuredBackgroundUrl, hasBackgroundError])
-
-  const handleBackgroundError = (
-    event: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>,
-  ) => {
-    console.error('[SESSION_BG] 배경 로드 실패', {
-      실패한URL: event.currentTarget.currentSrc || backgroundUrl,
-      key: backgroundAsset?.key ?? null,
-      type: backgroundType,
-    })
-    setHasBackgroundError(true)
-  }
+  const handleBackgroundError = () => setHasBackgroundError(true)
 
   const toggleWidget = (widget: keyof WidgetVisibility) => {
     setWidgets((current) => ({ ...current, [widget]: !current[widget] }))

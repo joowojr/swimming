@@ -2,7 +2,6 @@ package com.swimming.backend.place.service;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.common.s3.S3Service;
 import com.swimming.backend.place.config.PlaceBackgroundProperties;
 import com.swimming.backend.place.domain.City;
 import com.swimming.backend.place.domain.Place;
@@ -16,10 +15,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriUtils;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * 배경 에셋의 저장 방식(비공개 S3 + 오브젝트 키)을 감추고,
- * place 도메인 밖으로 나가는 값은 항상 재생 가능한 URL이 되도록 변환한다.
+ * place 도메인 밖으로 나가는 값은 항상 재생 가능한 CDN URL이 되도록 변환한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,7 +30,6 @@ public class PlaceVideoService {
 
     private final CityRepository cityRepository;
     private final PlaceRepository placeRepository;
-    private final S3Service s3Service;
     private final PlaceBackgroundProperties placeBackgroundProperties;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -52,18 +53,13 @@ public class PlaceVideoService {
             log.warn("[SWIMMING_PLACE] 배경 에셋 키가 비어 있어 배경 URL을 만들지 않습니다");
             return null;
         }
-        if (backgroundAssetKey.startsWith("/")) {
-            log.warn(
-                    "[SWIMMING_PLACE] 배경 에셋 키가 '/'로 시작합니다."
-                            + " S3 오브젝트 키는 앞에 '/'를 붙이지 않으므로 다른 객체를 가리킵니다. key={}",
-                    backgroundAssetKey
-            );
-        }
 
-        log.debug("[SWIMMING_PLACE] 배경 URL 생성 key={}", backgroundAssetKey);
-        return s3Service.presignGetUrl(
-                backgroundAssetKey,
-                placeBackgroundProperties.urlValidity()
-        );
+        String objectKey = backgroundAssetKey.strip().replaceAll("^/+", "");
+        String url = placeBackgroundProperties.cdnBaseUrl()
+                + "/"
+                + UriUtils.encodePath(objectKey, StandardCharsets.UTF_8);
+
+        log.debug("[SWIMMING_PLACE] 배경 URL 생성 key={} url={}", objectKey, url);
+        return url;
     }
 }

@@ -9,7 +9,7 @@ public class Place {
     private final Long cityId;
     private final String name;
     private final BackgroundAssetType backgroundAssetType;
-    private final String backgroundAssetUrl;
+    private final String backgroundAssetKey;
     private final String defaultMusicUrl;
 
     private Place(
@@ -17,14 +17,14 @@ public class Place {
             Long cityId,
             String name,
             BackgroundAssetType backgroundAssetType,
-            String backgroundAssetUrl,
+            String backgroundAssetKey,
             String defaultMusicUrl
     ) {
         this.id = id;
         this.cityId = cityId;
         this.name = name;
         this.backgroundAssetType = backgroundAssetType;
-        this.backgroundAssetUrl = backgroundAssetUrl;
+        this.backgroundAssetKey = backgroundAssetKey;
         this.defaultMusicUrl = defaultMusicUrl;
     }
 
@@ -33,7 +33,7 @@ public class Place {
             Long cityId,
             String name,
             BackgroundAssetType backgroundAssetType,
-            String backgroundAssetUrl,
+            String backgroundAssetKey,
             String defaultMusicUrl
     ) {
         return new Place(
@@ -41,7 +41,7 @@ public class Place {
                 cityId,
                 name,
                 backgroundAssetType,
-                backgroundAssetUrl,
+                backgroundAssetKey,
                 defaultMusicUrl
         );
     }

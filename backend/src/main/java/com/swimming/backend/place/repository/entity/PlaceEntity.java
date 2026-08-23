@@ -35,8 +35,8 @@ public class PlaceEntity extends BaseTimeEntity {
     @Column(name = "background_asset_type", nullable = false)
     private BackgroundAssetType backgroundAssetType;
 
-    @Column(name = "background_asset_url", nullable = false, length = 2048)
-    private String backgroundAssetUrl;
+    @Column(name = "background_asset_key", nullable = false, length = 2048)
+    private String backgroundAssetKey;
 
     @Column(name = "default_music_url", length = 2048)
     private String defaultMusicUrl;
@@ -45,13 +45,13 @@ public class PlaceEntity extends BaseTimeEntity {
             Long cityId,
             String name,
             BackgroundAssetType backgroundAssetType,
-            String backgroundAssetUrl,
+            String backgroundAssetKey,
             String defaultMusicUrl
     ) {
         this.cityId = cityId;
         this.name = name;
         this.backgroundAssetType = backgroundAssetType;
-        this.backgroundAssetUrl = backgroundAssetUrl;
+        this.backgroundAssetKey = backgroundAssetKey;
         this.defaultMusicUrl = defaultMusicUrl;
     }
 
@@ -59,14 +59,14 @@ public class PlaceEntity extends BaseTimeEntity {
             Long cityId,
             String name,
             BackgroundAssetType backgroundAssetType,
-            String backgroundAssetUrl,
+            String backgroundAssetKey,
             String defaultMusicUrl
     ) {
         return new PlaceEntity(
                 cityId,
                 name,
                 backgroundAssetType,
-                backgroundAssetUrl,
+                backgroundAssetKey,
                 defaultMusicUrl
         );
     }
@@ -77,7 +77,7 @@ public class PlaceEntity extends BaseTimeEntity {
                 cityId,
                 name,
                 backgroundAssetType,
-                backgroundAssetUrl,
+                backgroundAssetKey,
                 defaultMusicUrl
         );
     }

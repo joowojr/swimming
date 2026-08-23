@@ -1,6 +1,5 @@
 import { client } from '../../api/client'
 import type {
-  ActiveSessionResponse,
   SessionDetailResponse,
   SessionResponse,
   StartPersonalSessionRequest,
@@ -20,8 +19,8 @@ export async function endSession(sessionId: number): Promise<SessionResponse> {
   return response.data
 }
 
-export async function getActiveSession(): Promise<ActiveSessionResponse | null> {
-  const response = await client.get<ActiveSessionResponse>('/sessions/active')
+export async function getActiveSession(): Promise<SessionDetailResponse | null> {
+  const response = await client.get<SessionDetailResponse>('/sessions/active')
   return response.status === 204 ? null : response.data
 }
 

@@ -15,7 +15,7 @@ import {
 } from '@tabler/icons-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
-import { getCities } from '../places/placeApi'
+import { getPlaces } from '../places/placeApi'
 import { endSession, getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
 import SessionMusicPlayer from './music/SessionMusicPlayer'
@@ -114,7 +114,7 @@ export default function PersonalSessionPage() {
 
   useEffect(() => {
     let active = true
-    void getCities()
+    void getPlaces()
       .then((cities) => {
         if (!active) return
         const urls = new Set<string>()
@@ -163,6 +163,29 @@ export default function PersonalSessionPage() {
   const backgroundType = configuredBackgroundUrl && !hasBackgroundError
     ? backgroundAsset?.type
     : 'VIDEO'
+
+  useEffect(() => {
+    if (!session) return
+    console.log('[SESSION_BG] 렌더에 사용할 배경', {
+      key: backgroundAsset?.key ?? null,
+      apiUrl: backgroundAsset?.url ?? null,
+      사용중인URL: backgroundUrl,
+      type: backgroundType,
+      폴백여부: backgroundUrl !== configuredBackgroundUrl,
+      로드실패: hasBackgroundError,
+    })
+  }, [session, backgroundAsset, backgroundUrl, backgroundType, configuredBackgroundUrl, hasBackgroundError])
+
+  const handleBackgroundError = (
+    event: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>,
+  ) => {
+    console.error('[SESSION_BG] 배경 로드 실패', {
+      실패한URL: event.currentTarget.currentSrc || backgroundUrl,
+      key: backgroundAsset?.key ?? null,
+      type: backgroundType,
+    })
+    setHasBackgroundError(true)
+  }
 
   const toggleWidget = (widget: keyof WidgetVisibility) => {
     setWidgets((current) => ({ ...current, [widget]: !current[widget] }))
@@ -242,15 +265,25 @@ export default function PersonalSessionPage() {
     return (
       <main className={`${styles.page} ${styles['is-ended']}`}>
         <div className={styles.scene} aria-hidden="true"><span /><span /><span /></div>
-        <video
-          className={styles['background-asset']}
-          src={DEFAULT_SESSION_BACKGROUND_URL}
-          aria-hidden="true"
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
+        {backgroundType === 'IMAGE' ? (
+          <img
+            className={styles['background-asset']}
+            src={backgroundUrl}
+            alt=""
+            onError={handleBackgroundError}
+          />
+        ) : (
+          <video
+            className={styles['background-asset']}
+            src={backgroundUrl}
+            aria-hidden="true"
+            autoPlay
+            muted
+            loop
+            playsInline
+            onError={handleBackgroundError}
+          />
+        )}
         <div className={styles['background-shade']} aria-hidden="true" />
         <section className={styles['ended-card']} aria-labelledby="session-ended-title">
           <span className={styles['ended-icon']}><IconCheck aria-hidden="true" /></span>
@@ -271,7 +304,7 @@ export default function PersonalSessionPage() {
           className={styles['background-asset']}
           src={backgroundUrl}
           alt=""
-          onError={() => setHasBackgroundError(true)}
+          onError={handleBackgroundError}
         />
       )}
       {backgroundType === 'VIDEO' && (
@@ -283,7 +316,7 @@ export default function PersonalSessionPage() {
           muted
           loop
           playsInline
-          onError={() => setHasBackgroundError(true)}
+          onError={handleBackgroundError}
         />
       )}
       <div className={styles['background-shade']} aria-hidden="true" />

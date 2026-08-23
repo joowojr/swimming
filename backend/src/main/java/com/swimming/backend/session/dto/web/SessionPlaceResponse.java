@@ -1,6 +1,5 @@
 package com.swimming.backend.session.dto.web;
 
-import com.swimming.backend.place.dto.BackgroundAssetResponse;
 import com.swimming.backend.place.dto.PlaceReference;
 
 public record SessionPlaceResponse(
@@ -8,7 +7,6 @@ public record SessionPlaceResponse(
         Long cityId,
         String cityName,
         String name,
-        BackgroundAssetResponse backgroundAsset,
         String defaultMusicUrl
 ) {
     public static SessionPlaceResponse from(PlaceReference place) {
@@ -17,10 +15,6 @@ public record SessionPlaceResponse(
                 place.cityId(),
                 place.cityName(),
                 place.name(),
-                new BackgroundAssetResponse(
-                        place.backgroundAssetType(),
-                        place.backgroundAssetUrl()
-                ),
                 place.defaultMusicUrl()
         );
     }

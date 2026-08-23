@@ -1,7 +1,7 @@
 package com.swimming.backend.session.controller;
 
 import com.swimming.backend.common.security.AuthUser;
-import com.swimming.backend.session.dto.web.ActiveSessionResponse;
+import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
@@ -44,7 +44,7 @@ public class SessionController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<ActiveSessionResponse> getActive(
+    public ResponseEntity<SessionDetailResponse> getActive(
             @AuthenticationPrincipal AuthUser authUser
     ) {
         return sessionUseCase.getActive(authUser.id())
@@ -63,9 +63,10 @@ public class SessionController {
     @PostMapping("/{sessionId}/end")
     public ResponseEntity<SessionResponse> end(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long sessionId
+            @PathVariable Long sessionId,
+            @Valid @RequestBody(required = false) EndSessionRequest request
     ) {
-        return ResponseEntity.ok(sessionUseCase.end(authUser.id(), sessionId));
+        return ResponseEntity.ok(sessionUseCase.end(authUser.id(), sessionId, request));
     }
 
     @PutMapping("/{sessionId}/music-url")

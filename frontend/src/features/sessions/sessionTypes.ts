@@ -1,4 +1,4 @@
-import type { SessionPlace } from '../places/placeTypes'
+import type { SessionDetailPlace, SessionPlace } from '../places/placeTypes'
 
 export type SessionType = 'PERSONAL' | 'GROUP'
 
@@ -23,22 +23,11 @@ export interface SessionResponse {
   status: SessionStatus
 }
 
-export interface ActiveSessionTask {
+export interface SessionTask {
   id: number
   projectId: number
   projectName: string
   title: string
-}
-
-export interface ActiveSessionResponse {
-  id: number
-  type: SessionType
-  status: 'IN_PROGRESS'
-  plannedDurationSec: number
-  startedAt: string
-  place: SessionPlace
-  musicUrl: string | null
-  tasks: ActiveSessionTask[]
 }
 
 export interface SessionDetailResponse {
@@ -49,9 +38,9 @@ export interface SessionDetailResponse {
   actualDurationSec: number | null
   startedAt: string
   endedAt: string | null
-  place: SessionPlace
+  place: SessionDetailPlace
   musicUrl: string | null
-  tasks: ActiveSessionTask[]
+  tasks: SessionTask[]
 }
 
 export interface UpdateSessionMusicUrlRequest {

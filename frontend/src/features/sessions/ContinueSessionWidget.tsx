@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { IconArrowRight, IconClock, IconPlayerPlay } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { getActiveSession } from './sessionApi'
-import type { ActiveSessionResponse } from './sessionTypes'
+import type { SessionDetailResponse } from './sessionTypes'
 import styles from './ContinueSessionWidget.module.css'
 
 const DEFAULT_THUMBNAIL_URL = '/lisbon_1.mp4'
 
 type WidgetState =
     | { status: 'loading' }
-    | { status: 'ready'; session: ActiveSessionResponse | null }
+    | { status: 'ready'; session: SessionDetailResponse | null }
     | { status: 'error' }
 
 function formatDuration(seconds: number) {
@@ -24,6 +24,10 @@ export default function ContinueSessionWidget() {
     let active = true
     void getActiveSession()
         .then((response) => {
+          console.log('[SESSION_BG] 진행 중 세션 조회', {
+            hasSession: response !== null,
+            backgroundAsset: response?.place.backgroundAsset ?? null,
+          })
           if (active) setState({ status: 'ready', session: response })
         })
         .catch(() => {

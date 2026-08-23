@@ -11,7 +11,7 @@ import {
 } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
-import { getCities } from '../places/placeApi'
+import { getPlaces } from '../places/placeApi'
 import type { City, Place } from '../places/placeTypes'
 import { startPersonalSession } from './sessionApi'
 import { GROUP_ROOM_MOCK } from './sessionMocks'
@@ -85,7 +85,7 @@ export default function CreateSessionModal({
 
   useEffect(() => {
     let active = true
-    void getCities()
+    void getPlaces()
       .then((response) => {
         if (!active) return
         const firstPlace = response.flatMap((city) => city.places)[0]

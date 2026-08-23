@@ -16,14 +16,14 @@ public record SessionDetailResponse(
         Integer actualDurationSec,
         Instant startedAt,
         Instant endedAt,
-        SessionPlaceResponse place,
+        SessionDetailPlaceResponse place,
         String musicUrl,
-        List<ActiveSessionTaskResponse> tasks
+        List<SessionTaskResponse> tasks
 ) {
     public static SessionDetailResponse from(
             Session session,
             PlaceReference place,
-            List<ActiveSessionTaskResponse> tasks
+            List<SessionTaskResponse> tasks
     ) {
         return new SessionDetailResponse(
                 session.getId(),
@@ -33,7 +33,7 @@ public record SessionDetailResponse(
                 session.getActualDurationSec(),
                 session.getStartedAt(),
                 session.getEndedAt(),
-                SessionPlaceResponse.from(place),
+                SessionDetailPlaceResponse.from(place),
                 session.getMusicUrl(),
                 List.copyOf(tasks)
         );

@@ -52,7 +52,6 @@ public class DailyPlanUseCase {
                     ? new DailyPlanResponse(date, List.of())
                     : toResponse(dailyPlan, tasksById));
         }
-        System.out.println("플랜 :" + responses.stream().map(DailyPlanResponse::toString).collect(Collectors.joining(",")));
         return responses;
     }
 

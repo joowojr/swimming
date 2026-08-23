@@ -10,17 +10,19 @@ public record PlaceReference(
         String cityName,
         String name,
         BackgroundAssetType backgroundAssetType,
+        String backgroundAssetKey,
         String backgroundAssetUrl,
         String defaultMusicUrl
 ) {
-    public static PlaceReference from(Place place, City city) {
+    public static PlaceReference from(Place place, City city, String backgroundAssetUrl) {
         return new PlaceReference(
                 place.getId(),
                 city.getId(),
                 city.getName(),
                 place.getName(),
                 place.getBackgroundAssetType(),
-                place.getBackgroundAssetUrl(),
+                place.getBackgroundAssetKey(),
+                backgroundAssetUrl,
                 place.getDefaultMusicUrl()
         );
     }

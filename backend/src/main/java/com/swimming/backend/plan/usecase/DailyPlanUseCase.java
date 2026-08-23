@@ -171,7 +171,7 @@ public class DailyPlanUseCase {
 
     private Map<Long, TaskReference> getOwnedTasksById(Long userId, List<Long> taskIds) {
         if (taskIds.isEmpty()) return Map.of();
-        List<TaskReference> tasks = taskService.getAllByIds(userId, taskIds);
+        List<TaskReference> tasks = taskService.getReferences(userId, taskIds);
         if (tasks.size() != new HashSet<>(taskIds).size()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }

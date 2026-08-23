@@ -51,10 +51,6 @@ export default function ProjectDashboard({
             <p>현재 진행 중인 프로젝트 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>
-            <button type="button" className={styles['secondary-action']} disabled title="필터 · 준비 중">
-              <IconFilter size={17} aria-hidden="true" />
-              필터
-            </button>
             <ActionButton
               icon={<IconPlus size={18} aria-hidden="true" />}
               onClick={onOpenCreate}

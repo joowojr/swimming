@@ -19,9 +19,9 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: '핀보드', icon: IconLayoutDashboard, href: '/dashboard', end: true },
+  { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
   { label: '프로젝트', icon: IconFolder, href: '/projects', end: true },
-  { label: '그룹 세션', icon: IconUsers },
+  { label: '다이브 세션', icon: IconUsers },
   { label: '통계', icon: IconChartBar },
   { label: '캘린더', icon: IconCalendar },
 ]

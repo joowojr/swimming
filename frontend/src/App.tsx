@@ -151,7 +151,7 @@ function App() {
             )}
           />
           <Route
-            path="/dashboard"
+            path="/pinboard"
             element={(
               <>
                 <ProjectDashboard

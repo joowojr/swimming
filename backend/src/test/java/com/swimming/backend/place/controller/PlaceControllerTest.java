@@ -1,11 +1,9 @@
 package com.swimming.backend.place.controller;
 
 import com.swimming.backend.common.security.AuthUser;
-import com.swimming.backend.place.domain.BackgroundAssetType;
-import com.swimming.backend.place.dto.BackgroundAssetResponse;
 import com.swimming.backend.place.dto.CityResponse;
 import com.swimming.backend.place.dto.PlaceResponse;
-import com.swimming.backend.place.service.PlaceService;
+import com.swimming.backend.place.usecase.PlaceUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,16 +25,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class CityControllerTest {
+class PlaceControllerTest {
 
-    private PlaceService placeService;
+    private PlaceUseCase placeUseCase;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        placeService = mock(PlaceService.class);
+        placeUseCase = mock(PlaceUseCase.class);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new CityController(placeService))
+                .standaloneSetup(new PlaceController(placeUseCase))
                 .setCustomArgumentResolvers(new AuthUserArgumentResolver(
                         new AuthUser(1L, "user@example.com")
                 ))
@@ -46,17 +44,13 @@ class CityControllerTest {
     @Test
     @DisplayName("도시와 제공 공간 목록을 반환한다")
     void getsCities() throws Exception {
-        when(placeService.getCities()).thenReturn(List.of(new CityResponse(
+        when(placeUseCase.getCities()).thenReturn(List.of(new CityResponse(
                 1L,
                 "Lisbon",
                 "PT",
                 List.of(new PlaceResponse(
                         11L,
                         "Alfama Cafe",
-                        new BackgroundAssetResponse(
-                                BackgroundAssetType.VIDEO,
-                                "https://cdn.example.com/alfama.webm"
-                        ),
                         "https://youtu.be/default"
                 ))
         )));
@@ -65,9 +59,11 @@ class CityControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Lisbon"))
                 .andExpect(jsonPath("$[0].places[0].id").value(11))
-                .andExpect(jsonPath("$[0].places[0].backgroundAsset.type").value("VIDEO"));
+                .andExpect(jsonPath("$[0].places[0].name").value("Alfama Cafe"))
+                .andExpect(jsonPath("$[0].places[0].defaultMusicUrl")
+                        .value("https://youtu.be/default"));
 
-        verify(placeService).getCities();
+        verify(placeUseCase).getCities();
     }
 
     private record AuthUserArgumentResolver(AuthUser authUser)

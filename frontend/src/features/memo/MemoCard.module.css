@@ -1,5 +1,6 @@
 .memo-card {
     display: flex;
+    max-height: 80%;
     flex-direction: column;
     background: var(--warm-sand, #f7f4ed);
     border-radius: 24px;

@@ -138,7 +138,7 @@ export default function CreateSessionModal({
       return
     }
     if (mode === 'group') {
-      setMockNotice(`${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} 그룹 세션 참여를 선택했습니다. API 연결은 준비 중입니다.`)
+      setMockNotice(`${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} 다이브 세션 참여를 선택했습니다. API 연결은 준비 중입니다.`)
       return
     }
     if (!selectedPlace) {

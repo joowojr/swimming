@@ -126,12 +126,68 @@
   text-decoration: none;
   white-space: nowrap;
 }
+/* ── 빈 상태: 초대 모드 ── */
+.is-invite {
+  grid-template-columns: 10rem minmax(0, 1fr);
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
 
-.action:hover { background: var(--color-surface-card); }
+.is-invite:hover {
+  background: var(--color-canvas);
+}
+
+/* 액션을 콘텐츠 안으로 이동 */
+.is-invite .action-primary {
+  align-self: flex-start;
+  min-width: 0;
+  margin-top: var(--space-3);
+  padding: 0;
+  border-left: 0;
+  color: var(--color-on-surface);
+  font-weight: var(--text-button-weight);
+}
+
+.is-invite .action-primary:hover {
+  background: transparent;
+  color: var(--color-primary);
+}
+
+.invite-copy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+}
+
+@media (max-width: 48rem) {
+  .is-invite {
+    grid-template-columns: 7rem minmax(0, 1fr);
+  }
+
+  .is-invite .action-primary {
+    grid-column: auto;
+    min-height: 0;
+    border-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-invite {
+    transition: none;
+  }
+}
+
+.action:hover { color :var(--color-on-primary); background: var(--color-surface-tint); }
 .action:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: calc(var(--focus-ring-width) * -1); }
 .action:active { background: var(--color-surface-container-high); }
 .action svg { width: 1rem; transition: transform var(--dur-micro) var(--ease-out); }
 .action:hover svg { transform: translateX(var(--space-1)); }
+.action-primary {
+  color: var(--color-ink, #1c1c1c);
+  font-weight: 700;
+  border-left: 0;
+  padding-right: var(--space-6);
+}
 
 @media (max-width: 48rem) {
   .widget {

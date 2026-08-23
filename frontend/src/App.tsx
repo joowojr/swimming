@@ -163,6 +163,7 @@ function App() {
                     setProjectStatus('loading')
                     setProjectRequestKey((key) => key + 1)
                   }}
+                  onOrganizeMemo={('메모')}
                 />
                 {isCreateModalOpen && (
                   <CreateProjectModal

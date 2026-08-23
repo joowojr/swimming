@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom'
 import type { IconProps } from '@tabler/icons-react'
 import {
   IconCalendar,
-  IconChartBar,
   IconFolder,
   IconLayoutDashboard,
   IconUsers,
@@ -21,8 +20,7 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
   { label: '프로젝트', icon: IconFolder, href: '/projects', end: true },
-  { label: '다이브 세션', icon: IconUsers },
-  { label: '통계', icon: IconChartBar },
+  { label: '다이브 세션', icon: IconUsers, href: '/sessions', end: true },
   { label: '캘린더', icon: IconCalendar },
 ]
 

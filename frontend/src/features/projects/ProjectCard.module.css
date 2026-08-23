@@ -14,8 +14,8 @@
   padding: var(--space-6);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
-  color: var(--color-text-primary);
-  background: var(--color-surface-lowest);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
   text-decoration: none;
   transition:
     border-color var(--transition-short),
@@ -23,12 +23,12 @@
 }
 
 .route {
-  --route-accent: var(--color-primary-fixed);
+  --route-accent: var(--color-primary-container);
   --route-length: 38%;
   position: absolute;
   inset: 0 0 auto;
   height: var(--progress-height);
-  background: var(--color-surface-highest);
+  background: var(--color-surface-container-highest);
 }
 
 .route::after {
@@ -41,12 +41,12 @@
 }
 
 .route.is-clay {
-  --route-accent: var(--color-tertiary-fixed-dim);
+  --route-accent: var(--color-inverse-primary);
   --route-length: 32%;
 }
 
 .route.is-sky {
-  --route-accent: var(--color-primary-fixed-dim);
+  --route-accent: var(--color-inverse-primary);
   --route-length: 42%;
 }
 
@@ -74,20 +74,20 @@
   padding: var(--space-1) var(--space-2);
   overflow: hidden;
   border-radius: var(--radius-default);
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-family: var(--font-family-mono);
   font-size: .625rem;
   letter-spacing: .04em;
   line-height: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: var(--color-surface-highest);
+  background: var(--color-surface-container-highest);
 }
 
 .card h3 {
   min-width: 0;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
@@ -103,18 +103,18 @@
   padding: var(--space-1) var(--space-2);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   white-space: nowrap;
-  background: var(--color-surface-muted);
+  background: var(--color-secondary-bg);
 }
 
 .description {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-body-sm-size);
   line-height: var(--text-body-sm-line-height);
   -webkit-box-orient: vertical;
@@ -127,12 +127,12 @@
   margin-top: auto;
   padding-top: var(--space-4);
   border-top: var(--border-width) solid var(--color-border-subtle);
-  color: var(--color-text-muted);
+  color: var(--color-mute);
   font-size: var(--text-label-caps-size);
 }
 
 .footer strong {
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-weight: 500;
   text-align: right;
 }
@@ -143,8 +143,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
-    border-color: var(--color-primary-outline);
-    background: var(--color-surface-low);
+    border-color: var(--color-hairline);
+    background: var(--color-surface-soft);
   }
 
   .card:hover .route::after {

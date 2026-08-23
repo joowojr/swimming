@@ -11,7 +11,7 @@
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
   list-style: none;
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .list.connected,
@@ -25,7 +25,7 @@
   inset-block: var(--space-8);
   inset-inline-start: calc(var(--space-4) + var(--space-4));
   width: var(--border-width);
-  background: var(--color-primary-outline);
+  background: var(--color-hairline);
   content: '';
 }
 
@@ -51,10 +51,10 @@
   height: var(--space-8);
   flex: 0 0 auto;
   padding: 0;
-  border: var(--focus-ring-width) solid var(--color-outline);
+  border: var(--focus-ring-width) solid var(--color-mute);
   border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
-  background: var(--color-surface-lowest);
+  color: var(--color-mute);
+  background: var(--color-surface-container-lowest);
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
 }
@@ -85,7 +85,7 @@
 .is-hold .node {
   border-color: var(--color-tertiary);
   color: var(--color-tertiary);
-  background: var(--color-tertiary-soft);
+  background: var(--color-surface-card);
 }
 
 .node-core {
@@ -116,7 +116,7 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-md-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
@@ -128,23 +128,23 @@
 }
 
 .is-done .task-title {
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   text-decoration: line-through;
-  text-decoration-color: var(--color-outline-variant);
+  text-decoration-color: var(--color-mute-variant);
 }
 
 .status {
   flex: 0 0 auto;
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-outline);
+  border: var(--border-width) solid var(--color-mute);
   border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-label-caps-weight);
   line-height: var(--text-label-caps-line-height);
   white-space: nowrap;
-  background: var(--color-surface-high);
+  background: var(--color-surface-container-high);
   cursor: pointer;
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
@@ -162,8 +162,8 @@
 
 .is-doing .status {
   border-color: var(--color-primary);
-  color: var(--color-accent-strong);
-  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  background: var(--color-surface-card);
 }
 
 .is-done .status {
@@ -175,17 +175,17 @@
 .is-hold .status {
   border-color: var(--color-tertiary);
   color: var(--color-tertiary);
-  background: var(--color-tertiary-soft);
+  background: var(--color-surface-card);
 }
 
 .status option {
-  color: var(--color-text-primary);
-  background: var(--color-surface-lowest);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
 }
 
 .meta {
   margin: var(--space-1) 0 0;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-body-sm-size);
   line-height: var(--text-body-sm-line-height);
 }
@@ -246,11 +246,11 @@
   padding: var(--space-1) var(--space-2);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-default);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-label-caps-size);
   line-height: var(--text-label-caps-line-height);
   white-space: nowrap;
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-control);
   opacity: 0;
   pointer-events: none;
@@ -272,13 +272,13 @@
 
 .play-control:hover button {
   color: var(--color-primary);
-  background: white;
+  background: var(--color-surface-container-lowest);
 }
 
 .delete-control button,
 .delete-control:hover button {
   color: var(--color-tertiary);
-  background: var(--color-surface-muted);
+  background: var(--color-secondary-bg);
 }
 
 .delete-control button:focus-visible {
@@ -304,7 +304,7 @@
   padding: var(--space-10) var(--space-6);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .empty h3 {
@@ -315,7 +315,7 @@
 
 .empty p {
   margin: var(--space-2) 0 0;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   line-height: var(--text-body-md-line-height);
 }
 

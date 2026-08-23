@@ -53,7 +53,7 @@ class DailyPlanUseCaseTest {
     void returnsMixedItemsAndEmptyDates() {
         DailyPlan plan = planWithIds();
         when(dailyPlanService.getRange(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(plan));
-        when(taskService.getAllByIds(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
 
         List<DailyPlanResponse> responses = useCase.getRange(1L, DATE, DATE.plusDays(1));
 
@@ -83,7 +83,7 @@ class DailyPlanUseCaseTest {
     void addsOwnedTask() {
         DailyPlan plan = DailyPlan.create(1L, DATE);
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getAllByIds(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
 
         DailyPlanResponse response = useCase.addItem(1L, DATE, new CreateDailyPlanItemRequest(10L, null, null));
 
@@ -108,7 +108,7 @@ class DailyPlanUseCaseTest {
     void rejectsAnotherUsersTask() {
         DailyPlan plan = DailyPlan.create(2L, DATE);
         when(dailyPlanService.get(2L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getAllByIds(2L, List.of(10L))).thenReturn(List.of());
+        when(taskService.getReferences(2L, List.of(10L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> useCase.addItem(2L, DATE, new CreateDailyPlanItemRequest(10L, null, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -123,7 +123,7 @@ class DailyPlanUseCaseTest {
         when(projectService.getReference(1L, 100L))
                 .thenReturn(new ProjectReference(100L));
         when(taskService.createAndGetId(100L, "API 문서 작성")).thenReturn(20L);
-        when(taskService.getAllByIds(1L, List.of(20L))).thenReturn(List.of(
+        when(taskService.getReferences(1L, List.of(20L))).thenReturn(List.of(
                 new TaskReference(20L, 100L, "프로젝트", "API 문서 작성", TaskStatus.TODO, 0)
         ));
 
@@ -144,7 +144,7 @@ class DailyPlanUseCaseTest {
     void reordersByItemIds() {
         DailyPlan plan = planWithIds();
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getAllByIds(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
 
         DailyPlanResponse response = useCase.reorder(1L, DATE, new ReorderDailyPlanItemsRequest(List.of(2L, 1L)));
 
@@ -167,7 +167,7 @@ class DailyPlanUseCaseTest {
     void updatesAndDeletesAdHocItem() {
         DailyPlan plan = planWithIds();
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getAllByIds(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
 
         DailyPlanResponse response = useCase.updateItem(1L, DATE, 2L, new UpdateDailyPlanItemRequest("책 반납"));
         useCase.deleteItem(1L, DATE, 2L);

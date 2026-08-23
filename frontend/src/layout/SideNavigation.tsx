@@ -3,8 +3,6 @@ import { NavLink } from 'react-router-dom'
 import type { IconProps } from '@tabler/icons-react'
 import {
   IconCalendar,
-  IconChartBar,
-  IconChevronDown,
   IconFolder,
   IconLayoutDashboard,
   IconUsers,
@@ -20,33 +18,15 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: '대시보드', icon: IconLayoutDashboard, href: '/dashboard', end: true },
+  { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
   { label: '프로젝트', icon: IconFolder, href: '/projects', end: true },
-  { label: '그룹 세션', icon: IconUsers },
-  { label: '통계', icon: IconChartBar },
+  { label: '다이브 세션', icon: IconUsers, href: '/sessions', end: true },
   { label: '캘린더', icon: IconCalendar },
 ]
 
 export default function SideNavigation({ projectCount }: { projectCount: number | null }) {
   return (
     <aside className={styles['side-navigation']}>
-      <div className={styles['workspace-switcher-wrap']}>
-        <button
-          className={styles['workspace-switcher']}
-          type="button"
-          title="워크스페이스 전환 · 준비 중"
-          disabled
-        >
-          <span className={styles['workspace-avatar']} aria-hidden="true">
-            S
-          </span>
-          <span className={styles['workspace-copy']}>
-            <strong>스위밍</strong>
-            <span>개인 워크스페이스</span>
-          </span>
-          <IconChevronDown className={styles['workspace-chevron']} size={16} aria-hidden="true" />
-        </button>
-      </div>
 
       <nav aria-label="주요 메뉴">
         <p className={styles['navigation-label']}>Menu</p>

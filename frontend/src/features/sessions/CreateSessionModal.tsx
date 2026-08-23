@@ -11,8 +11,10 @@ import {
 } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
+import { getPlaces } from '../places/placeApi'
+import type { City, Place } from '../places/placeTypes'
 import { startPersonalSession } from './sessionApi'
-import { GROUP_ROOM_MOCK, SESSION_PLACE_MOCKS } from './sessionMocks'
+import { GROUP_ROOM_MOCK } from './sessionMocks'
 import type { SessionResponse } from './sessionTypes'
 import styles from './CreateSessionModal.module.css'
 
@@ -25,6 +27,12 @@ interface CreateSessionModalProps {
 
 type SessionMode = 'personal' | 'group'
 type DurationPreset = 25 | 45 | 60 | 'custom'
+type PlacesStatus = 'loading' | 'ready' | 'error'
+
+interface PlaceOption {
+  city: City
+  place: Place
+}
 
 function formatTotalTime(minutes: number) {
   const hours = Math.floor(minutes / 60)
@@ -56,7 +64,9 @@ export default function CreateSessionModal({
         : [],
   )
   const [mode, setMode] = useState<SessionMode>('personal')
-  const [placeId, setPlaceId] = useState(SESSION_PLACE_MOCKS[0].id)
+  const [cities, setCities] = useState<City[]>([])
+  const [placesStatus, setPlacesStatus] = useState<PlacesStatus>('loading')
+  const [placeId, setPlaceId] = useState<number | null>(null)
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(45)
   const [customMinutes, setCustomMinutes] = useState('')
   const [repeat, setRepeat] = useState(2)
@@ -73,10 +83,30 @@ export default function CreateSessionModal({
     return () => { document.body.style.overflow = previousOverflow }
   }, [])
 
+  useEffect(() => {
+    let active = true
+    void getPlaces()
+      .then((response) => {
+        if (!active) return
+        const firstPlace = response.flatMap((city) => city.places)[0]
+        setCities(response)
+        setPlaceId((current) => current ?? firstPlace?.id ?? null)
+        setPlacesStatus('ready')
+      })
+      .catch(() => {
+        if (active) setPlacesStatus('error')
+      })
+    return () => { active = false }
+  }, [])
+
   const durationMinutes = durationPreset === 'custom' ? Number(customMinutes) : durationPreset
   const validDuration = Number.isInteger(durationMinutes) && durationMinutes >= 1 && durationMinutes <= 1440
   const totalMinutes = validDuration ? durationMinutes * repeat + Math.max(0, repeat - 1) * 5 : 0
-  const selectedPlace = SESSION_PLACE_MOCKS.find((place) => place.id === placeId)
+  const placeOptions = useMemo<PlaceOption[]>(
+    () => cities.flatMap((city) => city.places.map((place) => ({ city, place }))),
+    [cities],
+  )
+  const selectedPlace = placeOptions.find(({ place }) => place.id === placeId)
   const selectedTaskTitles = useMemo(
     () => selectedTaskIds.map(
       (taskId) => linkedTasks.find((task) => task.taskId === taskId)?.title,
@@ -104,15 +134,15 @@ export default function CreateSessionModal({
     setMockNotice(null)
 
     if (selectedTaskIds.length === 0) {
-      setSubmitError('세션에서 진행할 Task를 하나 이상 선택해 주세요.')
+      setSubmitError('세션에서 진행할 작업을 하나 이상 선택해 주세요.')
       return
     }
     if (mode === 'group') {
-      setMockNotice(`${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} 그룹 세션 참여를 선택했습니다. API 연결은 준비 중입니다.`)
+      setMockNotice(`${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} 다이브 세션 참여를 선택했습니다. API 연결은 준비 중입니다.`)
       return
     }
     if (!selectedPlace) {
-      setSubmitError('집중할 place를 선택해 주세요.')
+      setSubmitError('집중할 공간을 선택해 주세요.')
       return
     }
     if (!validDuration) {
@@ -124,6 +154,7 @@ export default function CreateSessionModal({
     try {
       onStarted(await startPersonalSession({
         taskIds: selectedTaskIds,
+        placeId: selectedPlace.place.id,
         plannedDurationSec: durationMinutes * 60,
       }))
     } catch (error) {
@@ -162,7 +193,7 @@ export default function CreateSessionModal({
           <div className={styles.body}>
             <fieldset className={styles.fieldset}>
               <legend><span>1</span>무엇을 할까요</legend>
-              <p className={styles.hint}>오늘 계획에서 함께 진행할 Task를 모두 선택해 주세요.</p>
+              <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
               <div className={styles.choices}>
                 {linkedTasks.length === 0 ? <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p> : linkedTasks.map((task) => (
                   <label className={styles['task-choice']} key={task.taskId}>
@@ -200,10 +231,13 @@ export default function CreateSessionModal({
                 <fieldset className={styles.fieldset}>
                   <legend><span>3</span>어디서 할까요</legend>
                   <div className={styles['place-grid']}>
-                    {SESSION_PLACE_MOCKS.map((place) => (
+                    {placesStatus === 'loading' && <p className={styles.empty} role="status">공간을 불러오는 중…</p>}
+                    {placesStatus === 'error' && <p className={styles.empty} role="alert">공간을 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요.</p>}
+                    {placesStatus === 'ready' && placeOptions.length === 0 && <p className={styles.empty}>현재 선택할 수 있는 공간이 없습니다.</p>}
+                    {placeOptions.map(({ city, place }) => (
                       <label className={styles['place-choice']} key={place.id}>
                         <input type="radio" name="session-place" checked={placeId === place.id} onChange={() => setPlaceId(place.id)} disabled={isSubmitting} />
-                        <IconMapPin size={17} aria-hidden="true" /><span><strong>{place.city}</strong><small>{place.name}</small></span>
+                        <IconMapPin size={17} aria-hidden="true" /><span><strong>{city.name}</strong><small>{place.name}</small></span>
                       </label>
                     ))}
                   </div>
@@ -236,14 +270,14 @@ export default function CreateSessionModal({
               </>
             )}
 
-            <p className={styles.review}><strong>{selectedTaskTitles.length > 0 ? `${selectedTaskTitles[0]}${selectedTaskTitles.length > 1 ? ` 외 ${selectedTaskTitles.length - 1}개` : ''}` : 'Task 미선택'}</strong>{mode === 'personal' && selectedPlace ? ` · ${selectedPlace.city} · ${validDuration ? `${durationMinutes}분` : '시간 미입력'}` : ` · ${GROUP_ROOM_MOCK.city} 그룹`}</p>
+            <p className={styles.review}><strong>{selectedTaskTitles.length > 0 ? `${selectedTaskTitles[0]}${selectedTaskTitles.length > 1 ? ` 외 ${selectedTaskTitles.length - 1}개` : ''}` : 'Task 미선택'}</strong>{mode === 'personal' && selectedPlace ? ` · ${selectedPlace.city.name} · ${validDuration ? `${durationMinutes}분` : '시간 미입력'}` : ` · ${GROUP_ROOM_MOCK.city} 그룹`}</p>
             {submitError && <p className={styles.error} role="alert">{submitError}</p>}
             {mockNotice && <p className={styles.notice} role="status">{mockNotice}</p>}
           </div>
 
           <footer className={styles.footer}>
             <button type="button" className={styles.cancel} onClick={requestClose} disabled={isSubmitting}>취소</button>
-            <button type="submit" className={styles.submit} disabled={isSubmitting || selectedTaskIds.length === 0 || (mode === 'personal' && !validDuration)}>
+            <button type="submit" className={styles.submit} disabled={isSubmitting || selectedTaskIds.length === 0 || (mode === 'personal' && (!validDuration || !selectedPlace))}>
               {isSubmitting ? <IconLoader2 className={styles.spinner} size={17} aria-hidden="true" /> : <IconPlayerPlay size={17} aria-hidden="true" />}
               {isSubmitting ? '시작 중…' : mode === 'group' ? '참여 확인' : '시작하기'}
             </button>

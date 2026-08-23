@@ -14,20 +14,20 @@
   min-width: 0;
   gap: var(--space-2);
   margin-bottom: var(--space-6);
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-body-sm-size);
 }
 
 .breadcrumb a {
   flex: 0 0 auto;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .breadcrumb span {
   overflow: hidden;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -55,21 +55,21 @@
 
 .tag {
   border-radius: var(--radius-default);
-  color: var(--color-text-secondary);
-  background: var(--color-surface-highest);
+  color: var(--color-mute);
+  background: var(--color-surface-container-highest);
 }
 
 .project-status {
   border-radius: var(--radius-full);
-  color: var(--color-accent-strong);
-  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  background: var(--color-surface-card);
 }
 
 .header h1,
 .state-page h1 {
   min-width: 0;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-headline-lg-size);
   font-style: normal;
   font-weight: var(--text-headline-lg-weight);
@@ -81,7 +81,7 @@
 .header p {
   max-width: 65ch;
   margin: var(--space-2) 0 0;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-body-md-size);
   line-height: var(--text-body-lg-line-height);
 }
@@ -121,7 +121,7 @@
   max-width: 100%;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: transparent;
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
@@ -152,7 +152,7 @@
   border-color: transparent;
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--border-width);
-  background: var(--color-surface-low);
+  background: var(--color-surface-soft);
 }
 
 .date-editor input:disabled {
@@ -172,9 +172,9 @@
   margin-top: var(--space-8);
   overflow: clip;
   padding: var(--space-6);
-  border: var(--border-width) solid var(--color-primary-outline);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-panel);
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .journey-rail {
@@ -182,7 +182,7 @@
   inset: 0 0 auto;
   height: var(--progress-height);
   overflow: clip;
-  background: var(--color-primary-outline);
+  background: var(--color-hairline);
 }
 
 .journey-rail::after {
@@ -207,7 +207,7 @@
 
 .progress-heading h2 {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   font-style: normal;
@@ -219,7 +219,7 @@
 
 .section-heading h2 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
@@ -227,14 +227,14 @@
 
 .section-button h2 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
 }
 
 .progress-heading strong {
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-family: var(--font-family-mono);
   font-size: var(--text-headline-md-size);
   font-variant-numeric: tabular-nums;
@@ -243,7 +243,7 @@
 
 .progress-heading strong span {
   margin-inline-start: var(--space-1);
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-body-sm-weight);
 }
@@ -253,7 +253,7 @@
   margin-top: var(--space-3);
   overflow: clip;
   border-radius: var(--radius-full);
-  background: var(--color-primary-outline);
+  background: var(--color-hairline);
 }
 
 .progress-fill {
@@ -268,20 +268,20 @@
 
 .progress-content > p {
   margin: var(--space-2) 0 0;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-body-sm-size);
 }
 
 .target-date {
   margin: 0;
   padding-top: var(--space-5);
-  border-top: var(--border-width) solid var(--color-primary-outline);
+  border-top: var(--border-width) solid var(--color-hairline);
 }
 
 .target-date dt,
 .section-title span,
 .eyebrow {
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-label-caps-weight);
@@ -295,7 +295,7 @@
 
 .target-date dd {
   margin: var(--space-2) 0 0;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-lg-size);
   font-weight: var(--text-button-weight);
   white-space: nowrap;
@@ -338,7 +338,7 @@
   margin: 0;
   padding: var(--space-1);
   border-radius: var(--radius-lg);
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .task-filters button,
@@ -349,7 +349,7 @@
   min-height: 2.25rem;
   padding-inline: var(--space-3);
   border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-button-weight);
   white-space: nowrap;
@@ -360,7 +360,7 @@
   overflow: clip;
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .task-list-toolbar {
@@ -370,31 +370,39 @@
   padding: var(--space-3) var(--space-4);
   margin: 0;
   border: 0;
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
-.task-filters button {
-  border: var(--border-width) solid transparent;
-  background: transparent;
-  --shadow-floating: none;
-}
-
-.task-filters button[aria-pressed='true'] {
-  color: var(--color-text-primary);
+.task-filters,
+.state button {
+  gap: var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-primary);
   background: var(--color-surface-lowest);
-  box-shadow: var(--shadow-control);
 }
 
 .delete-task-button {
   gap: var(--space-2);
   border: var(--border-width) solid var(--color-border-subtle);
-  color: var(--color-text-primary);
-  background: white;
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
 }
 
 .task-filters button:active,
 .delete-task-button:active {
   transform: translateY(var(--border-width));
+}
+
+.filter-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .delete-task-button[aria-pressed='true'] {
@@ -424,7 +432,7 @@
 
 .state-page > p:not(.eyebrow) {
   margin: var(--space-3) 0 0;
-  color: var(--color-text-secondary);
+  color: var(--color-mute);
   line-height: var(--text-body-lg-line-height);
 }
 
@@ -444,12 +452,12 @@
   padding-inline: var(--space-4);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-control);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-button-size);
   font-weight: var(--text-button-weight);
   text-decoration: none;
   white-space: nowrap;
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .state-actions button:active,
@@ -463,7 +471,7 @@
 .skeleton-summary,
 .skeleton-list {
   border-radius: var(--radius-default);
-  background: var(--color-surface-highest);
+  background: var(--color-surface-container-highest);
   animation: skeleton-pulse var(--dur-modal) var(--ease-in-out) infinite alternate;
 }
 
@@ -501,24 +509,24 @@
 
 @media (hover: hover) and (pointer: fine) {
   .editable-display:hover {
-    background: var(--color-surface-low);
+    background: var(--color-surface-soft);
   }
 
   .breadcrumb a:hover {
-    color: var(--color-text-primary);
+    color: var(--color-primary);
   }
 
   .state-actions button:hover,
   .state-actions a:hover {
-    border-color: var(--color-primary-outline);
-    background: var(--color-surface-low);
+    border-color: var(--color-hairline);
+    background: var(--color-surface-soft);
   }
 
   .task-filters button:hover:not([aria-pressed='true']),
   .delete-task-button:hover:not([aria-pressed='true']) {
-    color: var(--color-text-primary);
-    border-color: var(--color-primary-outline);
-    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    border-color: var(--color-hairline);
+    background: var(--color-surface-card);
   }
 }
 
@@ -550,7 +558,7 @@
     padding-block: 0;
     padding-inline-start: var(--space-6);
     border-top: 0;
-    border-inline-start: var(--border-width) solid var(--color-primary-outline);
+    border-inline-start: var(--border-width) solid var(--color-hairline);
   }
 }
 

@@ -12,3 +12,8 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+
+app:
+  place:
+    background:
+      cdn-base-url: ${PLACE_CDN_BASE_URL}

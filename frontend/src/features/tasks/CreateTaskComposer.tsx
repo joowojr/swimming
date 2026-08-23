@@ -62,7 +62,7 @@ export default function CreateTaskComposer({
         setSubmitError(
           isApiError(error) && error.message
             ? error.message
-            : 'task를 만들지 못했습니다. 입력 내용을 확인한 뒤 다시 시도해 주세요.',
+            : '작업을 만들지 못했습니다. 입력 내용을 확인한 뒤 다시 시도해 주세요.',
         )
       }
     } finally {

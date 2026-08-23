@@ -8,7 +8,7 @@
   min-height: 3.5rem;
   padding: var(--space-3) var(--space-6);
   border-bottom: var(--border-width) solid var(--color-border-subtle);
-  background: var(--color-surface-lowest);
+  background: var(--color-surface-container-lowest);
 }
 
 .brand,
@@ -37,7 +37,7 @@
 .brand {
   flex: 0 0 auto;
   gap: var(--space-2);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -45,12 +45,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  width: fit-content;
   height: 2rem;
-  border: var(--border-width) solid var(--color-primary-outline);
-  border-radius: var(--radius-lg);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+  color: var(--color-accent-purple-deep);
 }
 
 .brand-name {
@@ -76,7 +73,7 @@
 }
 
 .workspace-link.is-active {
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: var(--color-surface-lowest);
   box-shadow: var(--shadow-control);
 }
@@ -102,9 +99,9 @@
   padding: 0 4.75rem 0 2.25rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-sm-size);
-  background: var(--color-surface-highest);
+  background: var(--color-canvas);
   transition:
     border-color var(--transition-short),
     background-color var(--transition-short);
@@ -182,7 +179,7 @@
 .account-copy strong {
   max-width: 15rem;
   overflow: hidden;
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   font-weight: 600;
   text-overflow: ellipsis;
@@ -214,8 +211,8 @@
 
 .top-bar-logout:hover,
 .top-bar-login:hover {
-  border-color: var(--color-outline);
-  color: var(--color-text-primary);
+  border-color: var(--color-mute);
+  color: var(--color-primary);
   background: var(--color-surface-muted);
 }
 

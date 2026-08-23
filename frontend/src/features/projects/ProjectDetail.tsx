@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconChevronRight, IconTrash } from '@tabler/icons-react'
-import { Link } from 'react-router-dom'
-import type { CSSProperties, KeyboardEvent } from 'react'
-import type { ApiError } from '../../api/client'
+import type {CSSProperties, KeyboardEvent} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
+import {IconChevronRight, IconFilter, IconTrash} from '@tabler/icons-react'
+import {Link} from 'react-router-dom'
+import type {ApiError} from '../../api/client'
 import InlineEditableText from '../../components/InlineEditableText'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
-import { deleteTasks } from '../tasks/taskApi'
-import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
-import type { TaskStatus } from '../tasks/taskTypes'
-import { getProject, updateProject } from './projectApi'
-import type { ProjectDetail as ProjectDetailData, ProjectStatus } from './projectTypes'
+import {deleteTasks} from '../tasks/taskApi'
+import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
+import type {TaskStatus} from '../tasks/taskTypes'
+import {getProject, updateProject} from './projectApi'
+import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
 import TaskList from './TaskList'
 import styles from './ProjectDetail.module.css'
 
@@ -25,13 +25,13 @@ type DetailState =
 type TaskFilter = 'ALL' | TaskStatus
 type EditableProjectTextField = 'name' | 'description'
 
-const taskFilters: Array<{ value: TaskFilter; label: string }> = [
-  { value: 'ALL', label: '전체' },
-  ...TASK_STATUS_VALUES.map((status) => ({
-    value: status,
-    label: TASK_STATUS_LABEL[status],
-  })),
-]
+// const taskFilters: Array<{ value: TaskFilter; label: string }> = [
+//   { value: 'ALL', label: '전체' },
+//   ...TASK_STATUS_VALUES.map((status) => ({
+//     value: status,
+//     label: TASK_STATUS_LABEL[status],
+//   })),
+// ]
 
 const projectStatusLabel: Record<ProjectStatus, string> = {
   IN_PROGRESS: '진행 중',
@@ -54,12 +54,23 @@ function isNotFound(error: unknown) {
   return typeof error === 'object' && error !== null && (error as ApiError).status === 404
 }
 
+function openSelectPicker(select: HTMLSelectElement | null | undefined) {
+  if (!select || select.disabled) return
+  select.focus()
+  try {
+    select.showPicker()
+  } catch {
+    select.focus()
+  }
+}
+
 export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [requestKey, setRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     projectId === null ? { status: 'error', notFound: true } : { status: 'loading' },
   )
-  const [taskFilter, setTaskFilter] = useState<TaskFilter>('ALL')
+  const [statusFilter, setStatusFilter] = useState<TaskFilter>('ALL')
+  const filterSelectRef = useRef<HTMLSelectElement>(null)
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
@@ -69,7 +80,6 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [editError, setEditError] = useState<string | null>(null)
   const [isSavingProject, setIsSavingProject] = useState(false)
   const taskInputRef = useRef<HTMLInputElement>(null)
-
   const leaveDeleteMode = () => {
     setIsDeleteMode(false)
     setSelectedTaskIds(new Set())
@@ -99,7 +109,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
         : undefined
-      setDeleteError(apiMessage ?? '선택한 task를 삭제하지 못했습니다. 다시 시도해 주세요.')
+      setDeleteError(apiMessage ?? '선택한 작업을 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsDeletingTasks(false)
     }
@@ -266,9 +276,9 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const progressStyle = {
     '--project-progress-scale': completionPct / 100,
   } as CSSProperties
-  const visibleTasks = taskFilter === 'ALL'
+  const visibleTasks = statusFilter === 'ALL'
     ? project.tasks
-    : project.tasks.filter((task) => task.status === taskFilter)
+    : project.tasks.filter((task) => task.status === statusFilter)
   const emptyCopy = {
     ALL: {
       title: '등록된 할 일이 없어요.',
@@ -276,7 +286,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     },
     TODO: {
       title: '시작 전인 할 일이 없어요.',
-      description: '새로운 task를 추가하면 이곳에서 확인할 수 있습니다.',
+      description: '새로운 작업을 추가하면 이곳에서 확인할 수 있습니다.',
     },
     DOING: {
       title: '등록된 할 일이 없어요.',
@@ -290,7 +300,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       title: '잠시 멈춘 할 일이 없어요.',
       description: '',
     },
-  }[taskFilter]
+  }[statusFilter]
 
   return (
     <article className={styles.page} aria-labelledby="project-detail-title">
@@ -402,6 +412,28 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
+            <button type="button" className={styles['task-filters']} title="필터 · 준비 중"
+                    onClick={() => openSelectPicker(filterSelectRef.current)}>
+              <IconFilter size={17} aria-hidden="true"/>
+              필터
+            </button>
+            <span id="task-filter-current" className="sr-only">
+          {statusFilter === 'ALL' ? '전체' : TASK_STATUS_LABEL[statusFilter]}
+        </span>
+
+            <select
+                ref={filterSelectRef}
+                className={styles['filter-select']}
+                value={statusFilter}
+                aria-label="task 상태로 필터"
+                onChange={(event) => setStatusFilter(event.target.value as TaskFilter)}
+            >
+              <option value="ALL">전체</option>
+              {TASK_STATUS_VALUES.map((status) => (
+                  <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
+              ))}
+            </select>
+            {/*삭제 버튼*/}
             <button
                 type="button"
                 className={styles['delete-task-button']}
@@ -434,24 +466,10 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
               projectId={project.id}
               inputRef={taskInputRef}
               onCreated={() => {
-                setTaskFilter('ALL')
+                setStatusFilter('ALL')
                 setRequestKey((key) => key + 1)
               }}
           />
-          <div className={styles['task-list-toolbar']}>
-            <div className={styles['task-filters']} role="group" aria-label="Task 상태 필터">
-              {taskFilters.map((filter) => (
-                <button
-                  type="button"
-                  key={filter.value}
-                  aria-pressed={taskFilter === filter.value}
-                  onClick={() => setTaskFilter(filter.value)}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <TaskList
             tasks={visibleTasks}
             emptyTitle={emptyCopy.title}

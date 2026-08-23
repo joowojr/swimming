@@ -14,8 +14,10 @@ public class Session {
     private final Long id;
     private final Long userId;
     private final SessionType type;
+    private final Long placeId;
     private final List<Long> taskIds;
-    private final int plannedDurationSec;
+    private String musicUrl;
+    private int plannedDurationSec;
     private Integer actualDurationSec;
     private final Instant startedAt;
     private Instant endedAt;
@@ -25,7 +27,9 @@ public class Session {
             Long id,
             Long userId,
             SessionType type,
+            Long placeId,
             List<Long> taskIds,
+            String musicUrl,
             int plannedDurationSec,
             Integer actualDurationSec,
             Instant startedAt,
@@ -35,7 +39,9 @@ public class Session {
         this.id = id;
         this.userId = userId;
         this.type = type;
+        this.placeId = placeId;
         this.taskIds = List.copyOf(taskIds);
+        this.musicUrl = musicUrl;
         this.plannedDurationSec = plannedDurationSec;
         this.actualDurationSec = actualDurationSec;
         this.startedAt = startedAt;
@@ -45,6 +51,7 @@ public class Session {
 
     public static Session startPersonal(
             Long userId,
+            Long placeId,
             List<Long> taskIds,
             int plannedDurationSec
     ) {
@@ -52,7 +59,9 @@ public class Session {
                 null,
                 userId,
                 SessionType.PERSONAL,
+                placeId,
                 taskIds,
+                null,
                 plannedDurationSec,
                 null,
                 null,
@@ -65,7 +74,9 @@ public class Session {
             Long id,
             Long userId,
             SessionType type,
+            Long placeId,
             List<Long> taskIds,
+            String musicUrl,
             int plannedDurationSec,
             Integer actualDurationSec,
             Instant startedAt,
@@ -76,7 +87,9 @@ public class Session {
                 id,
                 userId,
                 type,
+                placeId,
                 taskIds,
+                musicUrl,
                 plannedDurationSec,
                 actualDurationSec,
                 startedAt,
@@ -97,5 +110,22 @@ public class Session {
         status = elapsedSeconds >= plannedDurationSec
                 ? SessionStatus.COMPLETED
                 : SessionStatus.INTERRUPTED;
+    }
+
+    public void updateMusicUrl(String musicUrl) {
+        if (status != SessionStatus.IN_PROGRESS) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+        this.musicUrl = musicUrl;
+    }
+
+    public void updatePlannedDuration(int plannedDurationSec) {
+        if (status != SessionStatus.IN_PROGRESS) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+        if (plannedDurationSec < 60 || plannedDurationSec > 86400) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
+        }
+        this.plannedDurationSec = plannedDurationSec;
     }
 }

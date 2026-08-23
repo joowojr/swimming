@@ -54,6 +54,9 @@ public class SessionEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private SessionType type;
 
+    @Column(name = "place_id", nullable = false)
+    private Long placeId;
+
     @ElementCollection
     @CollectionTable(
             name = "session_tasks",
@@ -62,6 +65,9 @@ public class SessionEntity extends BaseTimeEntity {
     @OrderColumn(name = "order_idx")
     @Column(name = "task_id", nullable = false)
     private List<Long> taskIds = new ArrayList<>();
+
+    @Column(name = "music_url", length = 2048)
+    private String musicUrl;
 
     @Column(name = "planned_duration_sec", nullable = false)
     private int plannedDurationSec;
@@ -87,7 +93,9 @@ public class SessionEntity extends BaseTimeEntity {
                 ? session.getUserId()
                 : null;
         this.type = session.getType();
+        this.placeId = session.getPlaceId();
         this.taskIds.addAll(session.getTaskIds());
+        this.musicUrl = session.getMusicUrl();
         this.plannedDurationSec = session.getPlannedDurationSec();
         this.actualDurationSec = session.getActualDurationSec();
         this.startedAt = session.getStartedAt();
@@ -100,9 +108,11 @@ public class SessionEntity extends BaseTimeEntity {
     }
 
     public void apply(Session session) {
+        plannedDurationSec = session.getPlannedDurationSec();
         actualDurationSec = session.getActualDurationSec();
         endedAt = session.getEndedAt();
         status = session.getStatus();
+        musicUrl = session.getMusicUrl();
         activeUserId = status == SessionStatus.IN_PROGRESS ? userId : null;
     }
 
@@ -111,7 +121,9 @@ public class SessionEntity extends BaseTimeEntity {
                 id,
                 userId,
                 type,
+                placeId,
                 taskIds,
+                musicUrl,
                 plannedDurationSec,
                 actualDurationSec,
                 startedAt,

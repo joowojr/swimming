@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
 import {
   IconFilter,
-  IconFolders,
   IconPlus,
-  IconTags,
-  IconTargetArrow,
 } from '@tabler/icons-react'
+import ActionButton from '../../components/ActionButton'
 import DailyPlanSection from '../plans/DailyPlanSection'
-import ProjectCard from './ProjectCard'
+import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
+import MemoCard from '../memo/MemoCard'
 import type { Project } from './projectTypes'
 import styles from './ProjectDashboard.module.css'
 
@@ -18,6 +17,7 @@ interface ProjectDashboardProps {
   status: ProjectLoadStatus
   onRetry: () => void
   onOpenCreate: () => void
+  onOrganizeMemo: (text: string) => Promise<void>;
 }
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
@@ -31,31 +31,8 @@ export default function ProjectDashboard({
   status,
   onRetry,
   onOpenCreate,
+  onOrganizeMemo,
 }: ProjectDashboardProps) {
-  const metrics = useMemo(
-    () => [
-      {
-        label: '총 프로젝트',
-        value: projects.length,
-        icon: IconFolders,
-        tone: styles['is-blue'],
-      },
-        {
-            label: '진행 중',
-            value: projects.filter((project) => project.tag !== null).length,
-            icon: IconTags,
-            tone: styles['is-green'],
-        },
-      {
-        label: '완료',
-        value: projects.filter((project) => project.targetDate !== null).length,
-        icon: IconTargetArrow,
-        tone: styles['is-orange'],
-      }
-    ],
-    [projects],
-  )
-
   const upcomingProjects = useMemo(
     () =>
       projects
@@ -63,20 +40,6 @@ export default function ProjectDashboard({
         .sort((a, b) => a.targetDate.localeCompare(b.targetDate))
         .slice(0, 3),
     [projects],
-  )
-
-  const projectCollection = projects.length === 0 ? (
-    <div className={styles['projects-empty']}>
-      <IconFolders size={28} stroke={1.5} aria-hidden="true" />
-      <h3>프로젝트를 시작할 준비가 되었습니다.</h3>
-      <p>새 프로젝트를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
-    </div>
-  ) : (
-    <div className={styles['project-grid']}>
-      {projects.map((project, index) => (
-        <ProjectCard key={project.id} project={project} index={index} />
-      ))}
-    </div>
   )
 
   return (
@@ -88,14 +51,12 @@ export default function ProjectDashboard({
             <p>현재 진행 중인 프로젝트 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>
-            <button type="button" className={styles['secondary-action']} disabled title="필터 · 준비 중">
-              <IconFilter size={17} aria-hidden="true" />
-              필터
-            </button>
-            <button type="button" className={styles['primary-action']} onClick={onOpenCreate}>
-              <IconPlus size={18} aria-hidden="true" />
+            <ActionButton
+              icon={<IconPlus size={18} aria-hidden="true" />}
+              onClick={onOpenCreate}
+            >
               새 프로젝트
-            </button>
+            </ActionButton>
           </div>
         </header>
 
@@ -110,39 +71,40 @@ export default function ProjectDashboard({
             <button type="button" onClick={onRetry}>다시 불러오기</button>
           </div>
         ) : (
-          <>
-            <section className={styles['project-metrics']} aria-label="프로젝트 요약">
-              {metrics.map(({ label, value, icon: Icon, tone }) => (
-                <article className={styles['metric-card']} key={label}>
-                  <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">
-                    <Icon size={24} stroke={1.7} />
-                  </span>
-                  <div>
-                    <p>{label}</p>
-                    <strong>{value}</strong>
-                  </div>
-                </article>
-              ))}
-            </section>
+            <>
+              {/*프로젝트 정리 표*/}
+            {/*<section className={styles['project-metrics']} aria-label="프로젝트 요약">*/}
+            {/*  {metrics.map(({ label, value, icon: Icon, tone }) => (*/}
+            {/*    <article className={styles['metric-card']} key={label}>*/}
+            {/*      <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">*/}
+            {/*        <Icon size={24} stroke={1.7} />*/}
+            {/*      </span>*/}
+            {/*      <div>*/}
+            {/*        <p>{label}</p>*/}
+            {/*        <strong>{value}</strong>*/}
+            {/*      </div>*/}
+            {/*    </article>*/}
+            {/*  ))}*/}
+            {/*</section>*/}
 
-            <DailyPlanSection projects={projects} />
+              <div className={styles['home-grid']}>
+                <div className={styles['home-main']}>
+                  <ContinueSessionWidget/>
+                  <DailyPlanSection projects={projects}/>
+                </div>
 
-            <div className={styles['project-section-heading']}>
-              <h2>최근 활동 프로젝트</h2>
-              <span>{projects.length}개</span>
-            </div>
-
-            {projectCollection}
-          </>
+                <MemoCard onOrganize={onOrganizeMemo} />
+              </div>
+            </>
         )}
       </section>
 
       <aside className={styles['dashboard-aside']} aria-labelledby="upcoming-targets-title">
         <h2 id="upcoming-targets-title">다가오는 목표일</h2>
         {status === 'ready' && upcomingProjects.length > 0 ? (
-          <ul className={styles['upcoming-list']}>
-            {upcomingProjects.map((project) => (
-              <li key={project.id}>
+            <ul className={styles['upcoming-list']}>
+              {upcomingProjects.map((project) => (
+                  <li key={project.id}>
                 <span className={styles['upcoming-date']} aria-hidden="true">
                   <strong>{new Date(`${project.targetDate}T00:00:00`).getDate()}</strong>
                   <span>

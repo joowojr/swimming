@@ -1,205 +1,162 @@
 /* Design tokens synchronized with docs/design.md structured frontmatter. */
 :root {
-  /* Color roles */
-  --color-surface: #fcf9f8;
-  --color-surface-dim: #dcd9d9;
-  --color-surface-bright: #fcf9f8;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f6f3f2;
-  --color-surface-container: #f0edec;
-  --color-surface-container-high: #ebe7e7;
-  --color-surface-container-highest: #e5e2e1;
-  --color-on-surface: #1c1b1b;
-  --color-on-surface-variant: #3e484c;
-  --color-inverse-surface: #313030;
-  --color-inverse-on-surface: #f3f0ef;
-  --color-outline: #6e797d;
-  --color-outline-variant: #bec8cc;
-  --color-surface-tint: #00687b;
+    --color-surface: #f7f4ed;
+    --color-surface-dim: #dcd9d9;
+    --color-surface-bright: #fcf9f8;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-high: #ebe7e7;
+    --color-surface-container-highest: #e5e2e1;
+    --color-on-surface: #1c1b1b;
+    --color-mute-variant: #bec8cc;
+    --color-on-primary-container: #f9fdff;
 
-  --color-primary: #006578;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #078097;
-  --color-on-primary-container: #f9fdff;
-  --color-inverse-primary: #78d3ed;
+    --color-tertiary:         #F48067;  /* 채우기, 그래픽, 로고 물결 */
+    --color-tertiary-container: #FDEBE7;  /* 배지·칩 배경 */
+    --color-on-tertiary:  #FAC8BC;  /* 연한 면 위의 테두리 */
+    --color-on-tertiary-container:  #BB381B;  /* 텍스트, 링크, 눌림 상태 */
 
-  --color-secondary: #5d5e5f;
-  --color-on-secondary: #ffffff;
-  --color-secondary-container: #e0dfe0;
-  --color-on-secondary-container: #626364;
+    --color-error: #EF4444;
+    --color-on-error: #ffffff;
+    --color-error-container: #ffdad6;
+    --color-on-error-container: #EF4444;
 
-  --color-tertiary: #864d41;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #a26458;
-  --color-on-tertiary-container: #fffbff;
+    /* Color roles */
+    --color-primary: #1c1c1c;
+    --color-on-primary: #fcfbf8;
+    --color-primary-pressed: #030303;
+    --color-ink: #030303;
+    --color-ink-soft: #1c1c1c;
+    --color-body: #1c1c1c;
+    --color-charcoal: #1c1c1c;
+    --color-mute: #5f5f5d;
+    --color-ash: #d4d3d0;
+    --color-stone: #d4d3d0;
+    --color-hairline: #eceae4;
+    /*--color-hairline-soft*/
+    --color-border-subtle: #eceae4;
+    --color-on-secondary: #1c1c1c;
+    --color-secondary-bg: #f7f4ed;
+    --color-secondary-pressed: #d4d3d0;
+    --color-canvas: #fcfbf8;
+    --color-surface-soft: #fcfbf8;
+    --color-surface-card: #f7f4ed;
+    --color-surface-elevated: #f7f4ed;
+    --color-on-dark: #fcfbf8;
+    --color-on-dark-mute: rgba(252, 251, 248, 0.7);
+    --color-surface-dark: #1c1c1c;
+    --color-inverse-primary: #3451b2;
+    --color-focus-inner: #fcfbf8;
+    --color-primary-container: #3451b2;
+    --color-surface-tint: #3451b2;
+    --color-accent-purple-deep: #3451b2;
+    --color-success-deep: #1c1c1c;
+    --color-success-pale: #f7f4ed;
+    --color-error-deep: #030303;
 
-  --color-error: #ba1a1a;
-  --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+    /* Typography */
+    --font-family-sans: "Camera Plain Variable", "Inter Variable", "DM Sans",
+    sans-serif;
+    --font-family-mono: "Camera Plain Variable", "Inter Variable", "DM Sans",
+    sans-serif;
+    --text-headline-xl-size: 3.75rem;
+    --text-headline-xl-line-height: 3.75rem;
+    --text-headline-xl-weight: 480;
+    --text-headline-xl-letter-spacing: -0.025em;
+    --text-headline-xl-mobile-size: 3rem;
+    --text-headline-xl-mobile-line-height: 3.3rem;
+    --text-headline-xl-mobile-weight: 480;
+    --text-headline-xl-mobile-letter-spacing: -0.025em;
+    --text-headline-lg-size: 2.25rem;
+    --text-headline-lg-line-height: 2.475rem;
+    --text-headline-lg-weight: 480;
+    --text-headline-md-size: 1.25rem;
+    --text-headline-md-line-height: 1.5625rem;
+    --text-headline-md-weight: 480;
+    --text-body-lg-size: 1.125rem;
+    --text-body-lg-line-height: 1.5525rem;
+    --text-body-lg-weight: 400;
+    --text-body-md-size: 1rem;
+    --text-body-md-line-height: 1.5rem;
+    --text-body-md-weight: 400;
+    --text-body-sm-size: 0.875rem;
+    --text-body-sm-line-height: 1.3125rem;
+    --text-body-sm-weight: 400;
+    --text-label-caps-size: 0.875rem;
+    --text-label-caps-line-height: 1.3125rem;
+    --text-label-caps-weight: 400;
+    --text-label-caps-letter-spacing: -0.025em;
+    --text-button-size: 1rem;
+    --text-button-line-height: 1.5rem;
+    --text-button-weight: 480;
 
-  --color-primary-fixed: #afecff;
-  --color-primary-fixed-dim: #78d3ed;
-  --color-on-primary-fixed: #001f27;
-  --color-on-primary-fixed-variant: #004e5d;
-  --color-secondary-fixed: #e3e2e3;
-  --color-secondary-fixed-dim: #c6c6c7;
-  --color-on-secondary-fixed: #1a1c1d;
-  --color-on-secondary-fixed-variant: #454748;
-  --color-container: #fff1f0;
-  --color-tertiary-fixed: #ffdad3;
-  --color-tertiary-fixed-dim: #ffb4a5;
-  --color-on-tertiary-fixed: #360e07;
-  --color-on-tertiary-fixed-variant: #6c382e;
+    --text-display: var(--text-headline-xl-size);
+    --text-heading: var(--text-headline-md-size);
+    --text-body: var(--text-body-md-size);
+    --text-label: var(--text-body-sm-size);
+    --text-meta: var(--text-label-caps-size);
 
-  --color-background: #fcf9f8;
-  --color-on-background: #1c1b1b;
-  --color-surface-variant: #e5e2e1;
-  --color-surface-muted: #f8f3f1;
-  --color-border-subtle: #ded7d4;
-  --color-primary-soft: #e5f0f2;
-  --color-primary-outline: #b9d2d7;
-  --color-tertiary-soft: #fcebe7;
+    /* Four-pixel spacing scale */
+    --space-unit: 0.25rem;
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 5rem;
+    --layout-gutter: 1.5rem;
+    --layout-margin-mobile: 1rem;
+    --layout-margin-desktop: 5rem;
+    --layout-container-max: 80rem;
 
-  /* Immersive session scene */
-  --color-session-night: #2e2a4a;
-  --color-session-violet: #77506f;
-  --color-session-coral: #cf756d;
-  --color-session-sunset: #efb473;
-  --color-session-glow: rgb(255 211 148 / 66%);
-  --color-session-hill: rgb(48 32 58 / 52%);
-  --color-session-silhouette: rgb(34 24 42 / 84%);
-  --color-session-ground: rgb(20 14 26 / 94%);
-  --color-session-vignette: rgb(28 27 27 / 28%);
-  --color-session-glass: rgb(252 249 248 / 86%);
-  --color-session-glass-dark: rgb(49 48 48 / 88%);
-  --color-session-glass-border: rgb(252 249 248 / 14%);
-  --color-session-inverse-muted: rgb(243 240 239 / 64%);
+    /* Shape */
+    --radius-sm: 0.5rem;
+    --radius-default: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-full: 9999px;
+    --radius-control: var(--radius-full);
+    --radius-panel: var(--radius-lg);
 
-  /* Dashboard illustration roles from the approved dashboard reference */
-  --color-dashboard-blue-soft: #eff6ff;
-  --color-dashboard-blue: #2563eb;
-  --color-dashboard-orange-soft: #fff7ed;
-  --color-dashboard-orange: #ea580c;
-  --color-dashboard-green-soft: #f0fdf4;
-  --color-dashboard-green: #16a34a;
-
-  /* Application-facing semantic aliases */
-  --color-surface-lowest: var(--color-surface-container-lowest);
-  --color-surface-low: var(--color-surface-container-low);
-  --color-surface-high: var(--color-surface-container-high);
-  --color-surface-highest: var(--color-surface-container-highest);
-  --color-text-primary: var(--color-on-surface);
-  --color-text-secondary: var(--color-on-surface-variant);
-  --color-text-muted: var(--color-outline);
-  --color-accent: var(--color-primary);
-  --color-accent-strong: var(--color-on-primary-fixed-variant);
-  --color-on-accent: var(--color-on-primary);
-  --color-border: var(--color-outline-variant);
-
-  /* Typography */
-  --font-family-sans: "Hanken Grotesk", Pretendard, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-family-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-
-  --text-headline-xl-size: 3rem;
-  --text-headline-xl-line-height: 3.5rem;
-  --text-headline-xl-weight: 700;
-  --text-headline-xl-letter-spacing: -0.02em;
-  --text-headline-xl-mobile-size: 2rem;
-  --text-headline-xl-mobile-line-height: 2.5rem;
-  --text-headline-xl-mobile-weight: 700;
-  --text-headline-xl-mobile-letter-spacing: -0.01em;
-  --text-headline-lg-size: 2rem;
-  --text-headline-lg-line-height: 2.5rem;
-  --text-headline-lg-weight: 600;
-  --text-headline-md-size: 1.5rem;
-  --text-headline-md-line-height: 2rem;
-  --text-headline-md-weight: 600;
-  --text-body-lg-size: 1.125rem;
-  --text-body-lg-line-height: 1.75rem;
-  --text-body-lg-weight: 400;
-  --text-body-md-size: 1rem;
-  --text-body-md-line-height: 1.5rem;
-  --text-body-md-weight: 400;
-  --text-body-sm-size: 0.875rem;
-  --text-body-sm-line-height: 1.25rem;
-  --text-body-sm-weight: 400;
-  --text-label-caps-size: 0.75rem;
-  --text-label-caps-line-height: 1rem;
-  --text-label-caps-weight: 500;
-  --text-label-caps-letter-spacing: 0.05em;
-  --text-button-size: 1rem;
-  --text-button-line-height: 1.5rem;
-  --text-button-weight: 600;
-
-  --text-display: var(--text-headline-xl-size);
-  --text-heading: var(--text-headline-md-size);
-  --text-body: var(--text-body-md-size);
-  --text-label: var(--text-body-sm-size);
-  --text-meta: var(--text-label-caps-size);
-
-  /* Four-pixel spacing scale */
-  --space-unit: 0.25rem;
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --layout-gutter: 1.5rem;
-  --layout-margin-mobile: 1rem;
-  --layout-margin-desktop: 4rem;
-  --layout-container-max: 80rem;
-
-  /* Shape */
-  --radius-sm: 0.125rem;
-  --radius-default: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-full: 9999px;
-  --radius-control: var(--radius-default);
-  --radius-panel: var(--radius-lg);
-
-  /* Component dimensions and motion */
-  --control-height: 3rem;
-  --button-height: 2.25rem;
-  --button-padding-inline: var(--space-3);
-  --content-width: var(--layout-container-max);
-  --form-width: 30rem;
-  --border-width: 1px;
-  --focus-ring-width: 2px;
-  --focus-ring-color: #cce0e4;
-  --focus-ring-strong: #000607;
-  --shadow-floating: 0 4px 20px rgb(17 24 39 / 5%);
-  --shadow-control: 0 1px 3px rgb(17 24 39 / 8%);
-  --overlay-scrim: rgb(17 24 39 / 40%);
-  --overlay-blur: 2px;
-  --progress-height: 0.25rem;
-  --modal-width: 28rem;
-  --z-modal: 400;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-micro: 120ms;
-  --dur-short: 220ms;
-  --dur-modal: 300ms;
-  --transition-short: 140ms;
+    /* Component dimensions and motion */
+    --control-height: 3rem;
+    --button-height: 2rem;
+    --button-padding-inline: 0.625rem;
+    --content-width: var(--layout-container-max);
+    --form-width: 30rem;
+    --border-width: 1px;
+    --focus-ring-width: 2px;
+    --focus-ring-color: #3451b2;
+    --focus-ring-strong: #030303;
+    --shadow-floating: oklab(0 0 0 / 0.08) 0px 0px 0px 1px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px,
+    rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
+    --shadow-control: oklch(0 0 0 / 0.25) 0px 0px 0px 0.5px inset;
+    --overlay-scrim: rgb(28 28 28 / 40%);
+    --overlay-blur: 4px;
+    --progress-height: 0.25rem;
+    --modal-width: 28rem;
+    --z-modal: 400;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-micro: 120ms;
+    --dur-short: 220ms;
+    --dur-modal: 300ms;
+    --transition-short: 140ms;
 }
 
 @media (max-width: 48rem) {
-  :root {
-    --text-display: var(--text-headline-xl-mobile-size);
-  }
+    :root {
+        --text-display: var(--text-headline-xl-mobile-size);
+    }
 }
 
 @media (pointer: coarse) {
-  :root {
-    --button-height: 2.75rem;
-  }
+    :root {
+        --button-height: 2.75rem;
+    }
 }

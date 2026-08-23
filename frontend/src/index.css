@@ -9,7 +9,7 @@ html {
   overflow-x: clip;
   color-scheme: light;
   font-family: var(--font-family-sans);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
   background: var(--color-background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;

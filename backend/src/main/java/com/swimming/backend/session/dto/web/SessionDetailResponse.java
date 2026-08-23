@@ -1,5 +1,6 @@
 package com.swimming.backend.session.dto.web;
 
+import com.swimming.backend.place.dto.PlaceReference;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionType;
@@ -7,24 +8,33 @@ import com.swimming.backend.session.domain.SessionType;
 import java.time.Instant;
 import java.util.List;
 
-public record ActiveSessionResponse(
+public record SessionDetailResponse(
         Long id,
         SessionType type,
         SessionStatus status,
         int plannedDurationSec,
+        Integer actualDurationSec,
         Instant startedAt,
-        List<ActiveSessionTaskResponse> tasks
+        Instant endedAt,
+        SessionDetailPlaceResponse place,
+        String musicUrl,
+        List<SessionTaskResponse> tasks
 ) {
-    public static ActiveSessionResponse from(
+    public static SessionDetailResponse from(
             Session session,
-            List<ActiveSessionTaskResponse> tasks
+            PlaceReference place,
+            List<SessionTaskResponse> tasks
     ) {
-        return new ActiveSessionResponse(
+        return new SessionDetailResponse(
                 session.getId(),
                 session.getType(),
                 session.getStatus(),
                 session.getPlannedDurationSec(),
+                session.getActualDurationSec(),
                 session.getStartedAt(),
+                session.getEndedAt(),
+                SessionDetailPlaceResponse.from(place),
+                session.getMusicUrl(),
                 List.copyOf(tasks)
         );
     }

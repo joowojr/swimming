@@ -1,0 +1,60 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--button-height);
+  gap: var(--space-2);
+  padding: 0 var(--button-padding-inline);
+  border-radius: var(--radius-default);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  white-space: nowrap;
+  transition:
+    border-color var(--transition-short),
+    background-color var(--transition-short),
+    transform var(--transition-short);
+}
+
+.primary {
+  border: var(--border-width) solid var(--color-primary);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.plain {
+  color: inherit;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+.spinner {
+  width: 1.0625rem;
+  height: 1.0625rem;
+  flex: 0 0 auto;
+  animation: spin 1s linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primary:hover:not(:disabled) {
+    border-color: var(--color-primary-container);
+    background: var(--color-primary-container);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .spinner {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

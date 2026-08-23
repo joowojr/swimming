@@ -1,0 +1,154 @@
+erDiagram
+    users ||--o{ project_tags : owns
+    users ||--o{ projects : owns
+    project_tags o|--o{ projects : classifies
+    projects ||--o{ tasks : contains
+    users ||--o{ daily_plans : owns
+    daily_plans ||--o{ daily_plan_items : "contains (delete cascades)"
+    tasks ||--o{ daily_plan_items : "plans (delete cascades)"
+    users ||--o{ sessions : runs
+    sessions ||--|{ session_tasks : contains
+    tasks ||--o{ session_tasks : focuses
+    places ||--o{ sessions : hosts
+    group_rooms o|--o{ sessions : groups
+    sessions ||--o| check_ins : records
+    places ||--o{ group_rooms : hosts
+    group_rooms ||--o{ group_participants : includes
+    users ||--o{ group_participants : joins
+    tasks o|--o{ group_participants : targets
+    cities ||--o{ places : contains
+
+    users {
+        bigint id PK
+        varchar email UK
+        varchar password_hash
+        varchar nickname
+        varchar timezone
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    project_tags {
+        bigint id PK
+        bigint user_id FK
+        varchar name
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    projects {
+        bigint id PK
+        bigint user_id FK
+        bigint tag_id FK "nullable"
+        varchar name
+        text description
+        date target_date "nullable"
+        varchar status
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    tasks {
+        bigint id PK
+        bigint project_id FK
+        varchar title
+        varchar status
+        int completion_pct
+        int order_idx
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    daily_plans {
+        bigint id PK
+        bigint user_id FK
+        date plan_date
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    daily_plan_items {
+        bigint id PK
+        bigint daily_plan_id FK
+        bigint task_id FK "nullable"
+        varchar title "nullable; ad hoc item"
+        int order_idx
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    sessions {
+        bigint id PK
+        bigint user_id FK
+        bigint active_user_id UK "nullable while ended"
+        varchar type
+        bigint place_id FK
+        bigint group_room_id FK "nullable"
+        varchar music_url "nullable; latest URL for this session"
+        int planned_duration_sec
+        int actual_duration_sec "nullable"
+        timestamp started_at
+        timestamp end_at "nullable"
+        varchar status
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    session_tasks {
+        bigint session_id PK,FK
+        bigint task_id FK
+        int order_idx PK
+    }
+
+    check_ins {
+        bigint id PK
+        bigint session_id FK,UK
+        text summary
+        boolean task_completed
+        int remaining_pct
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    group_rooms {
+        bigint id PK
+        bigint place_id FK
+        timestamp started_at
+        int duration_sec
+        int capacity
+        varchar host_type
+        varchar status
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    group_participants {
+        bigint id PK
+        bigint group_room_id FK
+        bigint user_id FK
+        bigint task_id FK "nullable"
+        varchar ad_hoc_goal "nullable"
+        timestamp joined_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    cities {
+        bigint id PK
+        varchar name
+        varchar country_code
+        varchar timezone
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    places {
+        bigint id PK
+        bigint city_id FK
+        varchar name
+        varchar background_asset_type
+        varchar background_asset_url
+        varchar default_music_url "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }

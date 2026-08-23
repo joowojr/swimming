@@ -2,13 +2,13 @@ export type BackgroundAssetType = 'IMAGE' | 'VIDEO'
 
 export interface BackgroundAsset {
   type: BackgroundAssetType
+  key: string | null
   url: string | null
 }
 
 export interface Place {
   id: number
   name: string
-  backgroundAsset: BackgroundAsset
   defaultMusicUrl: string | null
 }
 
@@ -22,4 +22,8 @@ export interface City {
 export interface SessionPlace extends Place {
   cityId: number
   cityName: string
+}
+
+export interface SessionDetailPlace extends SessionPlace {
+  backgroundAsset: BackgroundAsset
 }

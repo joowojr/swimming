@@ -160,7 +160,7 @@
 .column {
   position: relative;
   display: flex;
-  min-height: 20rem;
+  min-height: 35rem;
   padding: 0 var(--space-3) var(--space-3);
   border-right: var(--border-width) solid var(--color-border-subtle);
   flex-direction: column;

@@ -210,14 +210,12 @@ class ProjectControllerTest {
                                 1L,
                                 "완료 Task",
                                 TaskStatus.DONE,
-                                100,
                                 0
                         ),
                         new TaskSummaryResponse(
                                 2L,
                                 "진행 Task",
                                 TaskStatus.DOING,
-                                40,
                                 1
                         )
                 )

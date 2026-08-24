@@ -149,8 +149,7 @@
 }
 
 .modal-field-message,
-.modal-submit-error,
-.task-status {
+.modal-submit-error {
   margin: 0;
   font-size: var(--text-label-caps-size);
   line-height: var(--text-body-sm-line-height);
@@ -170,69 +169,6 @@
   border: var(--border-width) solid var(--color-error-container);
   border-radius: var(--radius-default);
   background: var(--color-error-container);
-}
-
-.task-status {
-  color: var(--color-mute);
-}
-
-.task-options {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.task-option {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border: var(--border-width) solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-container-lowest);
-  transition:
-    border-color var(--transition-short),
-    background-color var(--transition-short);
-}
-
-.task-option:has(input:checked) {
-  border-color: var(--color-hairline);
-  background: var(--color-surface-card);
-}
-
-.task-option:has(input:focus-visible) {
-  outline: var(--focus-ring-width) solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.task-option input {
-  width: 1.125rem;
-  height: 1.125rem;
-  flex: 0 0 auto;
-  margin: 0.125rem 0 0;
-  accent-color: var(--color-primary);
-}
-
-.task-option-text {
-  display: grid;
-  min-width: 0;
-  gap: 0.125rem;
-}
-
-.task-option-title {
-  color: var(--color-primary);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-  overflow-wrap: anywhere;
-}
-
-.task-option-project {
-  color: var(--color-mute);
-  font-size: var(--text-label-caps-size);
-  line-height: var(--text-body-sm-line-height);
-  overflow-wrap: anywhere;
 }
 
 .modal-footer {
@@ -276,7 +212,6 @@
 
 .modal-close:disabled,
 .modal-field textarea:disabled,
-.task-option:has(input:disabled),
 .modal-submit:disabled {
   cursor: wait;
   opacity: 0.55;
@@ -290,10 +225,6 @@
 
   .modal-field textarea:hover:not(:disabled) {
     background: var(--color-surface-soft);
-  }
-
-  .task-option:hover:not(:has(input:disabled)) {
-    background: var(--color-surface-container-high);
   }
 
   .modal-submit:hover:not(:disabled) {
@@ -328,7 +259,6 @@
 
   .modal-close,
   .modal-field textarea,
-  .task-option,
   .modal-submit {
     transition: none;
   }

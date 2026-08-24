@@ -31,7 +31,7 @@ function getTaskMeta(status: TaskStatus) {
   if (status === 'TODO') return '언제든 편할 때 시작해요'
   if (status === 'DONE') return `완료했습니다`
   if (status === 'HOLD') return `편할 때 다시 시작해요`
-  return `잘 하고 있어요`
+  return `최근에 n개의 세션을 진행했어요`
 }
 
 export default function TaskList({

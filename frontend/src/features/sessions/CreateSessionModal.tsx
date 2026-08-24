@@ -2,6 +2,7 @@ import type {FormEvent, MouseEvent} from 'react'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {IconUser, IconUsers, IconX,} from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
+import TaskChecklist from '../../components/TaskChecklist'
 import type {DailyPlanItem} from '../plans/dailyPlanTypes'
 import {getPlaces} from '../places/placeApi'
 import type {City, Place} from '../places/placeTypes'
@@ -189,23 +190,14 @@ export default function CreateSessionModal({
             <fieldset className={styles.fieldset}>
               <legend>무엇을 할까요</legend>
               <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
-              <div className={styles.choices}>
-                {linkedTasks.length === 0 ? (
-                  <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p>
-                ) : linkedTasks.map((task) => (
-                  <label className={styles['task-choice']} key={task.taskId}>
-                    <input
-                      type="checkbox"
-                      name="session-task"
-                      value={task.taskId}
-                      checked={selectedTaskIds.includes(task.taskId)}
-                      onChange={() => toggleTask(task.taskId)}
-                      disabled={isSubmitting}
-                    />
-                    <span>{task.title}</span>
-                  </label>
-                ))}
-              </div>
+              <TaskChecklist
+                items={linkedTasks.map((task) => ({ id: task.taskId, title: task.title }))}
+                selectedIds={selectedTaskIds}
+                name="session-task"
+                emptyMessage="오늘 계획에 담긴 Task가 없습니다."
+                disabled={isSubmitting}
+                onToggle={toggleTask}
+              />
             </fieldset>
 
             <fieldset className={styles.fieldset}>

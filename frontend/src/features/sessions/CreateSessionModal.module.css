@@ -141,17 +141,6 @@
     gap: var(--space-4);
 }
 
-.task-choice input[type='checkbox'] {
-    flex: 0 0 auto;
-
-    width: 1.125rem;
-    height: 1.125rem;
-    margin: 0;
-
-    accent-color: var(--color-primary);
-    cursor: pointer;
-}
-
 /* ── 선택 컨트롤 공통 ── */
 
 .mode-choice input,
@@ -165,7 +154,6 @@
     clip: rect(0, 0, 0, 0);
 }
 
-.task-choice,
 .mode-choice,
 .durations label > span {
     display: inline-flex;
@@ -184,47 +172,17 @@
     transition: background-color var(--transition-short), color var(--transition-short);
 }
 
-.task-choice:has(input:checked),
 .mode-choice:has(input:checked),
 .durations label:has(input:checked) > span {
     color: var(--color-on-primary);
     background: var(--color-primary);
 }
 
-.task-choice:has(input:focus-visible),
 .mode-choice:has(input:focus-visible),
 .place-choice:has(input:focus-visible),
 .durations label:has(input:focus-visible) > span {
     outline: var(--focus-ring-width) solid var(--color-primary);
     outline-offset: 2px;
-}
-
-/* Task 필 */
-
-.choices {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-}
-
-.task-choice {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-
-    width: 100%;
-    min-width: 0;
-
-    color: var(--color-on-surface);
-    cursor: pointer;
-}
-
-.task-choice > span {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* 개인 / 그룹 */
@@ -454,11 +412,10 @@
 /* ── 상태 ── */
 
 .close:disabled,
-.task-choice:has(input:disabled) {
+.mode-choice:has(input:disabled) {
     opacity: 0.5;
     cursor: not-allowed;
 }
-.mode-choice:has(input:disabled),
 .place-choice:has(input:disabled),
 .durations label:has(input:disabled) > span,
 .custom input:disabled,
@@ -474,7 +431,6 @@
 
 @media (hover: hover) and (pointer: fine) {
     .close:hover:not(:disabled),
-    .task-choice:not(:has(input:checked)):hover,
     .mode-choice:not(:has(input:checked)):hover,
     .durations label:not(:has(input:checked)):hover > span,
     .custom input:hover:not(:disabled) {
@@ -514,7 +470,6 @@
 @media (prefers-reduced-motion: reduce) {
     .dialog { animation: none; }
 
-    .task-choice,
     .mode-choice,
     .durations label > span,
     .place-mark,

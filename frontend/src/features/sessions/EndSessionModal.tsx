@@ -3,6 +3,7 @@ import type { FormEvent, MouseEvent } from 'react'
 import { IconX } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import ActionButton from '../../components/ActionButton'
+import TaskChecklist from '../../components/TaskChecklist'
 import { endSession } from './sessionApi'
 import type { EndSessionRequest, SessionTask } from './sessionTypes'
 import styles from './EndSessionModal.module.css'
@@ -145,28 +146,19 @@ export default function EndSessionModal({
           <div className={styles['modal-body']}>
             <fieldset className={styles['modal-field']}>
               <legend>끝낸 Task <span>선택</span></legend>
-              {tasks.length > 0 ? (
-                <ul className={styles['task-options']}>
-                  {tasks.map((task) => (
-                    <li key={task.id}>
-                      <label className={styles['task-option']}>
-                        <input
-                          type="checkbox"
-                          checked={completedTaskIds.includes(task.id)}
-                          onChange={() => toggleTask(task.id)}
-                          disabled={isSubmitting}
-                        />
-                        <span className={styles['task-option-text']}>
-                          <span className={styles['task-option-title']}>{task.title}</span>
-                          <span className={styles['task-option-project']}>{task.projectName}</span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles['task-status']}>이 세션에 연결된 Task가 없습니다.</p>
-              )}
+              <TaskChecklist
+                items={tasks.map((task) => ({
+                  id: task.id,
+                  title: task.title,
+                  description: task.projectName,
+                }))}
+                selectedIds={completedTaskIds}
+                name="completed-session-task"
+                emptyMessage="이 세션에 연결된 Task가 없습니다."
+                disabled={isSubmitting}
+                highlightSelected={false}
+                onToggle={toggleTask}
+              />
               <p className={styles['modal-field-message']} aria-live="polite">
                 {' '}
               </p>

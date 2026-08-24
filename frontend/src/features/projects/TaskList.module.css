@@ -63,9 +63,10 @@
   outline-color: var(--color-primary);
 }
 
-.node:active:not(:disabled) {
-  transform: translateY(var(--border-width));
-}
+/* 액션 없앰 {*/
+/*.node:active:not(:disabled) {*/
+/*  transform: translateY(var(--border-width));*/
+/*}*/
 
 .node:disabled {
   cursor: not-allowed;

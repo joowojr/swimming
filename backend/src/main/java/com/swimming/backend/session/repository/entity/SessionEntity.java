@@ -26,7 +26,9 @@ import org.hibernate.generator.EventType;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(
@@ -63,8 +65,7 @@ public class SessionEntity extends BaseTimeEntity {
             joinColumns = @JoinColumn(name = "session_id")
     )
     @OrderColumn(name = "order_idx")
-    @Column(name = "task_id", nullable = false)
-    private List<Long> taskIds = new ArrayList<>();
+    private List<SessionTaskEmbeddable> tasks = new ArrayList<>();
 
     @Column(name = "music_url", length = 2048)
     private String musicUrl;
@@ -87,6 +88,9 @@ public class SessionEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private SessionStatus status;
 
+    @Column(length = 255)
+    private String summary;
+
     private SessionEntity(Session session) {
         this.userId = session.getUserId();
         this.activeUserId = session.getStatus() == SessionStatus.IN_PROGRESS
@@ -94,13 +98,14 @@ public class SessionEntity extends BaseTimeEntity {
                 : null;
         this.type = session.getType();
         this.placeId = session.getPlaceId();
-        this.taskIds.addAll(session.getTaskIds());
+        session.getTasks().forEach(task -> this.tasks.add(SessionTaskEmbeddable.from(task)));
         this.musicUrl = session.getMusicUrl();
         this.plannedDurationSec = session.getPlannedDurationSec();
         this.actualDurationSec = session.getActualDurationSec();
         this.startedAt = session.getStartedAt();
         this.endedAt = session.getEndedAt();
         this.status = session.getStatus();
+        this.summary = session.getSummary();
     }
 
     public static SessionEntity from(Session session) {
@@ -114,6 +119,11 @@ public class SessionEntity extends BaseTimeEntity {
         status = session.getStatus();
         musicUrl = session.getMusicUrl();
         activeUserId = status == SessionStatus.IN_PROGRESS ? userId : null;
+        summary = session.getSummary();
+
+        Map<Long, Boolean> completionByTaskId = session.getTasks().stream()
+                .collect(HashMap::new, (map, task) -> map.put(task.taskId(), task.isCompleted()), HashMap::putAll);
+        tasks.forEach(task -> task.updateCompletion(completionByTaskId.get(task.getTaskId())));
     }
 
     public Session toDomain() {
@@ -122,13 +132,14 @@ public class SessionEntity extends BaseTimeEntity {
                 userId,
                 type,
                 placeId,
-                taskIds,
+                tasks.stream().map(SessionTaskEmbeddable::toDomain).toList(),
                 musicUrl,
                 plannedDurationSec,
                 actualDurationSec,
                 startedAt,
                 endedAt,
-                status
+                status,
+                summary
         );
     }
 }

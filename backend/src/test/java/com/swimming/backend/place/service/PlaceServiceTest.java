@@ -37,7 +37,7 @@ class PlaceServiceTest {
                 city(2L, "Tokyo", "JP")
         ));
 
-        assertThat(placeService.getCities()).extracting(city -> city.getName())
+        assertThat(placeService.getCitiesAndPlaces()).extracting(city -> city.getName())
                 .containsExactly("Lisbon", "Tokyo");
     }
 

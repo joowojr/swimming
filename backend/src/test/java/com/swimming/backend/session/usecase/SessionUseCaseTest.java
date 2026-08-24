@@ -5,15 +5,18 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.place.dto.PlaceReference;
-import com.swimming.backend.place.service.PlaceService;
+import com.swimming.backend.place.service.PlaceVideoService;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
+import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
+import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.session.service.SessionService;
+import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.user.service.UserService;
@@ -26,6 +29,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +48,7 @@ class SessionUseCaseTest {
     private DailyPlanService dailyPlanService;
     private UserService userService;
     private TaskService taskService;
-    private PlaceService placeService;
+    private PlaceVideoService placeVideoService;
     private SessionUseCase sessionUseCase;
 
     @BeforeEach
@@ -53,13 +57,13 @@ class SessionUseCaseTest {
         dailyPlanService = mock(DailyPlanService.class);
         userService = mock(UserService.class);
         taskService = mock(TaskService.class);
-        placeService = mock(PlaceService.class);
+        placeVideoService = mock(PlaceVideoService.class);
         sessionUseCase = new SessionUseCase(
                 sessionService,
                 dailyPlanService,
                 userService,
                 taskService,
-                placeService,
+                placeVideoService,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
@@ -77,7 +81,7 @@ class SessionUseCaseTest {
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
         )).thenReturn(true);
-        when(placeService.getReference(20L)).thenReturn(placeReference());
+        when(placeVideoService.getReference(20L)).thenReturn(placeReference());
         when(sessionService.save(any(Session.class))).thenReturn(session);
 
         SessionResponse response = sessionUseCase.startPersonal(1L, request);
@@ -90,6 +94,29 @@ class SessionUseCaseTest {
                 1L,
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
+        );
+    }
+
+    @Test
+    @DisplayName("개인 세션을 시작하면 대상 Task가 모두 DOING으로 바뀐다")
+    void marksSessionTasksAsDoingOnStart() {
+        StartPersonalSessionRequest request = new StartPersonalSessionRequest(
+                List.of(10L, 11L), 20L, 1500
+        );
+        when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
+        when(dailyPlanService.containsAllTasks(
+                1L,
+                LocalDate.of(2026, 8, 20),
+                List.of(10L, 11L)
+        )).thenReturn(true);
+        when(placeVideoService.getReference(20L)).thenReturn(placeReference());
+        when(sessionService.save(any(Session.class))).thenReturn(startedSession(NOW));
+
+        sessionUseCase.startPersonal(1L, request);
+
+        verify(taskService).updateStatuses(
+                1L,
+                Map.of(10L, TaskStatus.DOING, 11L, TaskStatus.DOING)
         );
     }
 
@@ -119,14 +146,61 @@ class SessionUseCaseTest {
         Session session = startedSession(NOW.minusSeconds(600));
         when(sessionService.getOwned(1L, 5L)).thenReturn(session);
         when(sessionService.save(session)).thenReturn(session);
-        when(placeService.getReference(20L)).thenReturn(placeReference());
+        when(placeVideoService.getReference(20L)).thenReturn(placeReference());
 
-        SessionResponse response = sessionUseCase.end(1L, 5L);
+        SessionResponse response = sessionUseCase.end(1L, 5L, null);
 
         assertThat(response.actualDurationSec()).isEqualTo(600);
         assertThat(response.endedAt()).isEqualTo(NOW);
-        assertThat(response.status()).isEqualTo(SessionStatus.INTERRUPTED);
+        assertThat(response.status()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getSummary()).isNull();
         verify(sessionService).save(session);
+        verify(taskService, never()).updateStatuses(any(), any());
+    }
+
+    @Test
+    @DisplayName("기록과 함께 종료하면 기록을 저장하고 Task 상태를 전이한다")
+    void endsWithRecordAndTransitionsTasks() {
+        Session session = startedSession(NOW.minusSeconds(600));
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+        when(sessionService.save(session)).thenReturn(session);
+        when(placeVideoService.getReference(20L)).thenReturn(placeReference());
+
+        EndSessionRequest request = new EndSessionRequest(
+                "1페이지 완료",
+                List.of(
+                        new EndSessionRequest.TaskResult(10L, true),
+                        new EndSessionRequest.TaskResult(11L, false)
+                )
+        );
+
+        sessionUseCase.end(1L, 5L, request);
+
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getSummary()).isEqualTo("1페이지 완료");
+        verify(taskService).updateStatuses(
+                1L,
+                Map.of(10L, TaskStatus.DONE, 11L, TaskStatus.DOING)
+        );
+    }
+
+    @Test
+    @DisplayName("세션에 없는 Task를 기록하면 거부한다")
+    void rejectsRecordWithUnknownTask() {
+        Session session = startedSession(NOW.minusSeconds(600));
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+
+        EndSessionRequest request = new EndSessionRequest(
+                null,
+                List.of(new EndSessionRequest.TaskResult(99L, true))
+        );
+
+        assertThatThrownBy(() -> sessionUseCase.end(1L, 5L, request))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.INVALID_SESSION_TASKS));
+        verify(sessionService, never()).save(any(Session.class));
     }
 
     @Test
@@ -134,8 +208,8 @@ class SessionUseCaseTest {
     void getsActiveSessionWithOrderedTasks() {
         Session session = startedSession(NOW);
         when(sessionService.getActive(1L)).thenReturn(Optional.of(session));
-        when(placeService.getReference(20L)).thenReturn(placeReference());
-        when(taskService.getAllByIds(1L, List.of(10L, 11L))).thenReturn(List.of(
+        when(placeVideoService.getReference(20L)).thenReturn(placeReference());
+        when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
                 new TaskReference(11L, 2L, "프로젝트", "다음 Task", null, 0),
                 new TaskReference(10L, 2L, "프로젝트", "첫 Task", null, 0)
         ));
@@ -176,7 +250,7 @@ class SessionUseCaseTest {
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
         )).thenReturn(true);
-        when(placeService.getReference(99L))
+        when(placeVideoService.getReference(99L))
                 .thenThrow(new BusinessException(ErrorCode.PLACE_NOT_FOUND));
 
         assertThatThrownBy(() -> sessionUseCase.startPersonal(1L, request))
@@ -253,13 +327,14 @@ class SessionUseCaseTest {
                 1L,
                 SessionType.PERSONAL,
                 20L,
-                List.of(10L, 11L),
+                List.of(SessionTask.of(10L), SessionTask.of(11L)),
                 null,
                 1500,
                 null,
                 startedAt,
                 null,
-                SessionStatus.IN_PROGRESS
+                SessionStatus.IN_PROGRESS,
+                null
         );
     }
 
@@ -270,7 +345,8 @@ class SessionUseCaseTest {
                 "Lisbon",
                 "Alfama Cafe",
                 BackgroundAssetType.VIDEO,
-                "https://cdn.example.com/alfama.webm",
+                "places/video/alfama.mp4",
+                "https://bucket.s3.amazonaws.com/alfama.mp4?X-Amz-Signature=abc",
                 "https://youtu.be/default"
         );
     }

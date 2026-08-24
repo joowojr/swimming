@@ -6,10 +6,10 @@ import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionType;
-import com.swimming.backend.session.dto.web.ActiveSessionResponse;
-import com.swimming.backend.session.dto.web.ActiveSessionTaskResponse;
+import com.swimming.backend.session.dto.web.SessionTaskResponse;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.SessionDetailResponse;
+import com.swimming.backend.session.dto.web.SessionDetailPlaceResponse;
 import com.swimming.backend.session.dto.web.SessionPlaceResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
@@ -33,6 +33,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import java.time.Instant;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -123,17 +125,19 @@ class SessionControllerTest {
     @DisplayName("진행 중인 세션과 선택한 Task 목록을 순서대로 반환한다")
     void getsActiveSession() throws Exception {
         when(sessionUseCase.getActive(1L)).thenReturn(java.util.Optional.of(
-                new ActiveSessionResponse(
+                new SessionDetailResponse(
                         5L,
                         SessionType.PERSONAL,
                         SessionStatus.IN_PROGRESS,
                         1500,
+                        null,
                         STARTED_AT,
-                        sessionPlace(),
+                        null,
+                        sessionDetailPlace(),
                         "https://youtu.be/example",
                         List.of(
-                                new ActiveSessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"),
-                                new ActiveSessionTaskResponse(11L, 2L, "프로젝트", "다음 Task")
+                                new SessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"),
+                                new SessionTaskResponse(11L, 2L, "프로젝트", "다음 Task")
                         )
                 )
         ));
@@ -159,7 +163,7 @@ class SessionControllerTest {
     @Test
     @DisplayName("세션을 종료하면 서버가 확정한 실제 집중 시간을 반환한다")
     void endsPersonalSession() throws Exception {
-        when(sessionUseCase.end(1L, 5L)).thenReturn(new SessionResponse(
+        when(sessionUseCase.end(eq(1L), eq(5L), any())).thenReturn(new SessionResponse(
                 5L,
                 SessionType.PERSONAL,
                 List.of(10L, 11L),
@@ -169,14 +173,14 @@ class SessionControllerTest {
                 600,
                 STARTED_AT,
                 STARTED_AT.plusSeconds(600),
-                SessionStatus.INTERRUPTED
+                SessionStatus.COMPLETED
         ));
 
         mockMvc.perform(post("/api/sessions/5/end"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.actualDurationSec").value(600))
                 .andExpect(jsonPath("$.endedAt").value("2026-08-20T00:10:00Z"))
-                .andExpect(jsonPath("$.status").value("INTERRUPTED"));
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
     @Test
@@ -213,9 +217,9 @@ class SessionControllerTest {
                 null,
                 STARTED_AT,
                 null,
-                sessionPlace(),
+                sessionDetailPlace(),
                 "https://youtu.be/example",
-                List.of(new ActiveSessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"))
+                List.of(new SessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"))
         ));
 
         mockMvc.perform(get("/api/sessions/5"))
@@ -296,9 +300,20 @@ class SessionControllerTest {
                 3L,
                 "Lisbon",
                 "Alfama Cafe",
+                "https://youtu.be/default"
+        );
+    }
+
+    private SessionDetailPlaceResponse sessionDetailPlace() {
+        return new SessionDetailPlaceResponse(
+                20L,
+                3L,
+                "Lisbon",
+                "Alfama Cafe",
                 new BackgroundAssetResponse(
                         BackgroundAssetType.VIDEO,
-                        "https://cdn.example.com/alfama.webm"
+                        "places/video/alfama.mp4",
+                        "https://bucket.s3.amazonaws.com/alfama.mp4?X-Amz-Signature=abc"
                 ),
                 "https://youtu.be/default"
         );

@@ -4,6 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
+import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
 import com.swimming.backend.session.repository.SessionRepository;
 import com.swimming.backend.session.repository.entity.SessionEntity;
@@ -14,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,8 +43,6 @@ class SessionServiceTest {
     @DisplayName("진행 중인 세션이 없으면 도메인을 엔티티로 변환해 저장한다")
     void savesNewPersonalSession() {
         Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
-        when(sessionRepository.existsByUserIdAndStatus(1L, SessionStatus.IN_PROGRESS))
-                .thenReturn(false);
         when(sessionRepository.saveAndFlush(any(SessionEntity.class)))
                 .thenAnswer(invocation -> {
                     SessionEntity entity = invocation.getArgument(0);
@@ -61,24 +61,9 @@ class SessionServiceTest {
     }
 
     @Test
-    @DisplayName("사용자에게 진행 중인 세션이 있으면 새 세션 저장을 거부한다")
-    void rejectsExistingActiveSession() {
-        Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
-        when(sessionRepository.existsByUserIdAndStatus(1L, SessionStatus.IN_PROGRESS))
-                .thenReturn(true);
-
-        assertThatThrownBy(() -> sessionService.save(session))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode())
-                                .isEqualTo(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS));
-    }
-
-    @Test
-    @DisplayName("동시 시작으로 활성 사용자 제약이 충돌하면 진행 세션 오류로 변환한다")
+    @DisplayName("활성 사용자 제약이 충돌하면 진행 세션 오류로 변환한다")
     void translatesConcurrentStartConflict() {
         Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
-        when(sessionRepository.existsByUserIdAndStatus(1L, SessionStatus.IN_PROGRESS))
-                .thenReturn(false);
         when(sessionRepository.saveAndFlush(any(SessionEntity.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate active user"));
 
@@ -118,14 +103,14 @@ class SessionServiceTest {
     void appliesAndSavesExistingSession() {
         SessionEntity entity = startedEntity();
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600));
+        session.end(STARTED_AT.plusSeconds(600), null, Map.of());
         when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
         when(sessionRepository.saveAndFlush(entity)).thenReturn(entity);
 
         Session saved = sessionService.save(session);
 
         assertThat(saved.getActualDurationSec()).isEqualTo(600);
-        assertThat(saved.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
+        assertThat(saved.getStatus()).isEqualTo(SessionStatus.COMPLETED);
         assertThat(entity.getActiveUserId()).isNull();
         verify(sessionRepository).saveAndFlush(entity);
     }
@@ -147,13 +132,14 @@ class SessionServiceTest {
                 1L,
                 SessionType.PERSONAL,
                 20L,
-                List.of(10L, 11L),
+                List.of(SessionTask.of(10L), SessionTask.of(11L)),
                 null,
                 1500,
                 null,
                 STARTED_AT,
                 null,
-                SessionStatus.IN_PROGRESS
+                SessionStatus.IN_PROGRESS,
+                null
         );
         SessionEntity entity = SessionEntity.from(session);
         ReflectionTestUtils.setField(entity, "id", 5L);

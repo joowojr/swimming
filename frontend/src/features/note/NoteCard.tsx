@@ -8,6 +8,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react'
 import InlineEditableText from '../../components/InlineEditableText'
+import ActionButton from '../../components/ActionButton'
 import {
   archiveNote,
   createNote,
@@ -696,15 +697,15 @@ export default function NoteCard({ projects }: NoteCardProps) {
           >
             <IconTrash size={16} aria-hidden="true" />
           </button>
-          <button
-            type="button"
+          <ActionButton
             className={styles['new-memo-action']}
+            icon={<IconPlus size={16} aria-hidden="true" />}
+            variant="outline"
             onClick={handleNewMemo}
             disabled={loadStatus !== 'ready' || isEditorDisabled}
           >
-            <IconPlus size={16} aria-hidden="true" />
             새 메모
-          </button>
+          </ActionButton>
           </div>
         </div>
       )}
@@ -713,16 +714,20 @@ export default function NoteCard({ projects }: NoteCardProps) {
         <div className={styles['delete-confirmation']} role="group" aria-label="메모 삭제 확인">
           <span>이 메모를 삭제할까요?</span>
           <div>
-            <button
-              type="button"
+            <ActionButton
+              variant="plain"
               onClick={() => setIsConfirmingDelete(false)}
               disabled={isDeleting}
             >
               취소
-            </button>
-            <button type="button" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? '삭제 중…' : '삭제'}
-            </button>
+            </ActionButton>
+            <ActionButton
+              isLoading={isDeleting}
+              loadingLabel="삭제 중…"
+              onClick={handleDelete}
+            >
+              삭제
+            </ActionButton>
           </div>
         </div>
       )}
@@ -857,27 +862,25 @@ export default function NoteCard({ projects }: NoteCardProps) {
           )}
 
           <div className={styles['organize-preview-actions']}>
-            <button
-              type="button"
+            <ActionButton
               className={styles['organize-confirm-action']}
+              isLoading={isLinkingPlan}
+              loadingLabel="계획에 연결하는 중"
               disabled={
-                planLinkItems.every((item) => !item.selected) ||
-                isLinkingPlan
+                planLinkItems.every((item) => !item.selected)
               }
               onClick={handleLinkPlan}
             >
-              {isLinkingPlan
-                ? '계획에 연결하는 중'
-                : `${planLinkItems.filter((item) => item.selected).length}개 계획에 연결하기`}
-            </button>
-            <button
-              type="button"
+              {planLinkItems.filter((item) => item.selected).length}개 계획에 연결하기
+            </ActionButton>
+            <ActionButton
               className={styles['organize-cancel-action']}
+              variant="plain"
               disabled={isLinkingPlan}
               onClick={() => finishPlanLink('할 일을 만들었어요')}
             >
               나중에
-            </button>
+            </ActionButton>
           </div>
         </section>
       ) : previewItems === null ? (
@@ -896,27 +899,26 @@ export default function NoteCard({ projects }: NoteCardProps) {
             <span className={styles['memo-hint']} role="status" aria-live="polite">
               {statusMessage}
             </span>
-            <button
-              type="button"
+            <ActionButton
               className={styles['organize-action']}
+              icon={<IconSparkles size={16} aria-hidden="true" />}
               onClick={handleOrganize}
               disabled={!memo.trim() || isEditorDisabled}
             >
-              <IconSparkles size={16} aria-hidden="true" />
-              {isOrganizing ? '정리하는 중' : '할 일로 정리'}
-            </button>
+              할 일로 정리
+            </ActionButton>
           </div>
 
           {recentlyArchivedId !== null && (
             <div className={styles['archive-undo']} role="status">
               <span>메모를 보관했어요</span>
-              <button
-                type="button"
+              <ActionButton
+                variant="plain"
                 onClick={handleRestoreRecent}
                 disabled={isArchiving}
               >
                 실행 취소
-              </button>
+              </ActionButton>
             </div>
           )}
 
@@ -1085,28 +1087,26 @@ export default function NoteCard({ projects }: NoteCardProps) {
             )}
 
             <div className={styles['organize-preview-actions']}>
-              <button
-                  type="button"
+              <ActionButton
                   className={styles['organize-confirm-action']}
+                  isLoading={isConfirmingTasks}
+                  loadingLabel="할 일 만드는 중"
                   onClick={handleConfirmTasks}
                   disabled={
                       selectedPreviewItems.length === 0 ||
-                      hasUntitledSelectedItem ||
-                      isConfirmingTasks
+                      hasUntitledSelectedItem
                   }
               >
-                {isConfirmingTasks
-                    ? '할 일 만드는 중'
-                    : `${selectedPreviewItems.length}개 할 일 만들기`}
-              </button>
-              <button
-                  type="button"
+                {selectedPreviewItems.length}개 할 일 만들기
+              </ActionButton>
+              <ActionButton
                   className={styles['organize-cancel-action']}
+                  variant="plain"
                   onClick={handleCancelPreview}
                   disabled={isConfirmingTasks}
               >
                 취소
-              </button>
+              </ActionButton>
             </div>
           </section>
       )}

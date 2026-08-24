@@ -9,7 +9,7 @@ import {
     IconTrash
 } from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
-import ActionButton from '../../components/ActionButton'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
@@ -366,14 +366,16 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                         <DailyPlanCardMenu
                                                             label={`${item.title} 카드 메뉴`}>
                                                                 {plan.date === today && (
-                                                                    <ActionButton
+                                                                    <ModalTriggerButton
+                                                                        dialogId="create-session-dialog"
+                                                                        isOpen={sessionTaskId === item.taskId}
                                                                         variant="plain"
                                                                         icon={<IconPlayerPlay size={15}
                                                                                               aria-hidden="true"/>}
                                                                         onClick={() => setSessionTaskId(item.taskId)}
                                                                     >
                                                                         다이브 세션
-                                                                    </ActionButton>
+                                                                    </ModalTriggerButton>
                                                                 )}
                                                                 <button type="button" disabled={index === 0}
                                                                         onClick={() => moveItem(index, -1)}><IconArrowUp
@@ -393,10 +395,16 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                             ))}
                                         </ol>
                                         {items.length === 0 && <p className={styles.empty}>아직 계획된 할 일이 없습니다.</p>}
-                                        <button type="button" className={styles['column-add']} onClick={() => {
+                                        <ModalTriggerButton
+                                            className={styles['column-add']}
+                                            dialogId="task-picker-dialog"
+                                            variant="plain"
+                                            aria-label={`${dayFormatter.format(date)} 계획에 할 일 추가`}
+                                            icon={<IconPlus size={15} aria-hidden="true"/>}
+                                            onClick={() => {
                                             setSelectedDate(plan.date);
                                             setIsPickerOpen(true)
-                                        }}><IconPlus size={15} aria-hidden="true"/></button>
+                                        }} />
                                     </section>
                                 )
                             })}

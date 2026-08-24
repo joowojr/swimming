@@ -104,6 +104,7 @@ export default function TaskPickerModal({
 
   return (
     <dialog
+      id="task-picker-dialog"
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="task-picker-title"

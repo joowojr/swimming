@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { IconArrowRight, IconClock, IconLoader2, IconPlayerPlay } from '@tabler/icons-react'
+import { IconArrowRight, IconClock, IconPlayerPlay } from '@tabler/icons-react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { getTodayPlanItems } from '../plans/todayPlan'
 import CreateSessionModal from './CreateSessionModal'
@@ -107,17 +108,18 @@ export default function ContinueSessionWidget() {
                 <p className={styles['invite-copy']}>
                   45분만 다른 도시에서 집중해보세요.
                 </p>
-                <button
-                    type="button"
+                <ModalTriggerButton
                     className={`${styles.action} ${styles['action-primary']}`}
-                    disabled={isPreparingStart}
+                    dialogId="create-session-dialog"
+                    icon={<IconPlayerPlay aria-hidden="true" />}
+                    isOpen={todayTasks !== null}
+                    isPreparing={isPreparingStart}
+                    preparingLabel="준비하는 중…"
+                    variant="plain"
                     onClick={() => void openStartModal()}
                 >
-                  {isPreparingStart
-                      ? <IconLoader2 className={styles.spinner} aria-hidden="true" />
-                      : <IconPlayerPlay aria-hidden="true" />}
                   <span>다이브 세션 시작하기</span>
-                </button>
+                </ModalTriggerButton>
                 {startError && <p className={styles.status} role="alert">{startError}</p>}
               </>
           )}

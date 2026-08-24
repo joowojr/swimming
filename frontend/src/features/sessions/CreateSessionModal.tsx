@@ -161,6 +161,7 @@ export default function CreateSessionModal({
 
   return (
     <dialog
+      id="create-session-dialog"
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="create-session-title"

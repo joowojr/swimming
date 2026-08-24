@@ -194,6 +194,7 @@ export default function CreateProjectModal({
 
   return (
     <dialog
+      id="create-project-dialog"
       ref={dialogRef}
       className={styles['create-project-dialog']}
       aria-labelledby="create-project-title"
@@ -403,9 +404,14 @@ export default function CreateProjectModal({
           </div>
 
           <footer className={styles['modal-footer']}>
-            <button type="button" className={styles['modal-cancel']} onClick={requestClose} disabled={isSubmitting}>
+            <ActionButton
+              className={styles['modal-cancel']}
+              variant="plain"
+              onClick={requestClose}
+              disabled={isSubmitting}
+            >
               취소
-            </button>
+            </ActionButton>
             <ActionButton
               type="submit"
               className={styles['modal-submit']}

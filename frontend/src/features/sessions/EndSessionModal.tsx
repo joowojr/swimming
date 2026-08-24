@@ -115,6 +115,7 @@ export default function EndSessionModal({
 
   return (
     <dialog
+      id="end-session-dialog"
       ref={dialogRef}
       className={styles['end-session-dialog']}
       aria-labelledby="end-session-title"

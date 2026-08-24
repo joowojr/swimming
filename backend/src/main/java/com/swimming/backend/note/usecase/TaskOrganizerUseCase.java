@@ -91,6 +91,7 @@ public class TaskOrganizerUseCase {
 
         request.tasks().stream()
                 .map(TaskOrganizeConfirmRequest.ApprovedTaskRequest::projectId)
+                .filter(projectId -> projectId != null)
                 .distinct()
                 .forEach(projectId ->
                         projectService.validateOwnership(userId, projectId)

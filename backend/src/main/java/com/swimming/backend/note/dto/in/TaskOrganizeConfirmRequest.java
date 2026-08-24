@@ -20,7 +20,6 @@ public record TaskOrganizeConfirmRequest(
             @NotBlank
             String sourceText,
 
-            @NotNull
             Long projectId,
 
             @NotBlank(message = "Task 제목을 입력해 주세요")

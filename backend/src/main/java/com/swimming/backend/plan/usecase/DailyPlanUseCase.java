@@ -6,11 +6,10 @@ import com.swimming.backend.plan.domain.DailyPlan;
 import com.swimming.backend.plan.domain.DailyPlanItem;
 import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanItemResponse;
+import com.swimming.backend.plan.dto.DailyPlanItemType;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
 import com.swimming.backend.plan.service.DailyPlanService;
-import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
@@ -64,9 +63,8 @@ public class DailyPlanUseCase {
         boolean hasTitle = title != null && !title.isEmpty();
 
         boolean linksExistingTasks = hasTasks && !hasProject && !hasTitle;
-        boolean createsAdHocItem = taskIds == null && !hasProject && hasTitle;
-        boolean createsProjectTask = taskIds == null && hasProject && hasTitle;
-        if (!linksExistingTasks && !createsAdHocItem && !createsProjectTask) {
+        boolean createsTask = taskIds == null && hasTitle;
+        if (!linksExistingTasks && !createsTask) {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM);
         }
 
@@ -80,12 +78,12 @@ public class DailyPlanUseCase {
             }
             getOwnedTasksById(userId, taskIds);
             taskIds.forEach(taskId -> dailyPlan.addItem(DailyPlanItem.createTask(taskId)));
-        } else if (createsProjectTask) {
-            ProjectReference project = projectService.getReference(userId, request.projectId());
-            Long taskId = taskService.createAndGetId(project.id(), title);
-            dailyPlan.addItem(DailyPlanItem.createTask(taskId));
         } else {
-            dailyPlan.addItem(DailyPlanItem.createAdHoc(title));
+            Long projectId = hasProject
+                    ? projectService.getReference(userId, request.projectId()).id()
+                    : null;
+            Long taskId = taskService.createAndGetId(userId, projectId, title);
+            dailyPlan.addItem(DailyPlanItem.createTask(taskId));
         }
 
         DailyPlan saved = dailyPlanService.save(dailyPlan);
@@ -102,24 +100,6 @@ public class DailyPlanUseCase {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM_ORDER);
         }
         dailyPlan.reorder(request.itemIds());
-        DailyPlan saved = dailyPlanService.save(dailyPlan);
-        return toResponse(saved, getOwnedTasksById(userId, taskIdsOf(List.of(saved))));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
-    public DailyPlanResponse updateItem(
-            Long userId,
-            LocalDate date,
-            Long itemId,
-            UpdateDailyPlanItemRequest request
-    ) {
-        DailyPlan dailyPlan = getPlan(userId, date);
-        DailyPlanItem item = findItem(dailyPlan, itemId);
-        try {
-            item.changeAdHocTitle(request.title());
-        } catch (IllegalStateException exception) {
-            throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM);
-        }
         DailyPlan saved = dailyPlanService.save(dailyPlan);
         return toResponse(saved, getOwnedTasksById(userId, taskIdsOf(List.of(saved))));
     }
@@ -147,13 +127,14 @@ public class DailyPlanUseCase {
     private DailyPlanResponse toResponse(DailyPlan dailyPlan, Map<Long, TaskReference> tasksById) {
         List<DailyPlanItemResponse> items = dailyPlan.getItems().stream()
                 .map(item -> {
-                    TaskReference task = item.getTaskId() == null ? null : tasksById.get(item.getTaskId());
+                    TaskReference task = tasksById.get(item.getTaskId());
                     return new DailyPlanItemResponse(
                             item.getId(), item.getTaskId(),
-                            task == null ? null : task.projectId(),
-                            task == null ? null : task.projectName(),
-                            task == null ? item.getTitle() : task.title(),
-                            task == null ? null : task.status(),
+                            task.projectId() == null ? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
+                            task.projectId(),
+                            task.projectName(),
+                            task.title(),
+                            task.status(),
                             item.getOrderIdx()
                     );
                 })
@@ -165,7 +146,6 @@ public class DailyPlanUseCase {
         return dailyPlans.stream()
                 .flatMap(plan -> plan.getItems().stream())
                 .map(DailyPlanItem::getTaskId)
-                .filter(taskId -> taskId != null)
                 .distinct()
                 .toList();
     }

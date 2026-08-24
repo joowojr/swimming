@@ -36,11 +36,8 @@ public class DailyPlanItemEntity extends BaseTimeEntity {
     @JoinColumn(name = "daily_plan_id", nullable = false)
     private DailyPlanEntity dailyPlan;
 
-    @Column(name = "task_id")
+    @Column(name = "task_id", nullable = false)
     private Long taskId;
-
-    @Column(name = "title", length = 255)
-    private String title;
 
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
@@ -56,7 +53,6 @@ public class DailyPlanItemEntity extends BaseTimeEntity {
 
     void apply(DailyPlanItem item) {
         this.taskId = item.getTaskId();
-        this.title = item.getTitle();
         this.orderIdx = item.getOrderIdx();
     }
 
@@ -64,7 +60,6 @@ public class DailyPlanItemEntity extends BaseTimeEntity {
         return DailyPlanItem.restore(
                 id,
                 taskId,
-                title,
                 orderIdx,
                 getCreatedAt(),
                 getUpdatedAt()

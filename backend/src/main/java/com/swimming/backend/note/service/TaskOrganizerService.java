@@ -36,22 +36,10 @@ public class TaskOrganizerService {
     }
 
     public TaskOrganizeResult organize(TaskOrganizerInput input) {
-
-        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
-                .model(model)
-                .logprobs(false);
-
-        if (model.startsWith("gpt-5")) {
-            optionsBuilder.maxCompletionTokens(2_000);
-        } else {
-            optionsBuilder.maxTokens(2_000)
-                    .temperature(0.0);
-        }
-
         return chatClient.prompt()
                 .system(promptProvider.get())
                 .user(TaskOrganizerInputSerializer.serialize(input))
-                .options(optionsBuilder)
+                .options(createOptionsBuilder())
                 .call()
                 .entity(
                         TaskOrganizeResult.class,
@@ -59,6 +47,23 @@ public class TaskOrganizerService {
                                 .useProviderStructuredOutput()
                                 .validateSchema()
                 );
+    }
+
+    OpenAiChatOptions.Builder createOptionsBuilder() {
+        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
+                .model(model)
+                .logprobs(false);
+
+        if (model.startsWith("gpt-5")) {
+            optionsBuilder
+                    .reasoningEffort("low")
+                    .maxCompletionTokens(2_000);
+        } else {
+            optionsBuilder.maxTokens(2_000)
+                    .temperature(0.0);
+        }
+
+        return optionsBuilder;
     }
 
 //    private String serialize(TaskOrganizerInput input) {

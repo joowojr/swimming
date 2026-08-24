@@ -210,6 +210,110 @@ class TaskOrganizerUseCaseTest {
     }
 
     @Test
+    @DisplayName("미분류 항목은 프로젝트 소유권 검증 없이 사용자 소유 Task로 생성한다")
+    void confirmsUnclassifiedTaskWithoutProject() {
+        Note note = note("운동화 주문");
+        when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
+        when(taskService.createFromNote(1L, null, 7L, "운동화 주문"))
+                .thenReturn(Task.restore(
+                        42L,
+                        1L,
+                        null,
+                        7L,
+                        "운동화 주문",
+                        TaskStatus.TODO,
+                        0,
+                        null,
+                        null
+                ));
+
+        TaskOrganizeConfirmResponse response = taskOrganizerUseCase.confirm(
+                1L,
+                new TaskOrganizeConfirmRequest(
+                        7L,
+                        List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                "운동화 주문",
+                                null,
+                                "운동화 주문"
+                        ))
+                )
+        );
+
+        assertThat(response.createdTasks()).containsExactly(
+                new TaskOrganizeConfirmResponse.CreatedTaskResponse(
+                        42L,
+                        null,
+                        "운동화 주문"
+                )
+        );
+        verify(projectService, never()).validateOwnership(any(), any());
+        verify(taskService).createFromNote(1L, null, 7L, "운동화 주문");
+    }
+
+    @Test
+    @DisplayName("분류·미분류 항목이 섞이면 값이 있는 프로젝트만 소유권을 확인한다")
+    void validatesOnlyPresentProjectIds() {
+        Note note = note("캐시 테스트\n운동화 주문");
+        when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
+        when(taskService.createFromNote(1L, 10L, 7L, "캐시 테스트"))
+                .thenReturn(Task.restore(
+                        41L, 1L, 10L, 7L, "캐시 테스트",
+                        TaskStatus.TODO, 0, null, null
+                ));
+        when(taskService.createFromNote(1L, null, 7L, "운동화 주문"))
+                .thenReturn(Task.restore(
+                        42L, 1L, null, 7L, "운동화 주문",
+                        TaskStatus.TODO, 0, null, null
+                ));
+
+        taskOrganizerUseCase.confirm(
+                1L,
+                new TaskOrganizeConfirmRequest(
+                        7L,
+                        List.of(
+                                new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "캐시 테스트", 10L, "캐시 테스트"
+                                ),
+                                new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "운동화 주문", null, "운동화 주문"
+                                )
+                        )
+                )
+        );
+
+        verify(projectService).validateOwnership(1L, 10L);
+        verify(taskService).createFromNote(1L, 10L, 7L, "캐시 테스트");
+        verify(taskService).createFromNote(1L, null, 7L, "운동화 주문");
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 Project가 포함되면 미분류 Task도 생성하기 전에 요청 전체를 거부한다")
+    void rejectsAnotherUsersProjectBeforeCreatingAnyTask() {
+        when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE))
+                .thenReturn(note("다른 프로젝트 Task\n운동화 주문"));
+        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND))
+                .when(projectService).validateOwnership(1L, 99L);
+
+        assertThatThrownBy(() -> taskOrganizerUseCase.confirm(
+                1L,
+                new TaskOrganizeConfirmRequest(
+                        7L,
+                        List.of(
+                                new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "다른 프로젝트 Task", 99L, "다른 프로젝트 Task"
+                                ),
+                                new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "운동화 주문", null, "운동화 주문"
+                                )
+                        )
+                )
+        )).isInstanceOfSatisfying(BusinessException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
+
+        verify(taskService, never()).createFromNote(any(), any(), any(), any());
+    }
+
+    @Test
     @DisplayName("승인한 Task가 원문 전체를 사용해도 Note를 유지한다")
     void keepsNoteWhenEverySourceIsApproved() {
         Note note = note("장소조회 캐시 테스트 아직 못함");

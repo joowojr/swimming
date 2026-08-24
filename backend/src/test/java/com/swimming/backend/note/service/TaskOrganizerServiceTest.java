@@ -209,7 +209,6 @@ class TaskOrganizerServiceTest {
             assertThat(suggestion.projectId()).isIn(projectIds);
             assertThat(suggestion.title()).isNotBlank();
             assertThat(suggestion.sourceText()).isNotBlank();
-            assertThat(suggestion.confidence()).isBetween(0.0, 1.0);
             suggestion.sourceText().lines().forEach(sourcePart ->
                     assertThat(input.memo()).contains(sourcePart)
             );

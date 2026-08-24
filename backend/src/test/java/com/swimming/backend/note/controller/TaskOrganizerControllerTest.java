@@ -21,6 +21,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -104,6 +105,46 @@ class TaskOrganizerControllerTest {
                 .andExpect(jsonPath("$.createdTasks[0].id").value(41L))
                 .andExpect(jsonPath("$.createdTasks[0].sourceText").doesNotExist())
                 .andExpect(jsonPath("$.remainingNote").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("미분류 Task의 null projectId를 확정 요청과 응답에서 허용한다")
+    void confirmsUnclassifiedTask() throws Exception {
+        TaskOrganizeConfirmRequest request = new TaskOrganizeConfirmRequest(
+                7L,
+                List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                        "운동화 주문",
+                        null,
+                        "운동화 주문"
+                ))
+        );
+        when(taskOrganizerUseCase.confirm(1L, request)).thenReturn(
+                new TaskOrganizeConfirmResponse(
+                        List.of(new TaskOrganizeConfirmResponse.CreatedTaskResponse(
+                                42L,
+                                null,
+                                "운동화 주문"
+                        ))
+                )
+        );
+
+        mockMvc.perform(post("/api/task-organizer/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "noteId":7,
+                                  "tasks":[{
+                                    "sourceText":"운동화 주문",
+                                    "projectId":null,
+                                    "title":"운동화 주문"
+                                  }]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.createdTasks[0].id").value(42L))
+                .andExpect(jsonPath("$.createdTasks[0].projectId").isEmpty());
+
+        verify(taskOrganizerUseCase).confirm(1L, request);
     }
 
     private static class AuthUserArgumentResolver

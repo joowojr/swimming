@@ -1,6 +1,7 @@
 package com.swimming.backend.task.repository.entity;
 
 import com.swimming.backend.common.entity.BaseTimeEntity;
+import com.swimming.backend.project.repository.entity.ProjectEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import jakarta.persistence.*;
@@ -18,8 +19,9 @@ public class TaskEntity extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "project_id", nullable = false)
-    private Long projectId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "project_id", nullable = false)
+    private ProjectEntity project;
 
     @Column(nullable = false)
     private String title;
@@ -31,15 +33,15 @@ public class TaskEntity extends BaseTimeEntity {
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
 
-    private TaskEntity(Task task) {
-        this.projectId = task.getProjectId();
+    private TaskEntity(Task task, ProjectEntity project) {
+        this.project = project;
         this.title = task.getTitle();
         this.status = task.getStatus();
         this.orderIdx = task.getOrderIdx();
     }
 
-    public static TaskEntity from(Task task) {
-        return new TaskEntity(task);
+    public static TaskEntity from(Task task, ProjectEntity project) {
+        return new TaskEntity(task, project);
     }
 
     public void apply(Task task) {
@@ -59,7 +61,7 @@ public class TaskEntity extends BaseTimeEntity {
     public Task toDomain() {
         return Task.restore(
                 id,
-                projectId,
+                project.getId(),
                 title,
                 status,
                 orderIdx,

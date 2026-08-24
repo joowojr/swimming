@@ -2,12 +2,16 @@ package com.swimming.backend.task.service;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.project.domain.ProjectStatus;
+import com.swimming.backend.project.repository.entity.ProjectEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -23,16 +27,18 @@ import java.util.Map;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final EntityManager entityManager;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task create(Long projectId, String title) {
         int nextOrder = taskRepository
-                .findTopByProjectIdOrderByOrderIdxDescIdDesc(projectId)
+                .findTopByProject_IdOrderByOrderIdxDescIdDesc(projectId)
                 .map(TaskEntity::getOrderIdx)
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
         Task task = Task.create(projectId, title, nextOrder);
-        return taskRepository.saveAndFlush(TaskEntity.from(task)).toDomain();
+        ProjectEntity project = entityManager.getReference(ProjectEntity.class, projectId);
+        return taskRepository.saveAndFlush(TaskEntity.from(task, project)).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -42,7 +48,7 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Task> getAll(Long projectId) {
-        return taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(projectId)
+        return taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(projectId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -51,6 +57,14 @@ public class TaskService {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskReference> getReferences(Long userId, List<Long> taskIds) {
         return taskRepository.findAllOwnedByIds(userId, taskIds);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskOrganizerContextRow> getTaskOrganizerContext(Long userId) {
+        return taskRepository.findTaskOrganizerContext(
+                userId,
+                ProjectStatus.ARCHIVED
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -101,7 +115,7 @@ public class TaskService {
     @Transactional(propagation = Propagation.REQUIRED)
     public void updateOrder(Long projectId, List<Long> taskIds) {
         List<TaskEntity> taskEntities = taskRepository
-                .findAllByProjectIdOrderByOrderIdxAscIdAsc(projectId);
+                .findAllByProject_IdOrderByOrderIdxAscIdAsc(projectId);
 
         if (taskEntities.size() != taskIds.size()
                 || new HashSet<>(taskIds).size() != taskIds.size()) {

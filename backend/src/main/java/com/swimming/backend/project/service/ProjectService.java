@@ -10,6 +10,8 @@ import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
 import com.swimming.backend.project.repository.entity.ProjectEntity;
 import com.swimming.backend.project.repository.entity.ProjectTagEntity;
+import com.swimming.backend.user.domain.User;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -23,17 +25,21 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectTagRepository projectTagRepository;
+    private final EntityManager entityManager;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Project create(Project project) {
         ProjectTagEntity tagEntity = getOwnedTagEntity(project.getUserId(), project.getTag());
-        return projectRepository.saveAndFlush(ProjectEntity.from(project, tagEntity)).toDomain();
+        User user = entityManager.getReference(User.class, project.getUserId());
+        return projectRepository.saveAndFlush(
+                ProjectEntity.from(project, user, tagEntity)
+        ).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Project> getAll(Long userId) {
         return projectRepository
-                .findAllByUserIdAndStatusNotOrderByCreatedAtDesc(
+                .findAllByUser_IdAndStatusNotOrderByCreatedAtDesc(
                         userId,
                         ProjectStatus.ARCHIVED
                 )
@@ -66,7 +72,7 @@ public class ProjectService {
     }
 
     private ProjectEntity getOwnedProjectEntity(Long userId, Long projectId) {
-        return projectRepository.findByIdAndUserId(projectId, userId)
+        return projectRepository.findByIdAndUser_Id(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
     }
 

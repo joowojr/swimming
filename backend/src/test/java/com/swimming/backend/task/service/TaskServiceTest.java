@@ -2,12 +2,18 @@ package com.swimming.backend.task.service;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.project.domain.Project;
+import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.project.domain.ProjectStatus;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
+import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
+import com.swimming.backend.user.domain.User;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +26,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,12 +35,16 @@ import static org.mockito.Mockito.when;
 class TaskServiceTest {
 
     private TaskRepository taskRepository;
+    private EntityManager entityManager;
     private TaskService taskService;
 
     @BeforeEach
     void setUp() {
         taskRepository = mock(TaskRepository.class);
-        taskService = new TaskService(taskRepository);
+        entityManager = mock(EntityManager.class);
+        taskService = new TaskService(taskRepository, entityManager);
+        when(entityManager.getReference(eq(ProjectEntity.class), anyLong()))
+                .thenAnswer(invocation -> project(invocation.getArgument(1)));
         when(taskRepository.saveAndFlush(any(TaskEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -40,7 +52,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("프로젝트의 첫 Task를 기본 상태와 순서로 생성해 순수 도메인으로 반환한다")
     void createsFirstTaskWithDefaults() {
-        when(taskRepository.findTopByProjectIdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
                 .thenReturn(Optional.empty());
         when(taskRepository.saveAndFlush(any(TaskEntity.class))).thenAnswer(invocation -> {
             TaskEntity entity = invocation.getArgument(0);
@@ -60,7 +72,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("기존 마지막 Task 다음 순서로 생성한다")
     void createsTaskAfterCurrentLastOrder() {
-        when(taskRepository.findTopByProjectIdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
                 .thenReturn(Optional.of(taskEntity(3L, 10L, "기존 Task", 4)));
 
         Task task = taskService.create(10L, "새 Task");
@@ -123,11 +135,41 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Task Organizer용 프로젝트와 Task 컨텍스트를 단일 조회 결과로 반환한다")
+    void returnsTaskOrganizerContextFromSingleQuery() {
+        List<TaskOrganizerContextRow> expected = List.of(
+                new TaskOrganizerContextRow(
+                        10L,
+                        "Swimming",
+                        "생산성 서비스",
+                        1L,
+                        "Note API 연결",
+                        TaskStatus.DOING
+                ),
+                new TaskOrganizerContextRow(
+                        20L,
+                        "빈 프로젝트",
+                        null,
+                        null,
+                        null,
+                        null
+                )
+        );
+        when(taskRepository.findTaskOrganizerContext(1L, ProjectStatus.ARCHIVED))
+                .thenReturn(expected);
+
+        List<TaskOrganizerContextRow> result = taskService.getTaskOrganizerContext(1L);
+
+        assertThat(result).isSameAs(expected);
+        verify(taskRepository).findTaskOrganizerContext(1L, ProjectStatus.ARCHIVED);
+    }
+
+    @Test
     @DisplayName("프로젝트 상세용 Task 요약을 저장된 순서대로 반환한다")
     void returnsTaskSummariesInStoredOrder() {
         TaskEntity first = taskEntity(2L, 10L, "첫째", 0, TaskStatus.DOING);
         TaskEntity second = taskEntity(1L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(10L))
+        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
                 .thenReturn(List.of(first, second));
 
         List<TaskSummaryResponse> responses = taskService.getSummaries(10L);
@@ -187,7 +229,7 @@ class TaskServiceTest {
         TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
         TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
         TaskEntity third = taskEntity(3L, 10L, "셋째", 2);
-        when(taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(10L))
+        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
                 .thenReturn(List.of(first, second, third));
 
         taskService.updateOrder(10L, List.of(3L, 1L, 2L));
@@ -202,7 +244,7 @@ class TaskServiceTest {
     void rejectsIncompleteOrDuplicateOrder() {
         TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
         TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(10L))
+        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
                 .thenReturn(List.of(first, second));
 
         assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L)))
@@ -219,7 +261,7 @@ class TaskServiceTest {
     void rejectsTaskFromAnotherProjectInOrder() {
         TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
         TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(10L))
+        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
                 .thenReturn(List.of(first, second));
 
         assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L, 99L)))
@@ -240,8 +282,25 @@ class TaskServiceTest {
     ) {
         Task task = Task.create(projectId, title, orderIdx);
         task.update(title, status);
-        TaskEntity entity = TaskEntity.from(task);
+        TaskEntity entity = TaskEntity.from(task, project(projectId));
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
+    }
+
+    private ProjectEntity project(Long projectId) {
+        User user = User.builder()
+                .email("user@example.com")
+                .passwordHash("password")
+                .nickname("사용자")
+                .timezone("Asia/Seoul")
+                .build();
+        ReflectionTestUtils.setField(user, "id", 1L);
+        ProjectEntity project = ProjectEntity.from(
+                Project.create(1L, null, "프로젝트", "설명", null),
+                user,
+                null
+        );
+        ReflectionTestUtils.setField(project, "id", projectId);
+        return project;
     }
 }

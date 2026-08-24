@@ -11,11 +11,11 @@ import java.util.Optional;
 public interface ProjectRepository extends JpaRepository<ProjectEntity, Long> {
 
     @EntityGraph(attributePaths = "tag")
-    List<ProjectEntity> findAllByUserIdAndStatusNotOrderByCreatedAtDesc(
+    List<ProjectEntity> findAllByUser_IdAndStatusNotOrderByCreatedAtDesc(
             Long userId,
             ProjectStatus excludedStatus
     );
 
     @EntityGraph(attributePaths = "tag")
-    Optional<ProjectEntity> findByIdAndUserId(Long id, Long userId);
+    Optional<ProjectEntity> findByIdAndUser_Id(Long id, Long userId);
 }

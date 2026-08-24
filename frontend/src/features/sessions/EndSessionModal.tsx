@@ -153,7 +153,7 @@ export default function EndSessionModal({
                 items={tasks.map((task) => ({
                   id: task.id,
                   title: task.title,
-                  description: task.projectName,
+                  description: task.projectName ?? undefined,
                 }))}
                 selectedIds={completedTaskIds}
                 name="completed-session-task"

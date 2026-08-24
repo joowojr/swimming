@@ -25,8 +25,8 @@ export interface SessionResponse {
 
 export interface SessionTask {
   id: number
-  projectId: number
-  projectName: string
+  projectId: number | null
+  projectName: string | null
   title: string
 }
 

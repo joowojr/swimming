@@ -15,7 +15,7 @@ public class TaskOrganizerPromptProvider {
         try {
             var resource =
                     new ClassPathResource(
-                            "prompts/task-organizer.md"
+                            "prompts/task-organizer-v2.md"
                     );
 
             this.prompt = resource

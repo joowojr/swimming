@@ -36,12 +36,7 @@ public record TaskOrganizeResult(
             @JsonPropertyDescription(
                     "Short actionable task title."
             )
-            String title,
-
-            @JsonPropertyDescription(
-                    "Confidence in the project classification from 0.0 to 1.0."
-            )
-            Double confidence
+            String title
             ) {
     }
 

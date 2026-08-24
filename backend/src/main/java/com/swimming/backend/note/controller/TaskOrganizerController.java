@@ -3,6 +3,8 @@ package com.swimming.backend.note.controller;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.note.dto.in.TaskOrganizeRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeResponse;
+import com.swimming.backend.note.dto.in.TaskOrganizeConfirmRequest;
+import com.swimming.backend.note.dto.in.TaskOrganizeConfirmResponse;
 import com.swimming.backend.note.usecase.TaskOrganizerUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,5 +31,15 @@ public class TaskOrganizerController {
                 );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<TaskOrganizeConfirmResponse> confirm(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestBody @Valid TaskOrganizeConfirmRequest request
+    ) {
+        return ResponseEntity.ok(
+                taskOrganizerUseCase.confirm(authUser.id(), request)
+        );
     }
 }

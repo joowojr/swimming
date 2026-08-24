@@ -21,7 +21,7 @@ export interface TaskOrganizeResponse {
 
 export interface ApprovedTaskRequest {
   sourceText: string
-  projectId: number
+  projectId: number | null
   title: string
 }
 
@@ -32,7 +32,7 @@ export interface TaskOrganizeConfirmRequest {
 
 export interface CreatedTaskResponse {
   id: number
-  projectId: number
+  projectId: number | null
   title: string
 }
 

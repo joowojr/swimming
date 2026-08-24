@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   IconArchive,
+  IconCalendar,
   IconMinus,
   IconPlus,
   IconSparkles,
@@ -17,6 +18,7 @@ import {
   updateNote,
 } from './noteApi'
 import type { NoteResponse } from './noteTypes'
+import { addDailyPlanItems } from '../plans/dailyPlanApi'
 import {
   confirmTaskOrganization,
   previewTaskOrganization,
@@ -39,6 +41,14 @@ interface PreviewTaskItem {
   title: string
   projectId: number | null
   projectName: string | null
+  selected: boolean
+}
+
+interface PlanLinkItem {
+  id: number
+  title: string
+  projectName: string | null
+  planDate: string
   selected: boolean
 }
 
@@ -69,6 +79,18 @@ function formatNoteDate(createdAt: string | undefined) {
   return noteDateFormatter.format(createdDate)
 }
 
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatPlanDate(planDate: string) {
+  const [, month, day] = planDate.split('-')
+  return month && day ? `${month}/${day}` : planDate
+}
+
 function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
   return [
     ...preview.suggestions.map((suggestion, index) => ({
@@ -85,7 +107,7 @@ function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
       title: item.title,
       projectId: null,
       projectName: null,
-      selected: false,
+      selected: true,
     })),
   ]
 }
@@ -103,6 +125,10 @@ export default function NoteCard({ projects }: NoteCardProps) {
   const [previewItems, setPreviewItems] = useState<PreviewTaskItem[] | null>(null)
   const [previewMessage, setPreviewMessage] = useState<string | null>(null)
   const [editingProjectItemId, setEditingProjectItemId] = useState<string | null>(null)
+  const [planLinkItems, setPlanLinkItems] = useState<PlanLinkItem[] | null>(null)
+  const [editingPlanDateTaskId, setEditingPlanDateTaskId] = useState<number | null>(null)
+  const [isLinkingPlan, setIsLinkingPlan] = useState(false)
+  const [planLinkMessage, setPlanLinkMessage] = useState<string | null>(null)
   const [isStartingNew, setIsStartingNew] = useState(false)
   const [isSelectingNote, setIsSelectingNote] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
@@ -112,6 +138,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
   const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const planDateInputRef = useRef<HTMLInputElement>(null)
   const memoRef = useRef('')
   const noteIdRef = useRef<number | null>(null)
   const lastSavedContentRef = useRef('')
@@ -167,6 +194,23 @@ export default function NoteCard({ projects }: NoteCardProps) {
 
     return () => window.clearInterval(messageTimer)
   }, [isOrganizing, previewItems])
+
+  useEffect(() => {
+    if (editingPlanDateTaskId === null) return
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      const input = planDateInputRef.current
+      if (!input) return
+      input.focus()
+      try {
+        input.showPicker()
+      } catch {
+        // 브라우저가 프로그래밍 방식의 date picker 열기를 지원하지 않으면 포커스만 유지한다.
+      }
+    })
+
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [editingPlanDateTaskId])
 
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
@@ -279,6 +323,9 @@ export default function NoteCard({ projects }: NoteCardProps) {
     setPreviewItems(null)
     setPreviewMessage(null)
     setEditingProjectItemId(null)
+    setPlanLinkItems(null)
+    setEditingPlanDateTaskId(null)
+    setPlanLinkMessage(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
@@ -297,6 +344,9 @@ export default function NoteCard({ projects }: NoteCardProps) {
     setPreviewItems(null)
     setPreviewMessage(null)
     setEditingProjectItemId(null)
+    setPlanLinkItems(null)
+    setEditingPlanDateTaskId(null)
+    setPlanLinkMessage(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
@@ -390,7 +440,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
   }
 
   const selectedPreviewItems = previewItems?.filter(
-    (item) => item.selected && item.projectId !== null,
+    (item) => item.selected,
   ) ?? []
   const hasUntitledSelectedItem = selectedPreviewItems.some(
     (item) => !item.title.trim(),
@@ -418,9 +468,6 @@ export default function NoteCard({ projects }: NoteCardProps) {
       ...item,
       projectId,
       projectName,
-      selected: projectId === null
-        ? false
-        : item.selected || item.projectId === null,
     }))
     setEditingProjectItemId(null)
   }
@@ -431,6 +478,18 @@ export default function NoteCard({ projects }: NoteCardProps) {
     setPreviewMessage(null)
     setEditingProjectItemId(null)
     setActionMessage(null)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const finishPlanLink = (message: string) => {
+    setPreviewNoteId(null)
+    setPreviewItems(null)
+    setPreviewMessage(null)
+    setEditingProjectItemId(null)
+    setPlanLinkItems(null)
+    setEditingPlanDateTaskId(null)
+    setPlanLinkMessage(null)
+    setActionMessage(message)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
@@ -450,17 +509,78 @@ export default function NoteCard({ projects }: NoteCardProps) {
         noteId: previewNoteId,
         tasks: selectedPreviewItems.map((item) => ({
           sourceText: item.sourceText,
-          projectId: item.projectId as number,
+          projectId: item.projectId,
           title: item.title.trim(),
         })),
       })
-      const createdTaskCount = response.createdTasks.length
-      handleCancelPreview()
-      setActionMessage(`${createdTaskCount}개 할 일을 만들었어요`)
+      const today = formatLocalDate(new Date())
+      setPlanLinkItems(response.createdTasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        projectName: task.projectId === null
+          ? null
+          : projects.find((project) => project.id === task.projectId)?.name ?? '프로젝트',
+        planDate: today,
+        selected: true,
+      })))
+      setPreviewItems(null)
+      setPreviewMessage(null)
+      setEditingProjectItemId(null)
+      setPlanLinkMessage(null)
     } catch {
       setPreviewMessage('할 일을 만들지 못했어요. 선택 내용을 그대로 유지했어요.')
     } finally {
       if (isMountedRef.current) setIsConfirmingTasks(false)
+    }
+  }
+
+  const updatePlanLinkItem = (
+    taskId: number,
+    update: (item: PlanLinkItem) => PlanLinkItem,
+  ) => {
+    setPlanLinkItems((currentItems) =>
+      currentItems?.map((item) => item.id === taskId ? update(item) : item) ?? null,
+    )
+    setPlanLinkMessage(null)
+  }
+
+  const handleLinkPlan = async () => {
+    if (planLinkItems === null || isLinkingPlan) return
+
+    const selectedItems = planLinkItems.filter((item) => item.selected)
+    if (selectedItems.length === 0) return
+
+    const taskIdsByDate = new Map<string, number[]>()
+    selectedItems.forEach((item) => {
+      const taskIds = taskIdsByDate.get(item.planDate) ?? []
+      taskIds.push(item.id)
+      taskIdsByDate.set(item.planDate, taskIds)
+    })
+
+    setIsLinkingPlan(true)
+    setPlanLinkMessage(null)
+    let remainingItems = planLinkItems
+    let linkedCount = 0
+
+    try {
+      for (const [planDate, taskIds] of taskIdsByDate) {
+        await addDailyPlanItems(planDate, { taskIds })
+        const linkedTaskIds = new Set(taskIds)
+        remainingItems = remainingItems.filter((item) => !linkedTaskIds.has(item.id))
+        linkedCount += taskIds.length
+        setPlanLinkItems(remainingItems)
+      }
+
+      finishPlanLink(`${linkedCount}개 할 일을 계획에 연결했어요`)
+    } catch {
+      setPlanLinkItems(remainingItems)
+      setPlanLinkMessage(
+        linkedCount > 0
+          ? `${linkedCount}개는 연결했어요. 남은 할 일을 다시 연결해 주세요.`
+          : '계획에 연결하지 못했어요. 날짜와 선택 내용을 그대로 유지했어요.',
+      )
+    } finally {
+      if (isMountedRef.current) setIsLinkingPlan(false)
     }
   }
 
@@ -542,6 +662,8 @@ export default function NoteCard({ projects }: NoteCardProps) {
     loadStatus !== 'ready' ||
     isOrganizing ||
     isConfirmingTasks ||
+    planLinkItems !== null ||
+    isLinkingPlan ||
     isStartingNew ||
     isSelectingNote ||
     isArchiving ||
@@ -549,7 +671,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
 
   return (
     <section className={styles['memo-card']} aria-labelledby="memo-title">
-      {!isOrganizing && previewItems === null && (
+      {!isOrganizing && previewItems === null && planLinkItems === null && (
         <div className={styles['memo-head']}>
           <h3 id="memo-title" className={styles['memo-title']}>메모</h3>
           <div className={styles['memo-head-actions']}>
@@ -587,7 +709,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
         </div>
       )}
 
-      {previewItems === null && isConfirmingDelete && (
+      {previewItems === null && planLinkItems === null && isConfirmingDelete && (
         <div className={styles['delete-confirmation']} role="group" aria-label="메모 삭제 확인">
           <span>이 메모를 삭제할까요?</span>
           <div>
@@ -605,7 +727,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
         </div>
       )}
 
-      {isOrganizing && previewItems === null ? (
+      {isOrganizing && previewItems === null && planLinkItems === null ? (
         <section
           className={styles['organize-loading']}
           aria-labelledby="organize-loading-title"
@@ -630,6 +752,133 @@ export default function NoteCard({ projects }: NoteCardProps) {
               </li>
             ))}
           </ul>
+        </section>
+      ) : planLinkItems !== null ? (
+        <section
+          className={styles['organize-preview']}
+          aria-labelledby="plan-link-title"
+          aria-busy={isLinkingPlan}
+        >
+          <div className={styles['organize-preview-heading']}>
+            <h4 id="plan-link-title">계획에 연결하기</h4>
+            <span>{planLinkItems.filter((item) => item.selected).length}개 선택</span>
+          </div>
+
+          <p className={styles['organize-preview-guide']}>
+            만든 할 일을 진행할 날짜에 연결해 두세요.
+          </p>
+          <p className={styles['organize-preview-guide']}>
+            날짜를 두 번 누르면 변경할 수 있어요.
+          </p>
+
+          <div className={styles['organize-preview-list-wrap']}>
+            <ul className={styles['organize-task-list']}>
+              {planLinkItems.map((item) => (
+                <li
+                  className={item.selected
+                    ? styles['plan-link-task-row']
+                    : styles['organize-task-row-excluded']}
+                  key={item.id}
+                >
+                  <div className={styles['plan-link-task-fields']}>
+                    <div className={styles['plan-link-title-row']}>
+                      <span className={styles['plan-link-task-title']}>{item.title}</span>
+                      {editingPlanDateTaskId === item.id ? (
+                        <input
+                          ref={planDateInputRef}
+                          className={styles['plan-link-date-input']}
+                          type="date"
+                          value={item.planDate}
+                          required
+                          disabled={isLinkingPlan}
+                          aria-label={`${item.title} 계획 날짜`}
+                          onChange={(event) => updatePlanLinkItem(item.id, (currentItem) => ({
+                            ...currentItem,
+                            planDate: event.target.value || currentItem.planDate,
+                          }))}
+                          onBlur={() => setEditingPlanDateTaskId(null)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape' || event.key === 'Enter') {
+                              setEditingPlanDateTaskId(null)
+                            }
+                          }}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles['plan-link-date-action']}
+                          disabled={isLinkingPlan || !item.selected}
+                          aria-label={`${item.title} 계획 날짜 ${formatPlanDate(item.planDate)}. 두 번 눌러 변경`}
+                          title="두 번 눌러 날짜 변경"
+                          onDoubleClick={() => setEditingPlanDateTaskId(item.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              setEditingPlanDateTaskId(item.id)
+                            }
+                          }}
+                        >
+                          <IconCalendar size={14} aria-hidden="true" />
+                          {formatPlanDate(item.planDate)}
+                        </button>
+                      )}
+                    </div>
+                    <span className={styles['plan-link-project-name']}>
+                      {item.projectName ?? '미분류'}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles['organize-exclude-action']}
+                    disabled={isLinkingPlan}
+                    onClick={() => updatePlanLinkItem(item.id, (currentItem) => ({
+                      ...currentItem,
+                      selected: !currentItem.selected,
+                    }))}
+                    aria-label={item.selected
+                      ? `${item.title} 계획 연결에서 빼기`
+                      : `${item.title} 계획 연결에 다시 포함`}
+                    title={item.selected ? '연결에서 빼기' : '다시 포함'}
+                  >
+                    {item.selected
+                      ? <IconMinus size={16} aria-hidden="true" />
+                      : <IconPlus size={16} aria-hidden="true" />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {planLinkMessage && (
+            <p className={styles['organize-preview-message']} role="status">
+              {planLinkMessage}
+            </p>
+          )}
+
+          <div className={styles['organize-preview-actions']}>
+            <button
+              type="button"
+              className={styles['organize-confirm-action']}
+              disabled={
+                planLinkItems.every((item) => !item.selected) ||
+                isLinkingPlan
+              }
+              onClick={handleLinkPlan}
+            >
+              {isLinkingPlan
+                ? '계획에 연결하는 중'
+                : `${planLinkItems.filter((item) => item.selected).length}개 계획에 연결하기`}
+            </button>
+            <button
+              type="button"
+              className={styles['organize-cancel-action']}
+              disabled={isLinkingPlan}
+              onClick={() => finishPlanLink('할 일을 만들었어요')}
+            >
+              나중에
+            </button>
+          </div>
         </section>
       ) : previewItems === null ? (
         <>
@@ -740,11 +989,11 @@ export default function NoteCard({ projects }: NoteCardProps) {
                       return (
                           <li
                               className={
-                                item.selected
-                                    ? styles['organize-task-row']
+                                !item.selected
+                                    ? styles['organize-task-row-excluded']
                                     : item.projectId === null
-                                        ? styles['organize-task-row-unclassified']
-                                        : styles['organize-task-row-excluded']
+                                      ? styles['organize-task-row-unclassified']
+                                      : styles['organize-task-row']
                               }
                               key={item.id}
                           >
@@ -801,7 +1050,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
                             <button
                                 type="button"
                                 className={styles['organize-exclude-action']}
-                                disabled={item.projectId === null || isConfirmingTasks}
+                                disabled={isConfirmingTasks}
                                 onClick={() => updatePreviewItem(
                                     item.id,
                                     (currentItem) => ({

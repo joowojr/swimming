@@ -434,7 +434,8 @@
 
 .organize-task-row,
 .organize-task-row-unclassified,
-.organize-task-row-excluded {
+.organize-task-row-excluded,
+.plan-link-task-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -451,7 +452,8 @@
 }
 
 .organize-task-row:focus-within,
-.organize-task-row-unclassified:focus-within {
+.organize-task-row-unclassified:focus-within,
+.plan-link-task-row:focus-within {
     border-color: var(--color-ash);
 }
 
@@ -469,6 +471,67 @@
     display: grid;
     min-width: 0;
     gap: var(--space-1);
+}
+
+.plan-link-task-fields {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-1);
+}
+
+.plan-link-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.plan-link-task-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: inherit;
+    font-size: calc(var(--text-body-sm-size) - var(--border-width));
+    line-height: var(--text-body-sm-line-height);
+}
+
+.plan-link-project-name {
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+    line-height: var(--text-body-sm-line-height);
+}
+
+.plan-link-date-action,
+.plan-link-date-input {
+    min-height: var(--space-6);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-mute);
+    background: transparent;
+    font: inherit;
+    font-size: var(--text-label-caps-size);
+}
+
+.plan-link-date-action {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.plan-link-date-input {
+    width: calc(var(--space-16) + var(--space-8));
+    max-width: 100%;
+    padding: 0 var(--space-1);
+    border-color: var(--color-border-subtle);
+}
+
+.plan-link-date-action:disabled,
+.plan-link-date-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
 }
 
 .organize-project-select,
@@ -666,6 +729,8 @@
 
 .organize-project-select:focus-visible,
 .organize-project-action:focus-visible,
+.plan-link-date-action:focus-visible,
+.plan-link-date-input:focus-visible,
 .organize-exclude-action:focus-visible,
 .organize-cancel-action:focus-visible,
 .organize-confirm-action:focus-visible {
@@ -706,6 +771,7 @@
     .organize-task-row:hover,
     .organize-task-row-unclassified:hover,
     .organize-task-row-excluded:hover,
+    .plan-link-task-row:hover,
     .organize-project-select:hover:not(:disabled),
     .organize-project-action:hover:not(:disabled),
     .organize-exclude-action:hover:not(:disabled),
@@ -727,6 +793,7 @@
     .organize-task-row,
     .organize-task-row-unclassified,
     .organize-task-row-excluded,
+    .plan-link-task-row,
     .organize-loading-message,
     .organize-loading-title,
     .organize-loading-project {

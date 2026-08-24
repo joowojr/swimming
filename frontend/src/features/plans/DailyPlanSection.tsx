@@ -206,7 +206,6 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
         await updateTask(item.taskId, {
             title,
             status: item.status!,
-            completionPct: item.completionPct!,
         })
 
         const replaceTitle = (items: DailyPlanItem[]) => items.map((candidate) => (
@@ -224,16 +223,15 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
     const changeTaskStatus = async (item: DailyPlanItem, status: TaskStatus) => {
         if (item.taskId === null) return
 
-        const completionPct = status === 'DONE' ? 100 : item.completionPct!
         setPendingTaskId(item.taskId)
         setMessage(null)
 
         try {
-            await updateTask(item.taskId, {title: item.title, status, completionPct})
+            await updateTask(item.taskId, {title: item.title, status})
 
             // 같은 Task가 여러 날짜에 담겨 있을 수 있어 전 날짜에 반영한다.
             const replaceStatus = (items: DailyPlanItem[]) => items.map((candidate) => (
-                candidate.taskId === item.taskId ? {...candidate, status, completionPct} : candidate
+                candidate.taskId === item.taskId ? {...candidate, status} : candidate
             ))
             setDrafts((current) => Object.fromEntries(
                 Object.entries(current).map(([date, items]) => [date, replaceStatus(items)]),
@@ -357,7 +355,7 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                                 getErrorMessage={getTaskTitleError}
                                                             />
                                                         </strong>
-                                                        {item.status !== null && item.completionPct !== null && (
+                                                        {item.status !== null && (
                                                             <span className={styles.meta}>
                                                                 <select
                                                                     className={styles.status}

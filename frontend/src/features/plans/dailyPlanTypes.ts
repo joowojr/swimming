@@ -7,7 +7,6 @@ export interface DailyPlanItem {
   projectName: string | null
   title: string
   status: TaskStatus | null
-  completionPct: number | null
   orderIdx: number
 }
 

@@ -78,8 +78,7 @@ class TaskUseCaseTest {
         Task task = task(1L, 10L, "기존", 0);
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "수정",
-                TaskStatus.DOING,
-                40
+                TaskStatus.DOING
         );
         when(taskService.getOne(1L)).thenReturn(task);
         when(projectService.getReference(1L, 10L))
@@ -90,7 +89,6 @@ class TaskUseCaseTest {
 
         assertThat(response.title()).isEqualTo("수정");
         assertThat(response.status()).isEqualTo(TaskStatus.DOING);
-        assertThat(response.completionPct()).isEqualTo(40);
     }
 
     @Test
@@ -99,8 +97,7 @@ class TaskUseCaseTest {
         Task task = task(1L, 10L, "Task", 0);
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "수정",
-                TaskStatus.DOING,
-                40
+                TaskStatus.DOING
         );
         when(taskService.getOne(1L)).thenReturn(task);
         when(projectService.getReference(2L, 10L))
@@ -185,7 +182,6 @@ class TaskUseCaseTest {
                 projectId,
                 title,
                 TaskStatus.TODO,
-                0,
                 orderIdx,
                 null,
                 null

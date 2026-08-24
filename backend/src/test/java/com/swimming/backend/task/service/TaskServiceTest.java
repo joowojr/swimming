@@ -54,7 +54,6 @@ class TaskServiceTest {
         assertThat(task.getProjectId()).isEqualTo(10L);
         assertThat(task.getTitle()).isEqualTo("API 명세 작성");
         assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
-        assertThat(task.getCompletionPct()).isZero();
         assertThat(task.getOrderIdx()).isZero();
     }
 
@@ -92,19 +91,18 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("Task 제목과 상태와 완료도를 수정한다")
+    @DisplayName("Task 제목과 상태를 수정한다")
     void updatesTaskFields() {
         TaskEntity entity = taskEntity(1L, 10L, "기존 Task", 0);
         when(taskRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         Task task = entity.toDomain();
-        task.update(" 수정 Task ", TaskStatus.HOLD, 65);
+        task.update(" 수정 Task ", TaskStatus.HOLD);
 
         Task result = taskService.update(task);
 
         assertThat(result.getTitle()).isEqualTo("수정 Task");
         assertThat(result.getStatus()).isEqualTo(TaskStatus.HOLD);
-        assertThat(result.getCompletionPct()).isEqualTo(65);
         verify(taskRepository).saveAndFlush(entity);
     }
 
@@ -112,8 +110,8 @@ class TaskServiceTest {
     @DisplayName("사용자가 소유한 여러 Task를 프로젝트 정보가 포함된 조회 DTO로 반환한다")
     void returnsTaskReferencesByIds() {
         List<TaskReference> expected = List.of(
-                new TaskReference(1L, 10L, "첫 프로젝트", "첫째", TaskStatus.TODO, 0),
-                new TaskReference(2L, 20L, "둘 프로젝트", "둘째", TaskStatus.DOING, 40)
+                new TaskReference(1L, 10L, "첫 프로젝트", "첫째", TaskStatus.TODO),
+                new TaskReference(2L, 20L, "둘 프로젝트", "둘째", TaskStatus.DOING)
         );
         when(taskRepository.findAllOwnedByIds(1L, List.of(2L, 1L)))
                 .thenReturn(expected);
@@ -127,7 +125,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("프로젝트 상세용 Task 요약을 저장된 순서대로 반환한다")
     void returnsTaskSummariesInStoredOrder() {
-        TaskEntity first = taskEntity(2L, 10L, "첫째", 0, TaskStatus.DOING, 40);
+        TaskEntity first = taskEntity(2L, 10L, "첫째", 0, TaskStatus.DOING);
         TaskEntity second = taskEntity(1L, 10L, "둘째", 1);
         when(taskRepository.findAllByProjectIdOrderByOrderIdxAscIdAsc(10L))
                 .thenReturn(List.of(first, second));
@@ -137,7 +135,6 @@ class TaskServiceTest {
         assertThat(responses).extracting(TaskSummaryResponse::id)
                 .containsExactly(2L, 1L);
         assertThat(responses.getFirst().status()).isEqualTo(TaskStatus.DOING);
-        assertThat(responses.getFirst().completionPct()).isEqualTo(40);
         assertThat(responses.getFirst().orderIdx()).isZero();
     }
 
@@ -231,7 +228,7 @@ class TaskServiceTest {
     }
 
     private TaskEntity taskEntity(Long id, Long projectId, String title, int orderIdx) {
-        return taskEntity(id, projectId, title, orderIdx, TaskStatus.TODO, 0);
+        return taskEntity(id, projectId, title, orderIdx, TaskStatus.TODO);
     }
 
     private TaskEntity taskEntity(
@@ -239,11 +236,10 @@ class TaskServiceTest {
             Long projectId,
             String title,
             int orderIdx,
-            TaskStatus status,
-            int completionPct
+            TaskStatus status
     ) {
         Task task = Task.create(projectId, title, orderIdx);
-        task.update(title, status, completionPct);
+        task.update(title, status);
         TaskEntity entity = TaskEntity.from(task);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;

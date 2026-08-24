@@ -62,7 +62,7 @@ class TaskControllerTest {
     void createsTaskWithLocationHeader() throws Exception {
         CreateTaskRequest request = new CreateTaskRequest("API 명세 작성");
         when(taskUseCase.create(1L, 10L, request))
-                .thenReturn(response(1L, "API 명세 작성", TaskStatus.TODO, 0, 0));
+                .thenReturn(response(1L, "API 명세 작성", TaskStatus.TODO, 0));
 
         mockMvc.perform(post("/api/projects/10/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,7 +74,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.projectId").value(10))
                 .andExpect(jsonPath("$.status").value("TODO"))
-                .andExpect(jsonPath("$.completionPct").value(0))
+                .andExpect(jsonPath("$.completionPct").doesNotExist())
                 .andExpect(jsonPath("$.orderIdx").value(0));
     }
 
@@ -82,8 +82,8 @@ class TaskControllerTest {
     @DisplayName("프로젝트 Task 목록을 저장된 순서대로 반환한다")
     void returnsProjectTasks() throws Exception {
         when(taskUseCase.getAll(1L, 10L)).thenReturn(List.of(
-                response(2L, "첫째", TaskStatus.DOING, 40, 0),
-                response(1L, "둘째", TaskStatus.TODO, 0, 1)
+                response(2L, "첫째", TaskStatus.DOING, 0),
+                response(1L, "둘째", TaskStatus.TODO, 1)
         ));
 
         mockMvc.perform(get("/api/projects/10/tasks"))
@@ -95,29 +95,27 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("Task 제목과 상태와 완료도를 수정한다")
+    @DisplayName("Task 제목과 상태를 수정한다")
     void updatesTask() throws Exception {
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "API 구현",
-                TaskStatus.DOING,
-                55
+                TaskStatus.DOING
         );
         when(taskUseCase.update(1L, 1L, request))
-                .thenReturn(response(1L, "API 구현", TaskStatus.DOING, 55, 0));
+                .thenReturn(response(1L, "API 구현", TaskStatus.DOING, 0));
 
         mockMvc.perform(patch("/api/tasks/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "title":"API 구현",
-                                  "status":"DOING",
-                                  "completionPct":55
+                                  "status":"DOING"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("API 구현"))
                 .andExpect(jsonPath("$.status").value("DOING"))
-                .andExpect(jsonPath("$.completionPct").value(55));
+                .andExpect(jsonPath("$.completionPct").doesNotExist());
     }
 
     @Test
@@ -128,15 +126,13 @@ class TaskControllerTest {
                         .content("""
                                 {
                                   "title":" ",
-                                  "status":null,
-                                  "completionPct":101
+                                  "status":null
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.errors.title").exists())
-                .andExpect(jsonPath("$.errors.status").exists())
-                .andExpect(jsonPath("$.errors.completionPct").exists());
+                .andExpect(jsonPath("$.errors.status").exists());
     }
 
     @Test
@@ -190,7 +186,7 @@ class TaskControllerTest {
         when(taskUseCase.update(
                 1L,
                 1L,
-                new UpdateTaskRequest("수정", TaskStatus.DOING, 40)
+                new UpdateTaskRequest("수정", TaskStatus.DOING)
         )).thenThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND));
 
         mockMvc.perform(patch("/api/tasks/1")
@@ -198,8 +194,7 @@ class TaskControllerTest {
                         .content("""
                                 {
                                   "title":"수정",
-                                  "status":"DOING",
-                                  "completionPct":40
+                                  "status":"DOING"
                                 }
                                 """))
                 .andExpect(status().isNotFound())
@@ -211,7 +206,6 @@ class TaskControllerTest {
             Long id,
             String title,
             TaskStatus status,
-            int completionPct,
             int orderIdx
     ) {
         return new TaskResponse(
@@ -219,7 +213,6 @@ class TaskControllerTest {
                 10L,
                 title,
                 status,
-                completionPct,
                 orderIdx,
                 LocalDateTime.of(2026, 8, 20, 10, 0),
                 LocalDateTime.of(2026, 8, 20, 10, 0)

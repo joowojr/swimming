@@ -12,6 +12,9 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
 
 app:
   place:

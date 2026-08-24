@@ -8,7 +8,9 @@ import java.time.LocalDateTime;
 public class Task {
 
     private final Long id;
+    private final Long userId;
     private final Long projectId;
+    private final Long sourceNoteId;
     private String title;
     private TaskStatus status;
     private int orderIdx;
@@ -17,7 +19,9 @@ public class Task {
 
     private Task(
             Long id,
+            Long userId,
             Long projectId,
+            Long sourceNoteId,
             String title,
             TaskStatus status,
             int orderIdx,
@@ -25,7 +29,9 @@ public class Task {
             LocalDateTime updatedAt
     ) {
         this.id = id;
+        this.userId = userId;
         this.projectId = projectId;
+        this.sourceNoteId = sourceNoteId;
         this.title = title;
         this.status = status;
         this.orderIdx = orderIdx;
@@ -33,10 +39,32 @@ public class Task {
         this.updatedAt = updatedAt;
     }
 
-    public static Task create(Long projectId, String title, int orderIdx) {
+    public static Task create(Long userId, Long projectId, String title, int orderIdx) {
         return new Task(
                 null,
+                userId,
                 projectId,
+                null,
+                title.trim(),
+                TaskStatus.TODO,
+                orderIdx,
+                null,
+                null
+        );
+    }
+
+    public static Task createFromNote(
+            Long userId,
+            Long projectId,
+            Long sourceNoteId,
+            String title,
+            int orderIdx
+    ) {
+        return new Task(
+                null,
+                userId,
+                projectId,
+                sourceNoteId,
                 title.trim(),
                 TaskStatus.TODO,
                 orderIdx,
@@ -47,7 +75,9 @@ public class Task {
 
     public static Task restore(
             Long id,
+            Long userId,
             Long projectId,
+            Long sourceNoteId,
             String title,
             TaskStatus status,
             int orderIdx,
@@ -56,7 +86,9 @@ public class Task {
     ) {
         return new Task(
                 id,
+                userId,
                 projectId,
+                sourceNoteId,
                 title,
                 status,
                 orderIdx,

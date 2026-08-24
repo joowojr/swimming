@@ -17,16 +17,21 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     Optional<TaskEntity> findTopByProject_IdOrderByOrderIdxDescIdDesc(Long projectId);
 
+    Optional<TaskEntity> findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(Long userId);
+
+    Optional<TaskEntity> findByIdAndUser_Id(Long taskId, Long userId);
+
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskReference(
                 task.id,
-                task.project.id,
-                task.project.name,
+                project.id,
+                project.name,
                 task.title,
                 task.status
             )
             FROM TaskEntity task
-            WHERE task.project.user.id = :userId
+            LEFT JOIN task.project project
+            WHERE task.user.id = :userId
               AND task.id IN :taskIds
             """)
     List<TaskReference> findAllOwnedByIds(
@@ -37,7 +42,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     @Query("""
             SELECT task
             FROM TaskEntity task
-            WHERE task.project.user.id = :userId
+            WHERE task.user.id = :userId
               AND task.id IN :taskIds
             """)
     List<TaskEntity> findAllOwnedEntitiesByIds(

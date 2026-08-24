@@ -69,7 +69,7 @@ class ProjectUseCaseTest {
         );
         Project project = Project.restore(
                 10L, 1L, tag, "프로젝트", "설명", targetDate,
-                ProjectStatus.IN_PROGRESS, null, null
+                ProjectStatus.IN_PROGRESS, false, null, null
         );
         when(projectTagService.getOne(1L, 3L)).thenReturn(tag);
         when(projectService.create(any(Project.class))).thenReturn(project);
@@ -95,7 +95,7 @@ class ProjectUseCaseTest {
         ProjectTag tag = ProjectTag.restore(4L, 1L, "포트폴리오", null, null);
         Project project = Project.restore(
                 10L, 1L, tag, "프로젝트", "설명", null,
-                ProjectStatus.IN_PROGRESS, null, null
+                ProjectStatus.IN_PROGRESS, false, null, null
         );
         CreateProjectRequest request = new CreateProjectRequest(
                 "프로젝트",
@@ -212,6 +212,14 @@ class ProjectUseCaseTest {
         ));
     }
 
+    @Test
+    @DisplayName("프로젝트 삭제는 서비스에 soft delete를 위임한다")
+    void deletesProject() {
+        projectUseCase.delete(1L, 10L);
+
+        verify(projectService).delete(1L, 10L);
+    }
+
     private Project project(
             Long id,
             String name,
@@ -220,7 +228,7 @@ class ProjectUseCaseTest {
     ) {
         return Project.restore(
                 id, 1L, null, name, description, targetDate,
-                ProjectStatus.IN_PROGRESS, null, null
+                ProjectStatus.IN_PROGRESS, false, null, null
         );
     }
 }

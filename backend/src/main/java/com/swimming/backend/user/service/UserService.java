@@ -7,6 +7,7 @@ import com.swimming.backend.user.dto.UserAuthInfo;
 import com.swimming.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -15,6 +16,16 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.CURRENT_PASSWORD_MISMATCH);
+        }
+        user.changePasswordHash(passwordEncoder.encode(newPassword));
+    }
 
     public Optional<UserAuthInfo> getAuthInfoByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)

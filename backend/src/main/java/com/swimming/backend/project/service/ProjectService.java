@@ -39,7 +39,7 @@ public class ProjectService {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Project> getAll(Long userId) {
         return projectRepository
-                .findAllByUser_IdAndStatusNotOrderByCreatedAtDesc(
+                .findAllByUser_IdAndStatusNotAndDeletedFalseOrderByCreatedAtDesc(
                         userId,
                         ProjectStatus.ARCHIVED
                 )
@@ -71,8 +71,15 @@ public class ProjectService {
         return projectRepository.saveAndFlush(projectEntity).toDomain();
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Long userId, Long projectId) {
+        Project project = getOwnedProjectEntity(userId, projectId).toDomain();
+        project.delete();
+        update(project);
+    }
+
     private ProjectEntity getOwnedProjectEntity(Long userId, Long projectId) {
-        return projectRepository.findByIdAndUser_Id(projectId, userId)
+        return projectRepository.findByIdAndUser_IdAndDeletedFalse(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
     }
 

@@ -96,4 +96,9 @@ public class ProjectUseCase {
         );
         return ProjectResponse.from(projectService.update(project));
     }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Long userId, Long projectId) {
+        projectService.delete(userId, projectId);
+    }
 }

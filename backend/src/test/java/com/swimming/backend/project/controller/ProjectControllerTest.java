@@ -32,8 +32,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -275,6 +277,16 @@ class ProjectControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("PROJECT_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("프로젝트 삭제는 본문 없이 성공한다")
+    void deletesProject() throws Exception {
+        mockMvc.perform(delete("/api/projects/10"))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(projectUseCase).delete(1L, 10L);
     }
 
     private ProjectResponse response(

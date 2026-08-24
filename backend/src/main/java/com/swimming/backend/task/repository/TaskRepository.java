@@ -63,6 +63,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             LEFT JOIN TaskEntity task ON task.project = project
             WHERE project.user.id = :userId
               AND project.status <> :excludedStatus
+              AND project.deleted = false
             ORDER BY project.createdAt DESC, task.orderIdx ASC, task.id ASC
             """)
     List<TaskOrganizerContextRow> findTaskOrganizerContext(

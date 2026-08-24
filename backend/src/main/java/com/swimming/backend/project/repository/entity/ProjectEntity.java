@@ -52,6 +52,9 @@ public class ProjectEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private ProjectStatus status;
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
     private ProjectEntity(Project project, User user, ProjectTagEntity tag) {
         this.user = user;
         this.tag = tag;
@@ -59,6 +62,7 @@ public class ProjectEntity extends BaseTimeEntity {
         this.description = project.getDescription();
         this.targetDate = project.getTargetDate();
         this.status = project.getStatus();
+        this.deleted = project.isDeleted();
     }
 
     public static ProjectEntity from(
@@ -75,6 +79,7 @@ public class ProjectEntity extends BaseTimeEntity {
         this.description = project.getDescription();
         this.targetDate = project.getTargetDate();
         this.status = project.getStatus();
+        this.deleted = project.isDeleted();
     }
 
     public Project toDomain() {
@@ -86,6 +91,7 @@ public class ProjectEntity extends BaseTimeEntity {
                 description,
                 targetDate,
                 status,
+                deleted,
                 getCreatedAt(),
                 getUpdatedAt()
         );

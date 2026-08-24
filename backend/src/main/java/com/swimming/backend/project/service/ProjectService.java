@@ -52,6 +52,11 @@ public class ProjectService {
         return ProjectReference.from(getOwnedProjectEntity(userId, projectId).toDomain());
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public void validateOwnership(Long userId, Long projectId) {
+        getOwnedProjectEntity(userId, projectId);
+    }
+
     @Transactional(propagation = Propagation.REQUIRED)
     public Project update(Project project) {
         ProjectEntity projectEntity = getOwnedProjectEntity(project.getUserId(), project.getId());

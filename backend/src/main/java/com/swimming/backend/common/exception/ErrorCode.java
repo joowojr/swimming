@@ -40,6 +40,7 @@ public enum ErrorCode {
     // NOTE DOMAIN
     NOTE_NOT_FOUND(HttpStatus.NOT_FOUND, "노트를 찾을 수 없습니다"),
     INVALID_NOTE_CONTEXT(HttpStatus.BAD_REQUEST, "노트 컨텍스트가 올바르지 않습니다"),
+    INVALID_TASK_ORGANIZER_SELECTION(HttpStatus.BAD_REQUEST, "할 일 정리 선택 항목이 원본 노트와 일치하지 않습니다"),
 
     // PLACE DOMAIN
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "공간을 찾을 수 없습니다"),

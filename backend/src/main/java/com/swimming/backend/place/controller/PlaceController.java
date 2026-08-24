@@ -17,10 +17,10 @@ public class PlaceController {
 
     private final PlaceUseCase placeUseCase;
 
-    @GetMapping("/api/cities")
-    public ResponseEntity<List<CityResponse>> getCities(
+    @GetMapping("/api/public/places")
+    public ResponseEntity<List<CityResponse>> getPlaces(
             @AuthenticationPrincipal AuthUser authUser
     ) {
-        return ResponseEntity.ok(placeUseCase.getCities());
+        return ResponseEntity.ok(placeUseCase.getPlaces());
     }
 }

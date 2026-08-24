@@ -20,12 +20,12 @@ public class PlaceUseCase {
     private final PlaceService placeService;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<CityResponse> getCities() {
+    public List<CityResponse> getPlaces() {
         Map<Long, List<Place>> placesByCityId = placeService.getPlaces()
                 .stream()
                 .collect(Collectors.groupingBy(Place::getCityId));
 
-        return placeService.getCities()
+        return placeService.getCitiesAndPlaces()
                 .stream()
                 .map(city -> CityResponse.from(
                         city,

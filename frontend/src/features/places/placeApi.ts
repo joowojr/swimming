@@ -2,6 +2,6 @@ import { client } from '../../api/client'
 import type { City } from './placeTypes'
 
 export async function getPlaces(): Promise<City[]> {
-  const response = await client.get<City[]>('/cities')
+  const response = await client.get<City[]>('/public/places')
   return response.data
 }

@@ -15,13 +15,14 @@ interface NavigationItem {
   href?: string
   end?: boolean
   badge?: string
+  disabled?: boolean
 }
 
 const navigationItems: NavigationItem[] = [
   { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
   { label: '프로젝트', icon: IconFolder, href: '/projects', end: true },
   { label: '다이브 세션', icon: IconUsers, href: '/sessions', end: true },
-  { label: '캘린더', icon: IconCalendar },
+  { label: '캘린더', icon: IconCalendar, disabled: true },
 ]
 
 export default function SideNavigation({ projectCount }: { projectCount: number | null }) {
@@ -57,10 +58,10 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
                   </NavLink>
                 ) : (
                   <button
-                    className={styles['navigation-item']}
+                    className={`${styles['navigation-item']} ${item.disabled ? styles['is-disabled'] : ''}`}
                     type="button"
                     title={`${item.label} · 준비 중`}
-                    disabled
+                    disabled={item.disabled}
                   >
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>
@@ -75,11 +76,6 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
             )
           })}
         </ul>
-
-        <div className={styles['favorites-section']}>
-          <p className={styles['navigation-label']}>Favorites</p>
-          <p className={styles['favorites-empty']}>즐겨찾기한 프로젝트가 여기에 표시됩니다.</p>
-        </div>
       </nav>
     </aside>
   )

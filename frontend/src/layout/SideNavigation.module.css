@@ -95,8 +95,12 @@
 }
 
 .navigation-item:disabled {
-  cursor: default;
-  opacity: 1;
+  cursor: not-allowed;
+}
+
+.navigation-item.is-disabled {
+  color: var(--color-text-muted);
+  opacity: 0.5;
 }
 
 .navigation-item.is-active {
@@ -116,18 +120,6 @@
   text-align: center;
   background: var(--color-surface-highest);
 }
-
-.favorites-section {
-  margin-top: var(--space-6);
-}
-
-.favorites-empty {
-  margin: 0 var(--space-3);
-  color: var(--color-text-muted);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-}
-
 
 .navigation-item {
   display: flex;
@@ -152,7 +144,6 @@
   }
 
   .workspace-switcher-wrap,
-  .favorites-section,
   .navigation-label {
     display: none;
   }
@@ -171,4 +162,3 @@
     white-space: nowrap;
   }
 }
-

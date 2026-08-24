@@ -11,6 +11,7 @@ import { getProjects } from './features/projects/projectApi'
 import type { Project } from './features/projects/projectTypes'
 import AppShell from './layout/AppShell'
 import LoginPage from './pages/LoginPage'
+import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
 import styles from './App.module.css'
 
@@ -22,14 +23,14 @@ interface HealthResponse {
 type ResourceStatus = 'checking' | 'up' | 'unavailable'
 type GuestView = 'home' | 'login'
 
-function ProjectDetailRoute() {
+function ProjectDetailRoute({ onDeleted }: { onDeleted: (projectId: number) => void }) {
   const { projectId } = useParams()
   const parsedProjectId = Number(projectId)
   const validProjectId = Number.isSafeInteger(parsedProjectId) && parsedProjectId > 0
     ? parsedProjectId
     : null
 
-  return <ProjectDetail key={projectId ?? 'invalid'} projectId={validProjectId} />
+  return <ProjectDetail key={projectId ?? 'invalid'} projectId={validProjectId} onDeleted={onDeleted} />
 }
 
 function App() {
@@ -122,6 +123,7 @@ function App() {
         <LoginPage />
       ) : auth.status === 'authenticated' ? (
         <Routes>
+          <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
           <Route
             path="/projects"
             element={(
@@ -178,7 +180,13 @@ function App() {
               </>
             )}
           />
-          <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
+          <Route
+            path="/projects/:projectId"
+            element={<ProjectDetailRoute onDeleted={(projectId) => {
+              setProjects((current) => current.filter((project) => project.id !== projectId))
+              setProjectRequestKey((key) => key + 1)
+            }} />}
+          />
           <Route path="*" element={<Navigate to="/projects" replace />} />
         </Routes>
       ) : (

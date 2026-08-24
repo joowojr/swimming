@@ -1,5 +1,6 @@
 import { client } from '../../api/client'
 import type {
+  EndSessionRequest,
   SessionDetailResponse,
   SessionResponse,
   StartPersonalSessionRequest,
@@ -14,8 +15,11 @@ export async function startPersonalSession(
   return response.data
 }
 
-export async function endSession(sessionId: number): Promise<SessionResponse> {
-  const response = await client.post<SessionResponse>(`/sessions/${sessionId}/end`)
+export async function endSession(
+  sessionId: number,
+  request?: EndSessionRequest,
+): Promise<SessionResponse> {
+  const response = await client.post<SessionResponse>(`/sessions/${sessionId}/end`, request)
   return response.data
 }
 

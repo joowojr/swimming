@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import {
-  IconFilter,
   IconPlus,
 } from '@tabler/icons-react'
 import ActionButton from '../../components/ActionButton'
@@ -17,7 +16,6 @@ interface ProjectDashboardProps {
   status: ProjectLoadStatus
   onRetry: () => void
   onOpenCreate: () => void
-  onOrganizeMemo: (text: string) => Promise<void>;
 }
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
@@ -31,7 +29,6 @@ export default function ProjectDashboard({
   status,
   onRetry,
   onOpenCreate,
-  onOrganizeMemo,
 }: ProjectDashboardProps) {
   const upcomingProjects = useMemo(
     () =>
@@ -93,7 +90,7 @@ export default function ProjectDashboard({
                   <DailyPlanSection projects={projects}/>
                 </div>
 
-                <NoteCard onOrganize={onOrganizeMemo} />
+                <NoteCard projects={projects} />
               </div>
             </>
         )}

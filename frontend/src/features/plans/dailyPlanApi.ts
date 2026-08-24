@@ -18,11 +18,6 @@ export async function reorderDailyPlanItems(date: string, request: ReorderDailyP
   return response.data
 }
 
-export async function updateDailyPlanItem(date: string, itemId: number, title: string): Promise<DailyPlan> {
-  const response = await client.patch<DailyPlan>(`/daily-plans/${date}/items/${itemId}`, { title })
-  return response.data
-}
-
 export async function deleteDailyPlanItem(date: string, itemId: number): Promise<void> {
   await client.delete(`/daily-plans/${date}/items/${itemId}`)
 }

@@ -1,14 +1,17 @@
 import type { TaskStatus } from '../tasks/taskTypes'
 
-export interface DailyPlanItem {
+interface DailyPlanItemBase {
   id: number
-  taskId: number | null
-  projectId: number | null
-  projectName: string | null
+  taskId: number
   title: string
-  status: TaskStatus | null
+  status: TaskStatus
   orderIdx: number
 }
+
+export type DailyPlanItem = DailyPlanItemBase & (
+  | { itemType: 'TASK'; projectId: number; projectName: string }
+  | { itemType: 'AD_HOC'; projectId: null; projectName: null }
+)
 
 export interface DailyPlan {
   date: string

@@ -20,8 +20,7 @@ import {
     addDailyPlanItems,
     deleteDailyPlanItem,
     getDailyPlans,
-    reorderDailyPlanItems,
-    updateDailyPlanItem
+    reorderDailyPlanItems
 } from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
@@ -189,22 +188,17 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
-    const addAdHoc = async (title: string, projectId: number | null) => {
+    const addTask = async (title: string, projectId: number | null) => {
         replacePlan(await addDailyPlanItems(selectedDate, {
             title,
             ...(projectId === null ? {} : {projectId}),
         }))
     }
 
-    const changeTaskTitle = async (date: string, item: DailyPlanItem, title: string) => {
-        if (item.taskId === null) {
-            replacePlan(await updateDailyPlanItem(date, item.id, title))
-            return
-        }
-
+    const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
         await updateTask(item.taskId, {
             title,
-            status: item.status!,
+            status: item.status,
         })
 
         const replaceTitle = (items: DailyPlanItem[]) => items.map((candidate) => (
@@ -220,8 +214,6 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
     }
 
     const changeTaskStatus = async (item: DailyPlanItem, status: TaskStatus) => {
-        if (item.taskId === null) return
-
         setPendingTaskId(item.taskId)
         setMessage(null)
 
@@ -333,7 +325,7 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                         </button>
                                         <ol className={styles.list}>
                                             {items.map((item, index) => (
-                                                <li className={`${styles.card} ${item.projectId === null ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 4}`]}`}
+                                                <li className={`${styles.card} ${item.itemType === 'AD_HOC' ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 4}`]}`}
                                                     key={item.id}>
                                                     <div className={styles['card-select']}
                                                          onClick={() => setSelectedDate(plan.date)}>
@@ -350,12 +342,11 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                                 ariaLabel="Task 제목"
                                                                 maxLength={255}
                                                                 requiredMessage="Task 제목을 입력해 주세요."
-                                                                onSave={(title) => changeTaskTitle(plan.date, item, title)}
+                                                                onSave={(title) => changeTaskTitle(item, title)}
                                                                 getErrorMessage={getTaskTitleError}
                                                             />
                                                         </strong>
-                                                        {item.status !== null && (
-                                                            <span className={styles.meta}>
+                                                        <span className={styles.meta}>
                                                                 <select
                                                                     className={styles.status}
                                                                     data-status={item.status}
@@ -369,13 +360,12 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                                         <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
                                                                     ))}
                                                                 </select>
-                                                            </span>
-                                                        )}
+                                                        </span>
                                                     </div>
                                                     {selected && (
                                                         <DailyPlanCardMenu
                                                             label={`${item.title} 카드 메뉴`}>
-                                                                {plan.date === today && item.taskId !== null && (
+                                                                {plan.date === today && (
                                                                     <ActionButton
                                                                         variant="plain"
                                                                         icon={<IconPlayerPlay size={15}
@@ -416,8 +406,8 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
             )}
 
             {isPickerOpen && <TaskPickerModal projects={projects}
-                                              selectedTaskIds={new Set(draftItems.flatMap((item) => item.taskId === null ? [] : [item.taskId]))}
-                                              onAdd={addTasks} onAddAdHoc={addAdHoc}
+                                              selectedTaskIds={new Set(draftItems.map((item) => item.taskId))}
+                                              onAdd={addTasks} onAddTask={addTask}
                                               onClose={() => setIsPickerOpen(false)}/>}
             {sessionTaskId !== null && (
                 <CreateSessionModal

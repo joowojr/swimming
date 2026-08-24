@@ -5,12 +5,12 @@ import {
     IconCalendar,
     IconLoader2,
     IconPlayerPlay,
-    IconPlus,
-    IconTrash
+    IconPlus
 } from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
+import DeleteIconButton from '../../components/DeleteIconButton'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -386,9 +386,11 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                                         onClick={() => moveItem(index, 1)}>
                                                                     <IconArrowDown size={15} aria-hidden="true"/>아래로
                                                                 </button>
-                                                                <button type="button" aria-label="계획에서 제거"
-                                                                        onClick={() => void removeItem(plan.date, item.id)}>
-                                                                    <IconTrash size={15} aria-hidden="true"/></button>
+                                                                <DeleteIconButton
+                                                                    label="계획에서 제거"
+                                                                    iconSize={15}
+                                                                    onClick={() => void removeItem(plan.date, item.id)}
+                                                                />
                                                         </DailyPlanCardMenu>
                                                     )}
                                                 </li>

@@ -1,6 +1,7 @@
 import type { ChangeEvent, RefObject } from 'react'
-import { IconArchive, IconPlus, IconSparkles, IconTrash } from '@tabler/icons-react'
+import { IconArchive, IconPlus, IconSparkles } from '@tabler/icons-react'
 import ActionButton from '../../components/ActionButton'
+import DeleteIconButton from '../../components/DeleteIconButton'
 import type { LoadStatus, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
 
@@ -79,11 +80,13 @@ export default function NoteEditor({
             disabled={selectedNoteId === null || disabled} aria-label="현재 메모 보관" title="메모 보관">
             <IconArchive size={16} aria-hidden="true" />
           </button>
-          <button type="button" className={styles['memo-icon-action']} onClick={onRequestDelete}
-            disabled={selectedNoteId === null || disabled} aria-label="현재 메모 삭제"
-            aria-expanded={isConfirmingDelete} title="메모 삭제">
-            <IconTrash size={16} aria-hidden="true" />
-          </button>
+          <DeleteIconButton
+            label="현재 메모 삭제"
+            disabled={selectedNoteId === null || disabled}
+            aria-expanded={isConfirmingDelete}
+            title="메모 삭제"
+            onClick={onRequestDelete}
+          />
           <ActionButton className={styles['new-memo-action']} icon={<IconPlus size={16} aria-hidden="true" />}
             variant="outline" onClick={onNewMemo} disabled={loadStatus !== 'ready' || disabled || isStartingNew}>
             새 메모

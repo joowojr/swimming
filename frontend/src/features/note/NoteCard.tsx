@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   IconArchive,
+  IconMinus,
   IconPlus,
   IconSparkles,
   IconTrash,
 } from '@tabler/icons-react'
+import InlineEditableText from '../../components/InlineEditableText'
 import {
   archiveNote,
   createNote,
@@ -15,16 +17,42 @@ import {
   updateNote,
 } from './noteApi'
 import type { NoteResponse } from './noteTypes'
+import {
+  confirmTaskOrganization,
+  previewTaskOrganization,
+} from './taskOrganizerApi'
+import type { TaskOrganizeResponse } from './taskOrganizerTypes'
 import styles from './NoteCard.module.css'
 
-interface MemoCardProps {
-  onOrganize: (text: string) => Promise<void> | void
+interface ProjectOption {
+  id: number
+  name: string
+}
+
+interface NoteCardProps {
+  projects: ProjectOption[]
+}
+
+interface PreviewTaskItem {
+  id: string
+  sourceText: string
+  title: string
+  projectId: number | null
+  projectName: string | null
+  selected: boolean
 }
 
 type LoadStatus = 'loading' | 'ready' | 'error'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const AUTO_SAVE_DELAY_MS = 700
+const ORGANIZE_LOADING_MESSAGE_INTERVAL_MS = 1000
+const ORGANIZE_LOADING_MESSAGES = [
+  '최근 프로젝트 목록을 조회하고 있어요',
+  '최근 할 일 목록을 살펴보고 있어요',
+  '메모에서 할 일을 정리하고 있어요',
+  '정리 결과를 준비하고 있어요',
+] as const
 const noteDateFormatter = new Intl.DateTimeFormat('ko-KR', {
   month: 'short',
   day: 'numeric',
@@ -41,13 +69,40 @@ function formatNoteDate(createdAt: string | undefined) {
   return noteDateFormatter.format(createdDate)
 }
 
-export default function NoteCard({ onOrganize }: MemoCardProps) {
+function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
+  return [
+    ...preview.suggestions.map((suggestion, index) => ({
+      id: `suggestion-${index}`,
+      sourceText: suggestion.sourceText,
+      title: suggestion.title,
+      projectId: suggestion.projectId,
+      projectName: suggestion.projectName,
+      selected: true,
+    })),
+    ...preview.unclassified.map((item, index) => ({
+      id: `unclassified-${index}`,
+      sourceText: item.sourceText,
+      title: item.title,
+      projectId: null,
+      projectName: null,
+      selected: false,
+    })),
+  ]
+}
+
+export default function NoteCard({ projects }: NoteCardProps) {
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [isOrganizing, setIsOrganizing] = useState(false)
+  const [organizeLoadingMessageIndex, setOrganizeLoadingMessageIndex] = useState(0)
+  const [isConfirmingTasks, setIsConfirmingTasks] = useState(false)
+  const [previewNoteId, setPreviewNoteId] = useState<number | null>(null)
+  const [previewItems, setPreviewItems] = useState<PreviewTaskItem[] | null>(null)
+  const [previewMessage, setPreviewMessage] = useState<string | null>(null)
+  const [editingProjectItemId, setEditingProjectItemId] = useState<string | null>(null)
   const [isStartingNew, setIsStartingNew] = useState(false)
   const [isSelectingNote, setIsSelectingNote] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
@@ -100,6 +155,18 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isOrganizing || previewItems !== null) return
+
+    const messageTimer = window.setInterval(() => {
+      setOrganizeLoadingMessageIndex((currentIndex) =>
+        Math.min(currentIndex + 1, ORGANIZE_LOADING_MESSAGES.length - 1),
+      )
+    }, ORGANIZE_LOADING_MESSAGE_INTERVAL_MS)
+
+    return () => window.clearInterval(messageTimer)
+  }, [isOrganizing, previewItems])
 
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
@@ -208,6 +275,10 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     setIsConfirmingDelete(false)
     setRecentlyArchivedId(null)
     setActionMessage(null)
+    setPreviewNoteId(null)
+    setPreviewItems(null)
+    setPreviewMessage(null)
+    setEditingProjectItemId(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
@@ -222,6 +293,10 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     setIsConfirmingDelete(false)
     setRecentlyArchivedId(null)
     setActionMessage(null)
+    setPreviewNoteId(null)
+    setPreviewItems(null)
+    setPreviewMessage(null)
+    setEditingProjectItemId(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
 
@@ -296,15 +371,96 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
       isArchiving ||
       isDeleting
     ) return
+    setOrganizeLoadingMessageIndex(0)
     setIsOrganizing(true)
+    setActionMessage(null)
 
     try {
       const saved = await saveContent(memoRef.current)
       if (!saved) return
-      await onOrganize(memoRef.current)
-      resetToNewDraft()
+      const preview = await previewTaskOrganization({ memo: memoRef.current })
+      setPreviewNoteId(noteIdRef.current)
+      setPreviewItems(toPreviewItems(preview))
+      setPreviewMessage(null)
+    } catch {
+      setActionMessage('할 일을 정리하지 못했어요')
     } finally {
       if (isMountedRef.current) setIsOrganizing(false)
+    }
+  }
+
+  const selectedPreviewItems = previewItems?.filter(
+    (item) => item.selected && item.projectId !== null,
+  ) ?? []
+  const hasUntitledSelectedItem = selectedPreviewItems.some(
+    (item) => !item.title.trim(),
+  )
+
+  const updatePreviewItem = (
+    itemId: string,
+    update: (item: PreviewTaskItem) => PreviewTaskItem,
+  ) => {
+    setPreviewItems((currentItems) =>
+      currentItems?.map((item) =>
+        item.id === itemId ? update(item) : item,
+      ) ?? null,
+    )
+    setPreviewMessage(null)
+  }
+
+  const handlePreviewProjectChange = (itemId: string, value: string) => {
+    const projectId = value ? Number(value) : null
+    const projectName = projectId === null
+      ? null
+      : projects.find((project) => project.id === projectId)?.name ?? null
+
+    updatePreviewItem(itemId, (item) => ({
+      ...item,
+      projectId,
+      projectName,
+      selected: projectId === null
+        ? false
+        : item.selected || item.projectId === null,
+    }))
+    setEditingProjectItemId(null)
+  }
+
+  const handleCancelPreview = () => {
+    setPreviewNoteId(null)
+    setPreviewItems(null)
+    setPreviewMessage(null)
+    setEditingProjectItemId(null)
+    setActionMessage(null)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const handleConfirmTasks = async () => {
+    if (
+      previewNoteId === null ||
+      selectedPreviewItems.length === 0 ||
+      hasUntitledSelectedItem ||
+      isConfirmingTasks
+    ) return
+
+    setIsConfirmingTasks(true)
+    setPreviewMessage(null)
+
+    try {
+      const response = await confirmTaskOrganization({
+        noteId: previewNoteId,
+        tasks: selectedPreviewItems.map((item) => ({
+          sourceText: item.sourceText,
+          projectId: item.projectId as number,
+          title: item.title.trim(),
+        })),
+      })
+      const createdTaskCount = response.createdTasks.length
+      handleCancelPreview()
+      setActionMessage(`${createdTaskCount}개 할 일을 만들었어요`)
+    } catch {
+      setPreviewMessage('할 일을 만들지 못했어요. 선택 내용을 그대로 유지했어요.')
+    } finally {
+      if (isMountedRef.current) setIsConfirmingTasks(false)
     }
   }
 
@@ -385,6 +541,7 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
   const isEditorDisabled =
     loadStatus !== 'ready' ||
     isOrganizing ||
+    isConfirmingTasks ||
     isStartingNew ||
     isSelectingNote ||
     isArchiving ||
@@ -392,9 +549,10 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
 
   return (
     <section className={styles['memo-card']} aria-labelledby="memo-title">
-      <div className={styles['memo-head']}>
-        <h3 id="memo-title" className={styles['memo-title']}>메모</h3>
-        <div className={styles['memo-head-actions']}>
+      {!isOrganizing && previewItems === null && (
+        <div className={styles['memo-head']}>
+          <h3 id="memo-title" className={styles['memo-title']}>메모</h3>
+          <div className={styles['memo-head-actions']}>
           <button
             type="button"
             className={styles['memo-icon-action']}
@@ -425,10 +583,11 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
             <IconPlus size={16} aria-hidden="true" />
             새 메모
           </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {isConfirmingDelete && (
+      {previewItems === null && isConfirmingDelete && (
         <div className={styles['delete-confirmation']} role="group" aria-label="메모 삭제 확인">
           <span>이 메모를 삭제할까요?</span>
           <div>
@@ -446,82 +605,262 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
         </div>
       )}
 
-      <textarea
-        ref={textareaRef}
-        className={styles['memo-paper']}
-        placeholder="떠오르는 일을 편하게 적어두세요."
-        value={memo}
-        onChange={handleMemoChange}
-        onBlur={handleBlur}
-        disabled={isEditorDisabled}
-      />
-
-      <div className={styles['memo-foot']}>
-        <span className={styles['memo-hint']} role="status" aria-live="polite">
-          {statusMessage}
-        </span>
-        <button
-          type="button"
-          className={styles['organize-action']}
-          onClick={handleOrganize}
-          disabled={!memo.trim() || isEditorDisabled}
+      {isOrganizing && previewItems === null ? (
+        <section
+          className={styles['organize-loading']}
+          aria-labelledby="organize-loading-title"
+          aria-busy="true"
         >
-          <IconSparkles size={16} aria-hidden="true" />
-          {isOrganizing ? '정리하는 중' : '할 일로 정리'}
-        </button>
-      </div>
-
-      {recentlyArchivedId !== null && (
-        <div className={styles['archive-undo']} role="status">
-          <span>메모를 보관했어요</span>
-          <button
-            type="button"
-            onClick={handleRestoreRecent}
-            disabled={isArchiving}
-          >
-            실행 취소
-          </button>
-        </div>
-      )}
-
-      <section
-        className={styles['memo-list']}
-        aria-labelledby="saved-memos-title"
-      >
-        <div className={styles['memo-list-head']}>
-          <h4 id="saved-memos-title">메모 목록</h4>
-          <span>{notes.length}개</span>
-        </div>
-
-        {notes.length > 0 ? (
-          <ul className={styles['memo-list-items']}>
-            {notes.map((note) => (
-              <li key={note.id}>
-                <button
-                  type="button"
-                  className={
-                    selectedNoteId === note.id
-                      ? styles['memo-list-action-active']
-                      : styles['memo-list-action']
-                  }
-                  onClick={() => handleSelectNote(note)}
-                  disabled={isEditorDisabled}
-                  aria-pressed={selectedNoteId === note.id}
-                >
-                  <span>{getNotePreview(note.content)}</span>
-                  <time dateTime={note.createdAt}>
-                    {formatNoteDate(note.createdAt)}
-                  </time>
-                </button>
+          <div className={styles['organize-loading-heading']}>
+            <h4 id="organize-loading-title">메모를 할 일로 정리하고 있어요</h4>
+            <p
+              className={styles['organize-loading-message']}
+              key={organizeLoadingMessageIndex}
+              role="status"
+              aria-live="polite"
+            >
+              {ORGANIZE_LOADING_MESSAGES[organizeLoadingMessageIndex]}
+            </p>
+          </div>
+          <ul className={styles['organize-loading-list']} aria-hidden="true">
+            {[0, 1, 2].map((index) => (
+              <li className={styles['organize-loading-row']} key={index}>
+                <span className={styles['organize-loading-title']} />
+                <span className={styles['organize-loading-project']} />
               </li>
             ))}
           </ul>
-        ) : (
-          <p className={styles['memo-list-empty']}>
-            저장된 메모가 여기에 모여요.
-          </p>
-        )}
-      </section>
+        </section>
+      ) : previewItems === null ? (
+        <>
+          <textarea
+            ref={textareaRef}
+            className={styles['memo-paper']}
+            placeholder="떠오르는 일을 편하게 적어두세요."
+            value={memo}
+            onChange={handleMemoChange}
+            onBlur={handleBlur}
+            disabled={isEditorDisabled}
+          />
+
+          <div className={styles['memo-foot']}>
+            <span className={styles['memo-hint']} role="status" aria-live="polite">
+              {statusMessage}
+            </span>
+            <button
+              type="button"
+              className={styles['organize-action']}
+              onClick={handleOrganize}
+              disabled={!memo.trim() || isEditorDisabled}
+            >
+              <IconSparkles size={16} aria-hidden="true" />
+              {isOrganizing ? '정리하는 중' : '할 일로 정리'}
+            </button>
+          </div>
+
+          {recentlyArchivedId !== null && (
+            <div className={styles['archive-undo']} role="status">
+              <span>메모를 보관했어요</span>
+              <button
+                type="button"
+                onClick={handleRestoreRecent}
+                disabled={isArchiving}
+              >
+                실행 취소
+              </button>
+            </div>
+          )}
+
+          <section
+            className={styles['memo-list']}
+            aria-labelledby="saved-memos-title"
+          >
+            <div className={styles['memo-list-head']}>
+              <h4 id="saved-memos-title">메모 목록</h4>
+              <span>{notes.length}개</span>
+            </div>
+
+            {notes.length > 0 ? (
+              <ul className={styles['memo-list-items']}>
+                {notes.map((note) => (
+                  <li key={note.id}>
+                    <button
+                      type="button"
+                      className={
+                        selectedNoteId === note.id
+                          ? styles['memo-list-action-active']
+                          : styles['memo-list-action']
+                      }
+                      onClick={() => handleSelectNote(note)}
+                      disabled={isEditorDisabled}
+                      aria-pressed={selectedNoteId === note.id}
+                    >
+                      <span>{getNotePreview(note.content)}</span>
+                      <time dateTime={note.createdAt}>
+                        {formatNoteDate(note.createdAt)}
+                      </time>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles['memo-list-empty']}>
+                저장된 메모가 여기에 모여요.
+              </p>
+            )}
+          </section>
+        </>
+      ) : (
+          <section
+              className={styles['organize-preview']}
+              aria-labelledby="organize-preview-title"
+          >
+            <div className={styles['organize-preview-heading']}>
+              <h4 id="organize-preview-title">할 일 미리보기</h4>
+              <span>{selectedPreviewItems.length}개 등록</span>
+            </div>
+
+            <p className={styles['organize-preview-guide']}>
+              할 일과 프로젝트를 클릭하면 원하는 대로
+            </p>
+            <p className={styles['organize-preview-guide']}>
+              수정할 수 있어요
+            </p>
+
+            <div className={styles['organize-preview-list-wrap']}>
+              {previewItems.length > 0 ? (
+                  <ul className={styles['organize-task-list']}>
+                    {previewItems.map((item) => {
+                      const projectName = item.projectId === null
+                          ? '미분류'
+                          : projects.find((project) => project.id === item.projectId)?.name ??
+                          item.projectName ??
+                          '프로젝트'
+
+                      return (
+                          <li
+                              className={
+                                item.selected
+                                    ? styles['organize-task-row']
+                                    : item.projectId === null
+                                        ? styles['organize-task-row-unclassified']
+                                        : styles['organize-task-row-excluded']
+                              }
+                              key={item.id}
+                          >
+                            <div className={styles['organize-task-fields']}>
+                              <InlineEditableText
+                                  className={styles['organize-title-edit']}
+                                  errorClassName={styles['organize-title-error']}
+                                  value={item.title}
+                                  ariaLabel="Task 제목"
+                                  maxLength={255}
+                                  disabled={isConfirmingTasks}
+                                  requiredMessage="Task 제목을 입력해 주세요."
+                                  onSave={(title) => {
+                                    updatePreviewItem(item.id, (currentItem) => ({
+                                      ...currentItem,
+                                      title,
+                                    }))
+                                    return Promise.resolve()
+                                  }}
+                              />
+
+                              {editingProjectItemId === item.id ? (
+                                  <select
+                                      className={styles['organize-project-select']}
+                                      value={item.projectId ?? ''}
+                                      disabled={isConfirmingTasks}
+                                      autoFocus
+                                      onBlur={() => setEditingProjectItemId(null)}
+                                      onChange={(event) =>
+                                          handlePreviewProjectChange(item.id, event.target.value)
+                                      }
+                                      aria-label={`${item.title} Project 선택`}
+                                  >
+                                    <option value="">미분류</option>
+                                    {projects.map((project) => (
+                                        <option key={project.id} value={project.id}>
+                                          {project.name}
+                                        </option>
+                                    ))}
+                                  </select>
+                              ) : (
+                                  <button
+                                      type="button"
+                                      className={styles['organize-project-action']}
+                                      disabled={isConfirmingTasks}
+                                      onClick={() => setEditingProjectItemId(item.id)}
+                                      aria-label={`${item.title} Project 변경`}
+                                  >
+                                    {projectName}
+                                  </button>
+                              )}
+                            </div>
+
+                            <button
+                                type="button"
+                                className={styles['organize-exclude-action']}
+                                disabled={item.projectId === null || isConfirmingTasks}
+                                onClick={() => updatePreviewItem(
+                                    item.id,
+                                    (currentItem) => ({
+                                      ...currentItem,
+                                      selected: !currentItem.selected,
+                                    }),
+                                )}
+                                aria-label={item.selected
+                                    ? `${item.title} 후보에서 빼기`
+                                    : `${item.title} 다시 포함`}
+                                title={item.selected ? '후보에서 빼기' : '다시 포함'}
+                            >
+                              {item.selected
+                                  ? <IconMinus size={16} aria-hidden="true"/>
+                                  : <IconPlus size={16} aria-hidden="true"/>}
+                            </button>
+                          </li>
+                      )
+                    })}
+                  </ul>
+              ) : (
+                  <p className={styles['organize-preview-empty']}>
+                    지금 만들 Task 후보는 없어요.
+                  </p>
+              )}
+            </div>
+
+            {previewMessage && (
+                <p className={styles['organize-preview-message']} role="status">
+                  {previewMessage}
+                </p>
+            )}
+
+            <div className={styles['organize-preview-actions']}>
+              <button
+                  type="button"
+                  className={styles['organize-confirm-action']}
+                  onClick={handleConfirmTasks}
+                  disabled={
+                      selectedPreviewItems.length === 0 ||
+                      hasUntitledSelectedItem ||
+                      isConfirmingTasks
+                  }
+              >
+                {isConfirmingTasks
+                    ? '할 일 만드는 중'
+                    : `${selectedPreviewItems.length}개 할 일 만들기`}
+              </button>
+              <button
+                  type="button"
+                  className={styles['organize-cancel-action']}
+                  onClick={handleCancelPreview}
+                  disabled={isConfirmingTasks}
+              >
+                취소
+              </button>
+            </div>
+          </section>
+      )}
     </section>
   )
 }

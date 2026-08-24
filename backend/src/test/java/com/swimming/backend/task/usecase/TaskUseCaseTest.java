@@ -6,21 +6,21 @@ import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.web.CreateTaskRequest;
-import com.swimming.backend.task.dto.web.DeleteTasksRequest;
-import com.swimming.backend.task.dto.web.ReorderTasksRequest;
-import com.swimming.backend.task.dto.web.TaskResponse;
-import com.swimming.backend.task.dto.web.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.DeleteTasksRequest;
+import com.swimming.backend.task.dto.in.ReorderTasksRequest;
+import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.UpdateTaskRequest;
 import com.swimming.backend.task.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -42,10 +42,9 @@ class TaskUseCaseTest {
     @Test
     @DisplayName("소유한 프로젝트에 Task를 생성한다")
     void createsTaskInOwnedProject() {
-        Task task = task(1L, 10L, "Task", 0);
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L));
-        when(taskService.create(10L, "Task")).thenReturn(task);
+        when(taskService.create(10L, "Task")).thenReturn(task(1L, 10L, "Task", 0));
 
         TaskResponse response = taskUseCase.create(
                 1L,
@@ -79,20 +78,17 @@ class TaskUseCaseTest {
         Task task = task(1L, 10L, "기존", 0);
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "수정",
-                TaskStatus.DOING,
-                40
+                TaskStatus.DOING
         );
         when(taskService.getOne(1L)).thenReturn(task);
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L));
-        task.update("수정", TaskStatus.DOING, 40);
-        when(taskService.update(task, "수정", TaskStatus.DOING, 40))
-                .thenReturn(task);
+        when(taskService.update(task)).thenReturn(task);
 
         TaskResponse response = taskUseCase.update(1L, 1L, request);
 
+        assertThat(response.title()).isEqualTo("수정");
         assertThat(response.status()).isEqualTo(TaskStatus.DOING);
-        assertThat(response.completionPct()).isEqualTo(40);
     }
 
     @Test
@@ -101,33 +97,25 @@ class TaskUseCaseTest {
         Task task = task(1L, 10L, "Task", 0);
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "수정",
-                TaskStatus.DOING,
-                40
+                TaskStatus.DOING
         );
         when(taskService.getOne(1L)).thenReturn(task);
         when(projectService.getReference(2L, 10L))
                 .thenThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         assertThatThrownBy(() -> taskUseCase.update(2L, 1L, request))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> assertThat(
-                        ((BusinessException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService, never()).update(
-                task,
-                "수정",
-                TaskStatus.DOING,
-                40
-        );
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskService, never()).update(any(Task.class));
     }
 
     @Test
     @DisplayName("소유권을 확인한 여러 Task를 한 번에 삭제한다")
     void deletesOwnedTasksAtOnce() {
-        Task first = task(1L, 10L, "첫째", 0);
-        Task second = task(2L, 10L, "둘째", 1);
-        when(taskService.getAllEntitiesByIds(List.of(1L, 2L)))
-                .thenReturn(List.of(first, second));
+        when(taskService.getAllByIds(List.of(1L, 2L))).thenReturn(List.of(
+                task(1L, 10L, "첫째", 0),
+                task(2L, 10L, "둘째", 1)
+        ));
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L));
 
@@ -136,35 +124,32 @@ class TaskUseCaseTest {
                 new DeleteTasksRequest(List.of(1L, 2L, 2L))
         );
 
-        verify(taskService).deleteAll(List.of(first, second));
+        verify(taskService).deleteAll(List.of(1L, 2L));
         verify(projectService).getReference(1L, 10L);
     }
 
     @Test
     @DisplayName("삭제 대상 중 찾을 수 없는 Task가 있으면 아무것도 삭제하지 않는다")
     void rejectsDeletionWhenAnyTaskIsMissing() {
-        Task first = task(1L, 10L, "첫째", 0);
-        when(taskService.getAllEntitiesByIds(List.of(1L, 2L)))
-                .thenReturn(List.of(first));
+        when(taskService.getAllByIds(List.of(1L, 2L)))
+                .thenReturn(List.of(task(1L, 10L, "첫째", 0)));
 
         assertThatThrownBy(() -> taskUseCase.deleteTasks(
                 1L,
                 new DeleteTasksRequest(List.of(1L, 2L))
         ))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> assertThat(
-                        ((BusinessException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService, never()).deleteAll(List.of(first));
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskService, never()).deleteAll(any());
     }
 
     @Test
     @DisplayName("삭제 대상 중 다른 사용자의 Task가 있으면 아무것도 삭제하지 않는다")
     void rejectsDeletionWhenAnyTaskIsNotOwned() {
-        Task owned = task(1L, 10L, "내 Task", 0);
-        Task notOwned = task(2L, 20L, "다른 Task", 0);
-        when(taskService.getAllEntitiesByIds(List.of(1L, 2L)))
-                .thenReturn(List.of(owned, notOwned));
+        when(taskService.getAllByIds(List.of(1L, 2L))).thenReturn(List.of(
+                task(1L, 10L, "내 Task", 0),
+                task(2L, 20L, "다른 Task", 0)
+        ));
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L));
         when(projectService.getReference(1L, 20L))
@@ -174,11 +159,9 @@ class TaskUseCaseTest {
                 1L,
                 new DeleteTasksRequest(List.of(1L, 2L))
         ))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> assertThat(
-                        ((BusinessException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService, never()).deleteAll(List.of(owned, notOwned));
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskService, never()).deleteAll(any());
     }
 
     @Test
@@ -194,12 +177,14 @@ class TaskUseCaseTest {
     }
 
     private Task task(Long id, Long projectId, String title, int orderIdx) {
-        Task task = Task.builder()
-                .projectId(projectId)
-                .title(title)
-                .orderIdx(orderIdx)
-                .build();
-        ReflectionTestUtils.setField(task, "id", id);
-        return task;
+        return Task.restore(
+                id,
+                projectId,
+                title,
+                TaskStatus.TODO,
+                orderIdx,
+                null,
+                null
+        );
     }
 }

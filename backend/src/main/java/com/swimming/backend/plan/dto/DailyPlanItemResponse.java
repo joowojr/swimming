@@ -9,7 +9,6 @@ public record DailyPlanItemResponse(
         String projectName,
         String title,
         TaskStatus status,
-        Integer completionPct,
         int orderIdx
 ) {
 }

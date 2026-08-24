@@ -15,38 +15,41 @@ public class Session {
     private final Long userId;
     private final SessionType type;
     private final Long placeId;
-    private final List<Long> taskIds;
+    private final List<SessionTask> tasks;
     private String musicUrl;
     private int plannedDurationSec;
     private Integer actualDurationSec;
     private final Instant startedAt;
     private Instant endedAt;
     private SessionStatus status;
+    private String summary;
 
     private Session(
             Long id,
             Long userId,
             SessionType type,
             Long placeId,
-            List<Long> taskIds,
+            List<SessionTask> tasks,
             String musicUrl,
             int plannedDurationSec,
             Integer actualDurationSec,
             Instant startedAt,
             Instant endedAt,
-            SessionStatus status
+            SessionStatus status,
+            String summary
     ) {
         this.id = id;
         this.userId = userId;
         this.type = type;
         this.placeId = placeId;
-        this.taskIds = List.copyOf(taskIds);
+        this.tasks = List.copyOf(tasks);
         this.musicUrl = musicUrl;
         this.plannedDurationSec = plannedDurationSec;
         this.actualDurationSec = actualDurationSec;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.status = status;
+        this.summary = summary;
     }
 
     public static Session startPersonal(
@@ -60,13 +63,14 @@ public class Session {
                 userId,
                 SessionType.PERSONAL,
                 placeId,
-                taskIds,
+                taskIds.stream().map(SessionTask::of).toList(),
                 null,
                 plannedDurationSec,
                 null,
                 null,
                 null,
-                SessionStatus.IN_PROGRESS
+                SessionStatus.IN_PROGRESS,
+                null
         );
     }
 
@@ -75,30 +79,36 @@ public class Session {
             Long userId,
             SessionType type,
             Long placeId,
-            List<Long> taskIds,
+            List<SessionTask> tasks,
             String musicUrl,
             int plannedDurationSec,
             Integer actualDurationSec,
             Instant startedAt,
             Instant endedAt,
-            SessionStatus status
+            SessionStatus status,
+            String summary
     ) {
         return new Session(
                 id,
                 userId,
                 type,
                 placeId,
-                taskIds,
+                tasks,
                 musicUrl,
                 plannedDurationSec,
                 actualDurationSec,
                 startedAt,
                 endedAt,
-                status
+                status,
+                summary
         );
     }
 
-    public void end(Instant endTime) {
+    public List<Long> getTaskIds() {
+        return tasks.stream().map(SessionTask::taskId).toList();
+    }
+
+    public void end(Instant endTime, String summary) {
         if (status != SessionStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.SESSION_ALREADY_ENDED);
         }
@@ -107,9 +117,14 @@ public class Session {
         long elapsedSeconds = Duration.between(startedAt, effectiveEndTime).toSeconds();
         actualDurationSec = Math.toIntExact(elapsedSeconds);
         endedAt = effectiveEndTime;
-        status = elapsedSeconds >= plannedDurationSec
-                ? SessionStatus.COMPLETED
-                : SessionStatus.INTERRUPTED;
+        status = SessionStatus.COMPLETED;
+        // 세션은 몰입 창을 열었다 닫는 단위이지 할 일을 완수했다는 단위가 아니므로,
+        // 소요 시간으로 완주 여부를 판정하지 않는다.
+        // status = elapsedSeconds >= plannedDurationSec
+        //         ? SessionStatus.COMPLETED
+        //         : SessionStatus.INTERRUPTED;
+
+        this.summary = summary;
     }
 
     public void updateMusicUrl(String musicUrl) {

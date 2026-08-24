@@ -16,8 +16,9 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import { getPlaces } from '../places/placeApi'
-import { endSession, getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
+import { getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
+import EndSessionModal from './EndSessionModal'
 import SessionMusicPlayer from './music/SessionMusicPlayer'
 import type { SessionMusicOption } from './music/SessionMusicPlayer'
 import styles from './PersonalSessionPage.module.css'
@@ -81,7 +82,7 @@ export default function PersonalSessionPage() {
     : null
   const [state, setState] = useState<PageState>({ status: 'loading' })
   const [nowKey, setNowKey] = useState(0)
-  const [isEnding, setIsEnding] = useState(false)
+  const [isEndModalOpen, setIsEndModalOpen] = useState(false)
   const [isAdjustingDuration, setIsAdjustingDuration] = useState(false)
   const [durationStepSec, setDurationStepSec] = useState(10)
   const [requestKey, setRequestKey] = useState(0)
@@ -179,17 +180,14 @@ export default function PersonalSessionPage() {
     })
   }
 
-  const finish = async () => {
-    if (!session || isEnding) return
-    setIsEnding(true)
-    try {
-      await endSession(session.id)
-      setState({ status: 'ended', session })
-    } catch (error) {
-      setState({ status: 'error', message: errorMessage(error) })
-    } finally {
-      setIsEnding(false)
-    }
+  const openEndModal = () => {
+    if (state.status !== 'ready') return
+    setIsEndModalOpen(true)
+  }
+
+  const handleEnded = () => {
+    setIsEndModalOpen(false)
+    if (session) setState({ status: 'ended', session })
   }
 
   const saveMusicSource = async (source: string | null) => {
@@ -266,7 +264,7 @@ export default function PersonalSessionPage() {
         <div className={styles['background-shade']} aria-hidden="true" />
         <section className={styles['ended-card']} aria-labelledby="session-ended-title">
           <span className={styles['ended-icon']}><IconCheck aria-hidden="true" /></span>
-          <p>세션 마무리</p>
+          <p>기록하기</p>
           <h1 id="session-ended-title">오늘의 집중을 잘 마무리했어요.</h1>
           <p>함께한 Task와 집중 기록을 저장했습니다.</p>
           <button type="button" onClick={() => navigate('/projects')}>내 프로젝트로 돌아가기</button>
@@ -378,9 +376,9 @@ export default function PersonalSessionPage() {
               <IconPlus aria-hidden="true" />
             </button>
           </div>
-          <button className={styles.finish} type="button" disabled={isEnding} onClick={() => void finish()}>
-            {isEnding ? <IconLoader2 className={styles.spinner} /> : <IconFlag />}
-            {isEnding ? '기록 중…' : '세션 마치기'}
+          <button className={styles.finish} type="button" onClick={openEndModal}>
+            <IconFlag />
+            세션 마치기
           </button>
         </section>
       )}
@@ -411,6 +409,15 @@ export default function PersonalSessionPage() {
       >
         <IconBellOff aria-hidden="true" /> {focusMode ? '집중 모드 해제' : '집중 모드'}
       </button>
+
+      {isEndModalOpen && state.status === 'ready' && (
+        <EndSessionModal
+          sessionId={state.session.id}
+          tasks={state.session.tasks}
+          onClose={() => setIsEndModalOpen(false)}
+          onEnded={handleEnded}
+        />
+      )}
     </main>
   )
 }

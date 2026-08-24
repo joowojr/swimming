@@ -5,7 +5,6 @@ import styles from './ProjectCard.module.css'
 
 interface ProjectCardProps {
   project: Project
-  index: number
 }
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
@@ -17,16 +16,22 @@ function formatTargetDate(targetDate: string) {
   return dateFormatter.format(new Date(`${targetDate}T00:00:00`))
 }
 
-export default function ProjectCard({ project, index }: ProjectCardProps) {
-  const routeTone = [styles['is-clay'], styles['is-sky'], styles['is-pale']][index % 3]
+export default function ProjectCard({ project }: ProjectCardProps) {
+  // 톤은 화면마다 같아야 하므로 목록 순서가 아닌 프로젝트 id로 고른다.
+  const routeTone = [
+    styles['is-clay'],
+    styles['is-sky'],
+    styles['is-pale'],
+    styles['is-moss'],
+  ][project.id % 4]
 
   return (
     <Link
-      className={styles.card}
+      className={`${styles.card} ${routeTone}`}
       to={`/projects/${project.id}`}
       aria-label={`${project.name} 상세 보기`}
     >
-      <span className={`${styles.route} ${routeTone}`} aria-hidden="true" />
+      <span className={styles.route} aria-hidden="true" />
       <div className={styles.heading}>
         <div className={styles['title-group']}>
           {project.tag && <span className={styles.tag}>{project.tag.name}</span>}

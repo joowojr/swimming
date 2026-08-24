@@ -5,11 +5,11 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
-import com.swimming.backend.task.dto.web.CreateTaskRequest;
-import com.swimming.backend.task.dto.web.DeleteTasksRequest;
-import com.swimming.backend.task.dto.web.ReorderTasksRequest;
-import com.swimming.backend.task.dto.web.TaskResponse;
-import com.swimming.backend.task.dto.web.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.DeleteTasksRequest;
+import com.swimming.backend.task.dto.in.ReorderTasksRequest;
+import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.UpdateTaskRequest;
 import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,10 +35,7 @@ public class TaskUseCase {
         return TaskResponse.from(taskService.create(project.id(), request.title()));
     }
 
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskResponse> getAll(Long userId, Long projectId) {
         ProjectReference project = projectService.getReference(userId, projectId);
         return taskService.getAll(project.id())
@@ -53,19 +50,16 @@ public class TaskUseCase {
             Long taskId,
             UpdateTaskRequest request
     ) {
-        Task task = getOwnedTask(userId, taskId);
-        return TaskResponse.from(taskService.update(
-                task,
-                request.title(),
-                request.status(),
-                request.completionPct()
-        ));
+        Task task = taskService.getOne(taskId);
+        verifyProjectOwnership(userId, task.getProjectId());
+        task.update(request.title(), request.status());
+        return TaskResponse.from(taskService.update(task));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void deleteTasks(Long userId, DeleteTasksRequest request) {
         List<Long> taskIds = request.taskIds().stream().distinct().toList();
-        List<Task> tasks = taskService.getAllEntitiesByIds(taskIds);
+        List<Task> tasks = taskService.getAllByIds(taskIds);
 
         if (tasks.size() != taskIds.size()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
@@ -75,7 +69,7 @@ public class TaskUseCase {
                 .map(Task::getProjectId)
                 .distinct()
                 .forEach(projectId -> verifyProjectOwnership(userId, projectId));
-        taskService.deleteAll(tasks);
+        taskService.deleteAll(taskIds);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -86,12 +80,6 @@ public class TaskUseCase {
     ) {
         ProjectReference project = projectService.getReference(userId, projectId);
         taskService.updateOrder(project.id(), request.taskIds());
-    }
-
-    private Task getOwnedTask(Long userId, Long taskId) {
-        Task task = taskService.getOne(taskId);
-        verifyProjectOwnership(userId, task.getProjectId());
-        return task;
     }
 
     private void verifyProjectOwnership(Long userId, Long projectId) {

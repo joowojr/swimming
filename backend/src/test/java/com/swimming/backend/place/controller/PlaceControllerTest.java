@@ -44,7 +44,7 @@ class PlaceControllerTest {
     @Test
     @DisplayName("도시와 제공 공간 목록을 반환한다")
     void getsCities() throws Exception {
-        when(placeUseCase.getCities()).thenReturn(List.of(new CityResponse(
+        when(placeUseCase.getPlaces()).thenReturn(List.of(new CityResponse(
                 1L,
                 "Lisbon",
                 "PT",
@@ -63,7 +63,7 @@ class PlaceControllerTest {
                 .andExpect(jsonPath("$[0].places[0].defaultMusicUrl")
                         .value("https://youtu.be/default"));
 
-        verify(placeUseCase).getCities();
+        verify(placeUseCase).getPlaces();
     }
 
     private record AuthUserArgumentResolver(AuthUser authUser)

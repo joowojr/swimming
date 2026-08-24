@@ -43,6 +43,16 @@ export interface SessionDetailResponse {
   tasks: SessionTask[]
 }
 
+export interface EndSessionTaskResult {
+  taskId: number
+  isCompleted: boolean
+}
+
+export interface EndSessionRequest {
+  summary: string | null
+  taskResults: EndSessionTaskResult[]
+}
+
 export interface UpdateSessionMusicUrlRequest {
   musicUrl: string | null
 }

@@ -21,7 +21,7 @@ public class PlaceService {
     private final PlaceRepository placeRepository;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<City> getCities() {
+    public List<City> getCitiesAndPlaces() {
         return cityRepository.findAllByOrderByIdAsc()
                 .stream()
                 .map(CityEntity::toDomain)

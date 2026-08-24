@@ -1,6 +1,6 @@
 package com.swimming.backend.task.repository;
 
-import com.swimming.backend.task.domain.Task;
+import com.swimming.backend.task.repository.entity.TaskEntity;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -9,11 +9,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface TaskRepository extends JpaRepository<Task, Long> {
+public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
-    List<Task> findAllByProjectIdOrderByOrderIdxAscIdAsc(Long projectId);
+    List<TaskEntity> findAllByProjectIdOrderByOrderIdxAscIdAsc(Long projectId);
 
-    Optional<Task> findTopByProjectIdOrderByOrderIdxDescIdDesc(Long projectId);
+    Optional<TaskEntity> findTopByProjectIdOrderByOrderIdxDescIdDesc(Long projectId);
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskReference(
@@ -21,15 +21,26 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
                 task.projectId,
                 project.name,
                 task.title,
-                task.status,
-                task.completionPct
+                task.status
             )
-            FROM Task task
+            FROM TaskEntity task
             JOIN ProjectEntity project ON project.id = task.projectId
             WHERE project.userId = :userId
               AND task.id IN :taskIds
             """)
     List<TaskReference> findAllOwnedByIds(
+            @Param("userId") Long userId,
+            @Param("taskIds") List<Long> taskIds
+    );
+
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            JOIN ProjectEntity project ON project.id = task.projectId
+            WHERE project.userId = :userId
+              AND task.id IN :taskIds
+            """)
+    List<TaskEntity> findAllOwnedEntitiesByIds(
             @Param("userId") Long userId,
             @Param("taskIds") List<Long> taskIds
     );

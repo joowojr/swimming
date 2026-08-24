@@ -5,16 +5,17 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.common.util.UrlUtils;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.place.dto.PlaceReference;
-import com.swimming.backend.place.service.PlaceService;
+import com.swimming.backend.place.service.PlaceVideoService;
 import com.swimming.backend.session.domain.Session;
-import com.swimming.backend.session.dto.web.ActiveSessionResponse;
-import com.swimming.backend.session.dto.web.ActiveSessionTaskResponse;
+import com.swimming.backend.session.dto.web.SessionTaskResponse;
+import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.session.service.SessionService;
+import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.user.service.UserService;
@@ -29,9 +30,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -47,7 +50,7 @@ public class SessionUseCase {
     private final DailyPlanService dailyPlanService;
     private final UserService userService;
     private final TaskService taskService;
-    private final PlaceService placeService;
+    private final PlaceVideoService placeVideoService;
     private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -66,7 +69,10 @@ public class SessionUseCase {
         if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
             throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
         }
-        PlaceReference place = placeService.getReference(request.placeId());
+        PlaceReference place = placeVideoService.getReference(request.placeId());
+
+        taskService.updateStatuses(userId, taskIds.stream()
+                .collect(Collectors.toMap(Function.identity(), taskId -> TaskStatus.DOING)));
 
         Session session = Session.startPersonal(
                 userId,
@@ -81,9 +87,9 @@ public class SessionUseCase {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
-    public Optional<ActiveSessionResponse> getActive(Long userId) {
+    public Optional<SessionDetailResponse> getActive(Long userId) {
         return sessionService.getActive(userId)
-                .map(session -> toActiveResponse(userId, session));
+                .map(session -> toDetailResponse(userId, session));
     }
 
     @Transactional(
@@ -95,12 +101,53 @@ public class SessionUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public SessionResponse end(Long userId, Long sessionId) {
+    public SessionResponse end(Long userId, Long sessionId, EndSessionRequest request) {
         Session session = sessionService.getOwned(userId, sessionId);
-        session.end(clock.instant());
+        Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(session, request);
+
+        session.end(clock.instant(), toSummary(request));
+
+        if (!completionByTaskId.isEmpty()) {
+            taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));
+        }
+
         Session savedSession = sessionService.save(session);
-        PlaceReference place = placeService.getReference(savedSession.getPlaceId());
+        PlaceReference place = placeVideoService.getReference(savedSession.getPlaceId());
         return SessionResponse.from(savedSession, place);
+    }
+
+    private String toSummary(EndSessionRequest request) {
+        if (request == null || request.summary() == null || request.summary().isBlank()) {
+            return null;
+        }
+        return request.summary();
+    }
+
+    private Map<Long, Boolean> toCompletionByTaskId(Session session, EndSessionRequest request) {
+        if (request == null || request.taskResults() == null) {
+            return Map.of();
+        }
+
+        Map<Long, Boolean> completionByTaskId = new LinkedHashMap<>();
+        for (EndSessionRequest.TaskResult result : request.taskResults()) {
+            if (completionByTaskId.put(result.taskId(), result.isCompleted()) != null) {
+                throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
+            }
+        }
+
+        Set<Long> sessionTaskIds = new HashSet<>(session.getTaskIds());
+        if (!sessionTaskIds.containsAll(completionByTaskId.keySet())) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
+        }
+        return completionByTaskId;
+    }
+
+    private Map<Long, TaskStatus> toStatusByTaskId(Map<Long, Boolean> completionByTaskId) {
+        return completionByTaskId.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue() ? TaskStatus.DONE : TaskStatus.DOING
+                ));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -129,19 +176,14 @@ public class SessionUseCase {
         sessionService.save(session);
     }
 
-    private ActiveSessionResponse toActiveResponse(Long userId, Session session) {
-        PlaceReference place = placeService.getReference(session.getPlaceId());
-        return ActiveSessionResponse.from(session, place, getTasks(userId, session));
-    }
-
     private SessionDetailResponse toDetailResponse(Long userId, Session session) {
-        PlaceReference place = placeService.getReference(session.getPlaceId());
+        PlaceReference place = placeVideoService.getReference(session.getPlaceId());
         return SessionDetailResponse.from(session, place, getTasks(userId, session));
     }
 
-    private List<ActiveSessionTaskResponse> getTasks(Long userId, Session session) {
+    private List<SessionTaskResponse> getTasks(Long userId, Session session) {
         Map<Long, TaskReference> tasksById = taskService
-                .getAllByIds(userId, session.getTaskIds())
+                .getReferences(userId, session.getTaskIds())
                 .stream()
                 .collect(Collectors.toMap(TaskReference::id, Function.identity()));
 
@@ -152,7 +194,7 @@ public class SessionUseCase {
         return session.getTaskIds()
                 .stream()
                 .map(tasksById::get)
-                .map(ActiveSessionTaskResponse::from)
+                .map(SessionTaskResponse::from)
                 .toList();
     }
 

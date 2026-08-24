@@ -29,7 +29,7 @@ class PlaceUseCaseTest {
     @Test
     @DisplayName("도시별 공간을 정렬된 카탈로그로 반환한다")
     void getsCitiesWithPlaces() {
-        when(placeService.getCities()).thenReturn(List.of(
+        when(placeService.getCitiesAndPlaces()).thenReturn(List.of(
                 city(1L, "Lisbon", "PT"),
                 city(2L, "Tokyo", "JP")
         ));
@@ -38,7 +38,7 @@ class PlaceUseCaseTest {
                 place(21L, 2L, "Shibuya Rooftop", "places/tokyo/shibuya.mp4")
         ));
 
-        List<CityResponse> response = placeUseCase.getCities();
+        List<CityResponse> response = placeUseCase.getPlaces();
 
         assertThat(response).extracting(CityResponse::name)
                 .containsExactly("Lisbon", "Tokyo");
@@ -53,10 +53,10 @@ class PlaceUseCaseTest {
     @Test
     @DisplayName("공간이 없는 도시는 빈 목록으로 반환한다")
     void returnsEmptyPlacesForCityWithoutPlace() {
-        when(placeService.getCities()).thenReturn(List.of(city(1L, "Lisbon", "PT")));
+        when(placeService.getCitiesAndPlaces()).thenReturn(List.of(city(1L, "Lisbon", "PT")));
         when(placeService.getPlaces()).thenReturn(List.of());
 
-        List<CityResponse> response = placeUseCase.getCities();
+        List<CityResponse> response = placeUseCase.getPlaces();
 
         assertThat(response).singleElement()
                 .satisfies(city -> assertThat(city.places()).isEmpty());

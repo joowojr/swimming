@@ -1,4 +1,4 @@
-package com.swimming.backend.task.dto.web;
+package com.swimming.backend.task.dto.in;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

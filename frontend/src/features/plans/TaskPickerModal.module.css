@@ -23,7 +23,7 @@
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
-  border: var(--border-width) solid var(--color-mute-variant);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-panel);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);

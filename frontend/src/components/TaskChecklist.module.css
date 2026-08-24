@@ -1,0 +1,98 @@
+.list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+  transition:
+    color var(--transition-short),
+    background-color var(--transition-short);
+}
+
+.option input {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  margin: 0.125rem 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.text {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+  text-align: left;
+}
+
+.title,
+.description {
+  overflow-wrap: anywhere;
+}
+
+.title {
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.description {
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.highlight-selected:has(input:checked) {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.highlight-selected:has(input:checked) .description {
+  color: var(--color-on-primary);
+}
+
+.option:has(input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.option:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.option input:disabled {
+  cursor: wait;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3) 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .option:not(.highlight-selected:has(input:checked)):hover {
+    background: var(--color-surface-container-high);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option {
+    transition: none;
+  }
+}

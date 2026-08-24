@@ -23,7 +23,7 @@
 }
 
 .route {
-  --route-accent: var(--color-primary-container);
+  --route-accent: var(--project-tone, var(--color-primary-container));
   --route-length: 38%;
   position: absolute;
   inset: 0 0 auto;
@@ -40,15 +40,15 @@
   transition: width var(--transition-short) var(--ease-out);
 }
 
-.route.is-clay {
-  --route-accent: var(--color-inverse-primary);
-  --route-length: 32%;
-}
+.is-clay { --project-tone: var(--color-tone-fountain); --project-tone-tint: var(--color-tone-fountain-tint); }
+.is-sky { --project-tone: var(--color-tone-indigo); --project-tone-tint: var(--color-tone-indigo-tint); }
+.is-pale { --project-tone: var(--color-tone-glorious); --project-tone-tint: var(--color-tone-glorious-tint); }
+.is-moss { --project-tone: var(--color-tone-wild-willow); --project-tone-tint: var(--color-tone-wild-willow-tint); }
 
-.route.is-sky {
-  --route-accent: var(--color-inverse-primary);
-  --route-length: 42%;
-}
+.is-clay .route { --route-length: 32%; }
+.is-sky .route { --route-length: 42%; }
+.is-pale .route { --route-length: 36%; }
+.is-moss .route { --route-length: 45%; }
 
 .heading,
 .footer {
@@ -69,6 +69,8 @@
 
 .tag {
   display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   max-width: 100%;
   margin-bottom: var(--space-2);
   padding: var(--space-1) var(--space-2);
@@ -81,7 +83,16 @@
   line-height: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: var(--color-surface-container-highest);
+  background: var(--project-tone-tint, var(--color-surface-container-highest));
+}
+
+.tag::before {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--project-tone, var(--color-mute));
+  content: '';
 }
 
 .card h3 {

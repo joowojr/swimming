@@ -1,61 +1,72 @@
 package com.swimming.backend.task.domain;
 
-import com.swimming.backend.common.entity.BaseTimeEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "tasks")
+import java.time.LocalDateTime;
+
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Task extends BaseTimeEntity {
+public class Task {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "project_id", nullable = false)
-    private Long projectId;
-
-    @Column(nullable = false)
+    private final Long id;
+    private final Long projectId;
     private String title;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private TaskStatus status;
-
-    @Column(name = "completion_pct", nullable = false)
-    private int completionPct;
-
-    @Column(name = "order_idx", nullable = false)
     private int orderIdx;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
 
-    @Builder
-    private Task(Long projectId, String title, int orderIdx) {
+    private Task(
+            Long id,
+            Long projectId,
+            String title,
+            TaskStatus status,
+            int orderIdx,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
         this.projectId = projectId;
         this.title = title;
-        this.status = TaskStatus.TODO;
-        this.completionPct = 0;
-        this.orderIdx = orderIdx;
-    }
-
-    public void update(String title, TaskStatus status, int completionPct) {
-        this.title = title;
         this.status = status;
-        this.completionPct = completionPct;
+        this.orderIdx = orderIdx;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public void changeOrder(int orderIdx) {
-        this.orderIdx = orderIdx;
+    public static Task create(Long projectId, String title, int orderIdx) {
+        return new Task(
+                null,
+                projectId,
+                title.trim(),
+                TaskStatus.TODO,
+                orderIdx,
+                null,
+                null
+        );
+    }
+
+    public static Task restore(
+            Long id,
+            Long projectId,
+            String title,
+            TaskStatus status,
+            int orderIdx,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        return new Task(
+                id,
+                projectId,
+                title,
+                status,
+                orderIdx,
+                createdAt,
+                updatedAt
+        );
+    }
+
+    public void update(String title, TaskStatus status) {
+        this.title = title.trim();
+        this.status = status;
     }
 }

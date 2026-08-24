@@ -21,8 +21,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
                 task.projectId,
                 project.name,
                 task.title,
-                task.status,
-                task.completionPct
+                task.status
             )
             FROM TaskEntity task
             JOIN ProjectEntity project ON project.id = task.projectId

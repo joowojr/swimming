@@ -7,7 +7,6 @@ export interface CreateTaskRequest {
 export interface UpdateTaskRequest {
   title: string
   status: TaskStatus
-  completionPct: number
 }
 
 export interface ReorderTasksRequest {
@@ -23,7 +22,6 @@ export interface TaskResponse {
   projectId: number
   title: string
   status: TaskStatus
-  completionPct: number
   orderIdx: number
   createdAt: string
   updatedAt: string
@@ -33,6 +31,5 @@ export interface TaskSummaryResponse {
   id: number
   title: string
   status: TaskStatus
-  completionPct: number
   orderIdx: number
 }

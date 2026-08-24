@@ -7,7 +7,6 @@ public record TaskSummaryResponse(
         Long id,
         String title,
         TaskStatus status,
-        int completionPct,
         int orderIdx
 ) {
     public static TaskSummaryResponse from(Task task) {
@@ -15,7 +14,6 @@ public record TaskSummaryResponse(
                 task.getId(),
                 task.getTitle(),
                 task.getStatus(),
-                task.getCompletionPct(),
                 task.getOrderIdx()
         );
     }

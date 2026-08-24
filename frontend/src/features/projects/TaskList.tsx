@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
@@ -23,15 +23,14 @@ interface TaskListProps {
   onTaskUpdated?: () => void
 }
 
-// function clampCompletionPct(value: number) {
-//   return Math.min(100, Math.max(0, value))
-// }
+const MOCK_SESSION_COUNT = 3
 
-function getTaskMeta(status: TaskStatus) {
+function getTaskMeta(status: TaskStatus, sessionCount: number) {
+  if (status === 'DOING') return `${sessionCount}회 세션을 진행했어요`
   if (status === 'TODO') return '언제든 편할 때 시작해요'
-  if (status === 'DONE') return `완료했습니다`
-  if (status === 'HOLD') return `편할 때 다시 시작해요`
-  return `최근에 n개의 세션을 진행했어요`
+  if (status === 'DONE') return '완료했습니다'
+  if (status === 'HOLD') return '편할 때 다시 시작해요'
+  return '집중을 이어가고 있어요'
 }
 
 export default function TaskList({
@@ -49,7 +48,6 @@ export default function TaskList({
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
-  const statusSelectRefs = useRef(new Map<number, HTMLSelectElement>())
   const orderedTasks = [...tasks].sort((a, b) => a.orderIdx - b.orderIdx)
 
   const changeTaskStatus = async (task: TaskSummaryResponse, status: TaskStatus) => {
@@ -60,7 +58,6 @@ export default function TaskList({
       await updateTask(task.id, {
         title: task.title,
         status,
-        completionPct: status === 'DONE' ? 100 : task.completionPct,
       })
       onTaskUpdated?.()
     } catch (error: unknown) {
@@ -101,7 +98,6 @@ export default function TaskList({
       await updateTask(task.id, {
         title,
         status: task.status,
-        completionPct: task.completionPct,
       })
       onTaskUpdated?.()
     } finally {
@@ -116,18 +112,6 @@ export default function TaskList({
     return apiError?.errors?.title
       ?? apiError?.message
       ?? 'Task 제목을 저장하지 못했습니다.'
-  }
-
-  const openStatusPicker = (taskId: number) => {
-    const select = statusSelectRefs.current.get(taskId)
-    if (!select || select.disabled) return
-
-    select.focus()
-    try {
-      select.showPicker()
-    } catch {
-      select.focus()
-    }
   }
 
   if (orderedTasks.length === 0) {
@@ -183,10 +167,6 @@ export default function TaskList({
                     />
                   </h3>
                   <select
-                      ref={(element) => {
-                        if (element) statusSelectRefs.current.set(task.id, element)
-                        else statusSelectRefs.current.delete(task.id)
-                      }}
                       className={styles.status}
                       value={task.status}
                       aria-label={`${task.title} 상태`}
@@ -198,7 +178,7 @@ export default function TaskList({
                     ))}
                   </select>
                 </div>
-                <p className={styles.meta}>{getTaskMeta(task.status)}</p>
+                <p className={styles.meta}>{getTaskMeta(task.status, MOCK_SESSION_COUNT)}</p>
                 {updateError?.taskId === task.id && (
                     <p className={styles.error} role="alert">{updateError.message}</p>
                 )}

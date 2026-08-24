@@ -10,7 +10,6 @@ public record TaskResponse(
         Long projectId,
         String title,
         TaskStatus status,
-        int completionPct,
         int orderIdx,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -21,7 +20,6 @@ public record TaskResponse(
                 task.getProjectId(),
                 task.getTitle(),
                 task.getStatus(),
-                task.getCompletionPct(),
                 task.getOrderIdx(),
                 task.getCreatedAt(),
                 task.getUpdatedAt()

@@ -7,7 +7,6 @@ public record TaskReference(
         Long projectId,
         String projectName,
         String title,
-        TaskStatus status,
-        int completionPct
+        TaskStatus status
 ) {
 }

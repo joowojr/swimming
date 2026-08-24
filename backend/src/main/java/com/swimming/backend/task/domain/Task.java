@@ -11,7 +11,6 @@ public class Task {
     private final Long projectId;
     private String title;
     private TaskStatus status;
-    private int completionPct;
     private int orderIdx;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
@@ -21,7 +20,6 @@ public class Task {
             Long projectId,
             String title,
             TaskStatus status,
-            int completionPct,
             int orderIdx,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -30,7 +28,6 @@ public class Task {
         this.projectId = projectId;
         this.title = title;
         this.status = status;
-        this.completionPct = completionPct;
         this.orderIdx = orderIdx;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -42,7 +39,6 @@ public class Task {
                 projectId,
                 title.trim(),
                 TaskStatus.TODO,
-                0,
                 orderIdx,
                 null,
                 null
@@ -54,7 +50,6 @@ public class Task {
             Long projectId,
             String title,
             TaskStatus status,
-            int completionPct,
             int orderIdx,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -64,16 +59,14 @@ public class Task {
                 projectId,
                 title,
                 status,
-                completionPct,
                 orderIdx,
                 createdAt,
                 updatedAt
         );
     }
 
-    public void update(String title, TaskStatus status, int completionPct) {
+    public void update(String title, TaskStatus status) {
         this.title = title.trim();
         this.status = status;
-        this.completionPct = completionPct;
     }
 }

@@ -3,14 +3,7 @@ package com.swimming.backend.task.repository.entity;
 import com.swimming.backend.common.entity.BaseTimeEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,9 +28,6 @@ public class TaskEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private TaskStatus status;
 
-    @Column(name = "completion_pct", nullable = false)
-    private int completionPct;
-
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
 
@@ -45,7 +35,6 @@ public class TaskEntity extends BaseTimeEntity {
         this.projectId = task.getProjectId();
         this.title = task.getTitle();
         this.status = task.getStatus();
-        this.completionPct = task.getCompletionPct();
         this.orderIdx = task.getOrderIdx();
     }
 
@@ -56,7 +45,6 @@ public class TaskEntity extends BaseTimeEntity {
     public void apply(Task task) {
         this.title = task.getTitle();
         this.status = task.getStatus();
-        this.completionPct = task.getCompletionPct();
         this.orderIdx = task.getOrderIdx();
     }
 
@@ -74,7 +62,6 @@ public class TaskEntity extends BaseTimeEntity {
                 projectId,
                 title,
                 status,
-                completionPct,
                 orderIdx,
                 getCreatedAt(),
                 getUpdatedAt()

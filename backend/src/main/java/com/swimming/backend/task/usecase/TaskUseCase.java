@@ -52,7 +52,7 @@ public class TaskUseCase {
     ) {
         Task task = taskService.getOne(taskId);
         verifyProjectOwnership(userId, task.getProjectId());
-        task.update(request.title(), request.status(), request.completionPct());
+        task.update(request.title(), request.status());
         return TaskResponse.from(taskService.update(task));
     }
 

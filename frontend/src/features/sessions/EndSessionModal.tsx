@@ -106,7 +106,10 @@ export default function EndSessionModal({
 
     void submit({
       summary: summary.trim() || null,
-      taskResults: completedTaskIds.map((taskId) => ({ taskId, isCompleted: true })),
+      taskResults: tasks.map((task) => ({
+        taskId: task.id,
+        isCompleted: completedTaskIds.includes(task.id),
+      })),
     })
   }
 

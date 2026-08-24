@@ -3,6 +3,8 @@ package com.swimming.backend.note.controller;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.note.dto.in.TaskOrganizeRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeResponse;
+import com.swimming.backend.note.dto.in.TaskOrganizeConfirmRequest;
+import com.swimming.backend.note.dto.in.TaskOrganizeConfirmResponse;
 import com.swimming.backend.note.usecase.TaskOrganizerUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,6 +65,45 @@ class TaskOrganizerControllerTest {
                 .andExpect(jsonPath("$.suggestions[0].projectId").value(10L))
                 .andExpect(jsonPath("$.suggestions[0].title").value("정리된 Task"))
                 .andExpect(jsonPath("$.suggestions[0].confidence").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("승인한 Task를 생성하고 sourceText는 응답에 노출하지 않는다")
+    void confirmsTasksWithoutExposingSourceText() throws Exception {
+        TaskOrganizeConfirmRequest request = new TaskOrganizeConfirmRequest(
+                7L,
+                List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                        "원문",
+                        10L,
+                        "정리된 Task"
+                ))
+        );
+        when(taskOrganizerUseCase.confirm(1L, request)).thenReturn(
+                new TaskOrganizeConfirmResponse(
+                        List.of(new TaskOrganizeConfirmResponse.CreatedTaskResponse(
+                                41L,
+                                10L,
+                                "정리된 Task"
+                        ))
+                )
+        );
+
+        mockMvc.perform(post("/api/task-organizer/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "noteId":7,
+                                  "tasks":[{
+                                    "sourceText":"원문",
+                                    "projectId":10,
+                                    "title":"정리된 Task"
+                                  }]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.createdTasks[0].id").value(41L))
+                .andExpect(jsonPath("$.createdTasks[0].sourceText").doesNotExist())
+                .andExpect(jsonPath("$.remainingNote").doesNotExist());
     }
 
     private static class AuthUserArgumentResolver

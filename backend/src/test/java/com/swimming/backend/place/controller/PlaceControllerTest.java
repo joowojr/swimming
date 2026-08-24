@@ -55,7 +55,7 @@ class PlaceControllerTest {
                 ))
         )));
 
-        mockMvc.perform(get("/api/cities"))
+        mockMvc.perform(get("/api/public/places"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Lisbon"))
                 .andExpect(jsonPath("$[0].places[0].id").value(11))

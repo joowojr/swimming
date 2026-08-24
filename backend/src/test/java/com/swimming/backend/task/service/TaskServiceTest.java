@@ -2,6 +2,7 @@ package com.swimming.backend.task.service;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.note.repository.entity.NoteEntity;
 import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.repository.entity.ProjectEntity;
 import com.swimming.backend.project.domain.ProjectStatus;
@@ -43,8 +44,16 @@ class TaskServiceTest {
         taskRepository = mock(TaskRepository.class);
         entityManager = mock(EntityManager.class);
         taskService = new TaskService(taskRepository, entityManager);
+        when(entityManager.getReference(eq(User.class), anyLong()))
+                .thenAnswer(invocation -> user(invocation.getArgument(1)));
         when(entityManager.getReference(eq(ProjectEntity.class), anyLong()))
                 .thenAnswer(invocation -> project(invocation.getArgument(1)));
+        when(entityManager.getReference(eq(NoteEntity.class), anyLong()))
+                .thenAnswer(invocation -> {
+                    NoteEntity note = mock(NoteEntity.class);
+                    when(note.getId()).thenReturn(invocation.getArgument(1));
+                    return note;
+                });
         when(taskRepository.saveAndFlush(any(TaskEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -60,7 +69,7 @@ class TaskServiceTest {
             return entity;
         });
 
-        Task task = taskService.create(10L, " API 명세 작성 ");
+        Task task = taskService.create(1L, 10L, " API 명세 작성 ");
 
         assertThat(task.getId()).isEqualTo(1L);
         assertThat(task.getProjectId()).isEqualTo(10L);
@@ -75,18 +84,50 @@ class TaskServiceTest {
         when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
                 .thenReturn(Optional.of(taskEntity(3L, 10L, "기존 Task", 4)));
 
-        Task task = taskService.create(10L, "새 Task");
+        Task task = taskService.create(1L, 10L, "새 Task");
 
         assertThat(task.getOrderIdx()).isEqualTo(5);
     }
 
     @Test
+    @DisplayName("프로젝트 없는 Task를 사용자 기준 다음 순서로 생성한다")
+    void createsProjectlessTaskForUser() {
+        when(taskRepository.findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(1L))
+                .thenReturn(Optional.empty());
+        when(taskRepository.saveAndFlush(any(TaskEntity.class))).thenAnswer(invocation -> {
+            TaskEntity entity = invocation.getArgument(0);
+            ReflectionTestUtils.setField(entity, "id", 2L);
+            return entity;
+        });
+
+        Task task = taskService.create(1L, null, " 자격증 접수 ");
+
+        assertThat(task.getId()).isEqualTo(2L);
+        assertThat(task.getUserId()).isEqualTo(1L);
+        assertThat(task.getProjectId()).isNull();
+        assertThat(task.getTitle()).isEqualTo("자격증 접수");
+        verify(entityManager).getReference(User.class, 1L);
+    }
+
+    @Test
+    @DisplayName("Note에서 생성한 Task에 원문 Note ID를 저장한다")
+    void createsTaskWithSourceNote() {
+        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+                .thenReturn(Optional.empty());
+
+        Task task = taskService.createFromNote(1L, 10L, 7L, "새 Task");
+
+        assertThat(task.getSourceNoteId()).isEqualTo(7L);
+        verify(entityManager).getReference(NoteEntity.class, 7L);
+    }
+
+    @Test
     @DisplayName("사용자가 소유한 Task 상세를 순수 도메인으로 조회한다")
     void returnsOwnedTaskDetail() {
-        when(taskRepository.findById(1L))
+        when(taskRepository.findByIdAndUser_Id(1L, 1L))
                 .thenReturn(Optional.of(taskEntity(1L, 10L, "Task", 0)));
 
-        Task task = taskService.getOne(1L);
+        Task task = taskService.getOne(1L, 1L);
 
         assertThat(task.getId()).isEqualTo(1L);
         assertThat(task.getProjectId()).isEqualTo(10L);
@@ -95,9 +136,9 @@ class TaskServiceTest {
     @Test
     @DisplayName("존재하지 않는 Task를 조회하면 찾을 수 없음으로 처리한다")
     void rejectsMissingTask() {
-        when(taskRepository.findById(1L)).thenReturn(Optional.empty());
+        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> taskService.getOne(1L))
+        assertThatThrownBy(() -> taskService.getOne(1L, 1L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
     }
@@ -106,12 +147,12 @@ class TaskServiceTest {
     @DisplayName("Task 제목과 상태를 수정한다")
     void updatesTaskFields() {
         TaskEntity entity = taskEntity(1L, 10L, "기존 Task", 0);
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.of(entity));
 
         Task task = entity.toDomain();
         task.update(" 수정 Task ", TaskStatus.HOLD);
 
-        Task result = taskService.update(task);
+        Task result = taskService.update(1L, task);
 
         assertThat(result.getTitle()).isEqualTo("수정 Task");
         assertThat(result.getStatus()).isEqualTo(TaskStatus.HOLD);
@@ -183,9 +224,29 @@ class TaskServiceTest {
     @Test
     @DisplayName("여러 Task를 ID 기준으로 배치 삭제한다")
     void deletesTasksInBatch() {
-        taskService.deleteAll(List.of(1L, 2L));
+        List<TaskEntity> tasks = List.of(
+                taskEntity(1L, 10L, "첫째", 0),
+                taskEntity(2L, 10L, "둘째", 1)
+        );
+        when(taskRepository.findAllOwnedEntitiesByIds(1L, List.of(1L, 2L)))
+                .thenReturn(tasks);
 
-        verify(taskRepository).deleteAllByIdInBatch(List.of(1L, 2L));
+        taskService.deleteAll(1L, List.of(1L, 2L));
+
+        verify(taskRepository).deleteAllInBatch(tasks);
+    }
+
+    @Test
+    @DisplayName("삭제 대상에 다른 사용자의 Task가 있으면 삭제하지 않는다")
+    void rejectsDeletingTasksNotOwnedByUser() {
+        when(taskRepository.findAllOwnedEntitiesByIds(1L, List.of(1L, 2L)))
+                .thenReturn(List.of(taskEntity(1L, 10L, "내 Task", 0)));
+
+        assertThatThrownBy(() -> taskService.deleteAll(1L, List.of(1L, 2L)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+
+        verify(taskRepository, org.mockito.Mockito.never()).deleteAllInBatch(any());
     }
 
     @Test
@@ -280,21 +341,15 @@ class TaskServiceTest {
             int orderIdx,
             TaskStatus status
     ) {
-        Task task = Task.create(projectId, title, orderIdx);
+        Task task = Task.create(1L, projectId, title, orderIdx);
         task.update(title, status);
-        TaskEntity entity = TaskEntity.from(task, project(projectId));
+        TaskEntity entity = TaskEntity.from(task, user(1L), project(projectId), null);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
 
     private ProjectEntity project(Long projectId) {
-        User user = User.builder()
-                .email("user@example.com")
-                .passwordHash("password")
-                .nickname("사용자")
-                .timezone("Asia/Seoul")
-                .build();
-        ReflectionTestUtils.setField(user, "id", 1L);
+        User user = user(1L);
         ProjectEntity project = ProjectEntity.from(
                 Project.create(1L, null, "프로젝트", "설명", null),
                 user,
@@ -302,5 +357,16 @@ class TaskServiceTest {
         );
         ReflectionTestUtils.setField(project, "id", projectId);
         return project;
+    }
+
+    private User user(Long userId) {
+        User user = User.builder()
+                .email("user@example.com")
+                .passwordHash("password")
+                .nickname("사용자")
+                .timezone("Asia/Seoul")
+                .build();
+        ReflectionTestUtils.setField(user, "id", userId);
+        return user;
     }
 }

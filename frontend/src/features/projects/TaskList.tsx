@@ -224,11 +224,11 @@ export default function TaskList({
                             : <IconTrash size={16} stroke={2} aria-hidden="true"/>
                         : <IconPlayerPlay size={16} stroke={2} aria-hidden="true"/>}
                 <span className="sr-only">
-                  {isDeleteMode ? (isSelected ? '삭제 선택 해제' : '삭제 선택') : '세션 시작'}
+                  {isDeleteMode ? (isSelected ? '삭제 선택 해제' : '삭제 선택') : '다이브 세션'}
                 </span>
               </button>
               <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
-                {isDeleteMode ? (isSelected ? '선택 해제' : '삭제 선택') : '세션 시작'}
+                {isDeleteMode ? (isSelected ? '선택 해제' : '삭제 선택') : '다이브 세션'}
               </span>
             </span>
             </li>

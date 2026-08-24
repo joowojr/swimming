@@ -116,7 +116,7 @@ export default function ContinueSessionWidget() {
                   {isPreparingStart
                       ? <IconLoader2 className={styles.spinner} aria-hidden="true" />
                       : <IconPlayerPlay aria-hidden="true" />}
-                  <span>세션 시작하기</span>
+                  <span>다이브 세션 시작하기</span>
                 </button>
                 {startError && <p className={styles.status} role="alert">{startError}</p>}
               </>

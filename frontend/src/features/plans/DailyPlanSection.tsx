@@ -385,7 +385,7 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                                                               aria-hidden="true"/>}
                                                                         onClick={() => setSessionTaskId(item.taskId)}
                                                                     >
-                                                                        세션 시작
+                                                                        다이브 세션
                                                                     </ActionButton>
                                                                 )}
                                                                 <button type="button" disabled={index === 0}

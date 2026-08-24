@@ -172,7 +172,7 @@ export default function CreateSessionModal({
     >
       <section className={styles.modal}>
         <header className={styles.header}>
-          <h2 id="create-session-title">세션 생성</h2>
+          <h2 id="create-session-title">다이브 세션</h2>
           <button
             type="button"
             className={styles.close}
@@ -187,7 +187,7 @@ export default function CreateSessionModal({
         <form onSubmit={(event) => void handleSubmit(event)} noValidate>
           <div className={styles.body}>
             <fieldset className={styles.fieldset}>
-              <legend>무엇을 할까요 <span>(Task 선택)</span></legend>
+              <legend>무엇을 할까요</legend>
               <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
               <div className={styles.choices}>
                 {linkedTasks.length === 0 ? (
@@ -326,7 +326,7 @@ export default function CreateSessionModal({
                   (mode === 'personal' && (!validDuration || !selectedPlace))
               }
           >
-            {mode === 'group' ? '참여 확인' : '세션 시작'}
+            {mode === 'group' ? '참여 확인' : '시작하기'}
           </ActionButton>
         </form>
       </section>

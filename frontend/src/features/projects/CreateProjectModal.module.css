@@ -27,7 +27,7 @@
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
-  border: var(--border-width) solid var(--color-mute-variant);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-panel);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);
@@ -39,7 +39,7 @@
   justify-content: space-between;
   flex: 0 0 auto;
   padding: var(--space-4) var(--space-6);
-  border-bottom: var(--border-width) solid var(--color-mute-variant);
+  border-bottom: var(--border-width) solid var(--color-hairline);
 }
 
 .modal-header h2 {
@@ -125,7 +125,7 @@
   width: 100%;
   min-height: 2.75rem;
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--color-mute-variant);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-lg);
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
@@ -191,7 +191,7 @@
 .tag-options button {
   min-height: 2.25rem;
   padding: 0 var(--space-3);
-  border: var(--border-width) solid var(--color-mute-variant);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-full);
   color: var(--color-mute);
   font-size: var(--text-label-caps-size);

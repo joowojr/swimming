@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
-import { IconArrowRight, IconClock, IconPlayerPlay } from '@tabler/icons-react'
-import { Link } from 'react-router-dom'
+import { IconArrowRight, IconClock, IconLoader2, IconPlayerPlay } from '@tabler/icons-react'
+import { Link, useNavigate } from 'react-router-dom'
+import type { ApiError } from '../../api/client'
+import type { DailyPlanItem } from '../plans/dailyPlanTypes'
+import { getTodayPlanItems } from '../plans/todayPlan'
+import CreateSessionModal from './CreateSessionModal'
 import { getActiveSession } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
 import styles from './ContinueSessionWidget.module.css'
@@ -18,7 +22,11 @@ function formatDuration(seconds: number) {
 }
 
 export default function ContinueSessionWidget() {
+  const navigate = useNavigate()
   const [state, setState] = useState<WidgetState>({ status: 'loading' })
+  const [todayTasks, setTodayTasks] = useState<DailyPlanItem[] | null>(null)
+  const [isPreparingStart, setIsPreparingStart] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -38,6 +46,21 @@ export default function ContinueSessionWidget() {
 
   const session = state.status === 'ready' ? state.session : null
   const isEmpty = state.status === 'ready' && !session
+
+  const openStartModal = async () => {
+    setIsPreparingStart(true)
+    setStartError(null)
+    try {
+      setTodayTasks(await getTodayPlanItems())
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null
+          ? (error as ApiError).message
+          : undefined
+      setStartError(apiMessage ?? '오늘 계획을 불러오지 못했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsPreparingStart(false)
+    }
+  }
 
   const backgroundAsset = session?.place.backgroundAsset
   const thumbnailUrl = backgroundAsset?.url?.trim() || DEFAULT_THUMBNAIL_URL
@@ -84,16 +107,32 @@ export default function ContinueSessionWidget() {
                 <p className={styles['invite-copy']}>
                   45분만 다른 도시에서 집중해보세요.
                 </p>
-                <Link
+                <button
+                    type="button"
                     className={`${styles.action} ${styles['action-primary']}`}
-                    to="/sessions/new"
+                    disabled={isPreparingStart}
+                    onClick={() => void openStartModal()}
                 >
-                  <IconPlayerPlay aria-hidden="true" />
+                  {isPreparingStart
+                      ? <IconLoader2 className={styles.spinner} aria-hidden="true" />
+                      : <IconPlayerPlay aria-hidden="true" />}
                   <span>세션 시작하기</span>
-                </Link>
+                </button>
+                {startError && <p className={styles.status} role="alert">{startError}</p>}
               </>
           )}
         </div>
+
+        {todayTasks !== null && (
+            <CreateSessionModal
+                todayTasks={todayTasks}
+                onClose={() => setTodayTasks(null)}
+                onStarted={(startedSession) => {
+                  setTodayTasks(null)
+                  navigate(`/sessions/${startedSession.id}`)
+                }}
+            />
+        )}
 
         {session && (
             <Link

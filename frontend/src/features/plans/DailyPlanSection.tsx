@@ -15,7 +15,7 @@ import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTask} from '../tasks/taskApi'
-import {TASK_STATUS_LABEL} from '../tasks/taskLabels'
+import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {
     addDailyPlanItem,
     deleteDailyPlanItem,
@@ -23,6 +23,7 @@ import {
     reorderDailyPlanItems,
     updateDailyPlanItem
 } from './dailyPlanApi'
+import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import DailyPlanCardMenu from './DailyPlanCardMenu'
 import TaskPickerModal from './TaskPickerModal'
@@ -62,6 +63,7 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
     const [message, setMessage] = useState<string | null>(null)
     const [isPickerOpen, setIsPickerOpen] = useState(false)
     const [sessionTaskId, setSessionTaskId] = useState<number | null>(null)
+    const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
     const planRevisionRef = useRef(new Map<string, number>())
     const savingDatesRef = useRef(new Set<string>())
 
@@ -219,6 +221,37 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
         })))
     }
 
+    const changeTaskStatus = async (item: DailyPlanItem, status: TaskStatus) => {
+        if (item.taskId === null) return
+
+        const completionPct = status === 'DONE' ? 100 : item.completionPct!
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+
+        try {
+            await updateTask(item.taskId, {title: item.title, status, completionPct})
+
+            // 같은 Task가 여러 날짜에 담겨 있을 수 있어 전 날짜에 반영한다.
+            const replaceStatus = (items: DailyPlanItem[]) => items.map((candidate) => (
+                candidate.taskId === item.taskId ? {...candidate, status, completionPct} : candidate
+            ))
+            setDrafts((current) => Object.fromEntries(
+                Object.entries(current).map(([date, items]) => [date, replaceStatus(items)]),
+            ))
+            setPlans((current) => current.map((plan) => ({
+                ...plan,
+                items: replaceStatus(plan.items),
+            })))
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null
+                ? (error as ApiError).message
+                : undefined
+            setMessage(apiMessage ?? 'Task 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
     const removeItem = async (date: string, itemId: number) => {
         try {
             await deleteDailyPlanItem(date, itemId)
@@ -303,7 +336,7 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                         </button>
                                         <ol className={styles.list}>
                                             {items.map((item, index) => (
-                                                <li className={`${styles.card} ${item.projectId === null ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 3}`]}`}
+                                                <li className={`${styles.card} ${item.projectId === null ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 4}`]}`}
                                                     key={item.id}>
                                                     <div className={styles['card-select']}
                                                          onClick={() => setSelectedDate(plan.date)}>
@@ -325,8 +358,21 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
                                                             />
                                                         </strong>
                                                         {item.status !== null && item.completionPct !== null && (
-                                                            <span
-                                                                className={styles.meta}><span>{TASK_STATUS_LABEL[item.status]}</span></span>
+                                                            <span className={styles.meta}>
+                                                                <select
+                                                                    className={styles.status}
+                                                                    data-status={item.status}
+                                                                    value={item.status}
+                                                                    aria-label={`${item.title} 상태`}
+                                                                    disabled={pendingTaskId === item.taskId}
+                                                                    onClick={(event) => event.stopPropagation()}
+                                                                    onChange={(event) => void changeTaskStatus(item, event.target.value as TaskStatus)}
+                                                                >
+                                                                    {TASK_STATUS_VALUES.map((status) => (
+                                                                        <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </span>
                                                         )}
                                                     </div>
                                                     {selected && (

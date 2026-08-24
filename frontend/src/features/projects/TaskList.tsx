@@ -1,7 +1,11 @@
 import { useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
+import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import InlineEditableText from '../../components/InlineEditableText'
+import type { DailyPlanItem } from '../plans/dailyPlanTypes'
+import { ensureTodayPlanItem } from '../plans/todayPlan'
+import CreateSessionModal from '../sessions/CreateSessionModal'
 import { updateTask } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
@@ -41,8 +45,10 @@ export default function TaskList({
   onTaskSelectionChange,
   onTaskUpdated,
 }: TaskListProps) {
+  const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
+  const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
   const statusSelectRefs = useRef(new Map<number, HTMLSelectElement>())
   const orderedTasks = [...tasks].sort((a, b) => a.orderIdx - b.orderIdx)
 
@@ -63,6 +69,25 @@ export default function TaskList({
         : undefined
       const message = apiMessage ?? 'task 상태를 변경하지 못했습니다. 다시 시도해 주세요.'
       setUpdateError({ taskId: task.id, message })
+    } finally {
+      setPendingTaskId(null)
+    }
+  }
+
+  const startSession = async (task: TaskSummaryResponse) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+
+    try {
+      setSessionDraft({ taskId: task.id, todayTasks: await ensureTodayPlanItem(task.id) })
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null
+        ? (error as ApiError).message
+        : undefined
+      setUpdateError({
+        taskId: task.id,
+        message: apiMessage ?? '세션을 준비하지 못했습니다. 다시 시도해 주세요.',
+      })
     } finally {
       setPendingTaskId(null)
     }
@@ -116,7 +141,8 @@ export default function TaskList({
   }
 
   return (
-    <ol className={`${styles.list} ${connected ? styles.connected : ''}`}>
+    <>
+      <ol className={`${styles.list} ${connected ? styles.connected : ''}`}>
       {orderedTasks.map((task) => {
         const isPending = pendingTaskId === task.id
         const isSelected = selectedTaskIds.has(task.id)
@@ -187,7 +213,7 @@ export default function TaskList({
                   aria-describedby={`task-${task.id}-action-tooltip`}
                   onClick={() => {
                     if (isDeleteMode) onTaskSelectionChange?.(task.id)
-                    else void changeTaskStatus(task, 'DOING')
+                    else void startSession(task)
                   }}
               >
                 {isPending || (isDeleting && isSelected)
@@ -208,6 +234,18 @@ export default function TaskList({
             </li>
         )
       })}
-    </ol>
+      </ol>
+      {sessionDraft && (
+        <CreateSessionModal
+          todayTasks={sessionDraft.todayTasks}
+          initialTaskId={sessionDraft.taskId}
+          onClose={() => setSessionDraft(null)}
+          onStarted={(session) => {
+            setSessionDraft(null)
+            navigate(`/sessions/${session.id}`)
+          }}
+        />
+      )}
+    </>
   )
 }

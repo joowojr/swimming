@@ -317,9 +317,9 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       </nav>
 
       <header className={styles.header}>
-      <div className={styles.badges}>
+      <div className={styles.badges} data-tone={project.id % 4}>
           {project.tag && <span className={styles.tag}>{project.tag.name}</span>}
-          <span className={styles['project-status']}>{projectStatusLabel[project.status]}</span>
+          <span className={styles['project-status']} data-status={project.status}>{projectStatusLabel[project.status]}</span>
         </div>
         <div className={styles['editable-group']}>
           <h1 id="project-detail-title">

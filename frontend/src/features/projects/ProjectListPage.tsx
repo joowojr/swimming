@@ -63,8 +63,8 @@ export default function ProjectListPage({
             </div>
           ) : (
             <div className={styles.grid}>
-              {projects.map((project, index) => (
-                <ProjectCard key={project.id} project={project} index={index} />
+              {projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
               ))}
             </div>
           )}

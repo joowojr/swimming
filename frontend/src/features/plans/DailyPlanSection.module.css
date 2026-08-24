@@ -101,7 +101,7 @@
   width: 20rem;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: var(--border-width) solid var(--color-mute-variant);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);
@@ -235,9 +235,10 @@
   background: var(--color-surface-container-lowest);
 }
 
-.project-tone-0 { --project-tone: var(--color-primary); }
-.project-tone-1 { --project-tone: var(--color-tertiary); }
-.project-tone-2 { --project-tone: var(--color-success-deep); }
+.project-tone-0 { --project-tone: var(--color-tone-fountain); }
+.project-tone-1 { --project-tone: var(--color-tone-indigo); }
+.project-tone-2 { --project-tone: var(--color-tone-glorious); }
+.project-tone-3 { --project-tone: var(--color-tone-wild-willow); }
 .ad-hoc-card { --project-tone: var(--color-mute); }
 
 .card-select {
@@ -293,11 +294,42 @@
   font-size: var(--text-label-caps-size);
 }
 
-.meta span:first-child {
+.status {
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-default);
+  border: var(--border-width) solid var(--chip-todo-border);
+  border-radius: var(--radius-full);
+  color: var(--chip-todo-fg);
+  background: var(--chip-todo-bg);
+  font-family: inherit;
+  font-size: var(--text-label-caps-size);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.status[data-status='DOING'] {
+  border-color: var(--chip-doing-border);
+  color: var(--chip-doing-fg);
+  background: var(--chip-doing-bg);
+}
+
+.status[data-status='DONE'] {
+  border-color: var(--chip-done-border);
+  color: var(--chip-done-fg);
+  background: var(--chip-done-bg);
+}
+
+.status[data-status='HOLD'] {
+  border-style: dashed;
+  border-color: var(--chip-hold-border);
+  color: var(--chip-hold-fg);
+  background: var(--chip-hold-bg);
+}
+
+.status:disabled { cursor: wait; opacity: 0.55; }
+
+.status option {
   color: var(--color-primary);
-  background: var(--color-surface-card);
+  background: var(--color-surface-container-lowest);
 }
 
 .card-menu {
@@ -327,7 +359,7 @@
   width: 10.5rem;
   gap: var(--space-1);
   padding: var(--space-2);
-  border: var(--border-width) solid var(--color-mute-variant);
+  border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);

@@ -73,26 +73,29 @@
 }
 
 .is-doing .node {
-  border-color: var(--color-primary);
+  border-color: var(--chip-doing-border);
+  color: var(--chip-doing-fg);
+  background: var(--chip-doing-bg);
 }
 
 .is-done .node {
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
-  background: var(--color-primary);
+  border-color: var(--chip-done-border);
+  color: var(--chip-done-fg);
+  background: var(--chip-done-bg);
 }
 
 .is-hold .node {
-  border-color: var(--color-tertiary);
-  color: var(--color-tertiary);
-  background: var(--color-surface-card);
+  border-style: dashed;
+  border-color: var(--chip-hold-border);
+  color: var(--chip-hold-fg);
+  background: var(--chip-hold-bg);
 }
 
 .node-core {
-  width: var(--space-2);
-  height: var(--space-2);
+  width: var(--space-4);
+  height: var(--space-4);
   border-radius: var(--radius-full);
-  background: var(--color-primary);
+  background: var(--chip-doing-fg);
 }
 
 .content {
@@ -130,21 +133,21 @@
 .is-done .task-title {
   color: var(--color-mute);
   text-decoration: line-through;
-  text-decoration-color: var(--color-mute-variant);
+  text-decoration-color: var(--color-hairline);
 }
 
 .status {
   flex: 0 0 auto;
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-mute);
+  border: var(--border-width) solid var(--chip-todo-border);
   border-radius: var(--radius-full);
-  color: var(--color-mute);
+  color: var(--chip-todo-fg);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-label-caps-weight);
   line-height: var(--text-label-caps-line-height);
   white-space: nowrap;
-  background: var(--color-surface-container-high);
+  background: var(--chip-todo-bg);
   cursor: pointer;
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
@@ -161,21 +164,22 @@
 }
 
 .is-doing .status {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-surface-card);
+  border-color: var(--chip-doing-border);
+  color: var(--chip-doing-fg);
+  background: var(--chip-doing-bg);
 }
 
 .is-done .status {
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
-  background: var(--color-primary);
+  border-color: var(--chip-done-border);
+  color: var(--chip-done-fg);
+  background: var(--chip-done-bg);
 }
 
 .is-hold .status {
-  border-color: var(--color-tertiary);
-  color: var(--color-tertiary);
-  background: var(--color-surface-card);
+  border-style: dashed;
+  border-color: var(--chip-hold-border);
+  color: var(--chip-hold-fg);
+  background: var(--chip-hold-bg);
 }
 
 .status option {

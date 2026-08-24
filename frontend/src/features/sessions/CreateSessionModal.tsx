@@ -1,22 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, MouseEvent } from 'react'
-import {
-  IconClock,
-  IconLoader2,
-  IconMapPin,
-  IconPlayerPlay,
-  IconUser,
-  IconUsers,
-  IconX,
-} from '@tabler/icons-react'
-import type { ApiError } from '../../api/client'
-import type { DailyPlanItem } from '../plans/dailyPlanTypes'
-import { getPlaces } from '../places/placeApi'
-import type { City, Place } from '../places/placeTypes'
-import { startPersonalSession } from './sessionApi'
-import { GROUP_ROOM_MOCK } from './sessionMocks'
-import type { SessionResponse } from './sessionTypes'
+import type {FormEvent, MouseEvent} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
+import {IconUser, IconUsers, IconX,} from '@tabler/icons-react'
+import type {ApiError} from '../../api/client'
+import type {DailyPlanItem} from '../plans/dailyPlanTypes'
+import {getPlaces} from '../places/placeApi'
+import type {City, Place} from '../places/placeTypes'
+import {startPersonalSession} from './sessionApi'
+import {GROUP_ROOM_MOCK} from './sessionMocks'
+import type {SessionResponse} from './sessionTypes'
 import styles from './CreateSessionModal.module.css'
+import ActionButton from "../../components/ActionButton.tsx";
 
 interface CreateSessionModalProps {
   todayTasks: DailyPlanItem[]
@@ -172,7 +165,6 @@ export default function CreateSessionModal({
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="create-session-title"
-      aria-describedby="create-session-description"
       aria-busy={isSubmitting}
       onCancel={(event) => { if (isSubmitting) event.preventDefault() }}
       onClose={onClose}
@@ -180,22 +172,27 @@ export default function CreateSessionModal({
     >
       <section className={styles.modal}>
         <header className={styles.header}>
-          <div>
-            <h2 id="create-session-title">세션 시작</h2>
-            <p id="create-session-description">오늘 어디서, 무엇을 해볼까요</p>
-          </div>
-          {/*<span className={styles['header-icon']} aria-hidden="true"><IconRoute size={21}/></span>*/}
-          <button type="button" className={styles.close} aria-label="세션 시작 창 닫기" disabled={isSubmitting}
-                  onClick={requestClose}><IconX size={19}/></button>
+          <h2 id="create-session-title">세션 생성</h2>
+          <button
+            type="button"
+            className={styles.close}
+            aria-label="세션 생성 창 닫기"
+            disabled={isSubmitting}
+            onClick={requestClose}
+          >
+            <IconX size={20} aria-hidden="true" />
+          </button>
         </header>
 
         <form onSubmit={(event) => void handleSubmit(event)} noValidate>
           <div className={styles.body}>
             <fieldset className={styles.fieldset}>
-              <legend><span>1</span>무엇을 할까요</legend>
+              <legend>무엇을 할까요 <span>(Task 선택)</span></legend>
               <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
               <div className={styles.choices}>
-                {linkedTasks.length === 0 ? <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p> : linkedTasks.map((task) => (
+                {linkedTasks.length === 0 ? (
+                  <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p>
+                ) : linkedTasks.map((task) => (
                   <label className={styles['task-choice']} key={task.taskId}>
                     <input
                       type="checkbox"
@@ -205,83 +202,132 @@ export default function CreateSessionModal({
                       onChange={() => toggleTask(task.taskId)}
                       disabled={isSubmitting}
                     />
-                    <span><strong>{task.title}</strong><small>{task.projectName}</small></span>
+                    <span>{task.title}</span>
                   </label>
                 ))}
               </div>
             </fieldset>
 
             <fieldset className={styles.fieldset}>
-              <legend><span>2</span>어떻게 할까요</legend>
+              <legend>어떻게 할까요 <span>(개인/그룹 선택)</span></legend>
               <div className={styles['mode-grid']}>
                 <label className={styles['mode-choice']}>
                   <input type="radio" name="session-mode" checked={mode === 'personal'} onChange={() => setMode('personal')} disabled={isSubmitting} />
-                  <IconUser size={19} aria-hidden="true" /><span><strong>혼자</strong><small>지금 바로 시작</small></span>
+                  <IconUser size={19} aria-hidden="true" />
+                  <span>개인</span>
                 </label>
                 <label className={styles['mode-choice']}>
                   <input type="radio" name="session-mode" checked={mode === 'group'} onChange={() => setMode('group')} disabled={isSubmitting} />
-                  <IconUsers size={19} aria-hidden="true" /><span><strong>함께</strong><small>{GROUP_ROOM_MOCK.startsAtLabel} {GROUP_ROOM_MOCK.city} · {GROUP_ROOM_MOCK.participantCount}명</small></span>
+                  <IconUsers size={19} aria-hidden="true" />
+                  <span>그룹</span>
                 </label>
               </div>
-              <p className={styles.hint}>{mode === 'group' ? `place와 타이머는 Room 설정을 따릅니다. (${GROUP_ROOM_MOCK.city} · ${GROUP_ROOM_MOCK.durationMin}분)` : '함께 참여하면 place와 타이머는 Room 설정을 따릅니다.'}</p>
+              <p className={styles.hint}>
+                {mode === 'group'
+                  ? `공간과 타이머는 Room 설정을 따릅니다. ${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} · ${GROUP_ROOM_MOCK.durationMin}분 · ${GROUP_ROOM_MOCK.participantCount}명`
+                  : '지금 바로 시작합니다.'}
+              </p>
             </fieldset>
 
             {mode === 'personal' && (
               <>
                 <fieldset className={styles.fieldset}>
-                  <legend><span>3</span>어디서 할까요</legend>
-                  <div className={styles['place-grid']}>
-                    {placesStatus === 'loading' && <p className={styles.empty} role="status">공간을 불러오는 중…</p>}
-                    {placesStatus === 'error' && <p className={styles.empty} role="alert">공간을 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요.</p>}
-                    {placesStatus === 'ready' && placeOptions.length === 0 && <p className={styles.empty}>현재 선택할 수 있는 공간이 없습니다.</p>}
-                    {placeOptions.map(({ city, place }) => (
-                      <label className={styles['place-choice']} key={place.id}>
-                        <input type="radio" name="session-place" checked={placeId === place.id} onChange={() => setPlaceId(place.id)} disabled={isSubmitting} />
-                        <IconMapPin size={17} aria-hidden="true" /><span><strong>{city.name}</strong><small>{place.name}</small></span>
-                      </label>
-                    ))}
-                  </div>
+                  <legend>어디서 할까요 <span>(공간 선택)</span></legend>
+
+                  {placesStatus === 'loading' && <p className={styles.empty} role="status">공간을 불러오는 중…</p>}
+                  {placesStatus === 'error' && <p className={styles.empty} role="alert">공간을 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요.</p>}
+                  {placesStatus === 'ready' && placeOptions.length === 0 && <p className={styles.empty}>현재 선택할 수 있는 공간이 없습니다.</p>}
+                  {placeOptions.length > 0 && (
+                    <div className={styles['place-grid']}>
+                      {placeOptions.map(({ city, place }) => (
+                        <label className={styles['place-choice']} key={place.id}>
+                          <input type="radio" name="session-place" checked={placeId === place.id} onChange={() => setPlaceId(place.id)} disabled={isSubmitting} />
+                          <span className={styles['place-mark']} aria-hidden="true">{city.name.slice(0, 1)}</span>
+                          <span className={styles['place-name']}>
+                            <span className="sr-only">{city.name} </span>{place.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </fieldset>
 
-                <fieldset className={styles.fieldset}>
-                  <legend><span>4</span>얼마나 집중할까요</legend>
-                  <div className={styles['timer-grid']}>
-                    <div>
-                      <p className={styles.label}>한 번에</p>
-                      <div className={styles.durations}>
-                        {([25, 45, 60] as const).map((minutes) => (
-                          <label key={minutes}><input type="radio" name="duration" checked={durationPreset === minutes} onChange={() => setDurationPreset(minutes)} disabled={isSubmitting} /><span>{minutes}분</span></label>
-                        ))}
-                        <label><input type="radio" name="duration" checked={durationPreset === 'custom'} onChange={() => setDurationPreset('custom')} disabled={isSubmitting} /><span>커스텀</span></label>
-                      </div>
-                      {durationPreset === 'custom' && <label className={styles.custom}><span>집중 시간</span><input type="number" min={1} max={1440} value={customMinutes} onChange={(event) => setCustomMinutes(event.target.value)} aria-invalid={Boolean(customMinutes) && !validDuration} disabled={isSubmitting} /><span>분</span></label>}
+                <div className={styles.split}>
+                  <fieldset className={styles.fieldset}>
+                    <legend>얼마나 집중할까요</legend>
+                    <p className={styles['value-box']}>
+                      <strong>{validDuration ? durationMinutes : '—'}</strong>분
+                    </p>
+                    <div className={styles.durations}>
+                      {([25, 45, 60] as const).map((minutes) => (
+                        <label key={minutes}>
+                          <input type="radio" name="duration" checked={durationPreset === minutes} onChange={() => setDurationPreset(minutes)} disabled={isSubmitting} />
+                          <span>{minutes}분</span>
+                        </label>
+                      ))}
+                      <label>
+                        <input type="radio" name="duration" checked={durationPreset === 'custom'} onChange={() => setDurationPreset('custom')} disabled={isSubmitting} />
+                        <span>직접 입력</span>
+                      </label>
                     </div>
-                    <div>
-                      <p className={styles.label}>반복 <span>목업</span></p>
-                      <div className={styles.repeat}>
-                        <button type="button" aria-label="반복 줄이기" onClick={() => setRepeat((value) => Math.max(1, value - 1))} disabled={isSubmitting || repeat === 1}>−</button>
-                        <strong>{repeat}</strong>
-                        <button type="button" aria-label="반복 늘리기" onClick={() => setRepeat((value) => Math.min(8, value + 1))} disabled={isSubmitting || repeat === 8}>+</button>
-                      </div>
+                    {durationPreset === 'custom' && (
+                      <label className={styles.custom}>
+                        <span className="sr-only">집중 시간</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={1440}
+                          value={customMinutes}
+                          placeholder="분"
+                          onChange={(event) => setCustomMinutes(event.target.value)}
+                          aria-invalid={Boolean(customMinutes) && !validDuration}
+                          disabled={isSubmitting}
+                        />
+                        <span aria-hidden="true">분</span>
+                      </label>
+                    )}
+                  </fieldset>
+
+                  <fieldset className={styles.fieldset}>
+                    <legend>반복</legend>
+                    <div className={styles.repeat}>
+                      <button type="button" aria-label="반복 줄이기" onClick={() => setRepeat((value) => Math.max(1, value - 1))} disabled={isSubmitting || repeat === 1}>−</button>
+                      <strong>{repeat}</strong>
+                      <button type="button" aria-label="반복 늘리기" onClick={() => setRepeat((value) => Math.min(8, value + 1))} disabled={isSubmitting || repeat === 8}>+</button>
                     </div>
-                  </div>
-                  <div className={styles.summary}><IconClock size={17} aria-hidden="true" /><p>총 <strong>{formatTotalTime(totalMinutes)}</strong> · 사이에 5분 휴식이 들어갑니다</p></div>
-                </fieldset>
+                    <p className={styles.hint}>총 {formatTotalTime(totalMinutes)} · 사이에 5분 휴식</p>
+                  </fieldset>
+                </div>
               </>
             )}
 
-            <p className={styles.review}><strong>{selectedTaskTitles.length > 0 ? `${selectedTaskTitles[0]}${selectedTaskTitles.length > 1 ? ` 외 ${selectedTaskTitles.length - 1}개` : ''}` : 'Task 미선택'}</strong>{mode === 'personal' && selectedPlace ? ` · ${selectedPlace.city.name} · ${validDuration ? `${durationMinutes}분` : '시간 미입력'}` : ` · ${GROUP_ROOM_MOCK.city} 그룹`}</p>
+            <p className={styles.review}>
+              <strong>
+                {selectedTaskTitles.length > 0
+                  ? `${selectedTaskTitles[0]}${selectedTaskTitles.length > 1 ? ` 외 ${selectedTaskTitles.length - 1}개` : ''}`
+                  : 'Task 미선택'}
+              </strong>
+              {mode === 'personal' && selectedPlace
+                ? ` · ${selectedPlace.city.name} · ${validDuration ? `${durationMinutes}분` : '시간 미입력'}`
+                : ` · ${GROUP_ROOM_MOCK.city} 그룹`}
+            </p>
             {submitError && <p className={styles.error} role="alert">{submitError}</p>}
             {mockNotice && <p className={styles.notice} role="status">{mockNotice}</p>}
           </div>
 
-          <footer className={styles.footer}>
-            <button type="button" className={styles.cancel} onClick={requestClose} disabled={isSubmitting}>취소</button>
-            <button type="submit" className={styles.submit} disabled={isSubmitting || selectedTaskIds.length === 0 || (mode === 'personal' && (!validDuration || !selectedPlace))}>
-              {isSubmitting ? <IconLoader2 className={styles.spinner} size={17} aria-hidden="true" /> : <IconPlayerPlay size={17} aria-hidden="true" />}
-              {isSubmitting ? '시작 중…' : mode === 'group' ? '참여 확인' : '시작하기'}
-            </button>
-          </footer>
+          <ActionButton
+              type="submit"
+              className={styles.submit}
+              isLoading={isSubmitting}
+              loadingLabel="시작 중…"
+              disabled={
+                  isSubmitting ||
+                  selectedTaskIds.length === 0 ||
+                  (mode === 'personal' && (!validDuration || !selectedPlace))
+              }
+          >
+            {mode === 'group' ? '참여 확인' : '세션 시작'}
+          </ActionButton>
         </form>
       </section>
     </dialog>

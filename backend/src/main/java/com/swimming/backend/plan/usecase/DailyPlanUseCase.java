@@ -152,7 +152,6 @@ public class DailyPlanUseCase {
                             task == null ? null : task.projectName(),
                             task == null ? item.getTitle() : task.title(),
                             task == null ? null : task.status(),
-                            task == null ? null : task.completionPct(),
                             item.getOrderIdx()
                     );
                 })

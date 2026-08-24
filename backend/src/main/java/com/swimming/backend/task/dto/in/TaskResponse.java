@@ -1,4 +1,4 @@
-package com.swimming.backend.task.dto.web;
+package com.swimming.backend.task.dto.in;
 
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;

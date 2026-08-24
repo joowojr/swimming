@@ -5,7 +5,7 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
-import com.swimming.backend.task.dto.web.TaskSummaryResponse;
+import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
 import lombok.RequiredArgsConstructor;

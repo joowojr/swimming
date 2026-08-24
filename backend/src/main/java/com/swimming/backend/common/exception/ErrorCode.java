@@ -37,6 +37,10 @@ public enum ErrorCode {
     INVALID_SESSION_DURATION(HttpStatus.BAD_REQUEST, "세션 집중 시간이 올바르지 않습니다"),
     INVALID_MUSIC_URL(HttpStatus.BAD_REQUEST, "YouTube 음악 URL이 올바르지 않습니다"),
 
+    // NOTE DOMAIN
+    NOTE_NOT_FOUND(HttpStatus.NOT_FOUND, "노트를 찾을 수 없습니다"),
+    INVALID_NOTE_CONTEXT(HttpStatus.BAD_REQUEST, "노트 컨텍스트가 올바르지 않습니다"),
+
     // PLACE DOMAIN
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "공간을 찾을 수 없습니다"),
 

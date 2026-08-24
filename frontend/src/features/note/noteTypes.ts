@@ -13,6 +13,10 @@ export interface NoteResponse {
   updatedAt: string
 }
 
+export interface NoteCreateResponse {
+  id: number
+}
+
 export type CreateNoteRequest =
   | {
       content: string
@@ -38,7 +42,27 @@ export interface UpdateNoteRequest {
 }
 
 export type GetNotesParams =
-  | Record<string, never>
-  | { contextType: NoteContextType; projectId?: never; sessionId?: never }
-  | { contextType?: never; projectId: number; sessionId?: never }
-  | { contextType?: never; projectId?: never; sessionId: number }
+  | {
+      status?: NoteStatus
+      contextType?: never
+      projectId?: never
+      sessionId?: never
+    }
+  | {
+      status?: NoteStatus
+      contextType: NoteContextType
+      projectId?: never
+      sessionId?: never
+    }
+  | {
+      status?: NoteStatus
+      contextType?: never
+      projectId: number
+      sessionId?: never
+    }
+  | {
+      status?: NoteStatus
+      contextType?: never
+      projectId?: never
+      sessionId: number
+    }

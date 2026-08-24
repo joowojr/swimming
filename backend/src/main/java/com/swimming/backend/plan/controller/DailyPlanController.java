@@ -1,7 +1,7 @@
 package com.swimming.backend.plan.controller;
 
 import com.swimming.backend.common.security.AuthUser;
-import com.swimming.backend.plan.dto.CreateDailyPlanItemRequest;
+import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
@@ -52,16 +52,13 @@ public class DailyPlanController {
     }
 
     @PostMapping("/{date}/items")
-    public ResponseEntity<DailyPlanResponse> addItem(
+    public ResponseEntity<DailyPlanResponse> addItems(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @Valid @RequestBody CreateDailyPlanItemRequest request
+            @Valid @RequestBody CreateDailyPlanItemsRequest request
     ) {
-        DailyPlanResponse response = dailyPlanUseCase.addItem(authUser.id(), date, request);
-        Long itemId = response.items().getLast().id();
-        return ResponseEntity.created(URI.create(
-                "/api/daily-plans/" + date + "/items/" + itemId
-        )).body(response);
+        DailyPlanResponse response = dailyPlanUseCase.addItems(authUser.id(), date, request);
+        return ResponseEntity.created(URI.create("/api/daily-plans/" + date)).body(response);
     }
 
     @PatchMapping("/{date}/items/{itemId}")

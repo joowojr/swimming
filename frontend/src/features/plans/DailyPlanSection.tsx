@@ -17,7 +17,7 @@ import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTask} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {
-    addDailyPlanItem,
+    addDailyPlanItems,
     deleteDailyPlanItem,
     getDailyPlans,
     reorderDailyPlanItems,
@@ -185,13 +185,12 @@ export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
     }
 
     const addTasks = async (tasks: ProjectDetail['tasks']) => {
-        const task = tasks[0]
-        if (!task) return
-        replacePlan(await addDailyPlanItem(selectedDate, {taskId: task.id}))
+        if (tasks.length === 0) return
+        replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
     const addAdHoc = async (title: string, projectId: number | null) => {
-        replacePlan(await addDailyPlanItem(selectedDate, {
+        replacePlan(await addDailyPlanItems(selectedDate, {
             title,
             ...(projectId === null ? {} : {projectId}),
         }))

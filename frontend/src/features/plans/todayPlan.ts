@@ -1,4 +1,4 @@
-import { addDailyPlanItem, getDailyPlans } from './dailyPlanApi'
+import { addDailyPlanItems, getDailyPlans } from './dailyPlanApi'
 import type { DailyPlanItem } from './dailyPlanTypes'
 
 function formatLocalDate(date: Date) {
@@ -19,6 +19,6 @@ export async function ensureTodayPlanItem(taskId: number): Promise<DailyPlanItem
   const items = await getTodayPlanItems()
   if (items.some((item) => item.taskId === taskId)) return items
 
-  const plan = await addDailyPlanItem(formatLocalDate(new Date()), { taskId })
+  const plan = await addDailyPlanItems(formatLocalDate(new Date()), { taskIds: [taskId] })
   return plan.items
 }

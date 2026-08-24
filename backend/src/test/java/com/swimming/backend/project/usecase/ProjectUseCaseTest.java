@@ -157,8 +157,8 @@ class ProjectUseCaseTest {
         when(projectService.getOne(1L, 10L))
                 .thenReturn(project(10L, "프로젝트", "설명", null));
         when(taskService.getSummaries(10L)).thenReturn(List.of(
-                new TaskSummaryResponse(1L, "첫째", TaskStatus.DONE, 100, 0),
-                new TaskSummaryResponse(2L, "둘째", TaskStatus.DOING, 50, 1)
+                new TaskSummaryResponse(1L, "첫째", TaskStatus.DONE, 0),
+                new TaskSummaryResponse(2L, "둘째", TaskStatus.DOING, 1)
         ));
 
         ProjectDetailResponse response = projectUseCase.getOne(1L, 10L);

@@ -4,7 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.domain.DailyPlan;
 import com.swimming.backend.plan.domain.DailyPlanItem;
-import com.swimming.backend.plan.dto.CreateDailyPlanItemRequest;
+import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanItemResponse;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
@@ -56,36 +56,38 @@ public class DailyPlanUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public DailyPlanResponse addItem(Long userId, LocalDate date, CreateDailyPlanItemRequest request) {
+    public DailyPlanResponse addItems(Long userId, LocalDate date, CreateDailyPlanItemsRequest request) {
         String title = request.title() == null ? null : request.title().trim();
-        boolean hasTask = request.taskId() != null;
+        List<Long> taskIds = request.taskIds();
+        boolean hasTasks = taskIds != null && !taskIds.isEmpty();
         boolean hasProject = request.projectId() != null;
         boolean hasTitle = title != null && !title.isEmpty();
 
-        boolean linksExistingTask = hasTask && !hasProject && !hasTitle;
-        boolean createsAdHocItem = !hasTask && !hasProject && hasTitle;
-        boolean createsProjectTask = !hasTask && hasProject && hasTitle;
-        if (!linksExistingTask && !createsAdHocItem && !createsProjectTask) {
+        boolean linksExistingTasks = hasTasks && !hasProject && !hasTitle;
+        boolean createsAdHocItem = taskIds == null && !hasProject && hasTitle;
+        boolean createsProjectTask = taskIds == null && hasProject && hasTitle;
+        if (!linksExistingTasks && !createsAdHocItem && !createsProjectTask) {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM);
         }
 
         DailyPlan dailyPlan = dailyPlanService.get(userId, date)
                 .orElseGet(() -> DailyPlan.create(userId, date));
-        DailyPlanItem newItem;
-        if (linksExistingTask) {
-            getOwnedTasksById(userId, List.of(request.taskId()));
-            if (dailyPlan.containsTask(request.taskId())) {
+
+        if (linksExistingTasks) {
+            if (new HashSet<>(taskIds).size() != taskIds.size()
+                    || taskIds.stream().anyMatch(dailyPlan::containsTask)) {
                 throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_TASKS);
             }
-            newItem = DailyPlanItem.createTask(request.taskId());
+            getOwnedTasksById(userId, taskIds);
+            taskIds.forEach(taskId -> dailyPlan.addItem(DailyPlanItem.createTask(taskId)));
         } else if (createsProjectTask) {
             ProjectReference project = projectService.getReference(userId, request.projectId());
             Long taskId = taskService.createAndGetId(project.id(), title);
-            newItem = DailyPlanItem.createTask(taskId);
+            dailyPlan.addItem(DailyPlanItem.createTask(taskId));
         } else {
-            newItem = DailyPlanItem.createAdHoc(title);
+            dailyPlan.addItem(DailyPlanItem.createAdHoc(title));
         }
-        dailyPlan.addItem(newItem);
+
         DailyPlan saved = dailyPlanService.save(dailyPlan);
         return toResponse(saved, getOwnedTasksById(userId, taskIdsOf(List.of(saved))));
     }

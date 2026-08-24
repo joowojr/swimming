@@ -6,7 +6,7 @@ import {
 import ActionButton from '../../components/ActionButton'
 import DailyPlanSection from '../plans/DailyPlanSection'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
-import MemoCard from '../memo/MemoCard'
+import NoteCard from '../note/NoteCard.tsx'
 import type { Project } from './projectTypes'
 import styles from './ProjectDashboard.module.css'
 
@@ -93,7 +93,7 @@ export default function ProjectDashboard({
                   <DailyPlanSection projects={projects}/>
                 </div>
 
-                <MemoCard onOrganize={onOrganizeMemo} />
+                <NoteCard onOrganize={onOrganizeMemo} />
               </div>
             </>
         )}

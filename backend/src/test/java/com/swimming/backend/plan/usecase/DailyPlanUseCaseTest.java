@@ -4,7 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.domain.DailyPlan;
 import com.swimming.backend.plan.domain.DailyPlanItem;
-import com.swimming.backend.plan.dto.CreateDailyPlanItemRequest;
+import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
@@ -69,7 +69,7 @@ class DailyPlanUseCaseTest {
     void createsPlanWithAdHocItem() {
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.empty());
 
-        DailyPlanResponse response = useCase.addItem(1L, DATE, new CreateDailyPlanItemRequest(null, null, "  장보기  "));
+        DailyPlanResponse response = useCase.addItems(1L, DATE, new CreateDailyPlanItemsRequest(null, null, "  장보기  "));
 
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.taskId()).isNull();
@@ -79,25 +79,52 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("소유한 Task를 날짜별 계획에 연결한다")
-    void addsOwnedTask() {
+    @DisplayName("소유한 여러 Task를 날짜별 계획에 일괄 연결한다")
+    void addsOwnedTasks() {
         DailyPlan plan = DailyPlan.create(1L, DATE);
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(10L, 20L))).thenReturn(List.of(task(10L), task(20L)));
 
-        DailyPlanResponse response = useCase.addItem(1L, DATE, new CreateDailyPlanItemRequest(10L, null, null));
+        DailyPlanResponse response = useCase.addItems(
+                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null));
 
-        assertThat(response.items()).singleElement().satisfies(item -> {
-            assertThat(item.taskId()).isEqualTo(10L);
-            assertThat(item.projectName()).isEqualTo("프로젝트");
-        });
+        assertThat(response.items()).extracting(item -> item.taskId()).containsExactly(10L, 20L);
+        verify(dailyPlanService).save(plan);
+    }
+
+    @Test
+    @DisplayName("일괄 요청 안에 중복된 Task가 있으면 계획을 저장하지 않는다")
+    void rejectsDuplicatedTasksInBatch() {
+        DailyPlan plan = DailyPlan.create(1L, DATE);
+        when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
+
+        assertThatThrownBy(() -> useCase.addItems(
+                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 10L), null, null)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_TASKS));
+
+        verify(dailyPlanService, never()).save(any(DailyPlan.class));
+    }
+
+    @Test
+    @DisplayName("이미 계획에 있는 Task가 일괄 요청에 포함되면 계획을 저장하지 않는다")
+    void rejectsAlreadyPlannedTaskInBatch() {
+        DailyPlan plan = planWithIds();
+        when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
+
+        assertThatThrownBy(() -> useCase.addItems(
+                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_TASKS));
+
+        verify(dailyPlanService, never()).save(any(DailyPlan.class));
     }
 
     @Test
     @DisplayName("Task와 제목을 동시에 입력한 항목을 거부한다")
     void rejectsAmbiguousItem() {
-        assertThatThrownBy(() -> useCase.addItem(
-                1L, DATE, new CreateDailyPlanItemRequest(10L, null, "장보기")))
+        assertThatThrownBy(() -> useCase.addItems(
+                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L), null, "장보기")))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_ITEM));
         verify(dailyPlanService, never()).get(1L, DATE);
@@ -110,7 +137,8 @@ class DailyPlanUseCaseTest {
         when(dailyPlanService.get(2L, DATE)).thenReturn(Optional.of(plan));
         when(taskService.getReferences(2L, List.of(10L))).thenReturn(List.of());
 
-        assertThatThrownBy(() -> useCase.addItem(2L, DATE, new CreateDailyPlanItemRequest(10L, null, null)))
+        assertThatThrownBy(() -> useCase.addItems(
+                2L, DATE, new CreateDailyPlanItemsRequest(List.of(10L), null, null)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
     }
@@ -124,11 +152,11 @@ class DailyPlanUseCaseTest {
                 .thenReturn(new ProjectReference(100L));
         when(taskService.createAndGetId(100L, "API 문서 작성")).thenReturn(20L);
         when(taskService.getReferences(1L, List.of(20L))).thenReturn(List.of(
-                new TaskReference(20L, 100L, "프로젝트", "API 문서 작성", TaskStatus.TODO, 0)
+                new TaskReference(20L, 100L, "프로젝트", "API 문서 작성", TaskStatus.TODO)
         ));
 
-        DailyPlanResponse response = useCase.addItem(
-                1L, DATE, new CreateDailyPlanItemRequest(null, 100L, "API 문서 작성"));
+        DailyPlanResponse response = useCase.addItems(
+                1L, DATE, new CreateDailyPlanItemsRequest(null, 100L, "API 문서 작성"));
 
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.taskId()).isEqualTo(20L);
@@ -203,6 +231,6 @@ class DailyPlanUseCaseTest {
     }
 
     private TaskReference task(Long id) {
-        return new TaskReference(id, 100L, "프로젝트", "API 구현", TaskStatus.DOING, 40);
+        return new TaskReference(id, 100L, "프로젝트", "API 구현", TaskStatus.DOING);
     }
 }

@@ -28,6 +28,12 @@ public class SessionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public void validateOwnership(Long userId, Long sessionId) {
+        sessionRepository.findByIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Optional<Session> getActive(Long userId) {
         return sessionRepository.findByUserIdAndStatus(
                 userId,

@@ -15,7 +15,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,7 +102,7 @@ class SessionServiceTest {
     void appliesAndSavesExistingSession() {
         SessionEntity entity = startedEntity();
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), null, Map.of());
+        session.end(STARTED_AT.plusSeconds(600), null);
         when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
         when(sessionRepository.saveAndFlush(entity)).thenReturn(entity);
 

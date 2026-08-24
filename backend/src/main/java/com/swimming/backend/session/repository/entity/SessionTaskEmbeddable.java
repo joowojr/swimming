@@ -15,23 +15,15 @@ public class SessionTaskEmbeddable {
     @Column(name = "task_id", nullable = false)
     private Long taskId;
 
-    @Column(name = "is_completed")
-    private Boolean isCompleted;
-
-    private SessionTaskEmbeddable(Long taskId, Boolean isCompleted) {
+    private SessionTaskEmbeddable(Long taskId) {
         this.taskId = taskId;
-        this.isCompleted = isCompleted;
     }
 
     public static SessionTaskEmbeddable from(SessionTask task) {
-        return new SessionTaskEmbeddable(task.taskId(), task.isCompleted());
+        return new SessionTaskEmbeddable(task.taskId());
     }
 
     public SessionTask toDomain() {
-        return new SessionTask(taskId, isCompleted);
-    }
-
-    public void updateCompletion(Boolean isCompleted) {
-        this.isCompleted = isCompleted;
+        return new SessionTask(taskId);
     }
 }

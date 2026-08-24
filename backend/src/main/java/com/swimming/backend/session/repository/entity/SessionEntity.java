@@ -26,9 +26,7 @@ import org.hibernate.generator.EventType;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Entity
 @Table(
@@ -120,10 +118,6 @@ public class SessionEntity extends BaseTimeEntity {
         musicUrl = session.getMusicUrl();
         activeUserId = status == SessionStatus.IN_PROGRESS ? userId : null;
         summary = session.getSummary();
-
-        Map<Long, Boolean> completionByTaskId = session.getTasks().stream()
-                .collect(HashMap::new, (map, task) -> map.put(task.taskId(), task.isCompleted()), HashMap::putAll);
-        tasks.forEach(task -> task.updateCompletion(completionByTaskId.get(task.getTaskId())));
     }
 
     public Session toDomain() {

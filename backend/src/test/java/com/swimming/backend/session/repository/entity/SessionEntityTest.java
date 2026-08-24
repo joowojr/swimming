@@ -28,37 +28,29 @@ class SessionEntityTest {
         assertThat(entity.getTasks())
                 .extracting(SessionTaskEmbeddable::getTaskId)
                 .containsExactly(10L, 11L);
-        assertThat(entity.getTasks())
-                .extracting(SessionTaskEmbeddable::getIsCompleted)
-                .containsOnlyNulls();
         assertThat(entity.getPlaceId()).isEqualTo(20L);
         assertThat(entity.getStatus()).isEqualTo(SessionStatus.IN_PROGRESS);
         assertThat(entity.getStartedAt()).isNull();
     }
 
     @Test
-    @DisplayName("종료하며 기록한 완료 여부를 세션 Task 항목에 반영한다")
-    void appliesTaskCompletion() {
+    @DisplayName("종료 기록을 반영하면서 세션 Task 연결을 유지한다")
+    void appliesEndRecordWithoutChangingTasks() {
         SessionEntity entity = SessionEntity.from(
                 Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500)
         );
         ReflectionTestUtils.setField(entity, "id", 5L);
         ReflectionTestUtils.setField(entity, "startedAt", STARTED_AT);
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), "메모", java.util.Map.of(10L, true));
+        session.end(STARTED_AT.plusSeconds(600), "메모");
 
         entity.apply(session);
 
         assertThat(entity.getStatus()).isEqualTo(SessionStatus.COMPLETED);
         assertThat(entity.getSummary()).isEqualTo("메모");
         assertThat(entity.getTasks())
-                .filteredOn(task -> task.getTaskId().equals(10L))
-                .extracting(SessionTaskEmbeddable::getIsCompleted)
-                .containsExactly(true);
-        assertThat(entity.getTasks())
-                .filteredOn(task -> task.getTaskId().equals(11L))
-                .extracting(SessionTaskEmbeddable::getIsCompleted)
-                .containsOnlyNulls();
+                .extracting(SessionTaskEmbeddable::getTaskId)
+                .containsExactly(10L, 11L);
     }
 
     @Test
@@ -86,7 +78,7 @@ class SessionEntityTest {
         ReflectionTestUtils.setField(entity, "id", 5L);
         ReflectionTestUtils.setField(entity, "startedAt", STARTED_AT);
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), null, java.util.Map.of());
+        session.end(STARTED_AT.plusSeconds(600), null);
 
         entity.apply(session);
 

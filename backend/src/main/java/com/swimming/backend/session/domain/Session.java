@@ -7,7 +7,6 @@ import lombok.Getter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 @Getter
 public class Session {
@@ -16,7 +15,7 @@ public class Session {
     private final Long userId;
     private final SessionType type;
     private final Long placeId;
-    private List<SessionTask> tasks;
+    private final List<SessionTask> tasks;
     private String musicUrl;
     private int plannedDurationSec;
     private Integer actualDurationSec;
@@ -109,11 +108,7 @@ public class Session {
         return tasks.stream().map(SessionTask::taskId).toList();
     }
 
-    public void end(
-            Instant endTime,
-            String summary,
-            Map<Long, Boolean> completionByTaskId
-    ) {
+    public void end(Instant endTime, String summary) {
         if (status != SessionStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.SESSION_ALREADY_ENDED);
         }
@@ -130,11 +125,6 @@ public class Session {
         //         : SessionStatus.INTERRUPTED;
 
         this.summary = summary;
-        tasks = tasks.stream()
-                .map(task -> completionByTaskId.containsKey(task.taskId())
-                        ? task.complete(completionByTaskId.get(task.taskId()))
-                        : task)
-                .toList();
     }
 
     public void updateMusicUrl(String musicUrl) {

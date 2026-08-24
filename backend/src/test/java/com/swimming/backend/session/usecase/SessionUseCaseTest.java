@@ -210,8 +210,8 @@ class SessionUseCaseTest {
         when(sessionService.getActive(1L)).thenReturn(Optional.of(session));
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
         when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
-                new TaskReference(11L, 2L, "프로젝트", "다음 Task", null, 0),
-                new TaskReference(10L, 2L, "프로젝트", "첫 Task", null, 0)
+                new TaskReference(11L, 2L, "프로젝트", "다음 Task", null),
+                new TaskReference(10L, 2L, "프로젝트", "첫 Task", null)
         ));
 
         var response = sessionUseCase.getActive(1L).orElseThrow();

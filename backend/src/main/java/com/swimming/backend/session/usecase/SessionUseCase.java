@@ -105,7 +105,7 @@ public class SessionUseCase {
         Session session = sessionService.getOwned(userId, sessionId);
         Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(session, request);
 
-        session.end(clock.instant(), toSummary(request), completionByTaskId);
+        session.end(clock.instant(), toSummary(request));
 
         if (!completionByTaskId.isEmpty()) {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));

@@ -90,7 +90,6 @@ CREATE TABLE `session_tasks` (
   `session_id` bigint NOT NULL,
   `task_id` bigint NOT NULL,
   `order_idx` int NOT NULL,
-  `is_completed` boolean,
   PRIMARY KEY (`session_id`, `order_idx`),
   UNIQUE (`session_id`, `task_id`)
 );

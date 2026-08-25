@@ -117,8 +117,8 @@
     padding: var(--space-3);
     border: var(--border-width) solid var(--color-border-subtle);
     border-radius: var(--radius-default);
-    color: var(--color-on-surface);
-    background: var(--color-surface-container-lowest);
+    color: var(--color-on-tertiary-container);
+    background: var(--color-tertiary-container);
     font-size: var(--text-body-sm-size);
 }
 
@@ -143,6 +143,16 @@
 }
 
 .delete-confirmation button:last-child {
+    color: var(--color-on-tertiary-container);
+    background: var(--color-tertiary-container);
+}
+
+.archive-confirmation {
+    color: var(--color-on-surface);
+    background: var(--color-surface-container-lowest);
+}
+
+.archive-confirmation button:last-child {
     color: var(--color-on-primary);
     background: var(--color-primary);
 }
@@ -219,13 +229,14 @@
     margin-top: var(--space-3);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-default);
+    border: var(--border-width) solid var(--color-border-subtle);
     color: var(--color-on-surface);
-    background: var(--color-tertiary-container);
+    background: var(--color-surface-container-lowest);
     font-size: var(--text-body-sm-size);
 }
 
 .archive-undo button {
-    color: var(--color-on-tertiary-container);
+    color: var(--color-primary);
 }
 
 .archive-undo-actions {

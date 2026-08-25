@@ -84,7 +84,7 @@ class NoteServiceTest {
     void returnsActiveNotesInRepositoryOrder() {
         NoteEntity latest = entity(2L, 1L, "최신", NoteStatus.ACTIVE);
         NoteEntity older = entity(1L, 1L, "이전", NoteStatus.ACTIVE);
-        when(noteRepository.findAllByUserIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+        when(noteRepository.findAllByUserIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                 1L,
                 NoteStatus.ACTIVE
         ))

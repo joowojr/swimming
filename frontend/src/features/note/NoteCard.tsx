@@ -150,9 +150,10 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
         noteIdRef.current = savedNote.id
         lastSavedContentRef.current = savedNote.content
         if (isMountedRef.current) {
-          setNotes((currentNotes) => currentNotes.some((note) => note.id === savedNote.id)
-            ? currentNotes.map((note) => note.id === savedNote.id ? savedNote : note)
-            : [savedNote, ...currentNotes])
+          setNotes((currentNotes) => [
+            savedNote,
+            ...currentNotes.filter((note) => note.id !== savedNote.id),
+          ])
           setSelectedNoteId(savedNote.id)
           setSaveStatus(memoRef.current === savedNote.content ? 'saved' : 'idle')
         }
@@ -264,6 +265,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     const noteId = noteIdRef.current
     if (noteId === null || isEditorDisabled) return
     setIsArchiving(true)
+    setArchiveSuggestionNoteId(null)
     setActionMessage(null)
     try {
       if (!(await saveContent(memoRef.current))) return
@@ -281,12 +283,14 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     const noteId = recentlyArchivedId
     if (noteId === null || isArchiving) return
     setIsArchiving(true)
+    setArchiveSuggestionNoteId(null)
     setActionMessage(null)
     try {
       if (!(await saveContent(memoRef.current))) return
       await restoreNote(noteId)
       const restoredNote = await getNote(noteId)
       setNotes((currentNotes) => [restoredNote, ...currentNotes.filter((note) => note.id !== restoredNote.id)])
+      setRecentlyArchivedId(null)
       openNote(restoredNote)
     } catch {
       setActionMessage('메모를 복원하지 못했어요')
@@ -305,12 +309,19 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
       await deleteNote(noteId)
       removeNoteFromList(noteId)
       setRecentlyArchivedId(null)
+      setArchiveSuggestionNoteId(null)
       setIsConfirmingDelete(false)
     } catch {
       setActionMessage('메모를 삭제하지 못했어요')
     } finally {
       if (isMountedRef.current) setIsDeleting(false)
     }
+  }
+
+  const handleRequestDelete = () => {
+    setRecentlyArchivedId(null)
+    setArchiveSuggestionNoteId(null)
+    setIsConfirmingDelete(true)
   }
 
   const closeOrganizer = useCallback(() => {
@@ -333,6 +344,8 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     isSelectingNote ||
     isArchiving ||
     isDeleting
+  const isSelectedNoteArchived = noteFilter === 'ARCHIVED'
+    || notes.find((note) => note.id === selectedNoteId)?.status === 'ARCHIVED'
 
   return (
     <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
@@ -346,6 +359,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
             saveStatus={saveStatus}
             actionMessage={actionMessage}
             selectedNoteId={selectedNoteId}
+            isArchived={isSelectedNoteArchived}
             disabled={isEditorDisabled}
             isStartingNew={isStartingNew}
             isArchiving={isArchiving}
@@ -364,7 +378,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
               void handleArchive()
             }}
             onDismissArchive={() => setArchiveSuggestionNoteId(null)}
-            onRequestDelete={() => setIsConfirmingDelete(true)}
+            onRequestDelete={handleRequestDelete}
             onCancelDelete={() => setIsConfirmingDelete(false)}
             onDelete={() => void handleDelete()}
             onRestore={() => void handleRestoreRecent()}

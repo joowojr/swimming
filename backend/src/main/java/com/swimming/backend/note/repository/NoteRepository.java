@@ -21,24 +21,24 @@ public interface NoteRepository extends JpaRepository<NoteEntity, Long> {
             Long userId
     );
 
-    List<NoteEntity> findAllByUserIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+    List<NoteEntity> findAllByUserIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
             Long userId,
             NoteStatus status
     );
 
-    List<NoteEntity> findAllByUserIdAndContextTypeAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+    List<NoteEntity> findAllByUserIdAndContextTypeAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
             Long userId,
             NoteContextType contextType,
             NoteStatus status
     );
 
-    List<NoteEntity> findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+    List<NoteEntity> findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
             Long userId,
             Long projectId,
             NoteStatus status
     );
 
-    List<NoteEntity> findAllByUserIdAndSessionIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+    List<NoteEntity> findAllByUserIdAndSessionIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
             Long userId,
             Long sessionId,
             NoteStatus status

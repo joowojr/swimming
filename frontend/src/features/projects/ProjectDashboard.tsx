@@ -1,7 +1,5 @@
 // import { useMemo } from 'react'
-import {
-  IconPlus,
-} from '@tabler/icons-react'
+import { IconPlus } from '@tabler/icons-react'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
@@ -52,6 +50,10 @@ export default function ProjectDashboard({
             <p>현재 진행 중인 프로젝트 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>
+            {/*<div className={styles['mode-toggle']} aria-label="핀보드 보기 모드">*/}
+            {/*  <button type="button" className={styles['mode-toggle-active']} aria-pressed="true">루틴</button>*/}
+            {/*  <button type="button" aria-pressed="false" disabled>가볍게</button>*/}
+            {/*</div>*/}
             <ModalTriggerButton
               dialogId="create-project-dialog"
               icon={<IconPlus size={18} aria-hidden="true" />}

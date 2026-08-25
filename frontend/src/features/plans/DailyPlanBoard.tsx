@@ -164,7 +164,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             const apiMessage = typeof error === 'object' && error !== null
                 ? (error as ApiError).message
                 : undefined
-            setMessage(apiMessage ?? 'Task 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+            setMessage(apiMessage ?? '할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
         } finally {
             setPendingTaskId(null)
         }
@@ -192,7 +192,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             : undefined
         return apiError?.errors?.title
             ?? apiError?.message
-            ?? 'Task 제목을 저장하지 못했습니다.'
+            ?? '할 일 제목을 저장하지 못했습니다.'
     }
 
     return (

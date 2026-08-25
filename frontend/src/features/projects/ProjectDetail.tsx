@@ -507,7 +507,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
               ))}
             </select>
             <DeleteIconButton
-                label={isDeleteMode ? 'Task 삭제 선택 취소' : 'Task 삭제 선택'}
+                label={isDeleteMode ? '할 일 삭제 선택 취소' : '할 일 삭제 선택'}
                 active={isDeleteMode}
                 disabled={isDeletingTasks}
                 onClick={() => {

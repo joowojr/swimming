@@ -165,7 +165,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
             updateTaskOverride(item.taskId, 'status', nextStatus)
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-            setMessage(apiMessage ?? 'Task 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+            setMessage(apiMessage ?? '할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
         } finally {
             setPendingTaskId(null)
         }
@@ -185,7 +185,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
 
     const getTaskTitleError = (error: unknown) => {
         const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
-        return apiError?.errors?.title ?? apiError?.message ?? 'Task 제목을 저장하지 못했습니다.'
+        return apiError?.errors?.title ?? apiError?.message ?? '할 일 제목을 저장하지 못했습니다.'
     }
 
     return (

@@ -64,7 +64,7 @@ export default function TaskList({
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
         : undefined
-      const message = apiMessage ?? 'task 상태를 변경하지 못했습니다. 다시 시도해 주세요.'
+      const message = apiMessage ?? '할 일상태를 변경하지 못했습니다. 다시 시도해 주세요.'
       setUpdateError({ taskId: task.id, message })
     } finally {
       setPendingTaskId(null)
@@ -111,7 +111,7 @@ export default function TaskList({
       : undefined
     return apiError?.errors?.title
       ?? apiError?.message
-      ?? 'Task 제목을 저장하지 못했습니다.'
+      ?? '할 일제목을 저장하지 못했습니다.'
   }
 
   if (orderedTasks.length === 0) {
@@ -160,7 +160,7 @@ export default function TaskList({
                         value={task.title}
                         ariaLabel="Task 제목"
                         maxLength={255}
-                        requiredMessage="Task 제목을 입력해 주세요."
+                        requiredMessage="할 일 제목을 입력해 주세요."
                         disabled={isPending || isDeleteMode}
                         onSave={(title) => changeTaskTitle(task, title)}
                         getErrorMessage={getTaskTitleError}

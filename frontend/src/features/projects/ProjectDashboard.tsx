@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+// import { useMemo } from 'react'
 import {
   IconPlus,
 } from '@tabler/icons-react'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
-import DailyPlanSection from '../plans/DailyPlanSection'
+import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
 import type { Project } from './projectTypes'
@@ -18,11 +18,13 @@ interface ProjectDashboardProps {
   onOpenCreate: () => void
 }
 
+/*
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
 
 function formatTargetDate(targetDate: string) {
   return dateFormatter.format(new Date(`${targetDate}T00:00:00`))
 }
+*/
 
 export default function ProjectDashboard({
   projects,
@@ -30,6 +32,7 @@ export default function ProjectDashboard({
   onRetry,
   onOpenCreate,
 }: ProjectDashboardProps) {
+  /*
   const upcomingProjects = useMemo(
     () =>
       projects
@@ -38,6 +41,7 @@ export default function ProjectDashboard({
         .slice(0, 3),
     [projects],
   )
+  */
 
   return (
     <div className={styles['dashboard-layout']}>
@@ -88,7 +92,7 @@ export default function ProjectDashboard({
               <div className={styles['home-grid']}>
                 <div className={styles['home-main']}>
                   <ContinueSessionWidget/>
-                  <DailyPlanSection projects={projects}/>
+                  <DailyPlanner projects={projects}/>
                 </div>
 
                 <NoteCard projects={projects} />
@@ -97,6 +101,7 @@ export default function ProjectDashboard({
         )}
       </section>
 
+      {/*
       <aside className={styles['dashboard-aside']} aria-labelledby="upcoming-targets-title">
         <h2 id="upcoming-targets-title">다가오는 목표일</h2>
         {status === 'ready' && upcomingProjects.length > 0 ? (
@@ -122,6 +127,7 @@ export default function ProjectDashboard({
           <p className={styles['upcoming-empty']}>표시할 목표일이 아직 없습니다.</p>
         )}
       </aside>
+      */}
     </div>
   )
 }

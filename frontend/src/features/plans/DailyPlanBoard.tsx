@@ -26,7 +26,7 @@ import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import DailyPlanCardMenu from './DailyPlanCardMenu'
 import TaskPickerModal from './TaskPickerModal'
-import styles from './DailyPlanSection.module.css'
+import styles from './DailyPlanBoard.module.css'
 
 interface DailyPlanSectionProps {
     projects: Project[]
@@ -49,7 +49,7 @@ const dayFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'short', day: 'num
 const weekdayFormatter = new Intl.DateTimeFormat('ko-KR', {weekday: 'short'})
 const rangeFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'short', day: 'numeric'})
 
-export default function DailyPlanSection({projects}: DailyPlanSectionProps) {
+export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
     const navigate = useNavigate()
     const today = useMemo(() => formatLocalDate(new Date()), [])
     const [fromDate, setFromDate] = useState(today)

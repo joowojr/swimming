@@ -9,7 +9,7 @@ import {
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { IconDots } from '@tabler/icons-react'
-import styles from './DailyPlanSection.module.css'
+import styles from './DailyPlanBoard.module.css'
 
 interface DailyPlanCardMenuProps {
   label: string

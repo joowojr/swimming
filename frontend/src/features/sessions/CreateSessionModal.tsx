@@ -218,7 +218,7 @@ export default function CreateSessionModal({
             </fieldset>
 
             <fieldset className={styles.fieldset}>
-              <legend>어떻게 할까요 <span>(개인/그룹 선택)</span></legend>
+              <legend>어떻게 할까요 </legend>
               <div className={styles['mode-grid']}>
                 <label className={styles['mode-choice']}>
                   <input type="radio" name="session-mode" checked={mode === 'personal'} onChange={() => setMode('personal')} disabled={isSubmitting} />

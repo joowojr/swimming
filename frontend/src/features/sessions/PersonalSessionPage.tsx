@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   IconArrowLeft,
+  IconArrowsLeftRight,
   IconBellOff,
   IconBuilding,
   IconCheck,
@@ -22,6 +23,7 @@ import type { SessionDetailResponse } from './sessionTypes'
 import EndSessionModal from './EndSessionModal'
 import SessionMusicPlayer from './music/SessionMusicPlayer'
 import type { SessionMusicOption } from './music/SessionMusicPlayer'
+import NoteCard from '../note/NoteCard'
 import styles from './PersonalSessionPage.module.css'
 
 type PageState =
@@ -88,6 +90,7 @@ export default function PersonalSessionPage() {
   const [durationStepSec, setDurationStepSec] = useState(10)
   const [requestKey, setRequestKey] = useState(0)
   const [widgets, setWidgets] = useState<WidgetVisibility>(INITIAL_WIDGET_VISIBILITY)
+  const [isLayoutSwapped, setIsLayoutSwapped] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [musicOptions, setMusicOptions] = useState<SessionMusicOption[]>([])
   const [hasBackgroundError, setHasBackgroundError] = useState(false)
@@ -275,7 +278,7 @@ export default function PersonalSessionPage() {
   }
 
   return (
-    <main className={`${styles.page} ${focusMode ? styles['is-focus-mode'] : ''}`} aria-label="개인 세션 진행">
+    <main className={`${styles.page} ${focusMode ? styles['is-focus-mode'] : ''} ${isLayoutSwapped ? styles['is-layout-swapped'] : ''}`} aria-label="개인 세션 진행">
       <div className={styles.scene} aria-hidden="true"><span /><span /><span /></div>
       {backgroundType === 'IMAGE' && (
         <img
@@ -299,25 +302,29 @@ export default function PersonalSessionPage() {
       )}
       <div className={styles['background-shade']} aria-hidden="true" />
 
-      <nav className={styles.dock} aria-label="세션 위젯">
-        <button type="button" aria-pressed={widgets.place && !focusMode} aria-label={widgets.place ? '공간 위젯 접기' : '공간 위젯 펼치기'} onClick={() => toggleWidget('place')}><IconBuilding /></button>
-        <button type="button" aria-pressed={widgets.tasks && !focusMode} aria-label={widgets.tasks ? '할 일 위젯 접기' : '할 일 위젯 펼치기'} onClick={() => toggleWidget('tasks')}><IconChecklist /></button>
-        <button type="button" aria-pressed={widgets.timer} aria-label={widgets.timer ? '타이머 위젯 접기' : '타이머 위젯 펼치기'} onClick={() => toggleWidget('timer')}><IconClock /></button>
-        <button type="button" aria-pressed={widgets.people && !focusMode} aria-label={widgets.people ? '참여자 위젯 접기' : '참여자 위젯 펼치기'} onClick={() => toggleWidget('people')}><IconUsers /></button>
-        <button type="button" aria-pressed={widgets.music && !focusMode} aria-label={widgets.music ? '음악 위젯 접기' : '음악 위젯 펼치기'} onClick={() => toggleWidget('music')}><IconMusic /></button>
-        <button type="button" aria-pressed={focusMode} aria-label={focusMode ? '집중 모드 해제' : '집중 모드 켜기'} onClick={toggleFocusMode}><IconBellOff /></button>
-      </nav>
+      <div className={styles['session-chrome']}>
+        <nav className={styles.dock} aria-label="세션 위젯">
+          <button type="button" aria-pressed={widgets.place && !focusMode} aria-label={widgets.place ? '공간 위젯 접기' : '공간 위젯 펼치기'} onClick={() => toggleWidget('place')}><IconBuilding /></button>
+          <button type="button" aria-pressed={widgets.tasks && !focusMode} aria-label={widgets.tasks ? '할 일 위젯 접기' : '할 일 위젯 펼치기'} onClick={() => toggleWidget('tasks')}><IconChecklist /></button>
+          <button type="button" aria-pressed={widgets.timer} aria-label={widgets.timer ? '타이머 위젯 접기' : '타이머 위젯 펼치기'} onClick={() => toggleWidget('timer')}><IconClock /></button>
+          <button type="button" aria-pressed={widgets.people && !focusMode} aria-label={widgets.people ? '참여자 위젯 접기' : '참여자 위젯 펼치기'} onClick={() => toggleWidget('people')}><IconUsers /></button>
+          <button type="button" aria-pressed={widgets.music && !focusMode} aria-label={widgets.music ? '음악 위젯 접기' : '음악 위젯 펼치기'} onClick={() => toggleWidget('music')}><IconMusic /></button>
+          <button type="button" aria-pressed={isLayoutSwapped} aria-label="위젯 좌우 위치 바꾸기" onClick={() => setIsLayoutSwapped((current) => !current)}><IconArrowsLeftRight /></button>
+          <button type="button" aria-pressed={focusMode} aria-label={focusMode ? '집중 모드 해제' : '집중 모드 켜기'} onClick={toggleFocusMode}><IconBellOff /></button>
+        </nav>
 
+        <button className={`${styles.widget} ${styles.exit}`} type="button" onClick={() => navigate('/projects')}>
+          <IconArrowLeft aria-hidden="true" /> 나가기
+        </button>
+      </div>
+
+      <div className={styles['widget-area']}>
       {widgets.place && !focusMode && (
         <div className={`${styles.widget} ${styles.place}`}>
           <IconBuilding aria-hidden="true" />
           <div><strong>{state.session.place.cityName}</strong><span>{state.session.place.name}</span></div>
         </div>
       )}
-
-      <button className={`${styles.widget} ${styles.exit}`} type="button" onClick={() => navigate('/projects')}>
-        <IconArrowLeft aria-hidden="true" /> 나가기
-      </button>
 
       {widgets.tasks && !focusMode && (
         <section className={`${styles.widget} ${styles.tasks}`} aria-labelledby="current-task-title">
@@ -332,6 +339,14 @@ export default function PersonalSessionPage() {
             </ol>
           )}
         </section>
+      )}
+
+      {widgets.tasks && !focusMode && (
+        <NoteCard
+          className={`${styles.widget} ${styles['session-note']}`}
+          projects={[]}
+          sessionId={state.session.id}
+        />
       )}
 
       {widgets.timer && (
@@ -406,6 +421,7 @@ export default function PersonalSessionPage() {
           onSourceChange={saveMusicSource}
         />
       )}
+      </div>
 
       <button
         type="button"

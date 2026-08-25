@@ -33,8 +33,8 @@
   position: relative;
   display: flex;
   min-width: 0;
-  gap: var(--space-4);
-  padding: var(--space-5) var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-1);
 }
 
 .item + .item {
@@ -47,8 +47,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-8);
-  height: var(--space-8);
+  width: var(--space-6);
+  height: var(--space-6);
   flex: 0 0 auto;
   padding: 0;
   border: var(--focus-ring-width) solid var(--color-mute);
@@ -121,10 +121,10 @@
   min-width: 0;
   margin: 0;
   color: var(--color-primary);
-  font-size: var(--text-body-md-size);
+  font-size: var(--text-body-sm-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
-  line-height: var(--text-body-md-line-height);
+  line-height: var(--text-body-sm-line-height);
 }
 
 .task-title {
@@ -191,8 +191,8 @@
 .meta {
   margin: var(--space-1) 0 0;
   color: var(--color-mute);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
 }
 
 .error {
@@ -214,8 +214,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-8);
-  height: var(--space-8);
+  width: var(--space-6);
+  height: var(--space-6);
   padding: 0;
   border: 0;
   border-radius: var(--radius-full);
@@ -223,6 +223,12 @@
   background: transparent;
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
+}
+
+.node svg,
+.play-control svg {
+  width: var(--space-4);
+  height: var(--space-4);
 }
 
 .play-control button:focus-visible {

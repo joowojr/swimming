@@ -13,6 +13,7 @@ import type {TaskStatus} from '../tasks/taskTypes'
 import {deleteProject, getProject, updateProject} from './projectApi'
 import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
 import TaskList from './TaskList'
+import NoteCard from '../note/NoteCard'
 import styles from './ProjectDetail.module.css'
 
 interface ProjectDetailProps {
@@ -341,6 +342,9 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         <span aria-current="page">{project.name}</span>
       </nav>
 
+      <div className={styles['detail-layout']}>
+        <div className={styles['detail-main']}>
+
       <header className={styles.header}>
       <div className={styles.badges} data-tone={project.id % 4}>
           {project.tag && <span className={styles.tag}>{project.tag.name}</span>}
@@ -525,6 +529,12 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           />
         </div>
       </section>
+        </div>
+
+        <aside className={styles['detail-aside']} aria-label="프로젝트 메모">
+          <NoteCard key={project.id} projects={[project]} projectId={project.id} />
+        </aside>
+      </div>
     </article>
   )
 }

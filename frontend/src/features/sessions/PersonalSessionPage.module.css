@@ -78,6 +78,44 @@
     background: linear-gradient(180deg, var(--color-session-vignette), transparent 24%, transparent 72%, var(--color-session-vignette));
 }
 
+.session-chrome {
+    position: absolute;
+    z-index: 4;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr) 5rem;
+    pointer-events: none;
+}
+
+.session-chrome .dock,
+.session-chrome .exit {
+    pointer-events: auto;
+}
+
+.session-chrome .dock {
+    position: relative;
+    inset: auto;
+    grid-column: 1;
+    align-self: center;
+    justify-self: center;
+    transform: none;
+}
+
+.session-chrome .exit {
+    position: relative;
+    inset: auto;
+    grid-column: 3;
+    align-self: start;
+    justify-self: end;
+    margin: var(--space-4);
+}
+
+.widget-area {
+    position: absolute;
+    z-index: 2;
+    inset: 0 5rem;
+}
+
 .widget, .dark-widget, .dock, .focus-status {
     position: absolute;
     z-index: 2;
@@ -138,7 +176,7 @@
 
 .place {
     top: var(--space-4);
-    left: 5rem;
+    left: 0;
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -196,9 +234,27 @@
 
 .tasks {
     top: 4.75rem;
-    left: 5rem;
+    left: 0;
     width: 15rem;
     padding: var(--space-6);
+}
+
+.session-note {
+    top: 15rem;
+    left: 0;
+    width: 15rem;
+    min-height: 0;
+    max-height: 25rem;
+    padding: var(--space-4);
+    overflow: auto;
+}
+
+.session-note :global(.memo-paper) {
+    min-height: 6rem;
+}
+
+.session-note :global(.memo-foot) {
+    margin-top: var(--space-3);
 }
 
 .tasks > p, .tasks h1, .tasks p {
@@ -269,8 +325,8 @@
 
 .timer {
     top: 4.75rem;
-    right: var(--space-4);
-    width: 18rem;
+    right: 0;
+    width: 22rem;
     padding: var(--space-6);
 }
 
@@ -293,8 +349,8 @@
 .timer-main {
     position: relative;
     display: grid;
-    width: 11rem;
-    height: 11rem;
+    width: 16rem;
+    height: 16rem;
     margin: var(--space-6) auto 0;
     place-items: center;
 }
@@ -317,7 +373,7 @@
 }
 
 .ring-progress {
-    stroke: var(--color-primary);
+    stroke: var(--color-primary-container);
     stroke-dasharray: 276.46;
     stroke-linecap: round;
     transition: stroke-dashoffset 1s linear;
@@ -345,9 +401,11 @@
 
 .timer-adjust {
     display: grid;
-    grid-template-columns: 2.5rem 1fr 2.5rem;
+    grid-template-columns: 2rem 1fr 2rem;
     gap: var(--space-2);
+    width: 11rem;
     margin-top: var(--space-5);
+    margin-inline: auto;
 }
 
 .timer-adjust button, .timer-adjust select {
@@ -431,7 +489,7 @@
 
 .people {
     bottom: var(--space-4);
-    left: 5rem;
+    left: 0;
     width: 15rem;
     padding: var(--space-6);
 }
@@ -465,7 +523,7 @@
 .music {
     position: absolute;
     z-index: 2;
-    right: var(--space-4);
+    right: 0;
     bottom: var(--space-4);
     width: 22rem;
 }
@@ -490,6 +548,26 @@
 .focus-status[aria-pressed='true'] {
     color: var(--color-on-primary);
     background: var(--color-primary);
+}
+
+@media (min-width: 48.01rem) {
+    .is-layout-swapped .place,
+    .is-layout-swapped .tasks,
+    .is-layout-swapped .session-note {
+        right: 0;
+        left: auto;
+    }
+
+    .is-layout-swapped .timer,
+    .is-layout-swapped .music {
+        right: auto;
+        left: 0;
+    }
+
+    .is-layout-swapped .people {
+        right: 0;
+        left: auto;
+    }
 }
 
 .is-focus-mode .dock,
@@ -607,11 +685,22 @@
         overflow-y: auto;
     }
 
+    .widget-area {
+        position: relative;
+        inset: auto;
+    }
+
     .dock {
         top: auto;
         bottom: var(--space-3);
         left: 50%;
         flex-direction: row;
+        transform: translateX(-50%);
+    }
+
+    .session-chrome .dock {
+        position: absolute;
+        inset: auto auto var(--space-3) 50%;
         transform: translateX(-50%);
     }
 
@@ -623,11 +712,21 @@
         right: var(--space-3);
     }
 
-    .tasks, .timer, .people, .music {
+    .session-chrome .exit {
+        position: absolute;
+        inset: var(--space-4) var(--space-3) auto auto;
+        margin: 0;
+    }
+
+    .tasks, .timer, .people, .music, .session-note {
         position: relative;
         inset: auto;
         width: auto;
         margin-inline: var(--space-3);
+    }
+
+    .session-note {
+        margin-top: var(--space-3);
     }
 
     .tasks {
@@ -657,8 +756,8 @@
     }
 
     .timer-main {
-        width: 10rem;
-        height: 10rem;
+        width: 12rem;
+        height: 12rem;
     }
 
     .state-actions {

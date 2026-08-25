@@ -28,6 +28,11 @@ export async function getActiveSession(): Promise<SessionDetailResponse | null> 
   return response.status === 204 ? null : response.data
 }
 
+export async function getSessions(): Promise<SessionDetailResponse[]> {
+  const response = await client.get<SessionDetailResponse[]>('/sessions')
+  return response.data
+}
+
 export async function getSession(sessionId: number): Promise<SessionDetailResponse> {
   const response = await client.get<SessionDetailResponse>(`/sessions/${sessionId}`)
   return response.data

@@ -7,6 +7,7 @@ import type { ProjectLoadStatus } from './features/projects/ProjectDashboard'
 import ProjectDetail from './features/projects/ProjectDetail'
 import ProjectListPage from './features/projects/ProjectListPage'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
+import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
 import { getProjects } from './features/projects/projectApi'
 import type { Project } from './features/projects/projectTypes'
 import AppShell from './layout/AppShell'
@@ -124,6 +125,7 @@ function App() {
       ) : auth.status === 'authenticated' ? (
         <Routes>
           <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
+          <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
             path="/projects"
             element={(

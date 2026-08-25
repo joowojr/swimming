@@ -27,7 +27,7 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
   return (
     <header className={styles['top-bar']}>
       <div className={styles['top-bar-primary']}>
-        <Link className={styles.brand} to="/projects" aria-label="Swimming 프로젝트">
+        <Link className={styles.brand} to="/pinboard" aria-label="Swimming 핀보드">
           <span className={styles['brand-mark']} aria-hidden="true">
             <img src="/logo.svg" alt=""/>
           </span>
@@ -69,7 +69,7 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
 
         <div className={styles['account-menu']}>
           {userEmail ? (
-            <>
+            <Link className={styles['account-link']} to="/settings" aria-label="개인 설정 열기">
               <div className={styles['account-copy']}>
                 <strong>{userEmail}</strong>
                 <span>내 계정</span>
@@ -77,7 +77,7 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
               <span className={styles['account-avatar']} aria-hidden="true">
                 {userEmail.slice(0, 1).toUpperCase()}
               </span>
-            </>
+            </Link>
           ) : (
             <div className={styles['guest-actions']}>
               <button className={styles['top-bar-login']} type="button" onClick={onLogin}>

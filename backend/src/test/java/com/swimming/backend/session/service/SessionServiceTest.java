@@ -98,6 +98,18 @@ class SessionServiceTest {
     }
 
     @Test
+    @DisplayName("사용자의 세션을 최신 시작 시각 순서로 조회한다")
+    void getsOwnedSessionsInLatestOrder() {
+        SessionEntity entity = startedEntity();
+        when(sessionRepository.findAllByUserIdOrderByStartedAtDesc(1L))
+                .thenReturn(List.of(entity));
+
+        assertThat(sessionService.getOwnedSessions(1L))
+                .extracting(Session::getId)
+                .containsExactly(5L);
+    }
+
+    @Test
     @DisplayName("수정된 도메인을 기존 엔티티에 적용해 저장한다")
     void appliesAndSavesExistingSession() {
         SessionEntity entity = startedEntity();

@@ -106,6 +106,31 @@ class SessionControllerTest {
     }
 
     @Test
+    @DisplayName("세션 피드는 현재 사용자의 세션 목록을 반환한다")
+    void getsSessionFeed() throws Exception {
+        when(sessionUseCase.getAll(1L)).thenReturn(List.of(new SessionDetailResponse(
+                5L,
+                SessionType.PERSONAL,
+                SessionStatus.COMPLETED,
+                1500,
+                1200,
+                STARTED_AT,
+                STARTED_AT.plusSeconds(1200),
+                sessionDetailPlace(),
+                null,
+                List.of(new SessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"))
+        )));
+
+        mockMvc.perform(get("/api/sessions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(5))
+                .andExpect(jsonPath("$[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$[0].tasks[0].title").value("첫 Task"));
+
+        verify(sessionUseCase).getAll(1L);
+    }
+
+    @Test
     @DisplayName("허용 범위를 벗어난 집중 시간은 필드 오류를 반환한다")
     void rejectsInvalidDuration() throws Exception {
         mockMvc.perform(post("/api/sessions")

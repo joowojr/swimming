@@ -6,6 +6,8 @@ interface NoteListProps {
   notes: NoteResponse[]
   selectedNoteId: number | null
   disabled: boolean
+  projectId?: number
+  sessionId?: number
   onSelect: (note: NoteResponse) => void
 }
 
@@ -27,6 +29,8 @@ export default function NoteList({
   notes,
   selectedNoteId,
   disabled,
+  projectId,
+  sessionId,
   onSelect,
 }: NoteListProps) {
   return (
@@ -40,6 +44,7 @@ export default function NoteList({
         <ul className={styles['memo-list-items']}>
           {notes.map((note) => (
             <li key={note.id}>
+              {/** 현재 페이지 컨텍스트에 속한 메모인지 목록에서도 바로 구분한다. */}
               <button
                 type="button"
                 className={selectedNoteId === note.id
@@ -49,6 +54,9 @@ export default function NoteList({
                 disabled={disabled}
                 aria-pressed={selectedNoteId === note.id}
               >
+                {(note.projectId === projectId || note.sessionId === sessionId) && (
+                  <span className={styles['memo-list-context-dot']} role="img" aria-label="현재 페이지의 메모" />
+                )}
                 <span>{getNotePreview(note.content)}</span>
                 <time dateTime={note.createdAt}>{formatNoteDate(note.createdAt)}</time>
               </button>

@@ -342,6 +342,14 @@
     border-color: var(--color-primary);
 }
 
+.memo-list-context-dot {
+    width: .5rem;
+    height: .5rem;
+    flex: 0 0 auto;
+    border-radius: var(--radius-full);
+    background: var(--color-primary-container);
+}
+
 .memo-list-action > span,
 .memo-list-action-active > span {
     flex: 1 1 auto;
@@ -351,6 +359,15 @@
     font-size: var(--text-body-sm-size);
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.memo-list-action > span.memo-list-context-dot,
+.memo-list-action-active > span.memo-list-context-dot {
+    width: .5rem;
+    height: .5rem;
+    flex: 0 0 .5rem;
+    border-radius: var(--radius-full);
+    background: var(--color-primary-container);
 }
 
 .memo-list-action time,

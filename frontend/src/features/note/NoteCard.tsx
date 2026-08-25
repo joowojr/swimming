@@ -22,6 +22,9 @@ import styles from './NoteCard.module.css'
  */
 interface NoteCardProps {
   projects: ProjectOption[]
+  projectId?: number
+  sessionId?: number
+  className?: string
 }
 
 interface OrganizerSource {
@@ -31,7 +34,7 @@ interface OrganizerSource {
 
 const AUTO_SAVE_DELAY_MS = 700
 
-export default function NoteCard({ projects }: NoteCardProps) {
+export default function NoteCard({ projects, projectId, sessionId, className }: NoteCardProps) {
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
@@ -62,7 +65,11 @@ export default function NoteCard({ projects }: NoteCardProps) {
 
     async function loadLatestNote() {
       try {
-        const loadedNotes = await getNotes({ contextType: 'DEFAULT' })
+        const loadedNotes = sessionId !== undefined
+          ? await getNotes({ sessionId })
+          : projectId === undefined
+            ? await getNotes({ contextType: 'DEFAULT' })
+            : await getNotes({ projectId })
         if (cancelled) return
 
         const latestNote = loadedNotes[0]
@@ -86,7 +93,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
       isMountedRef.current = false
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [])
+  }, [projectId, sessionId])
 
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
@@ -106,7 +113,11 @@ export default function NoteCard({ projects }: NoteCardProps) {
 
       try {
         const savedNote = noteIdRef.current === null
-          ? await createNote({ content, contextType: 'DEFAULT', projectId: null, sessionId: null })
+          ? await createNote(sessionId !== undefined
+            ? { content, contextType: 'SESSION', projectId: null, sessionId }
+            : projectId === undefined
+              ? { content, contextType: 'DEFAULT', projectId: null, sessionId: null }
+              : { content, contextType: 'PROJECT', projectId, sessionId: null })
               .then((createdNote) => getNote(createdNote.id))
           : await updateNote(noteIdRef.current, { content })
 
@@ -295,7 +306,7 @@ export default function NoteCard({ projects }: NoteCardProps) {
     isDeleting
 
   return (
-    <section className={styles['memo-card']} aria-label="메모">
+    <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
       {organizerSource ? (
         <TaskOrganizerPanel source={organizerSource} projects={projects} onCancel={closeOrganizer} onFinish={finishOrganizer} />
       ) : (
@@ -323,7 +334,14 @@ export default function NoteCard({ projects }: NoteCardProps) {
             onDelete={() => void handleDelete()}
             onRestore={() => void handleRestoreRecent()}
           />
-          <NoteList notes={notes} selectedNoteId={selectedNoteId} disabled={isEditorDisabled} onSelect={(note) => void handleSelectNote(note)} />
+          <NoteList
+            notes={notes}
+            selectedNoteId={selectedNoteId}
+            disabled={isEditorDisabled}
+            projectId={projectId}
+            sessionId={sessionId}
+            onSelect={(note) => void handleSelectNote(note)}
+          />
         </>
       )}
     </section>

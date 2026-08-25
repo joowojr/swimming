@@ -297,7 +297,7 @@ export default function CreateSessionModal({
               <strong>
                 {selectedTaskTitles.length > 0
                   ? `${selectedTaskTitles[0]}${selectedTaskTitles.length > 1 ? ` 외 ${selectedTaskTitles.length - 1}개` : ''}`
-                  : 'Task 미선택'}
+                  : '할 일 미선택'}
               </strong>
               {mode === 'personal' && selectedPlace
                 ? ` · ${selectedPlace.city.name} · ${validDuration ? `${durationMinutes}분` : '시간 미입력'}`

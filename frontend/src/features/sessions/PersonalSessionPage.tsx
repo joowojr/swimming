@@ -269,7 +269,7 @@ export default function PersonalSessionPage() {
           <p>기록하기</p>
           <h1 id="session-ended-title">오늘의 집중을 잘 마무리했어요.</h1>
           <p>함께한 Task와 집중 기록을 저장했습니다.</p>
-          <button type="button" onClick={() => navigate('/projects')}>내 프로젝트로 돌아가기</button>
+          <button type="button" onClick={() => navigate(-1)}>이전 페이지로 돌아가기</button>
         </section>
       </main>
     )

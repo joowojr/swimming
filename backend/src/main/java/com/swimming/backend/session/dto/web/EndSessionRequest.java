@@ -11,6 +11,8 @@ public record EndSessionRequest(
         @Size(max = 255, message = "한 줄 기록은 255자 이하여야 합니다")
         String summary,
 
+        boolean usePlannedDuration,
+
         @Valid
         List<TaskResult> taskResults
 ) {

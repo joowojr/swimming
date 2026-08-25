@@ -64,7 +64,7 @@ export default function DiveSessionFeedPage() {
       <section className={styles['recent-section']} aria-labelledby="recent-sessions-title">
         <header className={styles.header}>
           <h1 id="recent-sessions-title">최근 진행한 다이브 세션</h1>
-          <p>집중한 시간과 Task를 다시 살펴봅니다.</p>
+          <p>집중한 시간과 할 일을 다시 살펴봅니다.</p>
         </header>
 
         {status === 'loading' && (
@@ -101,7 +101,7 @@ export default function DiveSessionFeedPage() {
               </div>
               <div className={styles['card-content']}>
                 <div className={styles['card-title-row']}>
-                  <h2>{session.tasks[0]?.title ?? 'Task 없는 세션'}</h2>
+                  <h2>{session.tasks[0]?.title ?? '할 일 없는 세션'}</h2>
                   <span className={styles['task-count']}>
                     <IconListCheck size={15} aria-hidden="true" />
                     {session.tasks.length}
@@ -111,9 +111,6 @@ export default function DiveSessionFeedPage() {
                   <span><IconMapPin size={15} aria-hidden="true" />{session.place.cityName} · {session.place.name}</span>
                   <span><IconClock size={15} aria-hidden="true" />{formatDateTime(session.startedAt)}</span>
                 </div>
-                <p className={styles.tasks}>
-                  {session.tasks.map((task) => task.title).join(' · ')}
-                </p>
               </div>
             </Link>
             ))}

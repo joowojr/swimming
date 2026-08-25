@@ -11,7 +11,7 @@
   overflow: visible;
   border: 0;
   color: var(--color-primary);
-  background: transparent;
+  background: var(--color-surface-container-high);
   animation: modal-enter var(--dur-modal) var(--ease-out);
 }
 
@@ -105,10 +105,19 @@
 
 .modal-field label,
 .modal-field legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: 0;
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-button-weight);
+}
+
+.modal-field legend svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--color-mute);
 }
 
 .modal-field label span,
@@ -160,6 +169,45 @@
 
 .modal-field-message {
   min-height: var(--text-body-sm-line-height);
+}
+
+.modal-field .planned-duration {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+  font-size: var(--text-body-sm-size);
+}
+
+.modal-field .planned-duration input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  appearance: none;
+  border: var(--border-width) solid var(--color-mute);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-high);
+  cursor: pointer;
+}
+
+.planned-duration input:checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 0.25rem var(--color-primary);
+}
+
+.planned-duration input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--space-1);
+}
+
+.planned-duration input:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .modal-submit-error {

@@ -160,6 +160,24 @@ class SessionUseCaseTest {
     }
 
     @Test
+    @DisplayName("계획 시간으로 종료하도록 요청하면 계획된 시각과 시간으로 기록한다")
+    void endsOwnedSessionAtPlannedTime() {
+        Session session = startedSession(NOW.minusSeconds(600));
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+        when(sessionService.save(session)).thenReturn(session);
+        when(placeVideoService.getReference(20L)).thenReturn(placeReference());
+
+        SessionResponse response = sessionUseCase.end(
+                1L,
+                5L,
+                new EndSessionRequest(null, true, List.of())
+        );
+
+        assertThat(response.actualDurationSec()).isEqualTo(1500);
+        assertThat(response.endedAt()).isEqualTo(NOW.plusSeconds(900));
+    }
+
+    @Test
     @DisplayName("기록과 함께 종료하면 기록을 저장하고 Task 상태를 전이한다")
     void endsWithRecordAndTransitionsTasks() {
         Session session = startedSession(NOW.minusSeconds(600));
@@ -169,6 +187,7 @@ class SessionUseCaseTest {
 
         EndSessionRequest request = new EndSessionRequest(
                 "1페이지 완료",
+                false,
                 List.of(
                         new EndSessionRequest.TaskResult(10L, true),
                         new EndSessionRequest.TaskResult(11L, false)
@@ -193,6 +212,7 @@ class SessionUseCaseTest {
 
         EndSessionRequest request = new EndSessionRequest(
                 null,
+                false,
                 List.of(new EndSessionRequest.TaskResult(99L, true))
         );
 

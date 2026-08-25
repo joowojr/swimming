@@ -1,0 +1,111 @@
+.dialog {
+    width: min(calc(100% - var(--space-8)), 30rem);
+}
+
+.modal {
+    width: 100%;
+}
+
+.header h2, .header p {
+    margin: 0;
+}
+
+.header p {
+    margin-top: var(--space-1);
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+}
+
+.close, .iconButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    color: var(--color-mute);
+    background: transparent;
+    cursor: pointer;
+}
+
+.close {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-full);
+}
+
+.body {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    overflow-y: auto;
+}
+
+.addRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+}
+
+.addRow input, .list input {
+    min-width: 0;
+    min-height: var(--button-height);
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-default);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
+    font: inherit;
+}
+
+.message {
+    margin: 0;
+    color: var(--color-error);
+    font-size: var(--text-body-sm-size);
+}
+
+.list {
+    display: grid;
+    gap: var(--space-2);
+    max-height: 18rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: var(--button-height);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+}
+
+.list li > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex: 0 0 auto;
+}
+
+.iconButton {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-full);
+}
+
+.iconButton:hover, .close:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-container-high);
+}

@@ -2,16 +2,20 @@ erDiagram
     users ||--o{ project_tags : owns
     users ||--o{ projects : owns
     project_tags o|--o{ projects : classifies
-    projects ||--o{ tasks : contains
+    users ||--o{ tasks : owns
+    projects o|--o{ tasks : contains
+    notes o|--o{ tasks : sources
     users ||--o{ daily_plans : owns
     daily_plans ||--o{ daily_plan_items : "contains (delete cascades)"
     tasks ||--o{ daily_plan_items : "plans (delete cascades)"
     users ||--o{ sessions : runs
+    users ||--o{ notes : owns
+    projects o|--o{ notes : contextualizes
+    sessions o|--o{ notes : contextualizes
     sessions ||--|{ session_tasks : contains
     tasks ||--o{ session_tasks : focuses
     places ||--o{ sessions : hosts
     group_rooms o|--o{ sessions : groups
-    sessions ||--o| check_ins : records
     places ||--o{ group_rooms : hosts
     group_rooms ||--o{ group_participants : includes
     users ||--o{ group_participants : joins
@@ -44,16 +48,18 @@ erDiagram
         text description
         date target_date "nullable"
         varchar status
+        boolean is_deleted
         timestamp created_at
         timestamp updated_at
     }
 
     tasks {
         bigint id PK
-        bigint project_id FK
+        bigint user_id FK
+        bigint project_id FK "nullable"
+        bigint source_note_id FK "nullable"
         varchar title
         varchar status
-        int completion_pct
         int order_idx
         timestamp created_at
         timestamp updated_at
@@ -70,8 +76,7 @@ erDiagram
     daily_plan_items {
         bigint id PK
         bigint daily_plan_id FK
-        bigint task_id FK "nullable"
-        varchar title "nullable; ad hoc item"
+        bigint task_id FK
         int order_idx
         timestamp created_at
         timestamp updated_at
@@ -90,6 +95,7 @@ erDiagram
         timestamp started_at
         timestamp end_at "nullable"
         varchar status
+        varchar summary "nullable; 세션 기록 한 줄 메모"
         timestamp created_at
         timestamp updated_at
     }
@@ -100,12 +106,15 @@ erDiagram
         int order_idx PK
     }
 
-    check_ins {
+    notes {
         bigint id PK
-        bigint session_id FK,UK
-        text summary
-        boolean task_completed
-        int remaining_pct
+        bigint user_id FK
+        text content
+        varchar status
+        boolean is_deleted
+        varchar context_type
+        bigint project_id FK "nullable"
+        bigint session_id FK "nullable"
         timestamp created_at
         timestamp updated_at
     }
@@ -147,7 +156,7 @@ erDiagram
         bigint city_id FK
         varchar name
         varchar background_asset_type
-        varchar background_asset_url
+        varchar background_asset_key
         varchar default_music_url "nullable"
         timestamp created_at
         timestamp updated_at

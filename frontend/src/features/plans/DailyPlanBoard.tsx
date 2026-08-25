@@ -1,7 +1,5 @@
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import {
-    IconArrowDown,
-    IconArrowUp,
     IconCalendar,
     IconLoader2,
     IconPlayerPlay,
@@ -20,7 +18,6 @@ import {
     addDailyPlanItems,
     deleteDailyPlanItem,
     getDailyPlans,
-    reorderDailyPlanItems
 } from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
@@ -58,13 +55,10 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
     const [plans, setPlans] = useState<DailyPlan[]>([])
     const [drafts, setDrafts] = useState<Record<string, DailyPlanItem[]>>({})
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-    const [dirtyDates, setDirtyDates] = useState<Set<string>>(new Set())
     const [message, setMessage] = useState<string | null>(null)
     const [isPickerOpen, setIsPickerOpen] = useState(false)
     const [sessionTaskId, setSessionTaskId] = useState<number | null>(null)
     const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
-    const planRevisionRef = useRef(new Map<string, number>())
-    const savingDatesRef = useRef(new Set<string>())
 
     useEffect(() => {
         let active = true
@@ -73,8 +67,6 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                 if (!active) return
                 setPlans(response)
                 setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
-                setDirtyDates(new Set())
-                planRevisionRef.current.clear()
                 setStatus('ready')
             })
             .catch(() => {
@@ -88,57 +80,12 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
     const draftItems = drafts[selectedDate] ?? []
     const todayTasks = drafts[today] ?? plans.find((plan) => plan.date === today)?.items ?? []
 
-    useEffect(() => {
-        if (dirtyDates.size === 0) return
-
-        const timeoutId = window.setTimeout(() => {
-            dirtyDates.forEach((date) => {
-                if (savingDatesRef.current.has(date)) return
-
-                const items = drafts[date] ?? []
-                const revision = planRevisionRef.current.get(date) ?? 0
-                savingDatesRef.current.add(date)
-
-                void reorderDailyPlanItems(date, {itemIds: items.map((item) => item.id)})
-                    .then((savedPlan) => {
-                        if ((planRevisionRef.current.get(date) ?? 0) !== revision) return
-
-                        setPlans((current) => current.map((plan) => plan.date === date
-                            ? savedPlan
-                            : plan))
-                        setDrafts((current) => ({...current, [date]: savedPlan.items}))
-                        setDirtyDates((dates) => {
-                            const next = new Set(dates)
-                            next.delete(date)
-                            return next
-                        })
-                    })
-                    .catch((error: unknown) => {
-                        const apiMessage = typeof error === 'object' && error !== null
-                            ? (error as ApiError).message
-                            : undefined
-                        setMessage(apiMessage ?? '계획을 자동 저장하지 못했습니다. 변경 내용을 확인해 주세요.')
-                    })
-                    .finally(() => {
-                        savingDatesRef.current.delete(date)
-                        if ((planRevisionRef.current.get(date) ?? 0) !== revision) {
-                            setDirtyDates((dates) => new Set(dates))
-                        }
-                    })
-            })
-        }, 500)
-
-        return () => window.clearTimeout(timeoutId)
-    }, [dirtyDates, drafts])
-
     const retry = async () => {
         setStatus('loading')
         try {
             const response = await getDailyPlans(fromDate, toDate)
             setPlans(response)
             setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
-            setDirtyDates(new Set())
-            planRevisionRef.current.clear()
             setStatus('ready')
         } catch {
             setStatus('error')
@@ -159,24 +106,6 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
     }
 
     const changeToDate = (value: string) => setRange(fromDate, value)
-
-    const markDateDirty = (date: string) => {
-        planRevisionRef.current.set(date, (planRevisionRef.current.get(date) ?? 0) + 1)
-        setDirtyDates((dates) => new Set(dates).add(date))
-        setMessage(null)
-    }
-
-    const moveItem = (index: number, offset: number) => {
-        const target = index + offset
-        if (target < 0 || target >= draftItems.length) return
-        setDrafts((current) => {
-            const items = current[selectedDate] ?? []
-            const next = [...items]
-            ;[next[index], next[target]] = [next[target], next[index]]
-            return {...current, [selectedDate]: next}
-        })
-        markDateDirty(selectedDate)
-    }
 
     const replacePlan = (savedPlan: DailyPlan) => {
         setPlans((current) => current.map((plan) => plan.date === savedPlan.date ? savedPlan : plan))
@@ -324,7 +253,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                             <span className={styles.count}>{items.length}</span>
                                         </button>
                                         <ol className={styles.list}>
-                                            {items.map((item, index) => (
+                                            {items.map((item) => (
                                                 <li className={`${styles.card} ${item.itemType === 'AD_HOC' ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 4}`]}`}
                                                     key={item.id}>
                                                     <div className={styles['card-select']}
@@ -377,15 +306,6 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                                         다이브 세션
                                                                     </ModalTriggerButton>
                                                                 )}
-                                                                {/*<button type="button" disabled={index === 0}*/}
-                                                                {/*        onClick={() => moveItem(index, -1)}><IconArrowUp*/}
-                                                                {/*    size={15} aria-hidden="true"/>위로*/}
-                                                                {/*</button>*/}
-                                                                {/*<button type="button"*/}
-                                                                {/*        disabled={index === items.length - 1}*/}
-                                                                {/*        onClick={() => moveItem(index, 1)}>*/}
-                                                                {/*    <IconArrowDown size={15} aria-hidden="true"/>아래로*/}
-                                                                {/*</button>*/}
                                                                 <DeleteIconButton
                                                                     label="계획에서 제거"
                                                                     iconSize={15}

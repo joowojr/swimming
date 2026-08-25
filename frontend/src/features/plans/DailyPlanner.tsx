@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import {
     IconChevronLeft,
     IconChevronRight,
@@ -16,7 +16,7 @@ import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTask} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
-import {addDailyPlanItems, deleteDailyPlanItem, getDailyPlans, reorderDailyPlanItems} from './dailyPlanApi'
+import {addDailyPlanItems, deleteDailyPlanItem, getDailyPlans} from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import DailyPlanCardMenu from './DailyPlanCardMenu'
@@ -26,6 +26,8 @@ import styles from './DailyPlanner.module.css'
 interface DailyPlannerProps {
     projects: Project[]
 }
+
+type TaskOverride = Pick<DailyPlanItem, 'title' | 'status'>
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {year: 'numeric', month: 'long'})
 const selectedDateFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'long'})
@@ -65,14 +67,12 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
     const [visibleMonth, setVisibleMonth] = useState(() => parseDate(today))
     const [plans, setPlans] = useState<DailyPlan[]>([])
     const [drafts, setDrafts] = useState<Record<string, DailyPlanItem[]>>({})
+    const [taskOverrides, setTaskOverrides] = useState<Record<number, TaskOverride>>({})
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-    const [dirtyDates, setDirtyDates] = useState<Set<string>>(new Set())
     const [message, setMessage] = useState<string | null>(null)
     const [isPickerOpen, setIsPickerOpen] = useState(false)
     const [sessionTaskId, setSessionTaskId] = useState<number | null>(null)
     const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
-    const revisionRef = useRef(new Map<string, number>())
-    const savingDatesRef = useRef(new Set<string>())
 
     const loadPlans = async (date: string) => {
         setStatus('loading')
@@ -80,8 +80,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
             const response = await getDailyPlans(date, addDays(date, 6))
             setPlans(response)
             setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
-            setDirtyDates(new Set())
-            revisionRef.current.clear()
+            setTaskOverrides({})
             setStatus('ready')
         } catch {
             setStatus('error')
@@ -95,8 +94,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 if (!active) return
                 setPlans(response)
                 setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
-                setDirtyDates(new Set())
-                revisionRef.current.clear()
+                setTaskOverrides({})
                 setStatus('ready')
             })
             .catch(() => {
@@ -105,68 +103,25 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         return () => { active = false }
     }, [selectedDate])
 
-    useEffect(() => {
-        if (dirtyDates.size === 0) return
-        const timeoutId = window.setTimeout(() => {
-            dirtyDates.forEach((date) => {
-                if (savingDatesRef.current.has(date)) return
-                const items = drafts[date] ?? []
-                const revision = revisionRef.current.get(date) ?? 0
-                savingDatesRef.current.add(date)
-                void reorderDailyPlanItems(date, {itemIds: items.map((item) => item.id)})
-                    .then((savedPlan) => {
-                        if ((revisionRef.current.get(date) ?? 0) !== revision) return
-                        setPlans((current) => current.map((plan) => plan.date === date ? savedPlan : plan))
-                        setDrafts((current) => ({...current, [date]: savedPlan.items}))
-                        setDirtyDates((dates) => {
-                            const next = new Set(dates)
-                            next.delete(date)
-                            return next
-                        })
-                    })
-                    .catch((error: unknown) => {
-                        const apiMessage = typeof error === 'object' && error !== null
-                            ? (error as ApiError).message
-                            : undefined
-                        setMessage(apiMessage ?? '계획을 자동 저장하지 못했습니다. 변경 내용을 확인해 주세요.')
-                    })
-                    .finally(() => {
-                        savingDatesRef.current.delete(date)
-                        if ((revisionRef.current.get(date) ?? 0) !== revision) {
-                            setDirtyDates((dates) => new Set(dates))
-                        }
-                    })
-            })
-        }, 500)
-        return () => window.clearTimeout(timeoutId)
-    }, [dirtyDates, drafts])
-
-    const items = drafts[selectedDate] ?? []
-    const todayTasks = drafts[today] ?? plans.find((plan) => plan.date === today)?.items ?? []
-    const calendarDays = useMemo(() => monthDays(visibleMonth), [visibleMonth])
-
-    const markDirty = (date: string) => {
-        revisionRef.current.set(date, (revisionRef.current.get(date) ?? 0) + 1)
-        setDirtyDates((dates) => new Set(dates).add(date))
-        setMessage(null)
+    const applyTaskOverride = (item: DailyPlanItem): DailyPlanItem => {
+        const override = taskOverrides[item.taskId]
+        if (!override) return item
+        return {
+            ...item,
+            title: override.title,
+            status: override.status,
+        }
     }
+    const items = (drafts[selectedDate] ?? []).map(applyTaskOverride)
+    const todayTasks = (drafts[today] ?? plans.find((plan) => plan.date === today)?.items ?? [])
+        .map(applyTaskOverride)
+    const calendarDays = useMemo(() => monthDays(visibleMonth), [visibleMonth])
 
     const selectDate = (date: string) => {
         const nextMonth = parseDate(date)
         setSelectedDate(date)
         setVisibleMonth(nextMonth)
         setMessage(null)
-    }
-
-    const moveItem = (index: number, offset: number) => {
-        const target = index + offset
-        if (target < 0 || target >= items.length) return
-        setDrafts((current) => {
-            const next = [...(current[selectedDate] ?? [])]
-            ;[next[index], next[target]] = [next[target], next[index]]
-            return {...current, [selectedDate]: next}
-        })
-        markDirty(selectedDate)
     }
 
     const replacePlan = (savedPlan: DailyPlan) => {
@@ -183,15 +138,23 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         replacePlan(await addDailyPlanItems(selectedDate, {title, ...(projectId === null ? {} : {projectId})}))
     }
 
-    const replaceAcrossPlans = (field: 'title' | 'status', item: DailyPlanItem, value: string) => {
-        const replace = (candidate: DailyPlanItem) => candidate.taskId === item.taskId ? {...candidate, [field]: value} : candidate
-        setDrafts((current) => Object.fromEntries(Object.entries(current).map(([date, dateItems]) => [date, dateItems.map(replace)])))
-        setPlans((current) => current.map((plan) => ({...plan, items: plan.items.map(replace)})))
+    const updateTaskOverride = (
+        taskId: number,
+        field: 'title' | 'status',
+        value: string,
+    ) => {
+        setTaskOverrides((current) => ({
+            ...current,
+            [taskId]: {
+                ...current[taskId],
+                [field]: value,
+            } as TaskOverride,
+        }))
     }
 
     const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
         await updateTask(item.taskId, {title, status: item.status})
-        replaceAcrossPlans('title', item, title)
+        updateTaskOverride(item.taskId, 'title', title)
     }
 
     const changeTaskStatus = async (item: DailyPlanItem, nextStatus: TaskStatus) => {
@@ -199,7 +162,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         setMessage(null)
         try {
             await updateTask(item.taskId, {title: item.title, status: nextStatus})
-            replaceAcrossPlans('status', item, nextStatus)
+            updateTaskOverride(item.taskId, 'status', nextStatus)
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? 'Task 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
@@ -290,7 +253,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 ) : (
                     <>
                         <ol className={styles.todoList}>
-                            {items.map((item, index) => (
+                            {items.map((item) => (
                                 <li key={item.id}>
                                     <ChecklistCard
                                         id={item.taskId}
@@ -327,8 +290,6 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                                     다이브 세션
                                                 </ModalTriggerButton>
                                             )}
-                                            {/*<button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}>위로</button>*/}
-                                            {/*<button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}>아래로</button>*/}
                                             <DeleteIconButton label="계획에서 제거" iconSize={15} onClick={() => void removeItem(item.id)} />
                                         </DailyPlanCardMenu>
                                           </>

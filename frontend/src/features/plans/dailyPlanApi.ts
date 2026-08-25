@@ -1,5 +1,5 @@
 import { client } from '../../api/client'
-import type { CreateDailyPlanItemsRequest, DailyPlan, ReorderDailyPlanItemsRequest } from './dailyPlanTypes'
+import type { CreateDailyPlanItemsRequest, DailyPlan } from './dailyPlanTypes'
 
 export async function getDailyPlans(fromDate: string, toDate: string): Promise<DailyPlan[]> {
   const response = await client.get<DailyPlan[]>('/daily-plans', {
@@ -10,11 +10,6 @@ export async function getDailyPlans(fromDate: string, toDate: string): Promise<D
 
 export async function addDailyPlanItems(date: string, request: CreateDailyPlanItemsRequest): Promise<DailyPlan> {
   const response = await client.post<DailyPlan>(`/daily-plans/${date}/items`, request)
-  return response.data
-}
-
-export async function reorderDailyPlanItems(date: string, request: ReorderDailyPlanItemsRequest): Promise<DailyPlan> {
-  const response = await client.put<DailyPlan>(`/daily-plans/${date}`, request)
   return response.data
 }
 

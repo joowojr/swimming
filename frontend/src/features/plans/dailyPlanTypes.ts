@@ -21,7 +21,3 @@ export interface DailyPlan {
 export type CreateDailyPlanItemsRequest =
   | { taskIds: number[]; projectId?: never; title?: never }
   | { taskIds?: never; projectId?: number; title: string }
-
-export interface ReorderDailyPlanItemsRequest {
-  itemIds: number[]
-}

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>swimming · 홈</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css" rel="stylesheet"/>
+<style>
+:root{
+  --parchment:#ffffff;
+  --canvas:#ffffff;
+  --warm-sand:#f7f4ed;
+  --linen:#eceae4;
+  --stone:#d4d3d0;
+  --dim-gray:#5f5f5d;
+  --charcoal:#1c1c1c;
+  --ink:#030303;
+  --indigo:#3451b2;
+
+  --radius-card:24px;
+  --radius-container:16px;
+  --radius-image:12px;
+  --radius-input:8px;
+  --radius-pill:9999px;
+
+  --shadow-prompt:oklab(0 0 0 / .08) 0 0 0 1px, rgba(0,0,0,.1) 0 20px 25px -5px, rgba(0,0,0,.1) 0 8px 10px -6px;
+
+  --sidebar-w:240px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:var(--parchment);
+  color:var(--charcoal);
+  font-family:"Camera Plain Variable","Inter",system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+  letter-spacing:-.025em;
+  font-feature-settings:"liga" 0;
+  -webkit-font-smoothing:antialiased;
+}
+
+button{font:inherit;letter-spacing:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+/* ── 상단 네비 ── */
+.nav{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:24px;height:56px;padding:0 24px;
+  background:rgba(255,255,255,.8);backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--linen);
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-name{font-size:20px;font-weight:480;letter-spacing:-.5px}
+
+.search{
+  position:relative;flex:1;max-width:420px;
+}
+.search input{
+  width:100%;height:36px;padding:0 68px 0 36px;
+  background:var(--warm-sand);border:1px solid var(--linen);
+  border-radius:var(--radius-input);
+  font:inherit;font-size:14px;letter-spacing:inherit;color:var(--charcoal);
+}
+.search input::placeholder{color:var(--dim-gray)}
+.search input:focus{outline:none;border-color:var(--indigo);background:var(--parchment)}
+.search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim-gray);font-size:16px}
+.kbd{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  display:flex;gap:4px;
+}
+.kbd span{
+  border:1px solid var(--linen);border-radius:4px;
+  padding:1px 5px;font-size:11px;color:var(--dim-gray);
+}
+
+.account{display:flex;align-items:center;gap:10px}
+.account-meta{text-align:right;line-height:1.3}
+.account-meta b{display:block;font-size:13px;font-weight:400}
+.account-meta small{font-size:12px;color:var(--dim-gray)}
+.avatar{
+  width:34px;height:34px;border-radius:var(--radius-pill);
+  background:var(--charcoal);color:#ffffff;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+
+/* ── 레이아웃 ── */
+.app{display:flex;max-width:1280px;margin:0 auto}
+
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  padding:24px 16px;border-right:1px solid var(--linen);
+  min-height:calc(100vh - 56px);
+}
+.side-label{
+  font-size:12px;color:var(--dim-gray);
+  padding:0 10px;margin-bottom:8px;
+}
+.side-item{
+  display:flex;align-items:center;gap:12px;
+  padding:8px 10px;border-radius:var(--radius-input);
+  font-size:15px;color:var(--charcoal);
+}
+.side-item:hover{background:var(--warm-sand)}
+.side-item.is-active{background:var(--warm-sand);font-weight:500}
+.side-item .ti{font-size:19px;color:var(--dim-gray)}
+.side-item .count{margin-left:auto;font-size:13px;color:var(--dim-gray)}
+.side-group{margin-bottom:28px}
+.side-empty{padding:0 10px;font-size:13px;color:var(--dim-gray);line-height:1.6}
+
+.side-goals{border-top:1px solid var(--linen);padding-top:20px}
+.goal{
+  display:flex;align-items:center;gap:12px;
+  padding:8px 10px;border-radius:var(--radius-input);
+}
+.goal:hover{background:var(--warm-sand)}
+.goal-date{text-align:center;line-height:1.1;flex-shrink:0;width:26px}
+.goal-date b{display:block;font-size:16px;font-weight:500}
+.goal-date small{font-size:10px;color:var(--dim-gray)}
+.goal-body{min-width:0}
+.goal-body b{display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goal-body small{font-size:12px;color:var(--dim-gray)}
+
+.main{flex:1;min-width:0;padding:32px 24px 64px}
+
+/* ── 인사 ── */
+.greeting{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:32px}
+.greeting h1{font-size:36px;line-height:1.1;font-weight:480;letter-spacing:-.9px}
+.greeting p{margin-top:6px;color:var(--dim-gray)}
+.greet-actions{display:flex;gap:8px;flex-shrink:0}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius-pill);
+  font-size:14px;
+}
+.btn-ghost{border:1px solid var(--linen);color:var(--charcoal)}
+.btn-ghost:hover{background:var(--warm-sand)}
+.btn-primary{background:rgba(0,0,0,.88);color:var(--parchment)}
+.btn-primary:hover{background:var(--ink)}
+
+/* ── 벤토 ── */
+.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{
+  background:var(--canvas);
+  border:1px solid var(--linen);
+  border-radius:var(--radius-card);
+  padding:24px 20px;
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.card-title{font-size:20px;font-weight:480;letter-spacing:-.5px}
+.card-meta{font-size:14px;color:var(--dim-gray)}
+
+/* 진행 중 세션 */
+.session-bar{
+  grid-column:1 / -1;
+  display:flex;align-items:center;gap:12px;
+  background:var(--charcoal);color:var(--parchment);
+  border-radius:var(--radius-container);
+  padding:14px 20px;
+}
+.pulse{width:8px;height:8px;border-radius:var(--radius-pill);background:#F48067;flex-shrink:0}
+.session-bar .txt{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.session-bar .time{font-variant-numeric:tabular-nums;color:rgba(252,251,248,.7);font-size:14px}
+.btn-onDark{background:var(--parchment);color:var(--charcoal);padding:6px 14px;border-radius:var(--radius-pill);font-size:13px}
+
+/* 오늘의 계획 */
+.plan{grid-column:span 3}
+.days{display:flex;gap:0;overflow-x:auto;scrollbar-width:thin}
+.day{
+  flex:1 0 150px;min-width:150px;
+  padding:0 12px;border-right:1px solid var(--linen);
+}
+.day:last-child{border-right:none}
+.day-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.day-head b{font-size:14px;font-weight:500}
+.day-head span{font-size:13px;color:var(--dim-gray)}
+.day-count{
+  background:var(--linen);border-radius:var(--radius-pill);
+  padding:1px 8px;font-size:12px;color:var(--dim-gray)
+}
+.task{
+  background:var(--warm-sand);border:1px solid var(--linen);
+  border-radius:var(--radius-image);padding:12px;margin-bottom:8px;
+}
+.task-proj{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim-gray);margin-bottom:6px}
+.task-proj i{width:6px;height:6px;border-radius:50%;background:var(--charcoal);display:inline-block}
+.task-name{font-size:14px;margin-bottom:8px}
+.pill{
+  display:inline-block;padding:3px 10px;border-radius:var(--radius-pill);
+  font-size:12px;background:var(--linen);color:var(--dim-gray);
+}
+.pill-doing{background:var(--charcoal);color:var(--parchment)}
+.day-empty{font-size:13px;color:var(--dim-gray);padding:12px 0}
+.day-add{
+  width:100%;padding:8px;border-radius:var(--radius-input);
+  color:var(--dim-gray);font-size:14px;text-align:center;
+}
+.day-add:hover{background:var(--linen)}
+
+/* 메모 */
+.memo{
+  grid-column:span 1;display:flex;flex-direction:column;
+  background:var(--warm-sand);
+  border-color:transparent;
+  box-shadow:var(--shadow-prompt);
+}
+.memo-paper{
+  flex:1;min-height:190px;width:100%;resize:none;border:none;
+  background:repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    var(--linen) 27px,
+    var(--linen) 28px
+  );
+  line-height:28px;font:inherit;font-size:15px;letter-spacing:inherit;
+  color:var(--charcoal);
+}
+.memo-paper:focus{outline:none}
+.memo-paper::placeholder{color:var(--dim-gray)}
+.memo-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px}
+.memo-hint{font-size:12px;color:var(--dim-gray)}
+.btn-organize{
+  background:var(--charcoal);color:var(--parchment);
+  padding:8px 14px;border-radius:var(--radius-pill);font-size:13px;
+  display:inline-flex;align-items:center;gap:6px;
+}
+
+/* 이어서 하기 */
+.recent{grid-column:span 3}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.thumb-img{
+  aspect-ratio:16/10;border-radius:var(--radius-image);
+  margin-bottom:10px;position:relative;overflow:hidden;
+}
+.thumb-img .dur{
+  position:absolute;right:8px;bottom:8px;
+  background:rgba(3,3,3,.7);color:var(--parchment);
+  border-radius:var(--radius-pill);padding:2px 8px;font-size:11px;
+}
+.g-sunset{background:linear-gradient(180deg,#4a3a63,#97567a 45%,#eaa86c)}
+.g-night{background:linear-gradient(180deg,#14203a,#3c4d78 60%,#5a6690)}
+.g-day{background:linear-gradient(180deg,#cfe3ea,#a8c9d6 50%,#7ea6b6)}
+.g-dusk{background:linear-gradient(180deg,#2e2a4a,#8d5673 55%,#d1766b)}
+.thumb b{display:block;font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb small{font-size:13px;color:var(--dim-gray)}
+
+/* 이번 주 몰입 */
+.focus{grid-column:span 1}
+.focus-num{font-size:28px;font-weight:480;letter-spacing:-.7px;line-height:1.2}
+.focus-sub{font-size:13px;color:var(--dim-gray);margin-top:2px}
+.bars{display:flex;gap:4px;margin-top:20px}
+.bars i{flex:1;height:36px;border-radius:6px;background:var(--linen);display:block}
+.bars i.on{background:var(--charcoal)}
+.bars-legend{display:flex;gap:4px;margin-top:6px}
+.bars-legend span{flex:1;text-align:center;font-size:11px;color:var(--dim-gray)}
+
+@media (max-width:1080px){
+  .bento{grid-template-columns:repeat(2,1fr)}
+  .plan,.recent{grid-column:span 2}
+  .memo,.focus{grid-column:span 1}
+}
+@media (max-width:760px){
+  .sidebar{display:none}
+  .bento{grid-template-columns:1fr}
+  .plan,.recent,.memo,.focus{grid-column:span 1}
+  .thumbs{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand">
+    <svg width="52" height="20" viewBox="0 0 64 28" aria-hidden="true">
+      <path d="M2 18 C 8 6 16 6 23 16 S 37 28 44 16 S 58 4 62 12"
+            fill="none" stroke="#1c1c1c" stroke-width="2.6"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="brand-name">swimming</span>
+  </div>
+
+  <label class="search">
+    <i class="ti ti-search"></i>
+    <input type="text" placeholder="검색어를 입력하세요"/>
+    <span class="kbd"><span>⌘</span><span>K</span></span>
+  </label>
+
+  <div class="account">
+    <div class="account-meta">
+      <b>joowojr@gmail.com</b>
+      <small>내 계정</small>
+    </div>
+    <div class="avatar">J</div>
+  </div>
+</nav>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="side-group">
+      <p class="side-label">MENU</p>
+      <a class="side-item"><i class="ti ti-layout-grid"></i>핀보드</a>
+      <a class="side-item is-active"><i class="ti ti-folder"></i>프로젝트<span class="count">3</span></a>
+      <a class="side-item"><i class="ti ti-users"></i>그룹 세션</a>
+      <a class="side-item"><i class="ti ti-chart-bar"></i>통계</a>
+      <a class="side-item"><i class="ti ti-calendar"></i>캘린더</a>
+    </div>
+
+    <div class="side-group">
+      <p class="side-label">FAVORITES</p>
+      <p class="side-empty">즐겨찾기한 프로젝트가 여기에 표시됩니다.</p>
+    </div>
+
+    <div class="side-goals">
+      <p class="side-label">다가오는 목표일</p>
+      <a class="goal">
+        <span class="goal-date"><b>29</b><small>8월</small></span>
+        <span class="goal-body"><b>test</b><small>목표일 8월 29일</small></span>
+      </a>
+      <a class="goal">
+        <span class="goal-date"><b>30</b><small>8월</small></span>
+        <span class="goal-body"><b>swimming 프로젝트</b><small>목표일 8월 30일</small></span>
+      </a>
+      <a class="goal">
+        <span class="goal-date"><b>31</b><small>8월</small></span>
+        <span class="goal-body"><b>중복</b><small>목표일 8월 31일</small></span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="greeting">
+      <div>
+        <h1>안녕하세요</h1>
+        <p>현재 진행 중인 프로젝트 현황입니다.</p>
+      </div>
+      <div class="greet-actions">
+        <button class="btn btn-ghost"><i class="ti ti-filter"></i>필터</button>
+        <button class="btn btn-primary"><i class="ti ti-plus"></i>새 프로젝트</button>
+      </div>
+    </div>
+
+    <div class="bento">
+
+      <!-- 진행 중 세션 (세션이 없으면 렌더링하지 않음) -->
+      <section class="session-bar">
+        <span class="pulse"></span>
+        <span class="txt">Lisbon · 자기소개서 다듬기</span>
+        <span class="time">12:04 남음</span>
+        <button class="btn-onDark">돌아가기</button>
+      </section>
+
+      <!-- 오늘의 계획 -->
+      <section class="card plan">
+        <div class="card-head">
+          <h2 class="card-title">오늘의 계획</h2>
+          <span class="card-meta">8월 22일 - 8월 28일</span>
+        </div>
+        <div class="days">
+          <div class="day">
+            <div class="day-head"><span><b>토</b> 22일</span><span class="day-count">3</span></div>
+            <div class="task">
+              <p class="task-proj"><i></i>swimming 프로젝트</p>
+              <p class="task-name">대시보드 -&gt; 핀보드 네이밍</p>
+              <span class="pill pill-doing">하는 중</span>
+            </div>
+            <div class="task">
+              <p class="task-proj"><i></i>swimming 프로젝트</p>
+              <p class="task-name">상태 표시 간소화 하기</p>
+              <span class="pill">시작 전</span>
+            </div>
+            <div class="task">
+              <p class="task-proj"><i></i>swimming 프로젝트</p>
+              <p class="task-name">ai 할 일 정리 매니저 만들기</p>
+              <span class="pill">시작 전</span>
+            </div>
+            <button class="day-add">+</button>
+          </div>
+          <div class="day">
+            <div class="day-head"><span><b>일</b> 23일</span></div>
+            <p class="day-empty">아직 계획된 할 일이 없습니다.</p>
+            <button class="day-add">+</button>
+          </div>
+          <div class="day">
+            <div class="day-head"><span><b>월</b> 24일</span></div>
+            <p class="day-empty">아직 계획된 할 일이 없습니다.</p>
+            <button class="day-add">+</button>
+          </div>
+          <div class="day">
+            <div class="day-head"><span><b>화</b> 25일</span></div>
+            <p class="day-empty">아직 계획된 할 일이 없습니다.</p>
+            <button class="day-add">+</button>
+          </div>
+          <div class="day">
+            <div class="day-head"><span><b>수</b> 26일</span></div>
+            <p class="day-empty">아직 계획된 할 일이 없습니다.</p>
+            <button class="day-add">+</button>
+          </div>
+          <div class="day">
+            <div class="day-head"><span><b>목</b> 27일</span></div>
+            <p class="day-empty">아직 계획된 할 일이 없습니다.</p>
+            <button class="day-add">+</button>
+          </div>
+          <div class="day">
+            <div class="day-head"><span><b>금</b> 28일</span></div>
+            <p class="day-empty">아직 계획된 할 일이 없습니다.</p>
+            <button class="day-add">+</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 메모 -->
+      <section class="card memo">
+        <div class="card-head">
+          <h2 class="card-title">메모</h2>
+        </div>
+        <textarea class="memo-paper" placeholder="떠오르는 일을 편하게 적어두세요."></textarea>
+        <div class="memo-foot">
+          <span class="memo-hint">정리하면 비워집니다</span>
+          <button class="btn-organize"><i class="ti ti-sparkles"></i>할 일로 정리</button>
+        </div>
+      </section>
+
+      <!-- 이어서 하기 -->
+      <section class="card recent">
+        <div class="card-head">
+          <h2 class="card-title">이어서 하기</h2>
+          <span class="card-meta">최근 세션</span>
+        </div>
+        <div class="thumbs">
+          <a class="thumb">
+            <div class="thumb-img g-sunset"><span class="dur">90분</span></div>
+            <b>자기소개서 다듬기</b>
+            <small>Lisbon · 어제</small>
+          </a>
+          <a class="thumb">
+            <div class="thumb-img g-night"><span class="dur">45분</span></div>
+            <b>면접 예상질문 정리</b>
+            <small>Tokyo · 2일 전</small>
+          </a>
+          <a class="thumb">
+            <div class="thumb-img g-day"><span class="dur">60분</span></div>
+            <b>지원 회사 리서치</b>
+            <small>Berlin · 3일 전</small>
+          </a>
+          <a class="thumb">
+            <div class="thumb-img g-dusk"><span class="dur">45분</span></div>
+            <b>포트폴리오 정리</b>
+            <small>Lisbon · 5일 전</small>
+          </a>
+        </div>
+      </section>
+
+      <!-- 이번 주 몰입 -->
+      <section class="card focus">
+        <div class="card-head">
+          <h2 class="card-title">이번 주 몰입</h2>
+        </div>
+        <p class="focus-num">4일 · 6시간</p>
+        <p class="focus-sub">지난주보다 1일 더 왔어요</p>
+        <div class="bars">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+        </div>
+        <div class="bars-legend">
+          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

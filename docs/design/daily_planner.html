@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FocusFlow Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;480;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#637ee1",
+                        "primary-fixed": "#e5e2e1",
+                        "tertiary-fixed-dim": "#b7c4ff",
+                        "linen-border": "#eceae4",
+                        "surface-variant": "#e3e2e0",
+                        "outline": "#747878",
+                        "surface-container-low": "#f4f3f1",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#dce1ff",
+                        "on-secondary-fixed": "#1c1c18",
+                        "secondary": "#5f5e59",
+                        "on-background": "#1a1c1a",
+                        "ink": "#030303",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#dbdad7",
+                        "secondary-fixed": "#e5e2db",
+                        "background": "#faf9f6",
+                        "surface": "#faf9f6",
+                        "on-secondary-fixed-variant": "#474742",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#1c1c1c",
+                        "dim-gray": "#5f5f5d",
+                        "inverse-surface": "#2f312f",
+                        "on-surface": "#1a1c1a",
+                        "stone": "#d4d3d0",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "on-secondary-container": "#65645f",
+                        "secondary-container": "#e5e2db",
+                        "on-primary-container": "#858484",
+                        "on-tertiary-fixed-variant": "#1e3e9f",
+                        "on-tertiary-fixed": "#001551",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e3e2e0",
+                        "error": "#ba1a1a",
+                        "tertiary": "#000004",
+                        "surface-bright": "#faf9f6",
+                        "surface-tint": "#5f5e5e",
+                        "secondary-fixed-dim": "#c9c6c0",
+                        "outline-variant": "#c4c7c7",
+                        "primary": "#010101",
+                        "tertiary-container": "#001551",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#474746",
+                        "on-secondary": "#ffffff",
+                        "hero-gradient": "linear-gradient(90deg, #1c1c1c 0%, #1c1c1c 33%, #82bcff 40%, #2483ff 45%, #ff66f4 50%, #ff3029 55%, #fe7b02 60%, rgba(0,0,0,0) 66.6%, rgba(0,0,0,0) 100%)",
+                        "inverse-on-surface": "#f1f1ee",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#444748",
+                        "surface-container-high": "#e9e8e5",
+                        "inverse-primary": "#c8c6c5",
+                        "on-primary-fixed": "#1b1b1b",
+                        "surface-container": "#efeeeb",
+                        "parchment-bg": "#fcfbf8",
+                        "warm-sand": "#f7f4ed"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "80px",
+                        "group-tight": "8px",
+                        "card-padding": "24px",
+                        "max-container": "1280px"
+                    },
+                    "fontFamily": {
+                        "display": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "subheading": ["Inter", "sans-serif"],
+                        "caption": ["Inter", "sans-serif"],
+                        "headline-sm": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "display": ["60px", { "lineHeight": "60px", "letterSpacing": "-1.5px", "fontWeight": "480" }],
+                        "headline-lg-mobile": ["36px", { "lineHeight": "39.6px", "letterSpacing": "-0.9px", "fontWeight": "480" }],
+                        "headline-lg": ["48px", { "lineHeight": "52.8px", "letterSpacing": "-1.2px", "fontWeight": "480" }],
+                        "subheading": ["18px", { "lineHeight": "24.8px", "letterSpacing": "-0.45px", "fontWeight": "400" }],
+                        "caption": ["14px", { "lineHeight": "21px", "letterSpacing": "-0.35px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "25px", "letterSpacing": "-0.5px", "fontWeight": "480" }],
+                        "body": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.4px", "fontWeight": "400" }],
+                        "headline-md": ["36px", { "lineHeight": "39.6px", "letterSpacing": "-0.9px", "fontWeight": "480" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #fcfbf8;
+            color: #1c1c1c;
+        }
+        .inset-border {
+            box-shadow: inset 0 0 0 0.5px #eceae4;
+        }
+        .hero-gradient-text {
+            background: linear-gradient(90deg, #1c1c1c 0%, #1c1c1c 33%, #82bcff 40%, #2483ff 45%, #ff66f4 50%, #ff3029 55%, #fe7b02 60%, rgba(0,0,0,0) 66.6%, rgba(0,0,0,0) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="font-body text-body antialiased selection:bg-tertiary-fixed selection:text-on-tertiary-fixed min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-b border-linen-border dark:border-outline-variant transition-colors duration-200">
+<div class="max-w-max-container mx-auto px-5 md:px-card-padding flex justify-between items-center h-12">
+<div class="flex items-center gap-group-tight">
+<span class="text-headline-sm font-headline-sm font-bold text-primary dark:text-on-primary-fixed cursor-pointer">FocusFlow</span>
+</div>
+<!-- Desktop Navigation -->
+<nav class="hidden md:flex gap-8 items-center font-body text-body">
+<a class="text-secondary dark:text-on-secondary-fixed-variant hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200 ease-in-out cursor-pointer active:opacity-70" href="#">Features</a>
+<a class="text-secondary dark:text-on-secondary-fixed-variant hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200 ease-in-out cursor-pointer active:opacity-70" href="#">Support</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="hidden md:flex items-center justify-center bg-primary-container text-on-primary rounded-full px-4 py-1.5 font-caption text-caption hover:opacity-90 transition-opacity">
+                    Get Started
+                </button>
+<button class="md:hidden flex items-center justify-center text-primary p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow max-w-max-container mx-auto w-full px-5 md:px-card-padding pt-24 pb-section-gap flex flex-col md:flex-row gap-8">
+<!-- Left Panel: Calendar -->
+<aside class="w-full md:w-[40%] bg-warm-sand rounded-xl inset-border p-card-padding flex flex-col gap-6">
+<header class="flex justify-between items-center">
+<h2 class="font-headline-sm text-headline-sm font-bold text-primary">November 2024</h2>
+<div class="flex gap-2 text-secondary">
+<button class="p-1 hover:text-primary transition-colors cursor-pointer rounded-full hover:bg-surface-container-low"><span class="material-symbols-outlined text-lg">chevron_left</span></button>
+<button class="p-1 hover:text-primary transition-colors cursor-pointer rounded-full hover:bg-surface-container-low"><span class="material-symbols-outlined text-lg">chevron_right</span></button>
+</div>
+</header>
+<div class="grid grid-cols-7 gap-y-4 text-center font-caption text-caption text-secondary">
+<div class="font-semibold text-dim-gray">S</div>
+<div class="font-semibold text-dim-gray">M</div>
+<div class="font-semibold text-dim-gray">T</div>
+<div class="font-semibold text-dim-gray">W</div>
+<div class="font-semibold text-dim-gray">T</div>
+<div class="font-semibold text-dim-gray">F</div>
+<div class="font-semibold text-dim-gray">S</div>
+<!-- Empty days for Nov 2024 start (Friday) -->
+<div class="text-stone">27</div>
+<div class="text-stone">28</div>
+<div class="text-stone">29</div>
+<div class="text-stone">30</div>
+<div class="text-stone">31</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">1</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">2</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">3</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">4</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">5</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">6</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">7</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">8</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">9</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">10</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">11</div>
+<div class="py-1 bg-primary-container text-on-primary font-semibold rounded-full shadow-sm cursor-pointer">12</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">13</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">14</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">15</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">16</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">17</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">18</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">19</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">20</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">21</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">22</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">23</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">24</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">25</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">26</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">27</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">28</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">29</div>
+<div class="py-1 cursor-pointer hover:bg-surface-container-highest rounded-full transition-colors">30</div>
+</div>
+<div class="mt-auto pt-6 border-t border-linen-border text-caption font-caption text-secondary">
+                Upcoming: Project Delta Review on Nov 15.
+            </div>
+</aside>
+<!-- Right Panel: Tasks -->
+<section class="w-full md:w-[60%] flex flex-col gap-6">
+<header class="flex justify-between items-end pb-2 border-b border-linen-border">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Today's Focus</h1>
+<span class="font-caption text-caption text-secondary">4 Tasks remaining</span>
+</header>
+<div class="flex flex-col gap-3">
+<!-- Task Card -->
+<div class="bg-warm-sand rounded-xl p-4 flex items-center justify-between inset-border group hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-5 h-5 rounded border border-outline flex items-center justify-center text-transparent group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body text-body text-primary">Finalize Q4 Marketing Strategy Deck</span>
+</div>
+<span class="px-2.5 py-1 rounded-full border border-linen-border font-caption text-[12px] text-secondary bg-surface/50">Work</span>
+</div>
+<!-- Task Card -->
+<div class="bg-warm-sand rounded-xl p-4 flex items-center justify-between inset-border group hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-5 h-5 rounded border border-outline flex items-center justify-center text-transparent group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body text-body text-primary">Review user feedback from beta launch</span>
+</div>
+<span class="px-2.5 py-1 rounded-full border border-linen-border font-caption text-[12px] text-secondary bg-surface/50">Product</span>
+</div>
+<!-- Task Card -->
+<div class="bg-warm-sand rounded-xl p-4 flex items-center justify-between inset-border group hover:bg-surface-container-low transition-colors cursor-pointer opacity-60">
+<div class="flex items-center gap-4">
+<div class="w-5 h-5 rounded border border-primary bg-primary-container text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body text-body text-secondary line-through decoration-outline">Morning deep work session (90 mins)</span>
+</div>
+<span class="px-2.5 py-1 rounded-full border border-linen-border font-caption text-[12px] text-secondary bg-surface/50">Routine</span>
+</div>
+<!-- Task Card -->
+<div class="bg-warm-sand rounded-xl p-4 flex items-center justify-between inset-border group hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-5 h-5 rounded border border-outline flex items-center justify-center text-transparent group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<span class="font-body text-body text-primary">Schedule dentist appointment</span>
+</div>
+<span class="px-2.5 py-1 rounded-full border border-linen-border font-caption text-[12px] text-secondary bg-surface/50">Personal</span>
+</div>
+</div>
+<!-- Floating Action Button / Add Task -->
+<div class="mt-4 flex justify-end">
+<button class="flex items-center gap-2 bg-primary-container text-on-primary px-6 py-3 rounded-full font-body text-body font-semibold shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+<span class="material-symbols-outlined" style="background: linear-gradient(90deg, #82bcff 0%, #2483ff 33%, #ff66f4 66%, #fe7b02 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">add_circle</span>
+<span>Add Task</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-section-gap bg-surface dark:bg-surface-dim border-t border-linen-border dark:border-outline-variant">
+<div class="max-w-max-container mx-auto px-5 flex flex-col md:flex-row justify-between items-center gap-group-tight">
+<span class="font-headline-sm text-primary">FocusFlow</span>
+<div class="flex flex-wrap gap-4 justify-center font-caption text-caption text-secondary dark:text-on-secondary-fixed-variant">
+<a class="hover:text-primary transition-colors cursor-pointer" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors cursor-pointer" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors cursor-pointer" href="#">Help Center</a>
+<a class="hover:text-primary transition-colors cursor-pointer" href="#">Contact</a>
+</div>
+<span class="font-caption text-caption text-secondary dark:text-on-secondary-fixed-variant">© 2024 FocusFlow. Designed for deep work.</span>
+</div>
+</footer>
+</body></html>

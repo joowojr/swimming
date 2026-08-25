@@ -107,12 +107,34 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   const removeSelectedTasks = async () => {
     if (selectedTaskIds.size === 0) return
 
+    const taskIdsToDelete = new Set(selectedTaskIds)
     setIsDeletingTasks(true)
     setDeleteError(null)
     try {
-      await deleteTasks({ taskIds: [...selectedTaskIds] })
+      await deleteTasks({ taskIds: [...taskIdsToDelete] })
+      setState((current) => {
+        if (current.status !== 'ready') return current
+
+        const tasks = current.project.tasks.filter((task) => !taskIdsToDelete.has(task.id))
+        const completedTaskCount = tasks.filter((task) => task.status === 'DONE').length
+        const totalTaskCount = tasks.length
+
+        return {
+          status: 'ready',
+          project: {
+            ...current.project,
+            tasks,
+            progress: {
+              totalTaskCount,
+              completedTaskCount,
+              completionPct: totalTaskCount === 0
+                ? 0
+                : Math.floor(completedTaskCount * 100 / totalTaskCount),
+            },
+          },
+        }
+      })
       leaveDeleteMode()
-      setRequestKey((key) => key + 1)
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message

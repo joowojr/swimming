@@ -286,6 +286,20 @@
     margin-bottom: var(--space-2);
 }
 
+.memo-list-filter select {
+    min-width: 5.5rem;
+    min-height: 1.75rem;
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-full);
+    color: var(--color-primary);
+    background: transparent;
+    font: inherit;
+    font-size: var(--text-label-caps-size);
+    font-weight: inherit;
+    cursor: pointer;
+}
+
 .memo-list-head h4,
 .memo-list-head span,
 .memo-list-empty {

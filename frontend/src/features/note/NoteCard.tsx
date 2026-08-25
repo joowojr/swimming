@@ -11,6 +11,7 @@ import {
 } from './noteApi'
 import NoteEditor from './NoteEditor'
 import NoteList from './NoteList'
+import type { NoteListFilter } from './NoteList'
 import TaskOrganizerPanel from './TaskOrganizerPanel'
 import type { NoteResponse } from './noteTypes'
 import type { LoadStatus, ProjectOption, SaveStatus } from './noteViewTypes'
@@ -37,6 +38,9 @@ const AUTO_SAVE_DELAY_MS = 700
 export default function NoteCard({ projects, projectId, sessionId, className }: NoteCardProps) {
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
+  const [noteFilter, setNoteFilter] = useState<NoteListFilter>(
+    sessionId !== undefined ? 'SESSION' : projectId !== undefined ? 'PROJECT' : 'DEFAULT',
+  )
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -59,18 +63,27 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
   const pendingContentRef = useRef<string | null>(null)
   const pendingSaveRef = useRef<Promise<boolean> | null>(null)
   const isMountedRef = useRef(true)
+  const initialNotesLoadedRef = useRef(false)
+
+  const getNotesForFilter = useCallback((filter: NoteListFilter) => {
+    if (filter === 'ALL') return getNotes()
+    if (filter === 'ARCHIVED') return getNotes({ status: 'ARCHIVED' })
+    if (filter === 'SESSION' && sessionId !== undefined) return getNotes({ sessionId })
+    if (filter === 'PROJECT' && projectId !== undefined) return getNotes({ projectId })
+    return getNotes({ contextType: filter })
+  }, [projectId, sessionId])
 
   useEffect(() => {
     isMountedRef.current = true
+    initialNotesLoadedRef.current = false
+    const defaultFilter: NoteListFilter = sessionId !== undefined
+      ? 'SESSION'
+      : projectId !== undefined ? 'PROJECT' : 'DEFAULT'
     let cancelled = false
 
     async function loadLatestNote() {
       try {
-        const loadedNotes = sessionId !== undefined
-          ? await getNotes({ sessionId })
-          : projectId === undefined
-            ? await getNotes({ contextType: 'DEFAULT' })
-            : await getNotes({ projectId })
+        const loadedNotes = await getNotesForFilter(defaultFilter)
         if (cancelled) return
 
         const latestNote = loadedNotes[0]
@@ -83,6 +96,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
         setMemo(content)
         setLoadStatus('ready')
         setSaveStatus(latestNote ? 'saved' : 'idle')
+        initialNotesLoadedRef.current = true
       } catch {
         if (!cancelled) setLoadStatus('error')
       }
@@ -94,7 +108,18 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
       isMountedRef.current = false
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [projectId, sessionId])
+  }, [getNotesForFilter, projectId, sessionId])
+
+  useEffect(() => {
+    if (!initialNotesLoadedRef.current) return
+    let cancelled = false
+    void getNotesForFilter(noteFilter).then((loadedNotes) => {
+      if (!cancelled) setNotes(loadedNotes)
+    }).catch(() => {
+      if (!cancelled) setActionMessage('메모 목록을 불러오지 못했어요')
+    })
+    return () => { cancelled = true }
+  }, [getNotesForFilter, noteFilter])
 
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
@@ -350,6 +375,8 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
             disabled={isEditorDisabled}
             projectId={projectId}
             sessionId={sessionId}
+            filter={noteFilter}
+            onFilterChange={setNoteFilter}
             onSelect={(note) => void handleSelectNote(note)}
           />
         </>

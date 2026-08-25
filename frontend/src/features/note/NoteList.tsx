@@ -1,5 +1,8 @@
 import type { NoteResponse } from './noteTypes'
+import type { NoteContextType } from './noteTypes'
 import styles from './NoteCard.module.css'
+
+export type NoteListFilter = NoteContextType | 'ALL' | 'ARCHIVED'
 
 /** 역할: 저장된 메모 목록을 표시하고, 선택 이벤트만 상위 컴포넌트에 전달한다. */
 interface NoteListProps {
@@ -8,6 +11,8 @@ interface NoteListProps {
   disabled: boolean
   projectId?: number
   sessionId?: number
+  filter: NoteListFilter
+  onFilterChange: (filter: NoteListFilter) => void
   onSelect: (note: NoteResponse) => void
 }
 
@@ -31,12 +36,25 @@ export default function NoteList({
   disabled,
   projectId,
   sessionId,
+  filter,
+  onFilterChange,
   onSelect,
 }: NoteListProps) {
+  const isPinboardScreen = projectId === undefined && sessionId === undefined
+
   return (
     <section className={styles['memo-list']} aria-labelledby="saved-memos-title">
       <div className={styles['memo-list-head']}>
-        <h4 id="saved-memos-title">메모 목록</h4>
+        <label className={styles['memo-list-filter']}>
+          <span className="sr-only">메모 목록 컨텍스트</span>
+          <select id="saved-memos-title" value={filter} onChange={(event) => onFilterChange(event.target.value as NoteListFilter)}>
+            <option value="DEFAULT">핀보드</option>
+            <option value="SESSION">세션</option>
+            <option value="PROJECT">프로젝트</option>
+            <option value="ALL">전체</option>
+            <option value="ARCHIVED">보관함</option>
+          </select>
+        </label>
         <span>{notes.length}개</span>
       </div>
 
@@ -54,7 +72,11 @@ export default function NoteList({
                 disabled={disabled}
                 aria-pressed={selectedNoteId === note.id}
               >
-                {(note.projectId === projectId || note.sessionId === sessionId) && (
+                {filter === 'ALL' && (
+                  (projectId !== undefined && note.projectId === projectId)
+                  || (sessionId !== undefined && note.sessionId === sessionId)
+                  || (isPinboardScreen && note.contextType === 'DEFAULT')
+                ) && (
                   <span className={styles['memo-list-context-dot']} role="img" aria-label="현재 페이지의 메모" />
                 )}
                 <span>{getNotePreview(note.content)}</span>

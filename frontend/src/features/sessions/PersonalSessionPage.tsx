@@ -311,7 +311,7 @@ export default function PersonalSessionPage() {
           <button type="button" aria-pressed={focusMode} aria-label={focusMode ? '집중 모드 해제' : '집중 모드 켜기'} onClick={toggleFocusMode}><IconBellOff /></button>
         </nav>
 
-        <button className={`${styles.widget} ${styles.exit}`} type="button" onClick={() => navigate('/projects')}>
+        <button className={`${styles.widget} ${styles.exit}`} type="button" onClick={() => navigate(-1)}>
           <IconArrowLeft aria-hidden="true" /> 나가기
         </button>
       </div>

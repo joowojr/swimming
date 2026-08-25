@@ -4,22 +4,19 @@ import ActionButton from '../../components/ActionButton'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import type { LoadStatus, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
+import { useNoteEditorStore } from './noteEditorStore'
 
 /** 역할: 메모 입력, 자동 저장 상태, 메모 단위 액션을 표시한다. 저장과 삭제의 실제 처리는 NoteCard가 소유한다. */
 interface NoteEditorProps {
   memo: string
   loadStatus: LoadStatus
   saveStatus: SaveStatus
-  actionMessage: string | null
   selectedNoteId: number | null
   isArchived: boolean
   disabled: boolean
   isStartingNew: boolean
   isArchiving: boolean
   isDeleting: boolean
-  isConfirmingDelete: boolean
-  recentlyArchived: boolean
-  archiveSuggested: boolean
   textareaRef: RefObject<HTMLTextAreaElement | null>
   onMemoChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
   onMemoBlur: () => void
@@ -54,16 +51,12 @@ export default function NoteEditor({
   memo,
   loadStatus,
   saveStatus,
-  actionMessage,
   selectedNoteId,
   isArchived,
   disabled,
   isStartingNew,
   isArchiving,
   isDeleting,
-  isConfirmingDelete,
-  recentlyArchived,
-  archiveSuggested,
   textareaRef,
   onMemoChange,
   onMemoBlur,
@@ -77,6 +70,9 @@ export default function NoteEditor({
   onDelete,
   onRestore,
 }: NoteEditorProps) {
+  const { actionMessage, isConfirmingDelete, recentlyArchivedId, archiveSuggestionNoteId } = useNoteEditorStore()
+  const recentlyArchived = recentlyArchivedId !== null
+  const archiveSuggested = archiveSuggestionNoteId !== null
   const statusMessage = getStatusMessage(memo, loadStatus, saveStatus, actionMessage)
 
   return (

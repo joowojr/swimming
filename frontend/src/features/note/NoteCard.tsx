@@ -12,6 +12,7 @@ import {
 import NoteEditor from './NoteEditor'
 import NoteList from './NoteList'
 import type { NoteListFilter } from './NoteList'
+import { useNoteEditorStore } from './noteEditorStore'
 import TaskOrganizerPanel from './TaskOrganizerPanel'
 import type { NoteResponse } from './noteTypes'
 import type { LoadStatus, ProjectOption, SaveStatus } from './noteViewTypes'
@@ -49,10 +50,14 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
   const [isSelectingNote, setIsSelectingNote] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
-  const [recentlyArchivedId, setRecentlyArchivedId] = useState<number | null>(null)
-  const [archiveSuggestionNoteId, setArchiveSuggestionNoteId] = useState<number | null>(null)
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const {
+    recentlyArchivedId,
+    setIsConfirmingDelete,
+    setRecentlyArchivedId,
+    setArchiveSuggestionNoteId,
+    setActionMessage,
+    reset: resetEditorStore,
+  } = useNoteEditorStore()
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const memoRef = useRef('')
@@ -84,7 +89,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     async function loadLatestNote() {
       try {
         const loadedNotes = await getNotesForFilter(defaultFilter)
-        if (cancelled) return
+      if (cancelled) return
 
         const latestNote = loadedNotes[0]
         const content = latestNote?.content ?? ''
@@ -97,6 +102,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
         setLoadStatus('ready')
         setSaveStatus(latestNote ? 'saved' : 'idle')
         initialNotesLoadedRef.current = true
+        resetEditorStore()
       } catch {
         if (!cancelled) setLoadStatus('error')
       }
@@ -108,7 +114,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
       isMountedRef.current = false
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [getNotesForFilter, projectId, sessionId])
+  }, [getNotesForFilter, projectId, resetEditorStore, sessionId])
 
   useEffect(() => {
     if (!initialNotesLoadedRef.current) return
@@ -119,7 +125,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
       if (!cancelled) setActionMessage('메모 목록을 불러오지 못했어요')
     })
     return () => { cancelled = true }
-  }, [getNotesForFilter, noteFilter])
+  }, [getNotesForFilter, noteFilter, setActionMessage])
 
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
@@ -328,14 +334,14 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     setOrganizerSource(null)
     setActionMessage(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
-  }, [])
+  }, [setActionMessage])
 
   const finishOrganizer = useCallback((message: string, options?: { suggestArchiveNoteId?: number }) => {
     setOrganizerSource(null)
     setActionMessage(message)
     setArchiveSuggestionNoteId(options?.suggestArchiveNoteId ?? null)
     requestAnimationFrame(() => textareaRef.current?.focus())
-  }, [])
+  }, [setActionMessage, setArchiveSuggestionNoteId])
 
   const isEditorDisabled =
     loadStatus !== 'ready' ||
@@ -357,16 +363,12 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
             memo={memo}
             loadStatus={loadStatus}
             saveStatus={saveStatus}
-            actionMessage={actionMessage}
             selectedNoteId={selectedNoteId}
             isArchived={isSelectedNoteArchived}
             disabled={isEditorDisabled}
             isStartingNew={isStartingNew}
             isArchiving={isArchiving}
             isDeleting={isDeleting}
-            isConfirmingDelete={isConfirmingDelete}
-            recentlyArchived={recentlyArchivedId !== null}
-            archiveSuggested={archiveSuggestionNoteId !== null}
             textareaRef={textareaRef}
             onMemoChange={handleMemoChange}
             onMemoBlur={() => void saveContent(memoRef.current)}

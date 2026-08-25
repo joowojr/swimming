@@ -34,7 +34,7 @@
     --color-on-dark-mute: rgba(252, 251, 248, 0.7);
     --color-surface-dark: var(--color-primary);
     --color-focus-inner: var(--color-on-primary);
-    --color-primary-container: #3451b2;  /* 인디고 액센트 */
+    --color-primary-container: #3451b2;
 
     /* Entity tones - 프로젝트 구분용. 명도를 맞춰 어떤 항목도 더 중요해 보이지 않게 한다. */
     --color-tone-fountain: #64ADB3;

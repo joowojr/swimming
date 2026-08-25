@@ -92,6 +92,14 @@ public class SessionUseCase {
                 .map(session -> toDetailResponse(userId, session));
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<SessionDetailResponse> getAll(Long userId) {
+        return sessionService.getOwnedSessions(userId)
+                .stream()
+                .map(session -> toDetailResponse(userId, session))
+                .toList();
+    }
+
     @Transactional(
             propagation = Propagation.REQUIRED,
             readOnly = true

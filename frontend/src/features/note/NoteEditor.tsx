@@ -18,12 +18,15 @@ interface NoteEditorProps {
   isDeleting: boolean
   isConfirmingDelete: boolean
   recentlyArchived: boolean
+  archiveSuggested: boolean
   textareaRef: RefObject<HTMLTextAreaElement | null>
   onMemoChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
   onMemoBlur: () => void
   onOrganize: () => void
   onNewMemo: () => void
   onArchive: () => void
+  onConfirmArchive: () => void
+  onDismissArchive: () => void
   onRequestDelete: () => void
   onCancelDelete: () => void
   onDelete: () => void
@@ -58,12 +61,15 @@ export default function NoteEditor({
   isDeleting,
   isConfirmingDelete,
   recentlyArchived,
+  archiveSuggested,
   textareaRef,
   onMemoChange,
   onMemoBlur,
   onOrganize,
   onNewMemo,
   onArchive,
+  onConfirmArchive,
+  onDismissArchive,
   onRequestDelete,
   onCancelDelete,
   onDelete,
@@ -119,6 +125,15 @@ export default function NoteEditor({
         <div className={styles['archive-undo']} role="status">
           <span>메모를 보관했어요</span>
           <ActionButton variant="plain" onClick={onRestore} disabled={isArchiving}>실행 취소</ActionButton>
+        </div>
+      )}
+      {archiveSuggested && !recentlyArchived && (
+        <div className={styles['archive-undo']} role="status">
+          <span>메모를 보관해드릴까요?</span>
+          <div className={styles['archive-undo-actions']}>
+            <ActionButton className={styles['archive-keep-action']} variant="plain" onClick={onDismissArchive}>유지</ActionButton>
+            <ActionButton variant="plain" onClick={onConfirmArchive} disabled={isArchiving}>보관</ActionButton>
+          </div>
         </div>
       )}
     </>

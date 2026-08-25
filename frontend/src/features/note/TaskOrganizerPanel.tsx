@@ -16,7 +16,7 @@ interface TaskOrganizerPanelProps {
   }
   projects: ProjectOption[]
   onCancel: () => void
-  onFinish: (message: string) => void
+  onFinish: (message: string, options?: { suggestArchiveNoteId?: number }) => void
 }
 
 interface PreviewTaskItem {
@@ -251,6 +251,7 @@ export default function TaskOrganizerPanel({
     setState({ ...state, isLinking: true, message: null })
     let remainingItems = state.items
     let linkedCount = 0
+    const totalTaskCount = state.items.length
 
     try {
       for (const [planDate, taskIds] of taskIdsByDate) {
@@ -262,7 +263,11 @@ export default function TaskOrganizerPanel({
           ? { ...current, items: remainingItems }
           : current)
       }
-      onFinish(`${linkedCount}개 할 일을 계획에 연결했어요`)
+      const shouldArchive = linkedCount / totalTaskCount >= 0.8
+      onFinish(
+        `${linkedCount}개 할 일을 계획에 연결했어요`,
+        shouldArchive ? { suggestArchiveNoteId: source.noteId } : undefined,
+      )
     } catch {
       setState((current) => current.kind === 'plan-link'
         ? {

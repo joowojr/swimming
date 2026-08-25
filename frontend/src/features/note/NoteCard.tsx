@@ -47,6 +47,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
   const [isDeleting, setIsDeleting] = useState(false)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [recentlyArchivedId, setRecentlyArchivedId] = useState<number | null>(null)
+  const [archiveSuggestionNoteId, setArchiveSuggestionNoteId] = useState<number | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -174,6 +175,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     setSaveStatus('idle')
     setIsConfirmingDelete(false)
     setRecentlyArchivedId(null)
+    setArchiveSuggestionNoteId(null)
     setActionMessage(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
@@ -188,6 +190,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     setSaveStatus('saved')
     setIsConfirmingDelete(false)
     setRecentlyArchivedId(null)
+    setArchiveSuggestionNoteId(null)
     setActionMessage(null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }
@@ -291,9 +294,10 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     requestAnimationFrame(() => textareaRef.current?.focus())
   }, [])
 
-  const finishOrganizer = useCallback((message: string) => {
+  const finishOrganizer = useCallback((message: string, options?: { suggestArchiveNoteId?: number }) => {
     setOrganizerSource(null)
     setActionMessage(message)
+    setArchiveSuggestionNoteId(options?.suggestArchiveNoteId ?? null)
     requestAnimationFrame(() => textareaRef.current?.focus())
   }, [])
 
@@ -323,12 +327,18 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
             isDeleting={isDeleting}
             isConfirmingDelete={isConfirmingDelete}
             recentlyArchived={recentlyArchivedId !== null}
+            archiveSuggested={archiveSuggestionNoteId !== null}
             textareaRef={textareaRef}
             onMemoChange={handleMemoChange}
             onMemoBlur={() => void saveContent(memoRef.current)}
             onOrganize={() => void handleOrganize()}
             onNewMemo={() => void handleNewMemo()}
             onArchive={() => void handleArchive()}
+            onConfirmArchive={() => {
+              setArchiveSuggestionNoteId(null)
+              void handleArchive()
+            }}
+            onDismissArchive={() => setArchiveSuggestionNoteId(null)}
             onRequestDelete={() => setIsConfirmingDelete(true)}
             onCancelDelete={() => setIsConfirmingDelete(false)}
             onDelete={() => void handleDelete()}

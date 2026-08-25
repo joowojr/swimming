@@ -228,6 +228,17 @@
     color: var(--color-on-tertiary-container);
 }
 
+.archive-undo-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.archive-undo .archive-keep-action {
+    color: var(--charcoal, #1c1c1c);
+}
+
 .organize-action {
     display: inline-flex;
     align-items: center;

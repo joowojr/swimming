@@ -270,15 +270,21 @@
 
 .current-task {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--space-2);
     margin-top: var(--space-3);
+}
+
+.current-task + .current-task {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
 }
 
 .current-task > span {
     width: .5rem;
     height: .5rem;
-    margin-top: .4rem;
+    margin-top: 0;
     flex: 0 0 auto;
     border-radius: var(--radius-full);
     background: var(--color-primary);
@@ -296,31 +302,7 @@
 }
 
 .current-task p {
-    overflow: hidden;
-    margin-top: var(--space-1);
-    color: var(--color-text-secondary);
-    font-size: var(--text-body-sm-size);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.next-tasks {
-    display: grid;
-    max-height: 8rem;
-    gap: var(--space-2);
-    margin: var(--space-4) 0 0;
-    padding: var(--space-3) 0 0;
-    overflow-y: auto;
-    border-top: var(--border-width) solid var(--color-border);
-    list-style: none;
-}
-
-.next-tasks li {
-    overflow: hidden;
-    color: var(--color-text-secondary);
-    font-size: var(--text-body-sm-size);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
 }
 
 .timer {

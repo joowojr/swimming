@@ -14,6 +14,7 @@ import styles from './DailyPlanBoard.module.css'
 interface DailyPlanCardMenuProps {
   label: string
   children: ReactNode
+  inline?: boolean
 }
 
 interface MenuPosition {
@@ -28,6 +29,7 @@ const VIEWPORT_PADDING_PX = 8
 export default function DailyPlanCardMenu({
   label,
   children,
+  inline = false,
 }: DailyPlanCardMenuProps) {
   const menuId = useId()
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -116,7 +118,7 @@ export default function DailyPlanCardMenu({
   }, [close, isOpen, updatePosition])
 
   return (
-    <div className={styles['card-menu']}>
+    <div className={`${styles['card-menu']} ${inline ? styles['card-menu-inline'] : ''}`}>
       <button
         ref={triggerRef}
         type="button"

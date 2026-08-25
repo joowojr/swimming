@@ -158,8 +158,6 @@ export default function PersonalSessionPage() {
     ? Math.min(1, Math.max(0, 1 - remaining / session.plannedDurationSec))
     : 0
   const ringOffset = 276.46 * (1 - progress)
-  const currentTask = session?.tasks[0]
-  const nextTasks = session?.tasks.slice(1) ?? []
   const backgroundAsset = session?.place.backgroundAsset
   const configuredBackgroundUrl = backgroundAsset?.url?.trim() || null
   const backgroundUrl = configuredBackgroundUrl && !hasBackgroundError
@@ -329,15 +327,15 @@ export default function PersonalSessionPage() {
       {widgets.tasks && !focusMode && (
         <section className={`${styles.widget} ${styles.tasks}`} aria-labelledby="current-task-title">
           <p>지금 하는 일</p>
-          <div className={styles['current-task']}>
-            <span aria-hidden="true" />
-            <div><h1 id="current-task-title">{currentTask?.title}</h1><p>{currentTask?.projectName}</p></div>
-          </div>
-          {nextTasks.length > 0 && (
-            <ol className={styles['next-tasks']} aria-label="다음 Task">
-              {nextTasks.map((task) => <li key={task.id}>다음 · {task.title}</li>)}
-            </ol>
-          )}
+          {(session?.tasks ?? []).map((task, index) => (
+            <div className={styles['current-task']} key={task.id}>
+              <span aria-hidden="true" />
+              <div>
+                <h1 id={index === 0 ? 'current-task-title' : undefined}>{task.title}</h1>
+                <p>{task.projectName}</p>
+              </div>
+            </div>
+          ))}
         </section>
       )}
 

@@ -377,15 +377,15 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                                         다이브 세션
                                                                     </ModalTriggerButton>
                                                                 )}
-                                                                <button type="button" disabled={index === 0}
-                                                                        onClick={() => moveItem(index, -1)}><IconArrowUp
-                                                                    size={15} aria-hidden="true"/>위로
-                                                                </button>
-                                                                <button type="button"
-                                                                        disabled={index === items.length - 1}
-                                                                        onClick={() => moveItem(index, 1)}>
-                                                                    <IconArrowDown size={15} aria-hidden="true"/>아래로
-                                                                </button>
+                                                                {/*<button type="button" disabled={index === 0}*/}
+                                                                {/*        onClick={() => moveItem(index, -1)}><IconArrowUp*/}
+                                                                {/*    size={15} aria-hidden="true"/>위로*/}
+                                                                {/*</button>*/}
+                                                                {/*<button type="button"*/}
+                                                                {/*        disabled={index === items.length - 1}*/}
+                                                                {/*        onClick={() => moveItem(index, 1)}>*/}
+                                                                {/*    <IconArrowDown size={15} aria-hidden="true"/>아래로*/}
+                                                                {/*</button>*/}
                                                                 <DeleteIconButton
                                                                     label="계획에서 제거"
                                                                     iconSize={15}

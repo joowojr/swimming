@@ -10,6 +10,7 @@ import type {ApiError} from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import ChecklistCard from '../../components/ChecklistCard'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -290,16 +291,10 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                     <>
                         <ol className={styles.todoList}>
                             {items.map((item, index) => (
-                                <li className={styles.todoCard} key={item.id}>
-                                    <span className={styles.todoIdentity}>
-                                        <button
-                                            type="button"
-                                            className={`${styles.checkmark} ${item.status === 'DONE' ? styles.checked : ''}`}
-                                            aria-label={`${item.title} ${item.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
-                                            onClick={() => void changeTaskStatus(item, item.status === 'DONE' ? 'TODO' : 'DONE')}
-                                        />
-                                        <span className={styles.todoCopy}>
-                                            {item.projectName && <span className={styles.projectName}>{item.projectName}</span>}
+                                <li key={item.id}>
+                                    <ChecklistCard
+                                        id={item.taskId}
+                                        title={
                                             <InlineEditableText
                                                 value={item.title}
                                                 ariaLabel="Task 제목"
@@ -308,9 +303,14 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                                 onSave={(title) => changeTaskTitle(item, title)}
                                                 getErrorMessage={getTaskTitleError}
                                             />
-                                        </span>
-                                    </span>
-                                    <div className={styles.todoActions}>
+                                        }
+                                        description={item.projectName}
+                                        checked={item.status === 'DONE'}
+                                        ariaLabel={`${item.title} ${item.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
+                                        disabled={pendingTaskId === item.taskId}
+                                        onToggle={() => void changeTaskStatus(item, item.status === 'DONE' ? 'TODO' : 'DONE')}
+                                        actions={(
+                                          <>
                                         <select
                                             className={styles.status}
                                             data-status={item.status}
@@ -321,17 +321,19 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                         >
                                             {TASK_STATUS_VALUES.map((taskStatus) => <option value={taskStatus} key={taskStatus}>{TASK_STATUS_LABEL[taskStatus]}</option>)}
                                         </select>
-                                        <DailyPlanCardMenu label={`${item.title} 카드 메뉴`}>
+                                        <DailyPlanCardMenu inline label={`${item.title} 카드 메뉴`}>
                                             {selectedDate === today && (
                                                 <ModalTriggerButton dialogId="create-session-dialog" isOpen={sessionTaskId === item.taskId} variant="plain" icon={<IconPlayerPlay size={15} aria-hidden="true" />} onClick={() => setSessionTaskId(item.taskId)}>
                                                     다이브 세션
                                                 </ModalTriggerButton>
                                             )}
-                                            <button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}>위로</button>
-                                            <button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}>아래로</button>
+                                            {/*<button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)}>위로</button>*/}
+                                            {/*<button type="button" disabled={index === items.length - 1} onClick={() => moveItem(index, 1)}>아래로</button>*/}
                                             <DeleteIconButton label="계획에서 제거" iconSize={15} onClick={() => void removeItem(item.id)} />
                                         </DailyPlanCardMenu>
-                                    </div>
+                                          </>
+                                        )}
+                                    />
                                 </li>
                             ))}
                         </ol>

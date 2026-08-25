@@ -339,6 +339,10 @@
   inset: var(--space-2) var(--space-2) auto auto;
 }
 
+.card-menu-inline {
+  position: static;
+}
+
 .card-menu-trigger {
   display: inline-flex;
   align-items: center;

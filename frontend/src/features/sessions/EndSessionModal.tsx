@@ -160,7 +160,6 @@ export default function EndSessionModal({
                 name="completed-session-task"
                 emptyMessage="이 세션에 연결된 Task가 없습니다."
                 disabled={isSubmitting}
-                highlightSelected={false}
                 onToggle={toggleTask}
               />
               <p className={styles['modal-field-message']} aria-live="polite">

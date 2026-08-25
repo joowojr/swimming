@@ -7,6 +7,7 @@ import TaskChecklist from '../../components/TaskChecklist'
 import { endSession } from './sessionApi'
 import type { EndSessionRequest, SessionTask } from './sessionTypes'
 import styles from './EndSessionModal.module.css'
+import modalStyles from '../../components/ModalShell.module.css'
 
 interface EndSessionModalProps {
   sessionId: number
@@ -117,7 +118,7 @@ export default function EndSessionModal({
     <dialog
       id="end-session-dialog"
       ref={dialogRef}
-      className={styles['end-session-dialog']}
+      className={`${styles['end-session-dialog']} ${modalStyles.dialog}`}
       aria-labelledby="end-session-title"
       aria-describedby="end-session-description"
       aria-busy={isSubmitting}
@@ -127,8 +128,8 @@ export default function EndSessionModal({
       onClose={onClose}
       onMouseDown={handleBackdropMouseDown}
     >
-      <section className={styles['end-session-modal']}>
-        <header className={styles['modal-header']}>
+      <section className={`${styles['end-session-modal']} ${modalStyles.surface}`}>
+        <header className={`${styles['modal-header']} ${modalStyles.header}`}>
           <div>
             <h2 id="end-session-title">기록하기</h2>
             <p id="end-session-description">

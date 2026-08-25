@@ -10,6 +10,7 @@ import {startPersonalSession} from './sessionApi'
 import {GROUP_ROOM_MOCK} from './sessionMocks'
 import type {SessionResponse} from './sessionTypes'
 import styles from './CreateSessionModal.module.css'
+import modalStyles from '../../components/ModalShell.module.css'
 import ActionButton from "../../components/ActionButton.tsx";
 
 interface CreateSessionModalProps {
@@ -163,15 +164,15 @@ export default function CreateSessionModal({
     <dialog
       id="create-session-dialog"
       ref={dialogRef}
-      className={styles.dialog}
+      className={`${styles.dialog} ${modalStyles.dialog}`}
       aria-labelledby="create-session-title"
       aria-busy={isSubmitting}
       onCancel={(event) => { if (isSubmitting) event.preventDefault() }}
       onClose={onClose}
       onMouseDown={handleBackdrop}
     >
-      <section className={styles.modal}>
-        <header className={styles.header}>
+      <section className={`${styles.modal} ${modalStyles.surface}`}>
+        <header className={`${styles.header} ${modalStyles.header}`}>
           <h2 id="create-session-title">다이브 세션</h2>
           <button
             type="button"

@@ -27,10 +27,9 @@
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
-  border: var(--border-width) solid var(--color-hairline);
-  border-radius: var(--radius-panel);
+  border: 0;
+  border-radius: var(--radius-xl);
   background: var(--color-surface-container-lowest);
-  box-shadow: var(--shadow-floating);
 }
 
 .modal-header {
@@ -39,8 +38,7 @@
   justify-content: space-between;
   flex: 0 0 auto;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
-  border-bottom: var(--border-width) solid var(--color-hairline);
+  padding: var(--space-6) var(--space-6) var(--space-2);
 }
 
 .modal-header h2 {
@@ -172,34 +170,32 @@
 }
 
 .modal-footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  justify-content: flex-end;
   flex: 0 0 auto;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-surface-soft);
+  padding: var(--space-2) var(--space-6) var(--space-6);
+  background: transparent;
 }
 
 .modal-submit {
-  min-height: var(--button-height);
-  padding: 0 var(--button-padding-inline);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-body-sm-size);
-  font-weight: var(--text-button-weight);
-  white-space: nowrap;
-  transition:
-    color var(--transition-short),
-    background-color var(--transition-short),
-    opacity var(--transition-short),
-    transform var(--transition-short);
-}
-
-.modal-submit {
-  min-width: 5.25rem;
-  border: var(--border-width) solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  min-height: unset;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
   color: var(--color-on-primary);
   background: var(--color-primary);
+  font-size: var(--text-headline-md-size);
+  transition: background-color var(--transition-short), transform var(--dur-micro) var(--ease-out);
+  cursor: pointer;
 }
 
 .modal-submit:focus-visible {
@@ -207,7 +203,7 @@
 }
 
 .modal-submit:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 
 .modal-close:disabled,

@@ -18,11 +18,13 @@ const statusLabels: Record<SessionStatus, string> = {
   INTERRUPTED: '중단',
 }
 
-function formatDate(value: string) {
+function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   }).format(new Date(value))
 }
 
@@ -107,12 +109,11 @@ export default function DiveSessionFeedPage() {
                 </div>
                 <div className={styles.meta}>
                   <span><IconMapPin size={15} aria-hidden="true" />{session.place.cityName} · {session.place.name}</span>
-                  <span><IconClock size={15} aria-hidden="true" />{formatDate(session.startedAt)}</span>
+                  <span><IconClock size={15} aria-hidden="true" />{formatDateTime(session.startedAt)}</span>
                 </div>
-                {/*<p className={styles.tasks}>*/}
-                {/*  {session.tasks.slice(0, 2).map((task) => task.title).join(' · ')}*/}
-                {/*  {session.tasks.length > 2 ? ` 외 ${session.tasks.length - 2}개` : ''}*/}
-                {/*</p>*/}
+                <p className={styles.tasks}>
+                  {session.tasks.map((task) => task.title).join(' · ')}
+                </p>
               </div>
             </Link>
             ))}

@@ -43,6 +43,8 @@
     gap: var(--space-8) var(--space-4);
 }
 
+.grid > :nth-child(n + 9) { display: none; }
+
 .card {
     display: flex;
     min-width: 0;
@@ -177,13 +179,15 @@
 }
 
 .tasks {
+    display: -webkit-box;
     margin: 0;
     overflow: hidden;
     color: var(--color-text-muted);
     font-size: var(--text-body-sm-size);
     line-height: var(--text-body-sm-line-height);
     text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .state {
@@ -267,12 +271,16 @@
     .grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    .grid > :nth-child(n + 7) { display: none; }
 }
 
 @media (max-width: 60rem) {
     .grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .grid > :nth-child(n + 5) { display: none; }
 }
 
 @media (max-width: 48rem) {
@@ -296,6 +304,8 @@
         grid-template-columns: minmax(0, 1fr);
         gap: var(--space-8);
     }
+
+    .grid > :nth-child(n + 3) { display: none; }
 
     .thumbnail {
         min-height: 12rem;

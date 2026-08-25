@@ -1,12 +1,12 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { IconLoader2 } from '@tabler/icons-react'
-import styles from './ActionButton.module.css'
+import styles from './Button.module.css'
 
 interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode
   isLoading?: boolean
   loadingLabel?: string
-  variant?: 'primary' | 'plain'
+  variant?: 'primary' | 'outline' | 'plain'
 }
 
 export default function ActionButton({

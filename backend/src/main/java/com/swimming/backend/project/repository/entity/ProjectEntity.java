@@ -3,6 +3,7 @@ package com.swimming.backend.project.repository.entity;
 import com.swimming.backend.common.entity.BaseTimeEntity;
 import com.swimming.backend.project.domain.Project;
 import com.swimming.backend.project.domain.ProjectStatus;
+import com.swimming.backend.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,8 +31,9 @@ public class ProjectEntity extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tag_id")
@@ -50,17 +52,25 @@ public class ProjectEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private ProjectStatus status;
 
-    private ProjectEntity(Project project, ProjectTagEntity tag) {
-        this.userId = project.getUserId();
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
+    private ProjectEntity(Project project, User user, ProjectTagEntity tag) {
+        this.user = user;
         this.tag = tag;
         this.name = project.getName();
         this.description = project.getDescription();
         this.targetDate = project.getTargetDate();
         this.status = project.getStatus();
+        this.deleted = project.isDeleted();
     }
 
-    public static ProjectEntity from(Project project, ProjectTagEntity tag) {
-        return new ProjectEntity(project, tag);
+    public static ProjectEntity from(
+            Project project,
+            User user,
+            ProjectTagEntity tag
+    ) {
+        return new ProjectEntity(project, user, tag);
     }
 
     public void apply(Project project, ProjectTagEntity tag) {
@@ -69,17 +79,19 @@ public class ProjectEntity extends BaseTimeEntity {
         this.description = project.getDescription();
         this.targetDate = project.getTargetDate();
         this.status = project.getStatus();
+        this.deleted = project.isDeleted();
     }
 
     public Project toDomain() {
         return Project.restore(
                 id,
-                userId,
+                user.getId(),
                 tag == null ? null : tag.toDomain(),
                 name,
                 description,
                 targetDate,
                 status,
+                deleted,
                 getCreatedAt(),
                 getUpdatedAt()
         );

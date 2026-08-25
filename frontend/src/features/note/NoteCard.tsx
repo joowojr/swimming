@@ -1,10 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  IconArchive,
-  IconPlus,
-  IconSparkles,
-  IconTrash,
-} from '@tabler/icons-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import {
   archiveNote,
   createNote,
@@ -14,40 +9,38 @@ import {
   restoreNote,
   updateNote,
 } from './noteApi'
+import NoteEditor from './NoteEditor'
+import NoteList from './NoteList'
+import TaskOrganizerPanel from './TaskOrganizerPanel'
 import type { NoteResponse } from './noteTypes'
+import type { LoadStatus, ProjectOption, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
 
-interface MemoCardProps {
-  onOrganize: (text: string) => Promise<void> | void
+/**
+ * 역할: 메모의 선택·자동 저장·보관·삭제를 관리하고, 각 화면 조각과 Task Organizer 흐름을 조합한다.
+ * AI 정리와 계획 연결의 세부 상태는 TaskOrganizerPanel이 소유한다.
+ */
+interface NoteCardProps {
+  projects: ProjectOption[]
+  projectId?: number
+  sessionId?: number
+  className?: string
 }
 
-type LoadStatus = 'loading' | 'ready' | 'error'
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+interface OrganizerSource {
+  noteId: number
+  memo: string
+}
 
 const AUTO_SAVE_DELAY_MS = 700
-const noteDateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  month: 'short',
-  day: 'numeric',
-})
 
-function getNotePreview(content: string | undefined) {
-  return content?.split(/\r?\n/, 1)[0].trim() || '메모'
-}
-
-function formatNoteDate(createdAt: string | undefined) {
-  if (!createdAt) return ''
-  const createdDate = new Date(createdAt)
-  if (Number.isNaN(createdDate.getTime())) return ''
-  return noteDateFormatter.format(createdDate)
-}
-
-export default function NoteCard({ onOrganize }: MemoCardProps) {
+export default function NoteCard({ projects, projectId, sessionId, className }: NoteCardProps) {
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [isOrganizing, setIsOrganizing] = useState(false)
+  const [organizerSource, setOrganizerSource] = useState<OrganizerSource | null>(null)
   const [isStartingNew, setIsStartingNew] = useState(false)
   const [isSelectingNote, setIsSelectingNote] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
@@ -72,34 +65,35 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
 
     async function loadLatestNote() {
       try {
-        const notes = await getNotes({ contextType: 'DEFAULT' })
+        const loadedNotes = sessionId !== undefined
+          ? await getNotes({ sessionId })
+          : projectId === undefined
+            ? await getNotes({ contextType: 'DEFAULT' })
+            : await getNotes({ projectId })
         if (cancelled) return
 
-        const latestNote = notes[0]
+        const latestNote = loadedNotes[0]
         const content = latestNote?.content ?? ''
-
         noteIdRef.current = latestNote?.id ?? null
         memoRef.current = content
         lastSavedContentRef.current = content
-        setNotes(notes)
+        setNotes(loadedNotes)
         setSelectedNoteId(latestNote?.id ?? null)
         setMemo(content)
         setLoadStatus('ready')
         setSaveStatus(latestNote ? 'saved' : 'idle')
       } catch {
-        if (cancelled) return
-        setLoadStatus('error')
+        if (!cancelled) setLoadStatus('error')
       }
     }
 
     void loadLatestNote()
-
     return () => {
       cancelled = true
       isMountedRef.current = false
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [])
+  }, [projectId, sessionId])
 
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
@@ -109,54 +103,32 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
 
   const saveContent = (content: string): Promise<boolean> => {
     clearSaveTimer()
-
-    if (!content.trim() || content === lastSavedContentRef.current) {
-      return Promise.resolve(true)
-    }
-
-    if (content === pendingContentRef.current && pendingSaveRef.current) {
-      return pendingSaveRef.current
-    }
+    if (!content.trim() || content === lastSavedContentRef.current) return Promise.resolve(true)
+    if (content === pendingContentRef.current && pendingSaveRef.current) return pendingSaveRef.current
 
     pendingContentRef.current = content
-
     const request = saveQueueRef.current.then(async () => {
       if (content === lastSavedContentRef.current) return true
       if (isMountedRef.current) setSaveStatus('saving')
 
       try {
-        let savedNote: NoteResponse
-
-        if (noteIdRef.current === null) {
-          const createdNote = await createNote({
-            content,
-            contextType: 'DEFAULT',
-            projectId: null,
-            sessionId: null,
-          })
-          savedNote = await getNote(createdNote.id)
-        } else {
-          savedNote = await updateNote(noteIdRef.current, { content })
-        }
+        const savedNote = noteIdRef.current === null
+          ? await createNote(sessionId !== undefined
+            ? { content, contextType: 'SESSION', projectId: null, sessionId }
+            : projectId === undefined
+              ? { content, contextType: 'DEFAULT', projectId: null, sessionId: null }
+              : { content, contextType: 'PROJECT', projectId, sessionId: null })
+              .then((createdNote) => getNote(createdNote.id))
+          : await updateNote(noteIdRef.current, { content })
 
         noteIdRef.current = savedNote.id
         lastSavedContentRef.current = savedNote.content
-
         if (isMountedRef.current) {
-          setNotes((currentNotes) => {
-            const noteExists = currentNotes.some(
-              (note) => note.id === savedNote.id,
-            )
-
-            if (!noteExists) return [savedNote, ...currentNotes]
-            return currentNotes.map((note) =>
-              note.id === savedNote.id ? savedNote : note,
-            )
-          })
+          setNotes((currentNotes) => currentNotes.some((note) => note.id === savedNote.id)
+            ? currentNotes.map((note) => note.id === savedNote.id ? savedNote : note)
+            : [savedNote, ...currentNotes])
           setSelectedNoteId(savedNote.id)
-          setSaveStatus(
-            memoRef.current === savedNote.content ? 'saved' : 'idle',
-          )
+          setSaveStatus(memoRef.current === savedNote.content ? 'saved' : 'idle')
         }
         return true
       } catch {
@@ -166,30 +138,25 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     })
 
     saveQueueRef.current = request.then(() => undefined)
-
     const exposedRequest = request.finally(() => {
       if (pendingSaveRef.current !== exposedRequest) return
       pendingContentRef.current = null
       pendingSaveRef.current = null
     })
     pendingSaveRef.current = exposedRequest
-
     return exposedRequest
   }
 
   const scheduleSave = (content: string) => {
     clearSaveTimer()
-
     if (!content.trim()) {
       setSaveStatus('idle')
       return
     }
-
     if (content === lastSavedContentRef.current) {
       setSaveStatus('saved')
       return
     }
-
     setSaveStatus('idle')
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null
@@ -228,19 +195,13 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
   const removeNoteFromList = (noteId: number) => {
     const remainingNotes = notes.filter((note) => note.id !== noteId)
     setNotes(remainingNotes)
-
     if (noteIdRef.current !== noteId) return
-
     const nextNote = remainingNotes[0]
-    if (nextNote) {
-      openNote(nextNote)
-      return
-    }
-
-    resetToNewDraft()
+    if (nextNote) openNote(nextNote)
+    else resetToNewDraft()
   }
 
-  const handleMemoChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleMemoChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const content = event.target.value
     setActionMessage(null)
     memoRef.current = content
@@ -248,64 +209,27 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     scheduleSave(content)
   }
 
-  const handleBlur = () => {
-    void saveContent(memoRef.current)
-  }
-
   const handleNewMemo = async () => {
-    if (
-      isStartingNew ||
-      isSelectingNote ||
-      isOrganizing ||
-      isArchiving ||
-      isDeleting
-    ) return
+    if (isStartingNew || isSelectingNote || organizerSource || isArchiving || isDeleting) return
     setIsStartingNew(true)
-
-    const saved = await saveContent(memoRef.current)
-    if (saved) resetToNewDraft()
-
+    if (await saveContent(memoRef.current)) resetToNewDraft()
     if (isMountedRef.current) setIsStartingNew(false)
   }
 
   const handleSelectNote = async (note: NoteResponse) => {
-    if (
-      note.id === noteIdRef.current ||
-      isSelectingNote ||
-      isStartingNew ||
-      isOrganizing ||
-      isArchiving ||
-      isDeleting
-    ) return
+    if (note.id === noteIdRef.current || isSelectingNote || isStartingNew || organizerSource || isArchiving || isDeleting) return
     setIsSelectingNote(true)
-
-    const saved = await saveContent(memoRef.current)
-    if (saved) {
-      openNote(note)
-    }
-
+    if (await saveContent(memoRef.current)) openNote(note)
     if (isMountedRef.current) setIsSelectingNote(false)
   }
 
   const handleOrganize = async () => {
-    if (
-      !memo.trim() ||
-      isOrganizing ||
-      isStartingNew ||
-      isSelectingNote ||
-      isArchiving ||
-      isDeleting
-    ) return
-    setIsOrganizing(true)
-
-    try {
-      const saved = await saveContent(memoRef.current)
-      if (!saved) return
-      await onOrganize(memoRef.current)
-      resetToNewDraft()
-    } finally {
-      if (isMountedRef.current) setIsOrganizing(false)
-    }
+    if (!memoRef.current.trim() || organizerSource || isStartingNew || isSelectingNote || isArchiving || isDeleting) return
+    setActionMessage(null)
+    const content = memoRef.current
+    const saved = await saveContent(content)
+    const noteId = noteIdRef.current
+    if (saved && noteId !== null) setOrganizerSource({ noteId, memo: content })
   }
 
   const handleArchive = async () => {
@@ -313,11 +237,8 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     if (noteId === null || isEditorDisabled) return
     setIsArchiving(true)
     setActionMessage(null)
-
     try {
-      const saved = await saveContent(memoRef.current)
-      if (!saved) return
-
+      if (!(await saveContent(memoRef.current))) return
       await archiveNote(noteId)
       removeNoteFromList(noteId)
       setRecentlyArchivedId(noteId)
@@ -333,17 +254,11 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     if (noteId === null || isArchiving) return
     setIsArchiving(true)
     setActionMessage(null)
-
     try {
-      const saved = await saveContent(memoRef.current)
-      if (!saved) return
-
+      if (!(await saveContent(memoRef.current))) return
       await restoreNote(noteId)
       const restoredNote = await getNote(noteId)
-      setNotes((currentNotes) => [
-        restoredNote,
-        ...currentNotes.filter((note) => note.id !== restoredNote.id),
-      ])
+      setNotes((currentNotes) => [restoredNote, ...currentNotes.filter((note) => note.id !== restoredNote.id)])
       openNote(restoredNote)
     } catch {
       setActionMessage('메모를 복원하지 못했어요')
@@ -357,7 +272,6 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     if (noteId === null || isDeleting) return
     setIsDeleting(true)
     setActionMessage(null)
-
     try {
       await saveContent(memoRef.current)
       await deleteNote(noteId)
@@ -371,157 +285,65 @@ export default function NoteCard({ onOrganize }: MemoCardProps) {
     }
   }
 
-  const statusMessage = (() => {
-    if (loadStatus === 'loading') return '메모를 불러오는 중…'
-    if (loadStatus === 'error') return '메모를 불러오지 못했어요'
-    if (actionMessage) return actionMessage
-    if (!memo.trim()) return '입력하면 자동으로 저장돼요'
-    if (saveStatus === 'saving') return '저장 중…'
-    if (saveStatus === 'saved') return '저장됨'
-    if (saveStatus === 'error') return '저장하지 못했어요. 다시 입력하면 재시도해요'
-    return '입력을 멈추면 자동으로 저장돼요'
-  })()
+  const closeOrganizer = useCallback(() => {
+    setOrganizerSource(null)
+    setActionMessage(null)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }, [])
+
+  const finishOrganizer = useCallback((message: string) => {
+    setOrganizerSource(null)
+    setActionMessage(message)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }, [])
 
   const isEditorDisabled =
     loadStatus !== 'ready' ||
-    isOrganizing ||
+    organizerSource !== null ||
     isStartingNew ||
     isSelectingNote ||
     isArchiving ||
     isDeleting
 
   return (
-    <section className={styles['memo-card']} aria-labelledby="memo-title">
-      <div className={styles['memo-head']}>
-        <h3 id="memo-title" className={styles['memo-title']}>메모</h3>
-        <div className={styles['memo-head-actions']}>
-          <button
-            type="button"
-            className={styles['memo-icon-action']}
-            onClick={handleArchive}
-            disabled={selectedNoteId === null || isEditorDisabled}
-            aria-label="현재 메모 보관"
-            title="메모 보관"
-          >
-            <IconArchive size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={styles['memo-icon-action']}
-            onClick={() => setIsConfirmingDelete(true)}
-            disabled={selectedNoteId === null || isEditorDisabled}
-            aria-label="현재 메모 삭제"
-            aria-expanded={isConfirmingDelete}
-            title="메모 삭제"
-          >
-            <IconTrash size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={styles['new-memo-action']}
-            onClick={handleNewMemo}
-            disabled={loadStatus !== 'ready' || isEditorDisabled}
-          >
-            <IconPlus size={16} aria-hidden="true" />
-            새 메모
-          </button>
-        </div>
-      </div>
-
-      {isConfirmingDelete && (
-        <div className={styles['delete-confirmation']} role="group" aria-label="메모 삭제 확인">
-          <span>이 메모를 삭제할까요?</span>
-          <div>
-            <button
-              type="button"
-              onClick={() => setIsConfirmingDelete(false)}
-              disabled={isDeleting}
-            >
-              취소
-            </button>
-            <button type="button" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? '삭제 중…' : '삭제'}
-            </button>
-          </div>
-        </div>
+    <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
+      {organizerSource ? (
+        <TaskOrganizerPanel source={organizerSource} projects={projects} onCancel={closeOrganizer} onFinish={finishOrganizer} />
+      ) : (
+        <>
+          <NoteEditor
+            memo={memo}
+            loadStatus={loadStatus}
+            saveStatus={saveStatus}
+            actionMessage={actionMessage}
+            selectedNoteId={selectedNoteId}
+            disabled={isEditorDisabled}
+            isStartingNew={isStartingNew}
+            isArchiving={isArchiving}
+            isDeleting={isDeleting}
+            isConfirmingDelete={isConfirmingDelete}
+            recentlyArchived={recentlyArchivedId !== null}
+            textareaRef={textareaRef}
+            onMemoChange={handleMemoChange}
+            onMemoBlur={() => void saveContent(memoRef.current)}
+            onOrganize={() => void handleOrganize()}
+            onNewMemo={() => void handleNewMemo()}
+            onArchive={() => void handleArchive()}
+            onRequestDelete={() => setIsConfirmingDelete(true)}
+            onCancelDelete={() => setIsConfirmingDelete(false)}
+            onDelete={() => void handleDelete()}
+            onRestore={() => void handleRestoreRecent()}
+          />
+          <NoteList
+            notes={notes}
+            selectedNoteId={selectedNoteId}
+            disabled={isEditorDisabled}
+            projectId={projectId}
+            sessionId={sessionId}
+            onSelect={(note) => void handleSelectNote(note)}
+          />
+        </>
       )}
-
-      <textarea
-        ref={textareaRef}
-        className={styles['memo-paper']}
-        placeholder="떠오르는 일을 편하게 적어두세요."
-        value={memo}
-        onChange={handleMemoChange}
-        onBlur={handleBlur}
-        disabled={isEditorDisabled}
-      />
-
-      <div className={styles['memo-foot']}>
-        <span className={styles['memo-hint']} role="status" aria-live="polite">
-          {statusMessage}
-        </span>
-        <button
-          type="button"
-          className={styles['organize-action']}
-          onClick={handleOrganize}
-          disabled={!memo.trim() || isEditorDisabled}
-        >
-          <IconSparkles size={16} aria-hidden="true" />
-          {isOrganizing ? '정리하는 중' : '할 일로 정리'}
-        </button>
-      </div>
-
-      {recentlyArchivedId !== null && (
-        <div className={styles['archive-undo']} role="status">
-          <span>메모를 보관했어요</span>
-          <button
-            type="button"
-            onClick={handleRestoreRecent}
-            disabled={isArchiving}
-          >
-            실행 취소
-          </button>
-        </div>
-      )}
-
-      <section
-        className={styles['memo-list']}
-        aria-labelledby="saved-memos-title"
-      >
-        <div className={styles['memo-list-head']}>
-          <h4 id="saved-memos-title">메모 목록</h4>
-          <span>{notes.length}개</span>
-        </div>
-
-        {notes.length > 0 ? (
-          <ul className={styles['memo-list-items']}>
-            {notes.map((note) => (
-              <li key={note.id}>
-                <button
-                  type="button"
-                  className={
-                    selectedNoteId === note.id
-                      ? styles['memo-list-action-active']
-                      : styles['memo-list-action']
-                  }
-                  onClick={() => handleSelectNote(note)}
-                  disabled={isEditorDisabled}
-                  aria-pressed={selectedNoteId === note.id}
-                >
-                  <span>{getNotePreview(note.content)}</span>
-                  <time dateTime={note.createdAt}>
-                    {formatNoteDate(note.createdAt)}
-                  </time>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles['memo-list-empty']}>
-            저장된 메모가 여기에 모여요.
-          </p>
-        )}
-      </section>
     </section>
   )
 }

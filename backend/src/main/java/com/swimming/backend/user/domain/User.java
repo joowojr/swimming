@@ -34,6 +34,10 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private String timezone;
 
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     @Builder
     private User(
             String email,

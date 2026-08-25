@@ -15,6 +15,7 @@ import {
 } from '@tabler/icons-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import { getPlaces } from '../places/placeApi'
 import { getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
@@ -376,10 +377,15 @@ export default function PersonalSessionPage() {
               <IconPlus aria-hidden="true" />
             </button>
           </div>
-          <button className={styles.finish} type="button" onClick={openEndModal}>
-            <IconFlag />
+          <ModalTriggerButton
+            className={styles.finish}
+            dialogId="end-session-dialog"
+            icon={<IconFlag aria-hidden="true" />}
+            isOpen={isEndModalOpen}
+            onClick={openEndModal}
+          >
             세션 마치기
-          </button>
+          </ModalTriggerButton>
         </section>
       )}
 

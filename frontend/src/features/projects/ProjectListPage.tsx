@@ -1,5 +1,5 @@
 import { IconFilter, IconFolders, IconPlus } from '@tabler/icons-react'
-import ActionButton from '../../components/ActionButton'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ProjectCard from './ProjectCard'
 import type { Project } from './projectTypes'
 import type { ProjectLoadStatus } from './ProjectDashboard'
@@ -30,12 +30,13 @@ export default function ProjectListPage({
             <IconFilter size={17} aria-hidden="true" />
             필터
           </button>
-          <ActionButton
+          <ModalTriggerButton
+            dialogId="create-project-dialog"
             icon={<IconPlus size={18} aria-hidden="true" />}
             onClick={onOpenCreate}
           >
             새 프로젝트
-          </ActionButton>
+          </ModalTriggerButton>
         </div>
       </header>
 

@@ -47,9 +47,7 @@ export default function CreateSessionModal({
   onStarted,
 }: CreateSessionModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const linkedTasks = todayTasks.filter(
-    (task): task is DailyPlanItem & { taskId: number } => task.taskId !== null,
-  )
+  const linkedTasks = todayTasks
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>(
     initialTaskId !== undefined
       ? [initialTaskId]
@@ -163,6 +161,7 @@ export default function CreateSessionModal({
 
   return (
     <dialog
+      id="create-session-dialog"
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="create-session-title"

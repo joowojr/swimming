@@ -1,8 +1,11 @@
 package com.swimming.backend.task.repository.entity;
 
 import com.swimming.backend.common.entity.BaseTimeEntity;
+import com.swimming.backend.note.repository.entity.NoteEntity;
+import com.swimming.backend.project.repository.entity.ProjectEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,8 +21,17 @@ public class TaskEntity extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "project_id", nullable = false)
-    private Long projectId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private ProjectEntity project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_note_id")
+    private NoteEntity sourceNote;
 
     @Column(nullable = false)
     private String title;
@@ -31,15 +43,27 @@ public class TaskEntity extends BaseTimeEntity {
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
 
-    private TaskEntity(Task task) {
-        this.projectId = task.getProjectId();
+    private TaskEntity(
+            Task task,
+            User user,
+            ProjectEntity project,
+            NoteEntity sourceNote
+    ) {
+        this.user = user;
+        this.project = project;
+        this.sourceNote = sourceNote;
         this.title = task.getTitle();
         this.status = task.getStatus();
         this.orderIdx = task.getOrderIdx();
     }
 
-    public static TaskEntity from(Task task) {
-        return new TaskEntity(task);
+    public static TaskEntity from(
+            Task task,
+            User user,
+            ProjectEntity project,
+            NoteEntity sourceNote
+    ) {
+        return new TaskEntity(task, user, project, sourceNote);
     }
 
     public void apply(Task task) {
@@ -59,7 +83,9 @@ public class TaskEntity extends BaseTimeEntity {
     public Task toDomain() {
         return Task.restore(
                 id,
-                projectId,
+                user.getId(),
+                project == null ? null : project.getId(),
+                sourceNote == null ? null : sourceNote.getId(),
                 title,
                 status,
                 orderIdx,

@@ -15,6 +15,7 @@ public class Project {
     private String description;
     private LocalDate targetDate;
     private ProjectStatus status;
+    private boolean deleted;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -26,6 +27,7 @@ public class Project {
             String description,
             LocalDate targetDate,
             ProjectStatus status,
+            boolean deleted,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -36,6 +38,7 @@ public class Project {
         this.description = description;
         this.targetDate = targetDate;
         this.status = status;
+        this.deleted = deleted;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -55,6 +58,7 @@ public class Project {
                 description.trim(),
                 targetDate,
                 ProjectStatus.IN_PROGRESS,
+                false,
                 null,
                 null
         );
@@ -68,6 +72,7 @@ public class Project {
             String description,
             LocalDate targetDate,
             ProjectStatus status,
+            boolean deleted,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -79,6 +84,7 @@ public class Project {
                 description,
                 targetDate,
                 status,
+                deleted,
                 createdAt,
                 updatedAt
         );
@@ -96,5 +102,9 @@ public class Project {
         this.targetDate = targetDate;
         this.status = status;
         this.tag = tag;
+    }
+
+    public void delete() {
+        this.deleted = true;
     }
 }

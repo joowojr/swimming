@@ -19,7 +19,7 @@ class DailyPlanEntityTest {
         LocalDate date = LocalDate.of(2026, 8, 21);
         DailyPlan initial = DailyPlan.create(1L, date);
         initial.addItem(DailyPlanItem.createTask(10L));
-        initial.addItem(DailyPlanItem.createAdHoc("장보기"));
+        initial.addItem(DailyPlanItem.createTask(30L));
         DailyPlanEntity entity = DailyPlanEntity.from(initial);
         ReflectionTestUtils.setField(entity, "id", 1L);
         ReflectionTestUtils.setField(entity.getItems().get(0), "id", 1L);
@@ -32,7 +32,7 @@ class DailyPlanEntityTest {
                 null,
                 null,
                 List.of(
-                        DailyPlanItem.restore(2L, null, "책 반납", 0, null, null),
+                        DailyPlanItem.restore(2L, 30L, 0, null, null),
                         DailyPlanItem.createTask(20L)
                 )
         );
@@ -41,9 +41,7 @@ class DailyPlanEntityTest {
 
         assertThat(entity.getItems()).extracting(DailyPlanItemEntity::getId)
                 .containsExactly(2L, null);
-        assertThat(entity.toDomain().getItems()).extracting(DailyPlanItem::getTitle)
-                .containsExactly("책 반납", null);
         assertThat(entity.toDomain().getItems()).extracting(DailyPlanItem::getTaskId)
-                .containsExactly(null, 20L);
+                .containsExactly(30L, 20L);
     }
 }

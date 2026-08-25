@@ -32,6 +32,10 @@ export async function updateProject(
   return response.data
 }
 
+export async function deleteProject(projectId: number): Promise<void> {
+  await client.delete(`/projects/${projectId}`)
+}
+
 export async function getProjectTags(): Promise<ProjectTag[]> {
   const response = await client.get<ProjectTag[]>('/project-tags')
   return response.data

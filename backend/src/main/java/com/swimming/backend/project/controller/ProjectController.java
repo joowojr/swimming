@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -68,5 +69,14 @@ public class ProjectController {
         return ResponseEntity.ok(
                 projectUseCase.update(authUser.id(), projectId, request)
         );
+    }
+
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long projectId
+    ) {
+        projectUseCase.delete(authUser.id(), projectId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,20 +1,23 @@
 import type {CSSProperties, KeyboardEvent} from 'react'
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {IconChevronRight, IconFilter, IconTrash} from '@tabler/icons-react'
-import {Link} from 'react-router-dom'
+import {IconChevronRight, IconFilter} from '@tabler/icons-react'
+import {Link, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
+import ActionButton from '../../components/ActionButton'
+import DeleteIconButton from '../../components/DeleteIconButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
-import {getProject, updateProject} from './projectApi'
+import {deleteProject, getProject, updateProject} from './projectApi'
 import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
 import TaskList from './TaskList'
 import styles from './ProjectDetail.module.css'
 
 interface ProjectDetailProps {
   projectId: number | null
+  onDeleted: (projectId: number) => void
 }
 
 type DetailState =
@@ -64,7 +67,8 @@ function openSelectPicker(select: HTMLSelectElement | null | undefined) {
   }
 }
 
-export default function ProjectDetail({ projectId }: ProjectDetailProps) {
+export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailProps) {
+  const navigate = useNavigate()
   const [requestKey, setRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     projectId === null ? { status: 'error', notFound: true } : { status: 'loading' },
@@ -75,6 +79,9 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isConfirmingProjectDelete, setIsConfirmingProjectDelete] = useState(false)
+  const [isDeletingProject, setIsDeletingProject] = useState(false)
+  const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null)
   const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
   const [editValue, setEditValue] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
@@ -112,6 +119,24 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       setDeleteError(apiMessage ?? '선택한 작업을 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsDeletingTasks(false)
+    }
+  }
+
+  const removeProject = async (project: ProjectDetailData) => {
+    if (isDeletingProject) return
+    setIsDeletingProject(true)
+    setProjectDeleteError(null)
+    try {
+      await deleteProject(project.id)
+      onDeleted(project.id)
+      navigate('/projects', { replace: true })
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null
+        ? (error as ApiError).message
+        : undefined
+      setProjectDeleteError(apiMessage ?? '프로젝트를 삭제하지 못했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsDeletingProject(false)
     }
   }
 
@@ -349,6 +374,28 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         </div>
       </header>
 
+      <div className={styles['project-delete-actions']}>
+        <DeleteIconButton
+          label="프로젝트 삭제"
+          active={isConfirmingProjectDelete}
+          disabled={isDeletingProject}
+          onClick={() => {
+            setIsConfirmingProjectDelete((current) => !current)
+            setProjectDeleteError(null)
+          }}
+        >
+          <span>{isConfirmingProjectDelete ? '취소' : '프로젝트 삭제'}</span>
+        </DeleteIconButton>
+      </div>
+      {isConfirmingProjectDelete && (
+        <section className={styles['project-delete-confirmation']} aria-label="프로젝트 삭제 확인">
+          <p>프로젝트를 삭제할까요? 연결된 할 일과 메모는 유지됩니다.</p>
+          <ActionButton variant="plain" onClick={() => setIsConfirmingProjectDelete(false)} disabled={isDeletingProject}>취소</ActionButton>
+          <ActionButton isLoading={isDeletingProject} loadingLabel="삭제 중…" onClick={() => void removeProject(project)}>삭제</ActionButton>
+        </section>
+      )}
+      {projectDeleteError && <p className={styles['delete-error']} role="alert">{projectDeleteError}</p>}
+
       <section className={styles.summary} aria-labelledby="project-progress-title">
         <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />
         <div className={styles['progress-content']}>
@@ -433,30 +480,25 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                   <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
               ))}
             </select>
-            {/*삭제 버튼*/}
-            <button
-                type="button"
-                className={styles['delete-task-button']}
-                aria-pressed={isDeleteMode}
+            <DeleteIconButton
+                label={isDeleteMode ? 'Task 삭제 선택 취소' : 'Task 삭제 선택'}
+                active={isDeleteMode}
                 disabled={isDeletingTasks}
                 onClick={() => {
                   if (isDeleteMode) leaveDeleteMode()
                   else setIsDeleteMode(true)
                 }}
             >
-              {!isDeleteMode && <IconTrash size={16} aria-hidden="true"/>}
               {isDeleteMode ? '취소' : <span className="sr-only">Task 삭제 선택</span>}
-            </button>
+            </DeleteIconButton>
             {isDeleteMode && (
-                <button
-                    type="button"
-                    className={styles['delete-task-button']}
+                <DeleteIconButton
+                    label="선택한 Task 삭제"
                     disabled={selectedTaskIds.size === 0 || isDeletingTasks}
                     onClick={() => void removeSelectedTasks()}
                 >
-                  <IconTrash size={16} aria-hidden="true"/>
-                  {isDeletingTasks ? '삭제 중' : ``}
-                </button>
+                  {isDeletingTasks ? '삭제 중' : <span className="sr-only">선택한 Task 삭제</span>}
+                </DeleteIconButton>
             )}
           </div>
         </div>

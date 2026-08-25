@@ -20,9 +20,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +42,7 @@ class TaskUseCaseTest {
     void createsTaskInOwnedProject() {
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L));
-        when(taskService.create(10L, "Task")).thenReturn(task(1L, 10L, "Task", 0));
+        when(taskService.create(1L, 10L, "Task")).thenReturn(task(1L, 10L, "Task", 0));
 
         TaskResponse response = taskUseCase.create(
                 1L,
@@ -73,17 +71,15 @@ class TaskUseCaseTest {
     }
 
     @Test
-    @DisplayName("Task를 수정하기 전에 프로젝트 소유권을 확인한다")
+    @DisplayName("사용자가 소유한 Task를 수정한다")
     void updatesTaskAfterOwnershipCheck() {
         Task task = task(1L, 10L, "기존", 0);
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "수정",
                 TaskStatus.DOING
         );
-        when(taskService.getOne(1L)).thenReturn(task);
-        when(projectService.getReference(1L, 10L))
-                .thenReturn(new ProjectReference(10L));
-        when(taskService.update(task)).thenReturn(task);
+        when(taskService.getOne(1L, 1L)).thenReturn(task);
+        when(taskService.update(1L, task)).thenReturn(task);
 
         TaskResponse response = taskUseCase.update(1L, 1L, request);
 
@@ -94,45 +90,35 @@ class TaskUseCaseTest {
     @Test
     @DisplayName("다른 사용자의 Task는 찾을 수 없음으로 처리한다")
     void hidesAnotherUsersTask() {
-        Task task = task(1L, 10L, "Task", 0);
         UpdateTaskRequest request = new UpdateTaskRequest(
                 "수정",
                 TaskStatus.DOING
         );
-        when(taskService.getOne(1L)).thenReturn(task);
-        when(projectService.getReference(2L, 10L))
-                .thenThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+        when(taskService.getOne(2L, 1L))
+                .thenThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND));
 
         assertThatThrownBy(() -> taskUseCase.update(2L, 1L, request))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService, never()).update(any(Task.class));
+        verify(taskService).getOne(2L, 1L);
     }
 
     @Test
-    @DisplayName("소유권을 확인한 여러 Task를 한 번에 삭제한다")
+    @DisplayName("사용자가 소유한 여러 Task를 한 번에 삭제한다")
     void deletesOwnedTasksAtOnce() {
-        when(taskService.getAllByIds(List.of(1L, 2L))).thenReturn(List.of(
-                task(1L, 10L, "첫째", 0),
-                task(2L, 10L, "둘째", 1)
-        ));
-        when(projectService.getReference(1L, 10L))
-                .thenReturn(new ProjectReference(10L));
-
         taskUseCase.deleteTasks(
                 1L,
                 new DeleteTasksRequest(List.of(1L, 2L, 2L))
         );
 
-        verify(taskService).deleteAll(List.of(1L, 2L));
-        verify(projectService).getReference(1L, 10L);
+        verify(taskService).deleteAll(1L, List.of(1L, 2L));
     }
 
     @Test
     @DisplayName("삭제 대상 중 찾을 수 없는 Task가 있으면 아무것도 삭제하지 않는다")
     void rejectsDeletionWhenAnyTaskIsMissing() {
-        when(taskService.getAllByIds(List.of(1L, 2L)))
-                .thenReturn(List.of(task(1L, 10L, "첫째", 0)));
+        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND))
+                .when(taskService).deleteAll(1L, List.of(1L, 2L));
 
         assertThatThrownBy(() -> taskUseCase.deleteTasks(
                 1L,
@@ -140,28 +126,7 @@ class TaskUseCaseTest {
         ))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService, never()).deleteAll(any());
-    }
-
-    @Test
-    @DisplayName("삭제 대상 중 다른 사용자의 Task가 있으면 아무것도 삭제하지 않는다")
-    void rejectsDeletionWhenAnyTaskIsNotOwned() {
-        when(taskService.getAllByIds(List.of(1L, 2L))).thenReturn(List.of(
-                task(1L, 10L, "내 Task", 0),
-                task(2L, 20L, "다른 Task", 0)
-        ));
-        when(projectService.getReference(1L, 10L))
-                .thenReturn(new ProjectReference(10L));
-        when(projectService.getReference(1L, 20L))
-                .thenThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
-
-        assertThatThrownBy(() -> taskUseCase.deleteTasks(
-                1L,
-                new DeleteTasksRequest(List.of(1L, 2L))
-        ))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService, never()).deleteAll(any());
+        verify(taskService).deleteAll(1L, List.of(1L, 2L));
     }
 
     @Test
@@ -179,7 +144,9 @@ class TaskUseCaseTest {
     private Task task(Long id, Long projectId, String title, int orderIdx) {
         return Task.restore(
                 id,
+                1L,
                 projectId,
+                null,
                 title,
                 TaskStatus.TODO,
                 orderIdx,

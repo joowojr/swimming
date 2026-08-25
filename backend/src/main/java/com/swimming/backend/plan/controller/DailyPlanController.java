@@ -4,7 +4,6 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
 import com.swimming.backend.plan.usecase.DailyPlanUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -59,16 +57,6 @@ public class DailyPlanController {
     ) {
         DailyPlanResponse response = dailyPlanUseCase.addItems(authUser.id(), date, request);
         return ResponseEntity.created(URI.create("/api/daily-plans/" + date)).body(response);
-    }
-
-    @PatchMapping("/{date}/items/{itemId}")
-    public ResponseEntity<DailyPlanResponse> updateItem(
-            @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @PathVariable Long itemId,
-            @Valid @RequestBody UpdateDailyPlanItemRequest request
-    ) {
-        return ResponseEntity.ok(dailyPlanUseCase.updateItem(authUser.id(), date, itemId, request));
     }
 
     @DeleteMapping("/{date}/items/{itemId}")

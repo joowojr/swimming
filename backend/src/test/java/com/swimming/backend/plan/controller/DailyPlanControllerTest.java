@@ -4,9 +4,9 @@ import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanItemResponse;
+import com.swimming.backend.plan.dto.DailyPlanItemType;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
 import com.swimming.backend.plan.usecase.DailyPlanUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -63,13 +62,15 @@ class DailyPlanControllerTest {
                         .queryParam("to_date", "2026-08-21"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].date").value("2026-08-21"))
-                .andExpect(jsonPath("$[0].items[0].id").value(1));
+                .andExpect(jsonPath("$[0].items[0].id").value(1))
+                .andExpect(jsonPath("$[0].items[0].itemType").value("TASK"));
     }
 
     @Test
-    @DisplayName("날짜를 경로로 받아 독립 할 일을 생성한다")
+    @DisplayName("날짜를 경로로 받아 프로젝트 없는 Task를 생성한다")
     void addsAdHocItem() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(null, null, "장보기");
+        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
+                null, null, "장보기");
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
@@ -85,7 +86,8 @@ class DailyPlanControllerTest {
     @Test
     @DisplayName("날짜를 경로로 받아 여러 Task 항목을 일괄 생성한다")
     void addsTaskItems() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null);
+        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
+                List.of(10L, 20L), null, null);
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
@@ -100,12 +102,28 @@ class DailyPlanControllerTest {
     @Test
     @DisplayName("날짜와 프로젝트를 받아 새 Task 항목을 생성한다")
     void createsProjectTaskItem() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(null, 100L, "API 문서 작성");
+        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
+                null, 100L, "API 문서 작성");
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"projectId\":100,\"title\":\"API 문서 작성\"}"))
+                .andExpect(status().isCreated());
+
+        verify(useCase).addItems(1L, DATE, request);
+    }
+
+    @Test
+    @DisplayName("프로젝트 없이 새 Task 항목을 생성한다")
+    void createsProjectlessTaskItem() throws Exception {
+        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
+                null, null, "자격증 접수");
+        when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
+
+        mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"자격증 접수\"}"))
                 .andExpect(status().isCreated());
 
         verify(useCase).addItems(1L, DATE, request);
@@ -125,18 +143,6 @@ class DailyPlanControllerTest {
     }
 
     @Test
-    @DisplayName("독립 할 일 제목을 수정한다")
-    void updatesItem() throws Exception {
-        UpdateDailyPlanItemRequest request = new UpdateDailyPlanItemRequest("책 반납");
-        when(useCase.updateItem(1L, DATE, 2L, request)).thenReturn(planResponse());
-
-        mockMvc.perform(patch("/api/daily-plans/2026-08-21/items/2")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"책 반납\"}"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     @DisplayName("날짜별 계획에서 항목을 제거한다")
     void deletesItem() throws Exception {
         mockMvc.perform(delete("/api/daily-plans/2026-08-21/items/2"))
@@ -146,20 +152,10 @@ class DailyPlanControllerTest {
         verify(useCase).deleteItem(1L, DATE, 2L);
     }
 
-    @Test
-    @DisplayName("빈 독립 할 일 제목은 필드 오류로 반환한다")
-    void rejectsBlankTitle() throws Exception {
-        mockMvc.perform(patch("/api/daily-plans/2026-08-21/items/2")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\" \"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.errors.title").exists());
-    }
-
     private DailyPlanResponse planResponse() {
         return new DailyPlanResponse(DATE, List.of(new DailyPlanItemResponse(
-                1L, 10L, 100L, "프로젝트", "API 구현", TaskStatus.DOING, 0
+                1L, 10L, DailyPlanItemType.TASK,
+                100L, "프로젝트", "API 구현", TaskStatus.DOING, 0
         )));
     }
 

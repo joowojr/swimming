@@ -9,7 +9,7 @@ interface TaskPickerModalProps {
   projects: Project[]
   selectedTaskIds: ReadonlySet<number>
   onAdd: (tasks: ProjectDetail['tasks']) => Promise<void>
-  onAddAdHoc: (title: string, projectId: number | null) => Promise<void>
+  onAddTask: (title: string, projectId: number | null) => Promise<void>
   onClose: () => void
 }
 
@@ -18,13 +18,13 @@ type LoadState =
   | { status: 'ready'; details: ProjectDetail[] }
   | { status: 'error' }
 
-type SubmittingAction = 'ad-hoc' | 'tasks' | null
+type SubmittingAction = 'new-task' | 'tasks' | null
 
 export default function TaskPickerModal({
   projects,
   selectedTaskIds,
   onAdd,
-  onAddAdHoc,
+  onAddTask,
   onClose,
 }: TaskPickerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -104,6 +104,7 @@ export default function TaskPickerModal({
 
   return (
     <dialog
+      id="task-picker-dialog"
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="task-picker-title"
@@ -116,7 +117,7 @@ export default function TaskPickerModal({
         <header className={styles.header}>
           <div>
             <h2 id="task-picker-title">할 일 추가</h2>
-            <p>새 할 일을 만들거나 프로젝트별 Task를 골라 주세요.</p>
+            <p>새 할 일을 만들거나 프로젝트별 할 일을 골라 주세요.</p>
           </div>
           <button type="button" aria-label="Task 선택 창 닫기" disabled={isSubmitting} onClick={requestClose}>
             <IconX size={20} aria-hidden="true" />
@@ -130,10 +131,10 @@ export default function TaskPickerModal({
               event.preventDefault()
               const trimmedTitle = title.trim()
               if (!trimmedTitle || isSubmitting) return
-              setSubmittingAction('ad-hoc')
+              setSubmittingAction('new-task')
               setAdHocError(null)
               setAdHocNotice(null)
-              void onAddAdHoc(trimmedTitle, projectId ? Number(projectId) : null)
+              void onAddTask(trimmedTitle, projectId ? Number(projectId) : null)
                 .then(() => {
                   setTitle('')
                   setProjectId('')
@@ -172,10 +173,10 @@ export default function TaskPickerModal({
                 }}
               />
               <button type="submit" disabled={!title.trim() || isSubmitting}>
-                {submittingAction === 'ad-hoc' && (
+                {submittingAction === 'new-task' && (
                   <IconLoader2 className={styles.spinner} size={18} aria-hidden="true" />
                 )}
-                {submittingAction === 'ad-hoc' ? '추가 중…' : '추가'}
+                {submittingAction === 'new-task' ? '추가 중…' : '추가'}
               </button>
             </div>
             <div className={styles.feedback} aria-live="polite">
@@ -206,7 +207,7 @@ export default function TaskPickerModal({
             ) : state.status === 'error' ? (
               <p className={styles.state} role="alert">작업을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
             ) : !taskProjectId ? (
-              <p className={styles.state}>프로젝트를 선택하면 Task를 확인할 수 있습니다.</p>
+              <p className={styles.state}>프로젝트를 선택하면 할 일을 확인할 수 있습니다.</p>
             ) : !activeProject || activeProject.tasks.length === 0 ? (
               <p className={styles.state}>이 프로젝트에는 선택할 Task가 없습니다.</p>
             ) : (

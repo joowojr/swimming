@@ -1,7 +1,5 @@
 package com.swimming.backend.task.usecase;
 
-import com.swimming.backend.common.exception.BusinessException;
-import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
@@ -32,7 +30,7 @@ public class TaskUseCase {
             CreateTaskRequest request
     ) {
         ProjectReference project = projectService.getReference(userId, projectId);
-        return TaskResponse.from(taskService.create(project.id(), request.title()));
+        return TaskResponse.from(taskService.create(userId, project.id(), request.title()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -50,26 +48,15 @@ public class TaskUseCase {
             Long taskId,
             UpdateTaskRequest request
     ) {
-        Task task = taskService.getOne(taskId);
-        verifyProjectOwnership(userId, task.getProjectId());
+        Task task = taskService.getOne(userId, taskId);
         task.update(request.title(), request.status());
-        return TaskResponse.from(taskService.update(task));
+        return TaskResponse.from(taskService.update(userId, task));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void deleteTasks(Long userId, DeleteTasksRequest request) {
         List<Long> taskIds = request.taskIds().stream().distinct().toList();
-        List<Task> tasks = taskService.getAllByIds(taskIds);
-
-        if (tasks.size() != taskIds.size()) {
-            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
-        }
-
-        tasks.stream()
-                .map(Task::getProjectId)
-                .distinct()
-                .forEach(projectId -> verifyProjectOwnership(userId, projectId));
-        taskService.deleteAll(taskIds);
+        taskService.deleteAll(userId, taskIds);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -80,16 +67,5 @@ public class TaskUseCase {
     ) {
         ProjectReference project = projectService.getReference(userId, projectId);
         taskService.updateOrder(project.id(), request.taskIds());
-    }
-
-    private void verifyProjectOwnership(Long userId, Long projectId) {
-        try {
-            projectService.getReference(userId, projectId);
-        } catch (BusinessException exception) {
-            if (exception.getErrorCode() == ErrorCode.PROJECT_NOT_FOUND) {
-                throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
-            }
-            throw exception;
-        }
     }
 }

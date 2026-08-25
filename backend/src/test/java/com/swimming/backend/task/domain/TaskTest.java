@@ -10,18 +10,28 @@ class TaskTest {
     @Test
     @DisplayName("Task를 생성하면 제목을 정규화하고 할 일 상태로 시작한다")
     void createsTodoTask() {
-        Task task = Task.create(10L, " API 명세 작성 ", 3);
+        Task task = Task.create(1L, 10L, " API 명세 작성 ", 3);
 
+        assertThat(task.getUserId()).isEqualTo(1L);
         assertThat(task.getProjectId()).isEqualTo(10L);
+        assertThat(task.getSourceNoteId()).isNull();
         assertThat(task.getTitle()).isEqualTo("API 명세 작성");
         assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(task.getOrderIdx()).isEqualTo(3);
     }
 
     @Test
+    @DisplayName("Note에서 생성한 Task는 원문 Note ID를 보관한다")
+    void createsTaskFromSourceNote() {
+        Task task = Task.createFromNote(1L, 10L, 7L, "API 명세 작성", 3);
+
+        assertThat(task.getSourceNoteId()).isEqualTo(7L);
+    }
+
+    @Test
     @DisplayName("Task가 자신의 제목과 상태를 수정한다")
     void updatesTaskState() {
-        Task task = Task.create(10L, "API 명세 작성", 0);
+        Task task = Task.create(1L, 10L, "API 명세 작성", 0);
 
         task.update(" 수정 Task ", TaskStatus.HOLD);
 

@@ -5,6 +5,7 @@ import com.swimming.backend.task.domain.TaskStatus;
 public record DailyPlanItemResponse(
         Long id,
         Long taskId,
+        DailyPlanItemType itemType,
         Long projectId,
         String projectName,
         String title,

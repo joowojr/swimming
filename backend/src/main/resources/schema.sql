@@ -99,6 +99,7 @@ CREATE TABLE `notes` (
   `user_id` bigint NOT NULL,
   `content` text NOT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
+  `is_deleted` boolean NOT NULL DEFAULT false,
   `context_type` varchar(20) NOT NULL,
   `project_id` bigint,
   `session_id` bigint,

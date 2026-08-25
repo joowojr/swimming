@@ -8,6 +8,8 @@ import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
 import com.swimming.backend.project.repository.entity.ProjectEntity;
 import com.swimming.backend.project.repository.entity.ProjectTagEntity;
+import com.swimming.backend.user.domain.User;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -29,13 +33,21 @@ class ProjectServiceTest {
 
     private ProjectRepository projectRepository;
     private ProjectTagRepository projectTagRepository;
+    private EntityManager entityManager;
     private ProjectService projectService;
 
     @BeforeEach
     void setUp() {
         projectRepository = mock(ProjectRepository.class);
         projectTagRepository = mock(ProjectTagRepository.class);
-        projectService = new ProjectService(projectRepository, projectTagRepository);
+        entityManager = mock(EntityManager.class);
+        projectService = new ProjectService(
+                projectRepository,
+                projectTagRepository,
+                entityManager
+        );
+        when(entityManager.getReference(eq(User.class), anyLong()))
+                .thenAnswer(invocation -> user(invocation.getArgument(1)));
         when(projectRepository.saveAndFlush(any(ProjectEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -102,7 +114,7 @@ class ProjectServiceTest {
     void returnsOnlyNonArchivedProjectsForUser() {
         ProjectEntity newest = projectEntity(1L, "두 번째 프로젝트", null, null);
         ProjectEntity oldest = projectEntity(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1), null);
-        when(projectRepository.findAllByUserIdAndStatusNotOrderByCreatedAtDesc(
+        when(projectRepository.findAllByUser_IdAndStatusNotAndDeletedFalseOrderByCreatedAtDesc(
                 1L, ProjectStatus.ARCHIVED
         )).thenReturn(List.of(newest, oldest));
 
@@ -116,7 +128,7 @@ class ProjectServiceTest {
     @DisplayName("사용자가 소유한 프로젝트 상세를 순수 도메인으로 조회한다")
     void returnsOwnedProjectDetail() {
         ProjectEntity entity = projectEntity(1L, "프로젝트", null, null);
-        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
+        when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Project result = projectService.getOne(1L, 10L);
 
@@ -128,7 +140,7 @@ class ProjectServiceTest {
     @DisplayName("프로젝트를 수정하면서 목표일을 제거할 수 있다")
     void updatesProjectAndCanRemoveTargetDate() {
         ProjectEntity entity = projectEntity(1L, "기존 프로젝트", LocalDate.of(2026, 8, 31), null);
-        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
+        when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Project project = entity.toDomain();
         project.update(" 수정 프로젝트 ", " 수정 설명 ", null, ProjectStatus.IN_PROGRESS, null);
@@ -147,7 +159,7 @@ class ProjectServiceTest {
     void removesTagFromProject() {
         ProjectTagEntity tag = tagEntity(3L, 1L, "취준");
         ProjectEntity entity = projectEntity(1L, "프로젝트", null, tag);
-        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
+        when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Project project = entity.toDomain();
         project.update("프로젝트", "설명", null, ProjectStatus.IN_PROGRESS, null);
@@ -161,7 +173,7 @@ class ProjectServiceTest {
     @DisplayName("프로젝트를 삭제하지 않고 보관 상태로 변경한다")
     void archivesProjectWithoutDeletingIt() {
         ProjectEntity entity = projectEntity(1L, "프로젝트", null, null);
-        when(projectRepository.findByIdAndUserId(10L, 1L)).thenReturn(Optional.of(entity));
+        when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Project project = entity.toDomain();
         project.update("프로젝트", "설명", null, ProjectStatus.ARCHIVED, null);
@@ -175,11 +187,24 @@ class ProjectServiceTest {
     @Test
     @DisplayName("다른 사용자의 프로젝트 존재 여부를 노출하지 않는다")
     void hidesWhetherAnotherUsersProjectExists() {
-        when(projectRepository.findByIdAndUserId(10L, 2L)).thenReturn(Optional.empty());
+        when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> projectService.getOne(2L, 10L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("프로젝트를 soft delete하고 연결된 데이터를 보존한다")
+    void softDeletesOwnedProject() {
+        ProjectEntity entity = projectEntity(1L, "프로젝트", null, null);
+        when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        projectService.delete(1L, 10L);
+
+        assertThat(entity.isDeleted()).isTrue();
+        verify(projectRepository).saveAndFlush(entity);
+        verify(projectRepository, never()).delete(entity);
     }
 
     private ProjectEntity projectEntity(
@@ -195,9 +220,15 @@ class ProjectServiceTest {
                 "설명",
                 targetDate
         );
-        ProjectEntity entity = ProjectEntity.from(project, tag);
+        ProjectEntity entity = ProjectEntity.from(project, user(userId), tag);
         ReflectionTestUtils.setField(entity, "id", 10L);
         return entity;
+    }
+
+    private User user(Long userId) {
+        User user = mock(User.class);
+        when(user.getId()).thenReturn(userId);
+        return user;
     }
 
     private ProjectTagEntity tagEntity(Long id, Long userId, String name) {

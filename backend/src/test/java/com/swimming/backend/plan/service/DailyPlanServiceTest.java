@@ -50,7 +50,7 @@ class DailyPlanServiceTest {
     void savesNewPlan() {
         LocalDate date = LocalDate.of(2026, 8, 21);
         DailyPlan plan = DailyPlan.create(1L, date);
-        plan.addItem(DailyPlanItem.createAdHoc("장보기"));
+        plan.addItem(DailyPlanItem.createTask(20L));
         when(repository.saveAndFlush(any(DailyPlanEntity.class))).thenAnswer(invocation -> {
             DailyPlanEntity entity = invocation.getArgument(0);
             ReflectionTestUtils.setField(entity, "id", 1L);
@@ -61,8 +61,8 @@ class DailyPlanServiceTest {
 
         assertThat(saved.getId()).isEqualTo(1L);
         assertThat(saved.getItems()).singleElement()
-                .extracting(DailyPlanItem::getTitle)
-                .isEqualTo("장보기");
+                .extracting(DailyPlanItem::getTaskId)
+                .isEqualTo(20L);
         verify(repository).saveAndFlush(any(DailyPlanEntity.class));
     }
 
@@ -84,17 +84,17 @@ class DailyPlanServiceTest {
     }
 
     @Test
-    @DisplayName("독립 할 일을 제외하고 계획에 포함된 Task를 확인한다")
-    void checksOnlyLinkedTasks() {
+    @DisplayName("프로젝트 연결 여부와 관계없이 계획에 포함된 Task를 확인한다")
+    void checksLinkedTasks() {
         LocalDate date = LocalDate.of(2026, 8, 21);
         DailyPlan plan = DailyPlan.create(1L, date);
         plan.addItem(DailyPlanItem.createTask(10L));
-        plan.addItem(DailyPlanItem.createAdHoc("장보기"));
+        plan.addItem(DailyPlanItem.createTask(20L));
         DailyPlanEntity entity = DailyPlanEntity.from(plan);
         ReflectionTestUtils.setField(entity, "id", 1L);
         when(repository.findByUserIdAndPlanDate(1L, date)).thenReturn(Optional.of(entity));
 
-        assertThat(service.containsAllTasks(1L, date, List.of(10L))).isTrue();
+        assertThat(service.containsAllTasks(1L, date, List.of(10L, 20L))).isTrue();
     }
 
     private DailyPlanEntity entity(Long id, LocalDate date) {

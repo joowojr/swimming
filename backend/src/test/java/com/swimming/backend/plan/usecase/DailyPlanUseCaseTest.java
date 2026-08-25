@@ -5,9 +5,9 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.domain.DailyPlan;
 import com.swimming.backend.plan.domain.DailyPlanItem;
 import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
+import com.swimming.backend.plan.dto.DailyPlanItemType;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.dto.UpdateDailyPlanItemRequest;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
@@ -49,31 +49,41 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("조회 기간에 빈 날짜와 Task·독립 할 일을 함께 반환한다")
+    @DisplayName("조회 기간에 프로젝트 Task와 프로젝트 없는 Task의 UI 타입을 함께 반환한다")
     void returnsMixedItemsAndEmptyDates() {
         DailyPlan plan = planWithIds();
         when(dailyPlanService.getRange(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(plan));
-        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(10L, 20L))).thenReturn(List.of(
+                task(10L), adHocTask(20L, "장보기")
+        ));
 
         List<DailyPlanResponse> responses = useCase.getRange(1L, DATE, DATE.plusDays(1));
 
         assertThat(responses).hasSize(2);
         assertThat(responses.getFirst().items()).extracting(item -> item.title())
                 .containsExactly("API 구현", "장보기");
-        assertThat(responses.getFirst().items().get(1).taskId()).isNull();
+        assertThat(responses.getFirst().items()).extracting(item -> item.itemType())
+                .containsExactly(DailyPlanItemType.TASK, DailyPlanItemType.AD_HOC);
+        assertThat(responses.getFirst().items().get(1).taskId()).isEqualTo(20L);
+        assertThat(responses.getFirst().items().get(1).status()).isEqualTo(TaskStatus.TODO);
         assertThat(responses.getLast().items()).isEmpty();
     }
 
     @Test
-    @DisplayName("계획이 없는 날짜에 독립 할 일을 추가하면 계획도 생성한다")
+    @DisplayName("계획이 없는 날짜에 프로젝트 없는 Task를 추가하면 계획도 생성한다")
     void createsPlanWithAdHocItem() {
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.empty());
+        when(taskService.createAndGetId(1L, null, "장보기")).thenReturn(20L);
+        when(taskService.getReferences(1L, List.of(20L))).thenReturn(List.of(adHocTask(20L, "장보기")));
 
-        DailyPlanResponse response = useCase.addItems(1L, DATE, new CreateDailyPlanItemsRequest(null, null, "  장보기  "));
+        DailyPlanResponse response = useCase.addItems(1L, DATE, new CreateDailyPlanItemsRequest(
+                null, null, "  장보기  "));
 
         assertThat(response.items()).singleElement().satisfies(item -> {
-            assertThat(item.taskId()).isNull();
+            assertThat(item.taskId()).isEqualTo(20L);
+            assertThat(item.itemType()).isEqualTo(DailyPlanItemType.AD_HOC);
             assertThat(item.title()).isEqualTo("장보기");
+            assertThat(item.status()).isEqualTo(TaskStatus.TODO);
         });
         verify(dailyPlanService).save(any(DailyPlan.class));
     }
@@ -150,21 +160,54 @@ class DailyPlanUseCaseTest {
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
         when(projectService.getReference(1L, 100L))
                 .thenReturn(new ProjectReference(100L));
-        when(taskService.createAndGetId(100L, "API 문서 작성")).thenReturn(20L);
+        when(taskService.createAndGetId(1L, 100L, "API 문서 작성")).thenReturn(20L);
         when(taskService.getReferences(1L, List.of(20L))).thenReturn(List.of(
                 new TaskReference(20L, 100L, "프로젝트", "API 문서 작성", TaskStatus.TODO)
         ));
 
         DailyPlanResponse response = useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(null, 100L, "API 문서 작성"));
+                1L, DATE, new CreateDailyPlanItemsRequest(
+                        null, 100L, "API 문서 작성"));
 
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.taskId()).isEqualTo(20L);
+            assertThat(item.itemType()).isEqualTo(DailyPlanItemType.TASK);
             assertThat(item.projectId()).isEqualTo(100L);
             assertThat(item.title()).isEqualTo("API 문서 작성");
         });
-        verify(taskService).createAndGetId(100L, "API 문서 작성");
+        verify(taskService).createAndGetId(1L, 100L, "API 문서 작성");
         verify(dailyPlanService).save(plan);
+    }
+
+    @Test
+    @DisplayName("프로젝트 없이 새 Task를 만들고 계획에 연결한다")
+    void createsProjectlessTaskAndAddsIt() {
+        DailyPlan plan = DailyPlan.create(1L, DATE);
+        when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
+        when(taskService.createAndGetId(1L, null, "자격증 접수")).thenReturn(30L);
+        when(taskService.getReferences(1L, List.of(30L))).thenReturn(List.of(
+                new TaskReference(30L, null, null, "자격증 접수", TaskStatus.TODO)
+        ));
+
+        DailyPlanResponse response = useCase.addItems(
+                1L,
+                DATE,
+                new CreateDailyPlanItemsRequest(
+                        null,
+                        null,
+                        "자격증 접수"
+                )
+        );
+
+        assertThat(response.items()).singleElement().satisfies(item -> {
+            assertThat(item.taskId()).isEqualTo(30L);
+            assertThat(item.itemType()).isEqualTo(DailyPlanItemType.AD_HOC);
+            assertThat(item.projectId()).isNull();
+            assertThat(item.projectName()).isNull();
+            assertThat(item.status()).isEqualTo(TaskStatus.TODO);
+        });
+        verify(projectService, never()).getReference(any(), any());
+        verify(taskService).createAndGetId(1L, null, "자격증 접수");
     }
 
     @Test
@@ -172,7 +215,9 @@ class DailyPlanUseCaseTest {
     void reordersByItemIds() {
         DailyPlan plan = planWithIds();
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
+        when(taskService.getReferences(1L, List.of(20L, 10L))).thenReturn(List.of(
+                adHocTask(20L, "장보기"), task(10L)
+        ));
 
         DailyPlanResponse response = useCase.reorder(1L, DATE, new ReorderDailyPlanItemsRequest(List.of(2L, 1L)));
 
@@ -191,29 +236,14 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("독립 할 일 제목을 수정하고 항목을 삭제한다")
-    void updatesAndDeletesAdHocItem() {
+    @DisplayName("프로젝트 없는 Task 항목도 계획에서 제거한다")
+    void deletesAdHocTaskItem() {
         DailyPlan plan = planWithIds();
         when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-        when(taskService.getReferences(1L, List.of(10L))).thenReturn(List.of(task(10L)));
 
-        DailyPlanResponse response = useCase.updateItem(1L, DATE, 2L, new UpdateDailyPlanItemRequest("책 반납"));
         useCase.deleteItem(1L, DATE, 2L);
 
-        assertThat(response.items().get(1).title()).isEqualTo("책 반납");
         assertThat(plan.getItems()).extracting(DailyPlanItem::getId).containsExactly(1L);
-    }
-
-    @Test
-    @DisplayName("Task 기반 항목의 제목 수정을 거부한다")
-    void rejectsUpdatingTaskItem() {
-        DailyPlan plan = planWithIds();
-        when(dailyPlanService.get(1L, DATE)).thenReturn(Optional.of(plan));
-
-        assertThatThrownBy(() -> useCase.updateItem(
-                1L, DATE, 1L, new UpdateDailyPlanItemRequest("제목 변경")))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_ITEM));
     }
 
     private DailyPlan planWithIds() {
@@ -224,13 +254,17 @@ class DailyPlanUseCaseTest {
                 null,
                 null,
                 List.of(
-                        DailyPlanItem.restore(1L, 10L, null, 0, null, null),
-                        DailyPlanItem.restore(2L, null, "장보기", 1, null, null)
+                        DailyPlanItem.restore(1L, 10L, 0, null, null),
+                        DailyPlanItem.restore(2L, 20L, 1, null, null)
                 )
         );
     }
 
     private TaskReference task(Long id) {
         return new TaskReference(id, 100L, "프로젝트", "API 구현", TaskStatus.DOING);
+    }
+
+    private TaskReference adHocTask(Long id, String title) {
+        return new TaskReference(id, null, null, title, TaskStatus.TODO);
     }
 }

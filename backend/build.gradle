@@ -1,57 +1,76 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '4.1.0'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.swimming'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	// security
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    // security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springframework.boot:spring-boot-starter-websocket'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-aspectj'
 
-	// mysql
-	runtimeOnly 'com.mysql:mysql-connector-j'
+    // mysql
+    runtimeOnly 'com.mysql:mysql-connector-j'
 
-	// lombok
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 
-	// devtools
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    // Spring AI
+    implementation platform("org.springframework.ai:spring-ai-bom:2.0.0")
+    // Open AI
+    implementation "org.springframework.ai:spring-ai-starter-model-openai"
 
-	// aws
+    // devtools
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // aws
 //	implementation 'software.amazon.awssdk:s3:2.53.3'
 
-	// dotenv
-	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    // dotenv
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
-	// test
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // test
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
+    testImplementation 'io.github.cdimascio:dotenv-java:3.0.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'llm-eval'
+    }
+}
+
+tasks.register('llmEval', Test) {
+    group = 'verification'
+    description = 'Runs live LLM evaluation tests that require OPENAI_API_KEY.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags 'llm-eval'
+    }
 }

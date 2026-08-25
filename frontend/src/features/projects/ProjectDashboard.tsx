@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 import {
-  IconFilter,
   IconPlus,
 } from '@tabler/icons-react'
-import ActionButton from '../../components/ActionButton'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import DailyPlanSection from '../plans/DailyPlanSection'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
@@ -17,7 +16,6 @@ interface ProjectDashboardProps {
   status: ProjectLoadStatus
   onRetry: () => void
   onOpenCreate: () => void
-  onOrganizeMemo: (text: string) => Promise<void>;
 }
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
@@ -31,7 +29,6 @@ export default function ProjectDashboard({
   status,
   onRetry,
   onOpenCreate,
-  onOrganizeMemo,
 }: ProjectDashboardProps) {
   const upcomingProjects = useMemo(
     () =>
@@ -51,12 +48,13 @@ export default function ProjectDashboard({
             <p>현재 진행 중인 프로젝트 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>
-            <ActionButton
+            <ModalTriggerButton
+              dialogId="create-project-dialog"
               icon={<IconPlus size={18} aria-hidden="true" />}
               onClick={onOpenCreate}
             >
               새 프로젝트
-            </ActionButton>
+            </ModalTriggerButton>
           </div>
         </header>
 
@@ -93,7 +91,7 @@ export default function ProjectDashboard({
                   <DailyPlanSection projects={projects}/>
                 </div>
 
-                <NoteCard onOrganize={onOrganizeMemo} />
+                <NoteCard projects={projects} />
               </div>
             </>
         )}

@@ -115,6 +115,7 @@ export default function EndSessionModal({
 
   return (
     <dialog
+      id="end-session-dialog"
       ref={dialogRef}
       className={styles['end-session-dialog']}
       aria-labelledby="end-session-title"
@@ -153,7 +154,7 @@ export default function EndSessionModal({
                 items={tasks.map((task) => ({
                   id: task.id,
                   title: task.title,
-                  description: task.projectName,
+                  description: task.projectName ?? undefined,
                 }))}
                 selectedIds={completedTaskIds}
                 name="completed-session-task"

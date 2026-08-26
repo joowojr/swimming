@@ -1,7 +1,7 @@
 .player {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3);
   overflow: hidden;
   color: var(--color-on-surface);
   border: var(--border-width) solid var(--color-session-glass-border);
@@ -41,27 +41,35 @@
 }
 
 .source {
-  display: flex;
-  align-items: center;
+  display: grid;
   min-width: 0;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
+  padding: 0;
+  border: var(--border-width) solid var(--color-session-glass-border);
   border-radius: var(--radius-default);
   color: var(--color-session-inverse-muted);
   background: var(--color-session-glass-border);
 }
 
-.source > svg {
+.source-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.source-row > svg {
   width: 1rem;
   color: var(--color-session-inverse-muted);
 }
 
-.source label {
+.source-row label {
   min-width: 0;
   flex: 1;
 }
 
-.source input {
+.source-row input {
   width: 100%;
   min-width: 0;
   padding: var(--space-1);
@@ -71,7 +79,7 @@
   font-size: var(--text-body-sm-size);
 }
 
-.source input::placeholder {
+.source-row input::placeholder {
   color: var(--color-session-inverse-muted);
 }
 
@@ -116,6 +124,126 @@
 .options button[aria-pressed='true'] {
   color: var(--color-inverse-on-surface);
   background: var(--color-session-glass-border);
+}
+
+.source-row .recent-toggle {
+  display: inline-flex;
+  gap: 0;
+  min-width: var(--control-height);
+  padding: 0;
+}
+
+.source-row .recent-toggle svg {
+  width: var(--space-4);
+}
+
+.recent {
+  display: grid;
+  width: 100%;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: var(--border-width) solid var(--color-session-glass-border);
+  color: var(--color-inverse-on-surface);
+  background: var(--color-session-glass-dark);
+}
+
+.recent header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-label-caps-size);
+}
+
+.recent header button {
+  min-width: auto;
+  min-height: auto;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-session-inverse-muted);
+  background: transparent;
+}
+
+.recent ul {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent li {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) var(--space-8);
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: var(--border-width) solid var(--color-session-glass-border);
+  border-radius: var(--radius-default);
+}
+
+.source .recent-source {
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--space-8);
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-default);
+  color: var(--color-session-inverse-muted);
+  background: var(--color-session-glass-border);
+  text-align: left;
+}
+
+.source .recent-source > span {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-label-caps-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source .recent-copy {
+  display: inline-grid;
+  width: var(--space-8);
+  min-width: var(--space-8);
+  height: var(--space-8);
+  min-height: var(--space-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-default);
+  color: var(--color-session-inverse-muted);
+  background: transparent;
+  place-items: center;
+}
+
+.source .recent-copy svg {
+  width: 1rem;
+}
+
+.recent time {
+  font-size: var(--text-label-caps-size);
+  white-space: nowrap;
+}
+
+.source .recent-source[aria-pressed='true'] {
+  border-color: var(--color-session-glass-border);
+  color: var(--color-inverse-on-surface);
+  background: var(--color-session-glass-dark);
+}
+
+.recent button:disabled {
+  cursor: wait;
 }
 
 .visually-hidden {
@@ -173,6 +301,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .loading svg { animation: none; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .recent button:not(:disabled):hover {
+    color: var(--color-inverse-on-surface);
+  }
+}
+
+.recent button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--space-1);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

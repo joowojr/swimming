@@ -17,6 +17,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
+import { useAuthStore } from '../../store/authStore'
 import { useProjectStore } from '../../store/projectStore'
 import { getPlaces } from '../places/placeApi'
 import { getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
@@ -79,6 +80,7 @@ function errorMessage(error: unknown) {
 
 export default function PersonalSessionPage() {
   const navigate = useNavigate()
+  const auth = useAuthStore()
   const projects = useProjectStore((state) => state.projects)
   const { sessionId } = useParams()
   const parsedSessionId = Number(sessionId)
@@ -418,6 +420,7 @@ export default function PersonalSessionPage() {
           className={styles.music}
           source={state.session.musicUrl}
           options={musicOptions}
+          historyOwnerId={auth.user?.id ?? null}
           onSourceChange={saveMusicSource}
         />
       )}

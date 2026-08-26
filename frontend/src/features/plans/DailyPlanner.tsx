@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {
     IconChevronLeft,
     IconChevronRight,
@@ -14,7 +14,7 @@ import ChecklistCard from '../../components/ChecklistCard'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import {updateTask} from '../tasks/taskApi'
+import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {addDailyPlanItems, deleteDailyPlanItem, getDailyPlans} from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
@@ -27,7 +27,7 @@ interface DailyPlannerProps {
     projects: Project[]
 }
 
-type TaskOverride = Pick<DailyPlanItem, 'title' | 'status'>
+type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status'>>
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {year: 'numeric', month: 'long'})
 const selectedDateFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'long'})
@@ -44,10 +44,14 @@ function parseDate(value: string) {
     return new Date(`${value}T00:00:00`)
 }
 
-function addDays(value: string, amount: number) {
-    const date = parseDate(value)
-    date.setDate(date.getDate() + amount)
-    return formatDate(date)
+function monthRange(month: Date) {
+    const first = new Date(month.getFullYear(), month.getMonth(), 1)
+    const last = new Date(month.getFullYear(), month.getMonth() + 1, 0)
+    return {fromDate: formatDate(first), toDate: formatDate(last)}
+}
+
+function startOfMonth(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1)
 }
 
 function monthDays(month: Date) {
@@ -64,8 +68,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
     const navigate = useNavigate()
     const today = useMemo(() => formatDate(new Date()), [])
     const [selectedDate, setSelectedDate] = useState(today)
-    const [visibleMonth, setVisibleMonth] = useState(() => parseDate(today))
-    const [plans, setPlans] = useState<DailyPlan[]>([])
+    const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(parseDate(today)))
     const [drafts, setDrafts] = useState<Record<string, DailyPlanItem[]>>({})
     const [taskOverrides, setTaskOverrides] = useState<Record<number, TaskOverride>>({})
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -74,59 +77,80 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
     const [sessionTaskId, setSessionTaskId] = useState<number | null>(null)
     const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
 
-    const loadPlans = async (date: string) => {
-        setStatus('loading')
+    // 이미 받아둔 달. 계획이 바뀐 달은 여기서 빼서 다시 열 때 새로 받는다.
+    const loadedMonthsRef = useRef<Set<string>>(new Set())
+    // 늦게 도착한 이전 달 응답이 현재 달을 덮어쓰지 않게 한다.
+    const loadRequestRef = useRef(0)
+
+    const {fromDate, toDate} = useMemo(() => monthRange(visibleMonth), [visibleMonth])
+    const visibleMonthKey = fromDate.slice(0, 7)
+
+    // quiet: 이미 화면에 목록이 있는 상태의 갱신이라 로딩 표시를 띄우지 않는다.
+    const loadMonth = useCallback(async (monthKey: string, from: string, to: string, quiet = false) => {
+        const requestId = ++loadRequestRef.current
+        if (!quiet) setStatus('loading')
         try {
-            const response = await getDailyPlans(date, addDays(date, 6))
-            setPlans(response)
-            setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
-            setTaskOverrides({})
+            const response = await getDailyPlans(from, to)
+            if (requestId !== loadRequestRef.current) return
+            setDrafts((current) => ({
+                ...current,
+                ...Object.fromEntries(response.map((plan) => [plan.date, plan.items])),
+            }))
+            loadedMonthsRef.current.add(monthKey)
             setStatus('ready')
         } catch {
-            setStatus('error')
+            if (requestId !== loadRequestRef.current) return
+            if (quiet) setMessage('계획을 최신 상태로 가져오지 못했습니다.')
+            else setStatus('error')
         }
-    }
+    }, [])
+
+    // 계획이 바뀐 달은 캐시를 버리고 곧바로 새로 받는다.
+    const refreshMonth = useCallback(async (date: string) => {
+        const monthKey = date.slice(0, 7)
+        const range = monthRange(parseDate(date))
+        loadedMonthsRef.current.delete(monthKey)
+        await loadMonth(monthKey, range.fromDate, range.toDate, true)
+    }, [loadMonth])
 
     useEffect(() => {
-        let active = true
-        void getDailyPlans(selectedDate, addDays(selectedDate, 6))
-            .then((response) => {
-                if (!active) return
-                setPlans(response)
-                setDrafts(Object.fromEntries(response.map((plan) => [plan.date, plan.items])))
-                setTaskOverrides({})
-                setStatus('ready')
-            })
-            .catch(() => {
-                if (active) setStatus('error')
-            })
-        return () => { active = false }
-    }, [selectedDate])
+        if (loadedMonthsRef.current.has(visibleMonthKey)) {
+            setStatus('ready')
+            return
+        }
+        void loadMonth(visibleMonthKey, fromDate, toDate)
+    }, [visibleMonthKey, fromDate, toDate, loadMonth])
 
     const applyTaskOverride = (item: DailyPlanItem): DailyPlanItem => {
         const override = taskOverrides[item.taskId]
         if (!override) return item
-        return {
-            ...item,
-            title: override.title,
-            status: override.status,
-        }
+        return {...item, ...override}
     }
     const items = (drafts[selectedDate] ?? []).map(applyTaskOverride)
-    const todayTasks = (drafts[today] ?? plans.find((plan) => plan.date === today)?.items ?? [])
-        .map(applyTaskOverride)
+    const todayTasks = (drafts[today] ?? []).map(applyTaskOverride)
     const calendarDays = useMemo(() => monthDays(visibleMonth), [visibleMonth])
 
     const selectDate = (date: string) => {
-        const nextMonth = parseDate(date)
         setSelectedDate(date)
+        // 같은 달 안에서 날짜만 옮기면 visibleMonth를 그대로 두어 재조회를 막는다.
+        setVisibleMonth((current) => {
+            const next = startOfMonth(parseDate(date))
+            return next.getTime() === current.getTime() ? current : next
+        })
+        setMessage(null)
+    }
+
+    const moveMonth = (amount: number) => {
+        const nextMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + amount, 1)
+        const {fromDate} = monthRange(nextMonth)
         setVisibleMonth(nextMonth)
+        setSelectedDate(fromDate)
         setMessage(null)
     }
 
     const replacePlan = (savedPlan: DailyPlan) => {
-        setPlans((current) => current.map((plan) => plan.date === savedPlan.date ? savedPlan : plan))
         setDrafts((current) => ({...current, [savedPlan.date]: savedPlan.items}))
+        void refreshMonth(savedPlan.date)
     }
 
     const addTasks = async (tasks: ProjectDetail['tasks']) => {
@@ -148,12 +172,12 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
             [taskId]: {
                 ...current[taskId],
                 [field]: value,
-            } as TaskOverride,
+            },
         }))
     }
 
     const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
-        await updateTask(item.taskId, {title, status: item.status})
+        await updateTaskTitle(item.taskId, {title})
         updateTaskOverride(item.taskId, 'title', title)
     }
 
@@ -161,11 +185,11 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         setPendingTaskId(item.taskId)
         setMessage(null)
         try {
-            await updateTask(item.taskId, {title: item.title, status: nextStatus})
+            await updateTaskStatus(item.taskId, {status: nextStatus})
             updateTaskOverride(item.taskId, 'status', nextStatus)
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-            setMessage(apiMessage ?? '할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+            setMessage(apiMessage ?? '상태를 변경하지 못했습니다. 다시 시도해 주세요.')
         } finally {
             setPendingTaskId(null)
         }
@@ -174,9 +198,11 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
     const removeItem = async (itemId: number) => {
         try {
             await deleteDailyPlanItem(selectedDate, itemId)
-            const remove = (dateItems: DailyPlanItem[]) => dateItems.filter((item) => item.id !== itemId).map((item, orderIdx) => ({...item, orderIdx}))
-            setDrafts((current) => ({...current, [selectedDate]: remove(current[selectedDate] ?? [])}))
-            setPlans((current) => current.map((plan) => plan.date === selectedDate ? {...plan, items: remove(plan.items)} : plan))
+            setDrafts((current) => ({
+                ...current,
+                [selectedDate]: (current[selectedDate] ?? []).filter((item) => item.id !== itemId),
+            }))
+            void refreshMonth(selectedDate)
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? '계획에서 할 일을 제거하지 못했습니다.')
@@ -194,10 +220,10 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 <header className={styles.calendarHeader}>
                     <h2>{dateFormatter.format(visibleMonth)}</h2>
                     <div className={styles.calendarNav}>
-                        <button type="button" aria-label="이전 달" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>
+                        <button type="button" aria-label="이전 달" onClick={() => moveMonth(-1)}>
                             <IconChevronLeft size={18} aria-hidden="true" />
                         </button>
-                        <button type="button" aria-label="다음 달" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>
+                        <button type="button" aria-label="다음 달" onClick={() => moveMonth(1)}>
                             <IconChevronRight size={18} aria-hidden="true" />
                         </button>
                     </div>
@@ -249,7 +275,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 {status === 'loading' ? (
                     <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19} />계획을 불러오는 중…</div>
                 ) : status === 'error' ? (
-                    <div className={styles.state}><p>계획을 불러오지 못했습니다.</p><button type="button" onClick={() => void loadPlans(selectedDate)}>다시 불러오기</button></div>
+                    <div className={styles.state}><p>계획을 불러오지 못했습니다.</p><button type="button" onClick={() => void loadMonth(visibleMonthKey, fromDate, toDate)}>다시 불러오기</button></div>
                 ) : (
                     <>
                         <ol className={styles.todoList}>

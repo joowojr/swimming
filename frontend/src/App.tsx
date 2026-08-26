@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { client } from './api/client'
 import CreateProjectModal from './features/projects/CreateProjectModal'
+import ProjectTagModal from './features/projects/ProjectTagModal'
 import ProjectDashboard from './features/projects/ProjectDashboard'
 import type { ProjectLoadStatus } from './features/projects/ProjectDashboard'
 import ProjectDetail from './features/projects/ProjectDetail'
 import ProjectListPage from './features/projects/ProjectListPage'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
+import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
 import { getProjects } from './features/projects/projectApi'
 import type { Project } from './features/projects/projectTypes'
 import AppShell from './layout/AppShell'
@@ -43,6 +45,7 @@ function App() {
   const [projectStatus, setProjectStatus] = useState<ProjectLoadStatus>('idle')
   const [projectRequestKey, setProjectRequestKey] = useState(0)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
   useEffect(() => { void authActions.initialize() }, [])
 
@@ -124,6 +127,7 @@ function App() {
       ) : auth.status === 'authenticated' ? (
         <Routes>
           <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
+          <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
             path="/projects"
             element={(
@@ -132,6 +136,7 @@ function App() {
                   projects={visibleProjects}
                   status={visibleProjectStatus}
                   onOpenCreate={() => setIsCreateModalOpen(true)}
+                  onOpenTagManage={() => setIsTagModalOpen(true)}
                   onRetry={() => {
                     setProjectsOwnerId(auth.user?.id ?? null)
                     setProjectStatus('loading')
@@ -149,6 +154,7 @@ function App() {
                     }}
                   />
                 )}
+                {isTagModalOpen && <ProjectTagModal onClose={() => setIsTagModalOpen(false)} />}
               </>
             )}
           />
@@ -177,6 +183,7 @@ function App() {
                     }}
                   />
                 )}
+                {isTagModalOpen && <ProjectTagModal onClose={() => setIsTagModalOpen(false)} />}
               </>
             )}
           />

@@ -3,7 +3,7 @@
   gap: var(--space-3);
   padding: var(--space-4);
   overflow: hidden;
-  color: var(--color-inverse-on-surface);
+  color: var(--color-on-surface);
   border: var(--border-width) solid var(--color-session-glass-border);
   border-radius: var(--radius-default);
   background: var(--color-session-glass-dark);

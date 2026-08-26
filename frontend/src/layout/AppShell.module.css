@@ -5,7 +5,7 @@
 
 .app-shell-body {
   display: grid;
-  grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-columns: 15rem minmax(0, 1fr);
   min-height: calc(100svh - 3.5rem);
 }
 
@@ -25,4 +25,3 @@
     padding: 0;
   }
 }
-

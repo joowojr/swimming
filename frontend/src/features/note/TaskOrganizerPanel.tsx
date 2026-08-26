@@ -16,7 +16,7 @@ interface TaskOrganizerPanelProps {
   }
   projects: ProjectOption[]
   onCancel: () => void
-  onFinish: (message: string) => void
+  onFinish: (message: string, options?: { suggestArchiveNoteId?: number }) => void
 }
 
 interface PreviewTaskItem {
@@ -251,6 +251,7 @@ export default function TaskOrganizerPanel({
     setState({ ...state, isLinking: true, message: null })
     let remainingItems = state.items
     let linkedCount = 0
+    const totalTaskCount = state.items.length
 
     try {
       for (const [planDate, taskIds] of taskIdsByDate) {
@@ -262,7 +263,11 @@ export default function TaskOrganizerPanel({
           ? { ...current, items: remainingItems }
           : current)
       }
-      onFinish(`${linkedCount}개 할 일을 계획에 연결했어요`)
+      const shouldArchive = linkedCount / totalTaskCount >= 0.8
+      onFinish(
+        `${linkedCount}개 할 일을 계획에 연결했어요`,
+        shouldArchive ? { suggestArchiveNoteId: source.noteId } : undefined,
+      )
     } catch {
       setState((current) => current.kind === 'plan-link'
         ? {
@@ -389,8 +394,8 @@ export default function TaskOrganizerPanel({
                   : item.projectId === null ? styles['organize-task-row-unclassified'] : styles['organize-task-row']} key={item.id}>
                   <div className={styles['organize-task-fields']}>
                     <InlineEditableText className={styles['organize-title-edit']} errorClassName={styles['organize-title-error']}
-                      value={item.title} ariaLabel="Task 제목" maxLength={255} disabled={state.isConfirming}
-                      requiredMessage="Task 제목을 입력해 주세요."
+                      value={item.title} ariaLabel="할 일 제목" maxLength={255} disabled={state.isConfirming}
+                      requiredMessage="할 일 제목을 입력해 주세요."
                       onSave={(title) => {
                         updatePreviewItem(item.id, (current) => ({ ...current, title }))
                         return Promise.resolve()
@@ -418,7 +423,7 @@ export default function TaskOrganizerPanel({
               )
             })}
           </ul>
-        ) : <p className={styles['organize-preview-empty']}>지금 만들 Task 후보는 없어요.</p>}
+        ) : <p className={styles['organize-preview-empty']}>지금 만들 할 일 후보는 없어요.</p>}
       </div>
       {state.message && <p className={styles['organize-preview-message']} role="status">{state.message}</p>}
       <div className={styles['organize-preview-actions']}>

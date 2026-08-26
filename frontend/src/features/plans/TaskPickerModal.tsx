@@ -4,6 +4,7 @@ import type { MouseEvent } from 'react'
 import { getProject } from '../projects/projectApi'
 import type { Project, ProjectDetail } from '../projects/projectTypes'
 import styles from './TaskPickerModal.module.css'
+import modalStyles from '../../components/ModalShell.module.css'
 
 interface TaskPickerModalProps {
   projects: Project[]
@@ -106,15 +107,15 @@ export default function TaskPickerModal({
     <dialog
       id="task-picker-dialog"
       ref={dialogRef}
-      className={styles.dialog}
+      className={`${styles.dialog} ${modalStyles.dialog}`}
       aria-labelledby="task-picker-title"
       aria-busy={isSubmitting}
       onCancel={(event) => { if (isSubmitting) event.preventDefault() }}
       onClose={onClose}
       onMouseDown={handleBackdrop}
     >
-      <section className={styles.modal}>
-        <header className={styles.header}>
+      <section className={`${styles.modal} ${modalStyles.surface}`}>
+        <header className={`${styles.header} ${modalStyles.header}`}>
           <div>
             <h2 id="task-picker-title">할 일 추가</h2>
             <p>새 할 일을 만들거나 프로젝트별 할 일을 골라 주세요.</p>
@@ -144,7 +145,7 @@ export default function TaskPickerModal({
                 .finally(() => setSubmittingAction(null))
             }}
           >
-            <label htmlFor="daily-plan-ad-hoc-title">할 일 직접 추가</label>
+            <label htmlFor="daily-plan-ad-hoc-title">직접 추가</label>
             <select
               aria-label="할 일을 추가할 프로젝트"
               value={projectId}
@@ -155,7 +156,7 @@ export default function TaskPickerModal({
                 setAdHocNotice(null)
               }}
             >
-              <option value="">프로젝트 선택</option>
+              <option value="">미분류</option>
               {projects.map((project) => (
                 <option value={project.id} key={project.id}>{project.name}</option>
               ))}
@@ -186,14 +187,14 @@ export default function TaskPickerModal({
             </div>
           </form>
           <section className={styles['task-select']} aria-labelledby="task-select-label">
-            <label id="task-select-label" htmlFor="daily-plan-task-project">할 일 선택</label>
+            <label id="task-select-label" htmlFor="daily-plan-task-project">프로젝트에서 선택</label>
             <select
               id="daily-plan-task-project"
               value={taskProjectId}
               disabled={isSubmitting || state.status !== 'ready'}
               onChange={(event) => setTaskProjectId(event.target.value)}
             >
-              <option value="">프로젝트 선택</option>
+              <option value="">프로젝트</option>
               {state.status === 'ready' && state.details.map((detail) => (
                 <option value={detail.id} key={detail.id}>{detail.name}</option>
               ))}

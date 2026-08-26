@@ -27,8 +27,8 @@
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
-  border: var(--border-width) solid var(--color-hairline);
-  border-radius: var(--radius-panel);
+  border: 0;
+  border-radius: var(--radius-xl);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);
 }
@@ -38,8 +38,7 @@
   align-items: center;
   justify-content: space-between;
   flex: 0 0 auto;
-  padding: var(--space-4) var(--space-6);
-  border-bottom: var(--border-width) solid var(--color-hairline);
+  padding: var(--space-6) var(--space-6) var(--space-2);
 }
 
 .modal-header h2 {
@@ -215,16 +214,15 @@
 }
 
 .modal-footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  justify-content: flex-end;
   flex: 0 0 auto;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-surface-soft);
+  padding: var(--space-2) var(--space-6) var(--space-6);
+  background: transparent;
 }
 
-.modal-cancel,
 .modal-submit {
   min-height: var(--button-height);
   padding: 0 var(--button-padding-inline);
@@ -239,33 +237,37 @@
     transform var(--transition-short);
 }
 
-.modal-cancel {
-  border: var(--border-width) solid transparent;
-  color: var(--color-mute);
-  background: transparent;
-}
-
 .modal-submit {
-  min-width: 5.25rem;
-  border: var(--border-width) solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  min-height: unset;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
   color: var(--color-on-primary);
   background: var(--color-primary);
+  font-size: var(--text-headline-md-size);
+  transition: background-color var(--transition-short), transform var(--dur-micro) var(--ease-out);
+  cursor: pointer;
 }
 
 .modal-submit:focus-visible {
   outline-color: var(--focus-ring-strong);
 }
 
-.modal-cancel:active:not(:disabled),
 .modal-submit:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 
 .modal-close:disabled,
 .modal-field input:disabled,
 .modal-field textarea:disabled,
-.tag-options button:disabled,
-.modal-cancel:disabled,
+  .tag-options button:disabled,
 .modal-submit:disabled {
   cursor: wait;
   opacity: 0.55;
@@ -282,8 +284,7 @@
     background: var(--color-surface-soft);
   }
 
-  .tag-options button:hover:not(:disabled),
-  .modal-cancel:hover:not(:disabled) {
+  .tag-options button:hover:not(:disabled) {
     background: var(--color-surface-container-high);
   }
 
@@ -326,7 +327,6 @@
   .modal-field input,
   .modal-field textarea,
   .tag-options button,
-  .modal-cancel,
   .modal-submit {
     transition: none;
   }

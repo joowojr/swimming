@@ -30,7 +30,7 @@
 
 ### 포함 (In)
 
-계정/인증, 프로젝트/task 관리, 데일리 플랜, 개인 세션, 그룹 세션(정해진 시간·고정 타이머·목표 공유·체크인), 체크인/측정, 진척/통계/streak, 도시 선택, 개인 음악.
+계정/인증, 프로젝트/task 관리, 데일리 플랜, 개인 세션, 그룹 세션(정해진 시간·고정 타이머·목표 공유·세션 기록), 세션 기록/측정, 진척/통계/streak, 도시 선택, 개인 음악.
 
 ### 제외 (Out)
 
@@ -65,16 +65,16 @@
 | ID | 요구사항 | 우선순위 |
 | --- | --- | --- |
 | TASK-1 | 프로젝트 하위에 task를 생성·수정·삭제한다. | P0 |
-| TASK-2 | task는 상태(대기/하는 중/끝냄/보류)와 완료도(%)를 가진다. | P0 |
-| TASK-3 | task별 누적 세션 수와 소요 시간을 표시한다. | P0 |
+| TASK-2 | task는 상태(대기/하는 중/끝냄/보류)를 가진다. | P0 |
+| TASK-3 | task별 누적 세션 수를 표시한다. | P0 |
 | TASK-4 | task 순서 정렬(수동). | P1 |
 
 ### 4.4 데일리 플랜
 
 | ID | 요구사항 | 우선순위 |
 | --- | --- | --- |
-| PLAN-1 | 날짜별 계획에 프로젝트 Task 또는 독립 할 일을 담는다. | P0 |
-| PLAN-2 | 세션은 데일리 플랜에 담긴 프로젝트 Task 안에서 선택한다. | P0 |
+| PLAN-1 | 날짜별 계획에 프로젝트 연결 여부와 관계없이 Task를 담는다. | P0 |
+| PLAN-2 | 세션은 데일리 플랜에 담긴 Task 안에서 프로젝트 연결 여부와 관계없이 선택한다. | P0 |
 | PLAN-3 | 오늘 담은 예상 시간이 권장치를 넘으면 부드럽게 안내한다(경고색 없음). | P1 |
 
 ### 4.5 개인 세션
@@ -101,16 +101,16 @@
 | GS-7 | 90분 등 긴 세션의 스프린트/휴식 내부 구조를 지원한다. | P1 |
 | GS-8 | 상시 오픈 룸(정해진 시간 외 상시 참여). | P2 |
 
-### 4.7 체크인 / 측정
+### 4.7 세션 기록 / 측정
 
 | ID | 요구사항 | 우선순위 |
 | --- | --- | --- |
-| CHK-1 | 세션 종료 시 "무엇을 끝냈나"를 기록한다. | P0 |
-| CHK-2 | task 완료 여부와 잔여량(%)을 함께 기록한다. | P0 |
-| CHK-3 | 세션 수·소요 시간·완료도를 측정해 프로젝트 진척에 반영한다. | P0 |
-| CHK-4 | 개인·그룹 세션은 동일한 측정 스키마를 쓴다. | P0 |
-| CHK-5 | 중도 종료 세션도 부분 기록으로 반영한다. | P0 |
-| CHK-6 | 그룹 세션은 체크인 결과를 참가자와 공유한다. | P1 |
+| REC-1 | 세션 종료 시 "무엇을 끝냈나"를 기록한다. | P0 |
+| REC-2 | 세션에서 진행한 각 task의 완료 여부를 기록한다. | P0 |
+| REC-3 | 세션 수와 Task 완료 상태를 측정해 프로젝트 진척에 반영한다. | P0 |
+| REC-4 | 개인·그룹 세션은 동일한 측정 스키마를 쓴다. | P0 |
+| REC-5 | 중도 종료 세션도 부분 기록으로 반영한다. | P0 |
+| REC-6 | 그룹 세션은 세션 기록 결과를 참가자와 공유한다. | P1 |
 
 ### 4.8 진척 / 통계 / streak
 
@@ -136,17 +136,27 @@
 | MUSIC-1 | 기본 사운드/음악을 제공하고 개인이 설정한다. | P1 |
 | MUSIC-2 | 외부 음원(YouTube 등) 연동. | P2 |
 
+### 4.11 메모
+
+| ID | 요구사항 | 우선순위 |
+| --- | --- | --- |
+| NOTE-1 | 사용자는 떠오른 내용을 기본·프로젝트·세션 컨텍스트의 메모로 저장하고 조회한다. | P0 |
+| NOTE-2 | 사용자는 자신의 활성 메모 내용만 수정하거나 보관·삭제할 수 있다. | P0 |
+| NOTE-3 | 프로젝트·세션 메모는 사용자가 소유한 대상에만 연결한다. | P0 |
+| NOTE-4 | 보관한 메모는 기본 조회 결과에서 제외하되 기록으로 유지한다. | P0 |
+| NOTE-5 | 삭제한 메모는 soft delete로 기록하되 활성·보관 조회와 수정 대상에서 제외한다. | P0 |
+
 ---
 
 ## 5. 핵심 사용자 플로우
 
 ### 개인 경로
 
-홈(프로젝트 관리 탭, 기본) → 프로젝트 선택 → 오늘 task 선택 → 세션 구성(타이머·도시·음악) → 세션 진행 → 체크인(완료 여부·잔여량) → 진척 반영.
+홈(프로젝트 관리 탭, 기본) → 프로젝트 선택 → 오늘 task 선택 → 세션 구성(타이머·도시·음악) → 세션 진행 → 세션 기록(완료 여부·한 줄 메모) → 진척 반영.
 
 ### 그룹 경로
 
-홈 → 그룹 세션 탭 → 정해진 세션 참여 → 대기실(도시·타이머 고정 확인, 목표 선택·공개 여부) → 목표 공유 → 세션 진행(공용 타이머·참가자 존재감) → 체크인(공유) → 진척 반영.
+홈 → 그룹 세션 탭 → 정해진 세션 참여 → 대기실(도시·타이머 고정 확인, 목표 선택·공개 여부) → 목표 공유 → 세션 진행(공용 타이머·참가자 존재감) → 세션 기록(공유) → 진척 반영.
 
 두 경로는 "세션 시작"으로 수렴하며, 홈 기본 진입은 프로젝트 관리 탭이다.
 
@@ -161,16 +171,17 @@
 | User | id, email, passwordHash, nickname, timezone, createdAt | 1-N Project, 1-N Session |
 | ProjectTag | id, userId, name | N-1 User, 1-N Project |
 | Project | id, userId, tagId(nullable), name, description, targetDate(nullable), status, cityId(nullable) | N-1 User, N-1 ProjectTag, 1-N Task |
-| Task | id, projectId, title, status(todo/doing/done/hold), completionPct, orderIdx | N-1 Project, 1-N Session |
+| Task | id, userId, projectId(nullable), title, status(todo/doing/done/hold), orderIdx | N-1 User, 선택적으로 N-1 Project, 1-N Session |
 | DailyPlan | id, userId, planDate | 1-N DailyPlanItem |
-| DailyPlanItem | id, dailyPlanId, taskId(nullable), title(nullable), orderIdx | N-1 Task |
-| Session | id, userId, type(personal/group), taskId, cityId, plannedDuration, actualDuration, startAt, endAt, groupRoomId(nullable), status | 1-1 CheckIn |
-| CheckIn | id, sessionId, summary, taskCompleted(bool), remainingPct, createdAt | N-1 Session |
+| DailyPlanItem | id, dailyPlanId, taskId, orderIdx | N-1 Task |
+| Session | id, userId, type(personal/group), taskId, cityId, plannedDuration, actualDuration, startAt, endAt, groupRoomId(nullable), status, summary | 1-N SessionTask |
+| SessionTask | sessionId, taskId, isCompleted(nullable), orderIdx | N-1 Session, N-1 Task |
 | GroupRoom | id, cityId, startAt, durationMin, capacity, hostType(auto/host), status | 1-N GroupParticipant |
 | GroupParticipant | id, roomId, userId, taskId(nullable), adHocGoal(nullable), goalVisibility(public/private), joinedAt | N-1 GroupRoom |
 | City | id, name, backgroundAssetUrl, defaultMusicRef | 1-N Session |
+| Note | id, userId, content, status, isDeleted, contextType, projectId(nullable), sessionId(nullable), createdAt, updatedAt | N-1 User, 선택적으로 N-1 Project 또는 N-1 Session |
 
-측정은 Session(actualDuration)과 CheckIn(taskCompleted, remainingPct)에서 파생한다.
+측정은 Session(actualDuration)과 SessionTask(isCompleted)에서 파생한다.
 
 ---
 
@@ -194,21 +205,19 @@
 | POST | /projects/{id}/tasks | task 생성 |
 | PUT | /projects/{id}/tasks/order | task 순서 저장 |
 |  |  |  |
-| PATCH | /tasks/{id} | task 수정(상태·완료도) |
+| PATCH | /tasks/{id} | task 수정(제목·상태) |
 | DELETE | /tasks/{id} | task 삭제 |
 |  |  |  |
 | GET | /daily-plans?from_date=&to_date= | 날짜 범위의 계획 조회 |
-| POST | /daily-plans/{date}/items | Task 또는 독립 할 일 추가 |
+| POST | /daily-plans/{date}/items | 기존 `taskIds`를 연결하거나 선택적 `projectId`와 제목으로 Task 생성 |
 | PUT | /daily-plans/{date} | 계획 항목 순서 저장 |
-| PATCH | /daily-plans/{date}/items/{itemId} | 독립 할 일 제목 수정 |
 | DELETE | /daily-plans/{date}/items/{itemId} | 계획 항목 제거 |
 |  |  |  |
 | POST | /sessions | 개인 세션 시작 |
 | GET | /sessions/{id} | 개인 세션 상세 조회 |
 | GET | /sessions/active | 현재 진행 중인 세션 조회 |
 | PUT | /sessions/{id}/music-url | 세션의 마지막 YouTube URL 저장 |
-| POST | /sessions/{id}/end | 세션 종료 |
-| POST | /sessions/{id}/checkin | 체크인 기록 |
+| POST | /sessions/{id}/end | 세션 종료(한 줄 메모·Task 완료 여부 기록 포함) |
 | GET | /sessions?from=&to= | 세션 이력 |
 |  |  |  |
 | GET | /group-sessions | 예정 그룹 세션 목록 |
@@ -219,6 +228,14 @@
 | GET | /stats/summary | 이번 주 접속·시간·도시 요약 |
 | GET | /stats/streak | 연속 접속 |
 | GET | /cities | 도시 목록 |
+|  |  |  |
+| POST | /notes | 메모 생성(생성된 ID 반환) |
+| GET | /notes | 내 메모 목록 조회(상태·컨텍스트 필터 지원, 기본 활성) |
+| GET | /notes/{id} | 내 활성 메모 상세 조회 |
+| PATCH | /notes/{id} | 내 활성 메모 내용 수정 |
+| PATCH | /notes/{id}/archive | 내 활성 메모 보관 |
+| PATCH | /notes/{id}/restore | 내 보관 메모 복원 |
+| DELETE | /notes/{id} | 내 메모 soft delete |
 
 ### 프로젝트 상세 조회
 
@@ -253,14 +270,12 @@
       "id": 21,
       "title": "자기소개서 다듬기",
       "status": "DOING",
-      "completionPct": 60,
       "orderIdx": 0
     },
     {
       "id": 22,
       "title": "포트폴리오 정리",
       "status": "TODO",
-      "completionPct": 0,
       "orderIdx": 1
     }
   ]
@@ -284,9 +299,23 @@
 | 채널 | 방향 | 용도 |
 | --- | --- | --- |
 | /topic/rooms/{roomId}/presence | 구독 | 참가자 입장·퇴장·인원 |
+| /topic/rooms/{roomId}/timer | 구독 | 공용 타이머 구간 전환 |
 | /topic/rooms/{roomId}/goals | 구독 | 공유된 목표 목록 |
 | /app/rooms/{roomId}/join | 발행 | 참여 알림 |
 | /app/rooms/{roomId}/goal | 발행 | 목표 공유 |
+| /app/rooms/{roomId}/leave | 발행 | 나가기 알림 |
+
+#### 공용 타이머 (/topic/rooms/{roomId}/timer)
+
+- 매초 브로드캐스트하지 않는다. **현재 구간의 시작·종료 시각과 서버 현재 시각만** 내려주고, 남은 시간은 각 클라이언트가 계산한다.
+- 메시지는 상태가 바뀔 때만 발행한다(시작, 구간 전환, 일시정지, 종료).
+- 클라이언트는 접속 시 서버 타임스탬프로 시간차(오프셋)를 계산해 항상 서버 시간 기준으로 렌더링한다.
+- 구간 종료 시각은 참가자 세션의 종료 시각 기준이 된다. 각자의 종료 요청이 도착한 시각을 쓰면 같은 룸의 `actual_duration_sec`가 네트워크 지연만큼 흩어진다.
+
+#### 나가기 (/app/rooms/{roomId}/leave)
+
+- 사용자가 명시적으로 나갈 때 발행한다. 룸에는 퇴장 presence가 방송되고, 해당 참가자의 세션은 종료 처리된다.
+- 브라우저 강제 종료·네트워크 단절은 이 채널로 잡히지 않는다. STOMP 연결 종료 이벤트를 함께 처리해야 `IN_PROGRESS`로 남는 세션이 생기지 않는다. `sessions.active_user_id`가 UNIQUE이므로, 회수되지 않으면 그 사용자는 다음 세션을 시작할 수 없다.
 
 ---
 
@@ -302,7 +331,7 @@
 
 ### 흐름 요약
 
-React가 REST로 프로젝트·task·세션 CRUD를 처리하고, 그룹 세션 진행 중에는 WebSocket으로 타이머·참가자를 실시간 동기화한다. 세션 종료 시 체크인이 REST로 저장된다.
+React가 REST로 프로젝트·task·세션 CRUD를 처리하고, 그룹 세션 진행 중에는 WebSocket으로 타이머·참가자를 실시간 동기화한다. 세션 종료 시 세션 기록이 REST로 저장된다.
 
 ---
 
@@ -371,11 +400,11 @@ React가 REST로 프로젝트·task·세션 CRUD를 처리하고, 그룹 세션 
 | 단계 | 범위 |
 | --- | --- |
 | M1 | 인증 + 프로젝트/task CRUD + 데일리 플랜 |
-| M2 | 개인 세션(몰입 화면·타이머) + 체크인/측정 + 진척 반영 |
+| M2 | 개인 세션(몰입 화면·타이머) + 세션 기록/측정 + 진척 반영 |
 | M3 | 그룹 세션(예정 목록·참여·목표 공유·WebSocket 타이머·존재감) |
 | M4 | 통계/streak(축적 프레임) + 도시 3~5개 + 톤/웰빙 마감 |
 
-핵심 차별점(프로젝트-세션 커플링, 완료도 측정, 축적 프레임)이 M2에서 먼저 증명되도록 배치한다.
+핵심 차별점(프로젝트-세션 커플링, 완료 상태 측정, 축적 프레임)이 M2에서 먼저 증명되도록 배치한다.
 
 ---
 

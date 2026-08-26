@@ -10,6 +10,7 @@ import type {
   ProjectTag,
 } from './projectTypes'
 import styles from './CreateProjectModal.module.css'
+import modalStyles from '../../components/ModalShell.module.css'
 
 interface CreateProjectModalProps {
   onClose: () => void
@@ -196,7 +197,7 @@ export default function CreateProjectModal({
     <dialog
       id="create-project-dialog"
       ref={dialogRef}
-      className={styles['create-project-dialog']}
+      className={`${styles['create-project-dialog']} ${modalStyles.dialog}`}
       aria-labelledby="create-project-title"
       aria-describedby="create-project-description"
       aria-busy={isSubmitting}
@@ -206,8 +207,8 @@ export default function CreateProjectModal({
       onClose={onClose}
       onMouseDown={handleBackdropMouseDown}
     >
-      <section className={styles['create-project-modal']}>
-        <header className={styles['modal-header']}>
+      <section className={`${styles['create-project-modal']} ${modalStyles.surface}`}>
+        <header className={`${styles['modal-header']} ${modalStyles.header}`}>
           <div>
             <h2 id="create-project-title">새 프로젝트</h2>
             <p id="create-project-description">새 프로젝트 정보를 입력해 주세요.</p>
@@ -404,14 +405,6 @@ export default function CreateProjectModal({
           </div>
 
           <footer className={styles['modal-footer']}>
-            <ActionButton
-              className={styles['modal-cancel']}
-              variant="plain"
-              onClick={requestClose}
-              disabled={isSubmitting}
-            >
-              취소
-            </ActionButton>
             <ActionButton
               type="submit"
               className={styles['modal-submit']}

@@ -2,14 +2,16 @@ import type {FormEvent, MouseEvent} from 'react'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {IconUser, IconUsers, IconX,} from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
-import TaskChecklist from '../../components/TaskChecklist'
+import ChecklistCard from '../../components/ChecklistCard'
 import type {DailyPlanItem} from '../plans/dailyPlanTypes'
+import {TASK_STATUS_LABEL} from '../tasks/taskLabels'
 import {getPlaces} from '../places/placeApi'
 import type {City, Place} from '../places/placeTypes'
 import {startPersonalSession} from './sessionApi'
 import {GROUP_ROOM_MOCK} from './sessionMocks'
 import type {SessionResponse} from './sessionTypes'
 import styles from './CreateSessionModal.module.css'
+import modalStyles from '../../components/ModalShell.module.css'
 import ActionButton from "../../components/ActionButton.tsx";
 
 interface CreateSessionModalProps {
@@ -130,7 +132,7 @@ export default function CreateSessionModal({
       return
     }
     if (mode === 'group') {
-      setMockNotice(`${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} 다이브 세션 참여를 선택했습니다. API 연결은 준비 중입니다.`)
+      setMockNotice(`${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} 다이브 세션 참여를 선택했습니다.`)
       return
     }
     if (!selectedPlace) {
@@ -163,15 +165,15 @@ export default function CreateSessionModal({
     <dialog
       id="create-session-dialog"
       ref={dialogRef}
-      className={styles.dialog}
+      className={`${styles.dialog} ${modalStyles.dialog}`}
       aria-labelledby="create-session-title"
       aria-busy={isSubmitting}
       onCancel={(event) => { if (isSubmitting) event.preventDefault() }}
       onClose={onClose}
       onMouseDown={handleBackdrop}
     >
-      <section className={styles.modal}>
-        <header className={styles.header}>
+      <section className={`${styles.modal} ${modalStyles.surface}`}>
+        <header className={`${styles.header} ${modalStyles.header}`}>
           <h2 id="create-session-title">다이브 세션</h2>
           <button
             type="button"
@@ -189,18 +191,34 @@ export default function CreateSessionModal({
             <fieldset className={styles.fieldset}>
               <legend>무엇을 할까요</legend>
               <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
-              <TaskChecklist
-                items={linkedTasks.map((task) => ({ id: task.taskId, title: task.title }))}
-                selectedIds={selectedTaskIds}
-                name="session-task"
-                emptyMessage="오늘 계획에 담긴 Task가 없습니다."
-                disabled={isSubmitting}
-                onToggle={toggleTask}
-              />
+              {linkedTasks.length === 0 ? (
+                <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p>
+              ) : (
+                <ul className={styles['task-list']}>
+                  {linkedTasks.map((task) => (
+                    <li key={task.taskId}>
+                      <ChecklistCard
+                        id={task.taskId}
+                        title={task.title}
+                        checked={selectedTaskIds.includes(task.taskId)}
+                        ariaLabel={`${task.title} 선택`}
+                        name="session-task"
+                        disabled={isSubmitting}
+                        onToggle={() => toggleTask(task.taskId)}
+                        actions={(
+                          <span className={styles['task-status-chip']} data-status={task.status}>
+                            {TASK_STATUS_LABEL[task.status]}
+                          </span>
+                        )}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </fieldset>
 
             <fieldset className={styles.fieldset}>
-              <legend>어떻게 할까요 <span>(개인/그룹 선택)</span></legend>
+              <legend>어떻게 할까요 </legend>
               <div className={styles['mode-grid']}>
                 <label className={styles['mode-choice']}>
                   <input type="radio" name="session-mode" checked={mode === 'personal'} onChange={() => setMode('personal')} disabled={isSubmitting} />
@@ -208,7 +226,7 @@ export default function CreateSessionModal({
                   <span>개인</span>
                 </label>
                 <label className={styles['mode-choice']}>
-                  <input type="radio" name="session-mode" checked={mode === 'group'} onChange={() => setMode('group')} disabled={isSubmitting} />
+                  <input type="radio" name="session-mode" checked={mode === 'group'} onChange={() => setMode('group')} disabled={isSubmitting || mode === 'group'} />
                   <IconUsers size={19} aria-hidden="true" />
                   <span>그룹</span>
                 </label>
@@ -247,7 +265,22 @@ export default function CreateSessionModal({
                   <fieldset className={styles.fieldset}>
                     <legend>얼마나 집중할까요</legend>
                     <p className={styles['value-box']}>
-                      <strong>{validDuration ? durationMinutes : '—'}</strong>분
+                      {durationPreset === 'custom' ? (
+                        <label className={styles['custom-value']}>
+                          <span className="sr-only">집중 시간</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={1440}
+                            value={customMinutes}
+                            placeholder="—"
+                            onChange={(event) => setCustomMinutes(event.target.value)}
+                            aria-invalid={Boolean(customMinutes) && !validDuration}
+                            disabled={isSubmitting}
+                          />
+                          <span aria-hidden="true">분</span>
+                        </label>
+                      ) : <><strong>{validDuration ? durationMinutes : '—'}</strong>분</>}
                     </p>
                     <div className={styles.durations}>
                       {([25, 45, 60] as const).map((minutes) => (
@@ -261,22 +294,6 @@ export default function CreateSessionModal({
                         <span>직접 입력</span>
                       </label>
                     </div>
-                    {durationPreset === 'custom' && (
-                      <label className={styles.custom}>
-                        <span className="sr-only">집중 시간</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={1440}
-                          value={customMinutes}
-                          placeholder="분"
-                          onChange={(event) => setCustomMinutes(event.target.value)}
-                          aria-invalid={Boolean(customMinutes) && !validDuration}
-                          disabled={isSubmitting}
-                        />
-                        <span aria-hidden="true">분</span>
-                      </label>
-                    )}
                   </fieldset>
 
                   <fieldset className={styles.fieldset}>
@@ -296,7 +313,7 @@ export default function CreateSessionModal({
               <strong>
                 {selectedTaskTitles.length > 0
                   ? `${selectedTaskTitles[0]}${selectedTaskTitles.length > 1 ? ` 외 ${selectedTaskTitles.length - 1}개` : ''}`
-                  : 'Task 미선택'}
+                  : '할 일 미선택'}
               </strong>
               {mode === 'personal' && selectedPlace
                 ? ` · ${selectedPlace.city.name} · ${validDuration ? `${durationMinutes}분` : '시간 미입력'}`
@@ -314,10 +331,11 @@ export default function CreateSessionModal({
               disabled={
                   isSubmitting ||
                   selectedTaskIds.length === 0 ||
+                  mode === 'group' ||
                   (mode === 'personal' && (!validDuration || !selectedPlace))
               }
           >
-            {mode === 'group' ? '참여 확인' : '시작하기'}
+            {mode === 'group' ? '준비 중' : '시작하기'}
           </ActionButton>
         </form>
       </section>

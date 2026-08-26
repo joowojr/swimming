@@ -13,3 +13,6 @@ frontend/.env.*.local
 .idea/
 .DS_Store
 *.log
+
+# Local documentation subdirectories
+/docs/*/

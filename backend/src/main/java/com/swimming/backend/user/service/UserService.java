@@ -24,6 +24,9 @@ public class UserService {
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.CURRENT_PASSWORD_MISMATCH);
         }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.PASSWORD_REUSE_NOT_ALLOWED);
+        }
         user.changePasswordHash(passwordEncoder.encode(newPassword));
     }
 

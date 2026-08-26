@@ -5,6 +5,7 @@ import com.swimming.backend.session.domain.SessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface SessionRepository extends JpaRepository<SessionEntity, Long> {
 
@@ -13,4 +14,6 @@ public interface SessionRepository extends JpaRepository<SessionEntity, Long> {
     Optional<SessionEntity> findByIdAndUserId(Long id, Long userId);
 
     Optional<SessionEntity> findByUserIdAndStatus(Long userId, SessionStatus status);
+
+    List<SessionEntity> findAllByUserIdOrderByStartedAtDesc(Long userId);
 }

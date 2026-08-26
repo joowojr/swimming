@@ -1,4 +1,5 @@
 import styles from './TaskChecklist.module.css'
+import ChecklistCard from './ChecklistCard'
 
 interface TaskChecklistItem {
   id: number
@@ -12,7 +13,6 @@ interface TaskChecklistProps {
   name: string
   emptyMessage: string
   disabled?: boolean
-  highlightSelected?: boolean
   onToggle: (id: number) => void
 }
 
@@ -22,7 +22,6 @@ export default function TaskChecklist({
   name,
   emptyMessage,
   disabled = false,
-  highlightSelected = true,
   onToggle,
 }: TaskChecklistProps) {
   if (items.length === 0) {
@@ -33,24 +32,16 @@ export default function TaskChecklist({
     <ul className={styles.list}>
       {items.map((item) => (
         <li key={item.id}>
-          <label
-            className={`${styles.option} ${highlightSelected ? styles['highlight-selected'] : ''}`}
-          >
-            <input
-              type="checkbox"
-              name={name}
-              value={item.id}
-              checked={selectedIds.includes(item.id)}
-              onChange={() => onToggle(item.id)}
-              disabled={disabled}
-            />
-            <span className={styles.text}>
-              <span className={styles.title}>{item.title}</span>
-              {item.description && (
-                <span className={styles.description}>{item.description}</span>
-              )}
-            </span>
-          </label>
+          <ChecklistCard
+            id={item.id}
+            title={item.title}
+            description={item.description}
+            checked={selectedIds.includes(item.id)}
+            ariaLabel={`${item.title} 선택`}
+            name={name}
+            disabled={disabled}
+            onToggle={() => onToggle(item.id)}
+          />
         </li>
       ))}
     </ul>

@@ -24,13 +24,16 @@ CREATE TABLE `projects` (
   `description` text,
   `target_date` date,
   `status` varchar(255) NOT NULL DEFAULT 'IN_PROGRESS',
+  `is_deleted` boolean NOT NULL DEFAULT false,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 CREATE TABLE `tasks` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `project_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `project_id` bigint,
+  `source_note_id` bigint,
   `title` varchar(255) NOT NULL,
   `status` varchar(255) NOT NULL DEFAULT 'TODO',
   `order_idx` int NOT NULL DEFAULT 0,
@@ -49,8 +52,7 @@ CREATE TABLE `daily_plans` (
 CREATE TABLE `daily_plan_items` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `daily_plan_id` bigint NOT NULL,
-  `task_id` bigint,
-  `title` varchar(255),
+  `task_id` bigint NOT NULL,
   `order_idx` int NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
@@ -142,7 +144,11 @@ CREATE UNIQUE INDEX `daily_plans_index_0` ON `daily_plans` (`user_id`, `plan_dat
 
 CREATE UNIQUE INDEX `project_tags_user_name_index` ON `project_tags` (`user_id`, `name`);
 
+CREATE INDEX `idx_projects_user_status_deleted_created_at` ON `projects` (`user_id`, `status`, `is_deleted`, `created_at`);
+
 CREATE UNIQUE INDEX `daily_plan_items_index_1` ON `daily_plan_items` (`daily_plan_id`, `task_id`);
+
+CREATE INDEX `idx_tasks_user_id` ON `tasks` (`user_id`);
 
 CREATE INDEX `sessions_index_2` ON `sessions` (`user_id`, `started_at`);
 
@@ -164,7 +170,11 @@ ALTER TABLE `projects` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 ALTER TABLE `projects` ADD FOREIGN KEY (`tag_id`) REFERENCES `project_tags` (`id`);
 
+ALTER TABLE `tasks` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
 ALTER TABLE `tasks` ADD FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`);
+
+ALTER TABLE `tasks` ADD FOREIGN KEY (`source_note_id`) REFERENCES `notes` (`id`);
 
 ALTER TABLE `daily_plans` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 

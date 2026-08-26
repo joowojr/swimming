@@ -18,11 +18,10 @@ public enum ErrorCode {
     PROJECT_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 프로젝트 태그가 이미 있습니다"),
 
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task를 찾을 수 없습니다"),
-    INVALID_TASK_ORDER(HttpStatus.BAD_REQUEST, "Task 순서가 올바르지 않습니다"),
 
     // PLAN DOMAIN
     INVALID_DAILY_PLAN_TASKS(HttpStatus.BAD_REQUEST, "오늘의 계획 Task 목록이 올바르지 않습니다"),
-    INVALID_DAILY_PLAN_DATE_RANGE(HttpStatus.BAD_REQUEST, "데일리 플랜 조회 기간이 올바르지 않습니다"),
+//    INVALID_DAILY_PLAN_DATE_RANGE(HttpStatus.BAD_REQUEST, "데일리 플랜 조회 기간이 올바르지 않습니다"),
     DAILY_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "데일리 플랜을 찾을 수 없습니다"),
     DAILY_PLAN_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "데일리 플랜 항목을 찾을 수 없습니다"),
     INVALID_DAILY_PLAN_ITEM(HttpStatus.BAD_REQUEST, "데일리 플랜 항목이 올바르지 않습니다"),
@@ -46,7 +45,9 @@ public enum ErrorCode {
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "공간을 찾을 수 없습니다"),
 
     // USER DOMAIN
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
+    CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),
+    PASSWORD_REUSE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "현재 비밀번호와 다른 비밀번호를 입력해 주세요");
 
     private final HttpStatus status;
     private final String message;

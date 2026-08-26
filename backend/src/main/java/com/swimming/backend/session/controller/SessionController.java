@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -29,6 +30,13 @@ import java.net.URI;
 public class SessionController {
 
     private final SessionUseCase sessionUseCase;
+
+    @GetMapping
+    public ResponseEntity<List<SessionDetailResponse>> getAll(
+            @AuthenticationPrincipal AuthUser authUser
+    ) {
+        return ResponseEntity.ok(sessionUseCase.getAll(authUser.id()));
+    }
 
     @PostMapping
     public ResponseEntity<SessionResponse> startPersonal(

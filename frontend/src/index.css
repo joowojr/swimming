@@ -67,6 +67,6 @@ button:disabled {
 }
 
 ::selection {
-  color: var(--color-on-accent);
-  background: var(--color-accent);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
 }

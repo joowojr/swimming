@@ -92,6 +92,14 @@ public class SessionUseCase {
                 .map(session -> toDetailResponse(userId, session));
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<SessionDetailResponse> getAll(Long userId) {
+        return sessionService.getOwnedSessions(userId)
+                .stream()
+                .map(session -> toDetailResponse(userId, session))
+                .toList();
+    }
+
     @Transactional(
             propagation = Propagation.REQUIRED,
             readOnly = true
@@ -105,7 +113,10 @@ public class SessionUseCase {
         Session session = sessionService.getOwned(userId, sessionId);
         Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(session, request);
 
-        session.end(clock.instant(), toSummary(request));
+        Instant endTime = request != null && request.usePlannedDuration()
+                ? session.getStartedAt().plusSeconds(session.getPlannedDurationSec())
+                : clock.instant();
+        session.end(endTime, toSummary(request));
 
         if (!completionByTaskId.isEmpty()) {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));

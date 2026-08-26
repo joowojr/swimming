@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +40,14 @@ public class SessionService {
                 userId,
                 SessionStatus.IN_PROGRESS
         ).map(SessionEntity::toDomain);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Session> getOwnedSessions(Long userId) {
+        return sessionRepository.findAllByUserIdOrderByStartedAtDesc(userId)
+                .stream()
+                .map(SessionEntity::toDomain)
+                .toList();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

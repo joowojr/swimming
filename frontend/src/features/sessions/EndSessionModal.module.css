@@ -11,7 +11,7 @@
   overflow: visible;
   border: 0;
   color: var(--color-primary);
-  background: transparent;
+  background: var(--color-surface-container-high);
   animation: modal-enter var(--dur-modal) var(--ease-out);
 }
 
@@ -27,10 +27,9 @@
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
-  border: var(--border-width) solid var(--color-hairline);
-  border-radius: var(--radius-panel);
+  border: 0;
+  border-radius: var(--radius-xl);
   background: var(--color-surface-container-lowest);
-  box-shadow: var(--shadow-floating);
 }
 
 .modal-header {
@@ -39,8 +38,7 @@
   justify-content: space-between;
   flex: 0 0 auto;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
-  border-bottom: var(--border-width) solid var(--color-hairline);
+  padding: var(--space-6) var(--space-6) var(--space-2);
 }
 
 .modal-header h2 {
@@ -107,10 +105,19 @@
 
 .modal-field label,
 .modal-field legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: 0;
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-button-weight);
+}
+
+.modal-field legend svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--color-mute);
 }
 
 .modal-field label span,
@@ -164,6 +171,45 @@
   min-height: var(--text-body-sm-line-height);
 }
 
+.modal-field .planned-duration {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+  font-size: var(--text-body-sm-size);
+}
+
+.modal-field .planned-duration input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  appearance: none;
+  border: var(--border-width) solid var(--color-mute);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-high);
+  cursor: pointer;
+}
+
+.planned-duration input:checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 0.25rem var(--color-primary);
+}
+
+.planned-duration input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--space-1);
+}
+
+.planned-duration input:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .modal-submit-error {
   padding: var(--space-3);
   border: var(--border-width) solid var(--color-error-container);
@@ -172,34 +218,32 @@
 }
 
 .modal-footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  justify-content: flex-end;
   flex: 0 0 auto;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-surface-soft);
+  padding: var(--space-2) var(--space-6) var(--space-6);
+  background: transparent;
 }
 
 .modal-submit {
-  min-height: var(--button-height);
-  padding: 0 var(--button-padding-inline);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-body-sm-size);
-  font-weight: var(--text-button-weight);
-  white-space: nowrap;
-  transition:
-    color var(--transition-short),
-    background-color var(--transition-short),
-    opacity var(--transition-short),
-    transform var(--transition-short);
-}
-
-.modal-submit {
-  min-width: 5.25rem;
-  border: var(--border-width) solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  min-height: unset;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
   color: var(--color-on-primary);
   background: var(--color-primary);
+  font-size: var(--text-headline-md-size);
+  transition: background-color var(--transition-short), transform var(--dur-micro) var(--ease-out);
+  cursor: pointer;
 }
 
 .modal-submit:focus-visible {
@@ -207,7 +251,7 @@
 }
 
 .modal-submit:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 
 .modal-close:disabled,

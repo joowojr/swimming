@@ -13,6 +13,7 @@ import type {TaskStatus} from '../tasks/taskTypes'
 import {deleteProject, getProject, updateProject} from './projectApi'
 import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
 import TaskList from './TaskList'
+import NoteCard from '../note/NoteCard'
 import styles from './ProjectDetail.module.css'
 
 interface ProjectDetailProps {
@@ -106,12 +107,34 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   const removeSelectedTasks = async () => {
     if (selectedTaskIds.size === 0) return
 
+    const taskIdsToDelete = new Set(selectedTaskIds)
     setIsDeletingTasks(true)
     setDeleteError(null)
     try {
-      await deleteTasks({ taskIds: [...selectedTaskIds] })
+      await deleteTasks({ taskIds: [...taskIdsToDelete] })
+      setState((current) => {
+        if (current.status !== 'ready') return current
+
+        const tasks = current.project.tasks.filter((task) => !taskIdsToDelete.has(task.id))
+        const completedTaskCount = tasks.filter((task) => task.status === 'DONE').length
+        const totalTaskCount = tasks.length
+
+        return {
+          status: 'ready',
+          project: {
+            ...current.project,
+            tasks,
+            progress: {
+              totalTaskCount,
+              completedTaskCount,
+              completionPct: totalTaskCount === 0
+                ? 0
+                : Math.floor(completedTaskCount * 100 / totalTaskCount),
+            },
+          },
+        }
+      })
       leaveDeleteMode()
-      setRequestKey((key) => key + 1)
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
@@ -341,6 +364,9 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         <span aria-current="page">{project.name}</span>
       </nav>
 
+      <div className={styles['detail-layout']}>
+        <div className={styles['detail-main']}>
+
       <header className={styles.header}>
       <div className={styles.badges} data-tone={project.id % 4}>
           {project.tag && <span className={styles.tag}>{project.tag.name}</span>}
@@ -481,7 +507,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
               ))}
             </select>
             <DeleteIconButton
-                label={isDeleteMode ? 'Task 삭제 선택 취소' : 'Task 삭제 선택'}
+                label={isDeleteMode ? '할 일 삭제 선택 취소' : '할 일 삭제 선택'}
                 active={isDeleteMode}
                 disabled={isDeletingTasks}
                 onClick={() => {
@@ -525,6 +551,12 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           />
         </div>
       </section>
+        </div>
+
+        <aside className={styles['detail-aside']} aria-label="프로젝트 메모">
+          <NoteCard key={project.id} projects={[project]} projectId={project.id} />
+        </aside>
+      </div>
     </article>
   )
 }

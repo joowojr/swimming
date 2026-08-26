@@ -1,4 +1,4 @@
-import { IconFilter, IconFolders, IconPlus } from '@tabler/icons-react'
+import { IconFilter, IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ProjectCard from './ProjectCard'
 import type { Project } from './projectTypes'
@@ -10,6 +10,7 @@ interface ProjectListPageProps {
   status: ProjectLoadStatus
   onRetry: () => void
   onOpenCreate: () => void
+  onOpenTagManage: () => void
 }
 
 export default function ProjectListPage({
@@ -17,6 +18,7 @@ export default function ProjectListPage({
   status,
   onRetry,
   onOpenCreate,
+  onOpenTagManage,
 }: ProjectListPageProps) {
   return (
     <section className={styles.page} aria-labelledby="projects-page-title">
@@ -29,6 +31,10 @@ export default function ProjectListPage({
           <button type="button" className={styles.secondary} disabled title="필터 · 준비 중">
             <IconFilter size={17} aria-hidden="true" />
             필터
+          </button>
+          <button type="button" className={styles.secondary} onClick={onOpenTagManage}>
+            <IconTags size={17} aria-hidden="true" />
+            태그 관리
           </button>
           <ModalTriggerButton
             dialogId="create-project-dialog"

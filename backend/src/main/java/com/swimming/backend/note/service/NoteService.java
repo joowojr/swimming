@@ -46,7 +46,7 @@ public class NoteService {
             NoteStatus status
     ) {
         return noteRepository
-                .findAllByUserIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+                .findAllByUserIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                         userId,
                         status
                 )
@@ -65,7 +65,7 @@ public class NoteService {
             NoteStatus status
     ) {
         return noteRepository
-                .findAllByUserIdAndContextTypeAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+                .findAllByUserIdAndContextTypeAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                         userId,
                         contextType,
                         status
@@ -85,7 +85,7 @@ public class NoteService {
             NoteStatus status
     ) {
         return noteRepository
-                .findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+                .findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                         userId,
                         projectId,
                         status
@@ -105,7 +105,7 @@ public class NoteService {
             NoteStatus status
     ) {
         return noteRepository
-                .findAllByUserIdAndSessionIdAndStatusAndDeletedFalseOrderByCreatedAtDesc(
+                .findAllByUserIdAndSessionIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                         userId,
                         sessionId,
                         status

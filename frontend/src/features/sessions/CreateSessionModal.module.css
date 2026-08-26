@@ -133,6 +133,50 @@
     padding: var(--space-3) 0;
 }
 
+.task-list {
+    display: grid;
+    max-height: min(22rem, 36vh);
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0 var(--space-1) var(--space-1) 0;
+    overflow-y: auto;
+    list-style: none;
+    scrollbar-gutter: stable;
+}
+
+.task-status-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--chip-todo-border);
+    border-radius: var(--radius-full);
+    color: var(--chip-todo-fg);
+    background: var(--chip-todo-bg);
+    font-size: var(--text-label-caps-size);
+    font-weight: var(--text-label-strong-weight);
+    white-space: nowrap;
+}
+
+.task-status-chip[data-status='DOING'] {
+    border-color: var(--chip-doing-border);
+    color: var(--chip-doing-fg);
+    background: var(--chip-doing-bg);
+}
+
+.task-status-chip[data-status='DONE'] {
+    border-color: var(--chip-done-border);
+    color: var(--chip-done-fg);
+    background: var(--chip-done-bg);
+}
+
+.task-status-chip[data-status='HOLD'] {
+    border-style: dashed;
+    border-color: var(--chip-hold-border);
+    color: var(--chip-hold-fg);
+    background: var(--chip-hold-bg);
+}
+
 /* 두 섹션을 나란히 (얼마나 집중할까요 / 반복) */
 .split {
     display: grid;
@@ -305,17 +349,16 @@
     white-space: nowrap;
 }
 
-.custom {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+.custom-value {
+    display: inline-flex;
     align-items: center;
     gap: var(--space-2);
     color: var(--color-mute);
     font-size: var(--text-body-sm-size);
 }
 
-.custom input {
-    min-width: 0;
+.custom-value input {
+    width: 5rem;
     min-height: 2.5rem;
     padding: 0 var(--space-3);
     border: 0;
@@ -324,7 +367,7 @@
     background: var(--color-surface-container-lowest);
 }
 
-.custom input[aria-invalid='true'] {
+.custom-value input[aria-invalid='true'] {
     background: var(--color-surface-container-highest);
 }
 
@@ -418,7 +461,7 @@
 }
 .place-choice:has(input:disabled),
 .durations label:has(input:disabled) > span,
-.custom input:disabled,
+    .custom-value input:disabled,
 .repeat button:disabled,
 .submit:disabled {
     cursor: wait;
@@ -433,7 +476,7 @@
     .close:hover:not(:disabled),
     .mode-choice:not(:has(input:checked)):hover,
     .durations label:not(:has(input:checked)):hover > span,
-    .custom input:hover:not(:disabled) {
+    .custom-value input:hover:not(:disabled) {
         background: var(--color-surface-container-high);
     }
 

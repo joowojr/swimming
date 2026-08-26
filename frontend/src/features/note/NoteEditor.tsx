@@ -4,26 +4,27 @@ import ActionButton from '../../components/ActionButton'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import type { LoadStatus, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
+import { useNoteEditorStore } from './noteEditorStore'
 
 /** 역할: 메모 입력, 자동 저장 상태, 메모 단위 액션을 표시한다. 저장과 삭제의 실제 처리는 NoteCard가 소유한다. */
 interface NoteEditorProps {
   memo: string
   loadStatus: LoadStatus
   saveStatus: SaveStatus
-  actionMessage: string | null
   selectedNoteId: number | null
+  isArchived: boolean
   disabled: boolean
   isStartingNew: boolean
   isArchiving: boolean
   isDeleting: boolean
-  isConfirmingDelete: boolean
-  recentlyArchived: boolean
   textareaRef: RefObject<HTMLTextAreaElement | null>
   onMemoChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
   onMemoBlur: () => void
   onOrganize: () => void
   onNewMemo: () => void
   onArchive: () => void
+  onConfirmArchive: () => void
+  onDismissArchive: () => void
   onRequestDelete: () => void
   onCancelDelete: () => void
   onDelete: () => void
@@ -50,25 +51,28 @@ export default function NoteEditor({
   memo,
   loadStatus,
   saveStatus,
-  actionMessage,
   selectedNoteId,
+  isArchived,
   disabled,
   isStartingNew,
   isArchiving,
   isDeleting,
-  isConfirmingDelete,
-  recentlyArchived,
   textareaRef,
   onMemoChange,
   onMemoBlur,
   onOrganize,
   onNewMemo,
   onArchive,
+  onConfirmArchive,
+  onDismissArchive,
   onRequestDelete,
   onCancelDelete,
   onDelete,
   onRestore,
 }: NoteEditorProps) {
+  const { actionMessage, isConfirmingDelete, recentlyArchivedId, archiveSuggestionNoteId } = useNoteEditorStore()
+  const recentlyArchived = recentlyArchivedId !== null
+  const archiveSuggested = archiveSuggestionNoteId !== null
   const statusMessage = getStatusMessage(memo, loadStatus, saveStatus, actionMessage)
 
   return (
@@ -77,10 +81,11 @@ export default function NoteEditor({
         <h3 id="memo-title" className={styles['memo-title']}>메모</h3>
         <div className={styles['memo-head-actions']}>
           <button type="button" className={styles['memo-icon-action']} onClick={onArchive}
-            disabled={selectedNoteId === null || disabled} aria-label="현재 메모 보관" title="메모 보관">
+            disabled={selectedNoteId === null || disabled || isArchived} aria-label="현재 메모 보관" title="메모 보관">
             <IconArchive size={16} aria-hidden="true" />
           </button>
           <DeleteIconButton
+            className={styles['memo-borderless']}
             label="현재 메모 삭제"
             disabled={selectedNoteId === null || disabled}
             aria-expanded={isConfirmingDelete}
@@ -104,6 +109,25 @@ export default function NoteEditor({
         </div>
       )}
 
+      {archiveSuggested && !recentlyArchived && (
+        <div className={`${styles['delete-confirmation']} ${styles['archive-confirmation']}`} role="status">
+          <span>메모를 보관해드릴까요?</span>
+          <div>
+            <ActionButton className={styles['archive-keep-action']} variant="plain" onClick={onDismissArchive}>유지</ActionButton>
+            <ActionButton variant="plain" onClick={onConfirmArchive} disabled={isArchiving}>보관</ActionButton>
+          </div>
+        </div>
+      )}
+
+      {recentlyArchived && (
+        <div className={`${styles['delete-confirmation']} ${styles['archive-confirmation']}`} role="status">
+          <span>메모를 보관했어요</span>
+          <div>
+            <ActionButton variant="plain" onClick={onRestore} disabled={isArchiving}>실행 취소</ActionButton>
+          </div>
+        </div>
+      )}
+
       <textarea ref={textareaRef} className={styles['memo-paper']} placeholder="떠오르는 일을 편하게 적어두세요."
         value={memo} onChange={onMemoChange} onBlur={onMemoBlur} disabled={disabled} />
 
@@ -115,12 +139,6 @@ export default function NoteEditor({
         </ActionButton>
       </div>
 
-      {recentlyArchived && (
-        <div className={styles['archive-undo']} role="status">
-          <span>메모를 보관했어요</span>
-          <ActionButton variant="plain" onClick={onRestore} disabled={isArchiving}>실행 취소</ActionButton>
-        </div>
-      )}
     </>
   )
 }

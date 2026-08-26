@@ -50,6 +50,7 @@ export interface EndSessionTaskResult {
 
 export interface EndSessionRequest {
   summary: string | null
+  usePlannedDuration: boolean
   taskResults: EndSessionTaskResult[]
 }
 

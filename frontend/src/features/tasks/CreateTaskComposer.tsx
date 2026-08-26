@@ -13,7 +13,7 @@ interface CreateTaskComposerProps {
 
 function validateTitle(value: string) {
   if (!value.trim()) return '할 일을 입력해 주세요.'
-  if (value.trim().length > 255) return 'task 제목은 255자 이하로 입력해 주세요.'
+  if (value.trim().length > 255) return '할 일 제목은 255자 이하로 입력해 주세요.'
   return undefined
 }
 

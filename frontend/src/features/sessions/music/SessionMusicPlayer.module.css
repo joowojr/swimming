@@ -26,6 +26,7 @@
 .header div {
   display: grid;
   min-width: 0;
+  flex: 1;
 }
 
 .header strong {
@@ -126,14 +127,21 @@
   background: var(--color-session-glass-border);
 }
 
-.source-row .recent-toggle {
+.header .recent-toggle {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 0;
-  min-width: var(--control-height);
+  width: var(--control-height);
+  height: var(--control-height);
   padding: 0;
+  border: var(--border-width) solid var(--color-session-glass-border);
+  border-radius: var(--radius-default);
+  color: var(--color-session-inverse-muted);
+  background: transparent;
 }
 
-.source-row .recent-toggle svg {
+.header .recent-toggle svg {
   width: var(--space-4);
 }
 

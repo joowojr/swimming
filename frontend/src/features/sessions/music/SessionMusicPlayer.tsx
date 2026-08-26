@@ -109,8 +109,27 @@ export default function SessionMusicPlayer({
         <IconMusic aria-hidden="true" />
         <div>
           <strong id="session-music-title">YouTube 음악</strong>
-          <span>이 세션에 저장되며 재생은 직접 시작합니다.</span>
+          <span>세션에서 재생할 음악을 설정해보세요.</span>
         </div>
+        {recentHistory.length > 0 && (
+          <button
+            type="button"
+            className={styles['recent-toggle']}
+            aria-label={isRecentExpanded ? '최근 재생 목록 접기' : '최근 재생 목록 펼치기'}
+            aria-expanded={isRecentExpanded}
+            aria-controls={recentListId}
+            disabled={isSaving}
+            onClick={() => {
+              setIsRecentExpanded((expanded) => !expanded)
+              setCopiedUrl(null)
+            }}
+          >
+            <IconHistory aria-hidden="true" />
+            {isRecentExpanded
+              ? <IconChevronUp aria-hidden="true" />
+              : <IconChevronDown aria-hidden="true" />}
+          </button>
+        )}
       </header>
 
       {options.length > 0 && (
@@ -146,25 +165,6 @@ export default function SessionMusicPlayer({
               }}
             />
           </label>
-          {recentHistory.length > 0 && (
-            <button
-              type="button"
-              className={styles['recent-toggle']}
-              aria-label={isRecentExpanded ? '최근 재생 목록 접기' : '최근 재생 목록 펼치기'}
-              aria-expanded={isRecentExpanded}
-              aria-controls={recentListId}
-              disabled={isSaving}
-              onClick={() => {
-                setIsRecentExpanded((expanded) => !expanded)
-                setCopiedUrl(null)
-              }}
-            >
-              <IconHistory aria-hidden="true" />
-              {isRecentExpanded
-                ? <IconChevronUp aria-hidden="true" />
-                : <IconChevronDown aria-hidden="true" />}
-            </button>
-          )}
           <button type="submit" disabled={isSaving || draft.trim() === (source ?? '')}>
             {isSaving ? <IconLoader2 aria-hidden="true" /> : '저장'}
           </button>

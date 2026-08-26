@@ -127,6 +127,12 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     return () => { cancelled = true }
   }, [getNotesForFilter, noteFilter, setActionMessage])
 
+  useEffect(() => {
+    if (recentlyArchivedId === null) return
+    const timer = window.setTimeout(() => setRecentlyArchivedId(null), 3000)
+    return () => window.clearTimeout(timer)
+  }, [recentlyArchivedId, setRecentlyArchivedId])
+
   const clearSaveTimer = () => {
     if (!saveTimerRef.current) return
     clearTimeout(saveTimerRef.current)

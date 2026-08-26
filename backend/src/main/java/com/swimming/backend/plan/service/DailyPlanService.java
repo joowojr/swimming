@@ -1,8 +1,11 @@
 package com.swimming.backend.plan.service;
 
-import com.swimming.backend.plan.domain.DailyPlan;
-import com.swimming.backend.plan.repository.DailyPlanRepository;
-import com.swimming.backend.plan.repository.entity.DailyPlanEntity;
+import com.swimming.backend.common.exception.BusinessException;
+import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.plan.repository.DailyPlanItemRepository;
+import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
+import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -10,67 +13,57 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class DailyPlanService {
-
-    private final DailyPlanRepository dailyPlanRepository;
+    private final DailyPlanItemRepository dailyPlanItemRepository;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public Optional<DailyPlan> get(Long userId, LocalDate date) {
-        return dailyPlanRepository.findByUserIdAndPlanDate(userId, date)
-                .map(DailyPlanEntity::toDomain);
+    public List<DailyPlanItemQueryRow> getRows(Long userId, LocalDate fromDate, LocalDate toDate) {
+        return dailyPlanItemRepository.findRows(userId, fromDate, toDate);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<DailyPlan> getRange(
-            Long userId,
-            LocalDate fromDate,
-            LocalDate toDate
-    ) {
-        return dailyPlanRepository
-                .findAllByUserIdAndPlanDateBetweenOrderByPlanDateAsc(
-                        userId,
-                        fromDate,
-                        toDate
-                )
+    public List<DailyPlanItem> getItems(Long userId, LocalDate planDate) {
+        return dailyPlanItemRepository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(userId, planDate)
                 .stream()
-                .map(DailyPlanEntity::toDomain)
+                .map(DailyPlanItemEntity::toDomain)
                 .toList();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public DailyPlan save(DailyPlan dailyPlan) {
-        DailyPlanEntity entity;
-        if (dailyPlan.getId() == null) {
-            entity = DailyPlanEntity.from(dailyPlan);
-        } else {
-            entity = dailyPlanRepository
-                    .findByUserIdAndPlanDate(dailyPlan.getUserId(), dailyPlan.getPlanDate())
-                    .filter(saved -> saved.getId().equals(dailyPlan.getId()))
-                    .orElseThrow(() -> new IllegalArgumentException("저장된 데일리 플랜을 찾을 수 없습니다"));
-            entity.apply(dailyPlan);
-        }
-        return dailyPlanRepository.saveAndFlush(entity).toDomain();
+    public DailyPlanItem save(Long userId, LocalDate planDate, DailyPlanItem item) {
+        return dailyPlanItemRepository.save(DailyPlanItemEntity.from(userId, planDate, item)).toDomain();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void reorder(Long userId, LocalDate planDate, Map<Long, Integer> orderIdxByItemId) {
+        List<DailyPlanItemEntity> items =
+                dailyPlanItemRepository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(userId, planDate);
+        items.forEach(item -> {
+            Integer orderIdx = orderIdxByItemId.get(item.getId());
+            if (orderIdx != null) item.changeOrder(orderIdx);
+        });
+        dailyPlanItemRepository.saveAll(items);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Long userId, LocalDate planDate, Long itemId) {
+        dailyPlanItemRepository.findByIdAndUserIdAndPlanDate(itemId, userId, planDate)
+                .ifPresentOrElse(dailyPlanItemRepository::delete, () -> {
+                    throw new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND);
+                });
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public boolean containsTask(Long userId, LocalDate date, Long taskId) {
-        return dailyPlanRepository.containsTask(userId, date, taskId);
+    public boolean containsTask(Long userId, LocalDate planDate, Long taskId) {
+        return dailyPlanItemRepository.containsTask(userId, planDate, taskId);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public boolean containsAllTasks(Long userId, LocalDate date, List<Long> taskIds) {
-        Set<Long> plannedTaskIds = get(userId, date)
-                .stream()
-                .flatMap(plan -> plan.getItems().stream())
-                .map(item -> item.getTaskId())
-                .filter(taskId -> taskId != null)
-                .collect(Collectors.toSet());
-        return plannedTaskIds.containsAll(taskIds);
+    public boolean containsAllTasks(Long userId, LocalDate planDate, List<Long> taskIds) {
+        return taskIds.stream().allMatch(taskId -> containsTask(userId, planDate, taskId));
     }
 }

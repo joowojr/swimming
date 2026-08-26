@@ -48,13 +48,12 @@
     width: var(--button-height);
     min-height: var(--button-height);
     padding: 0;
-    border: var(--border-width) solid transparent;
+    border: none;
     border-radius: var(--radius-control);
     color: var(--color-mute);
     background: transparent;
     cursor: pointer;
     transition:
-            border-color var(--transition-short),
             background-color var(--transition-short),
             opacity var(--transition-short),
             transform var(--transition-short);
@@ -66,7 +65,7 @@
     gap: var(--space-1);
     min-height: var(--button-height);
     padding: 0 var(--button-padding-inline);
-    border: var(--border-width) solid var(--color-border-subtle);
+    border: none;
     border-radius: var(--radius-control);
     color: var(--color-on-surface);
     background: transparent;
@@ -75,20 +74,22 @@
     font-weight: var(--text-button-weight);
     cursor: pointer;
     transition:
-            border-color var(--transition-short),
             background-color var(--transition-short),
             opacity var(--transition-short);
 }
 
 .new-memo-action:hover:not(:disabled) {
-    border-color: var(--color-ash);
     background: var(--color-surface-container-lowest);
 }
 
 .memo-icon-action:hover:not(:disabled) {
-    border-color: var(--color-border-subtle);
     color: var(--color-on-surface);
     background: var(--color-surface-container-lowest);
+}
+
+/* 쓰레기통은 공용 DeleteIconButton의 테두리를 쓰므로, 메모장 안에서만 걷어낸다. */
+.memo-head-actions .memo-borderless {
+    border: none;
 }
 
 .memo-icon-action:active:not(:disabled),

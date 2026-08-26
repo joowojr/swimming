@@ -85,6 +85,7 @@ export default function NoteEditor({
             <IconArchive size={16} aria-hidden="true" />
           </button>
           <DeleteIconButton
+            className={styles['memo-borderless']}
             label="현재 메모 삭제"
             disabled={selectedNoteId === null || disabled}
             aria-expanded={isConfirmingDelete}

@@ -4,13 +4,12 @@ export interface CreateTaskRequest {
   title: string
 }
 
-export interface UpdateTaskRequest {
+export interface UpdateTaskTitleRequest {
   title: string
-  status: TaskStatus
 }
 
-export interface ReorderTasksRequest {
-  taskIds: number[]
+export interface UpdateTaskStatusRequest {
+  status: TaskStatus
 }
 
 export interface DeleteTasksRequest {

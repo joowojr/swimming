@@ -6,7 +6,7 @@ import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import { updateTask } from '../tasks/taskApi'
+import { updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
@@ -55,10 +55,7 @@ export default function TaskList({
     setUpdateError(null)
 
     try {
-      await updateTask(task.id, {
-        title: task.title,
-        status,
-      })
+      await updateTaskStatus(task.id, { status })
       onTaskUpdated?.()
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
@@ -95,10 +92,7 @@ export default function TaskList({
     setUpdateError(null)
 
     try {
-      await updateTask(task.id, {
-        title,
-        status: task.status,
-      })
+      await updateTaskTitle(task.id, { title })
       onTaskUpdated?.()
     } finally {
       setPendingTaskId(null)

@@ -2,9 +2,9 @@ import { client } from '../../api/client'
 import type {
   CreateTaskRequest,
   DeleteTasksRequest,
-  ReorderTasksRequest,
   TaskResponse,
-  UpdateTaskRequest,
+  UpdateTaskStatusRequest,
+  UpdateTaskTitleRequest,
 } from './taskTypes'
 
 export async function createTask(
@@ -23,11 +23,19 @@ export async function getTasks(projectId: number): Promise<TaskResponse[]> {
   return response.data
 }
 
-export async function updateTask(
+export async function updateTaskTitle(
   taskId: number,
-  request: UpdateTaskRequest,
+  request: UpdateTaskTitleRequest,
 ): Promise<TaskResponse> {
-  const response = await client.patch<TaskResponse>(`/tasks/${taskId}`, request)
+  const response = await client.patch<TaskResponse>(`/tasks/${taskId}/title`, request)
+  return response.data
+}
+
+export async function updateTaskStatus(
+  taskId: number,
+  request: UpdateTaskStatusRequest,
+): Promise<TaskResponse> {
+  const response = await client.patch<TaskResponse>(`/tasks/${taskId}/status`, request)
   return response.data
 }
 
@@ -35,9 +43,3 @@ export async function deleteTasks(request: DeleteTasksRequest): Promise<void> {
   await client.delete('/tasks', { data: request })
 }
 
-export async function reorderTasks(
-  projectId: number,
-  request: ReorderTasksRequest,
-): Promise<void> {
-  await client.put(`/projects/${projectId}/tasks/order`, request)
-}

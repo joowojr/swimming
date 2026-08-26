@@ -11,6 +11,7 @@ import {deleteTasks} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
 import {deleteProject, getProject, updateProject} from './projectApi'
+import {useProjectStore} from '../../store/projectStore'
 import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
 import TaskList from './TaskList'
 import NoteCard from '../note/NoteCard'
@@ -70,6 +71,7 @@ function openSelectPicker(select: HTMLSelectElement | null | undefined) {
 
 export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailProps) {
   const navigate = useNavigate()
+  const applyProjectToStore = useProjectStore((state) => state.apply)
   const [requestKey, setRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     projectId === null ? { status: 'error', notFound: true } : { status: 'loading' },
@@ -178,6 +180,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   }
 
   const applyUpdatedProject = (project: ProjectDetailData, updated: Awaited<ReturnType<typeof updateProject>>) => {
+    applyProjectToStore(updated)
     setState({
       status: 'ready',
       project: {

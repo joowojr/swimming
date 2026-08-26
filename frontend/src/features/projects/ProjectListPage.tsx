@@ -2,7 +2,7 @@ import { IconFilter, IconFolders, IconPlus, IconTags } from '@tabler/icons-react
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ProjectCard from './ProjectCard'
 import type { Project } from './projectTypes'
-import type { ProjectLoadStatus } from './ProjectDashboard'
+import type { ProjectLoadStatus } from './projectTypes'
 import styles from './ProjectListPage.module.css'
 
 interface ProjectListPageProps {

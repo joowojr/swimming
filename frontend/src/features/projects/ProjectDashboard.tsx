@@ -4,10 +4,8 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
-import type { Project } from './projectTypes'
+import type { Project, ProjectLoadStatus } from './projectTypes'
 import styles from './ProjectDashboard.module.css'
-
-export type ProjectLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 interface ProjectDashboardProps {
   projects: Project[]

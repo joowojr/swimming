@@ -17,6 +17,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
+import { useProjectStore } from '../../store/projectStore'
 import { getPlaces } from '../places/placeApi'
 import { getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
@@ -78,6 +79,7 @@ function errorMessage(error: unknown) {
 
 export default function PersonalSessionPage() {
   const navigate = useNavigate()
+  const projects = useProjectStore((state) => state.projects)
   const { sessionId } = useParams()
   const parsedSessionId = Number(sessionId)
   const validSessionId = Number.isSafeInteger(parsedSessionId) && parsedSessionId > 0
@@ -342,7 +344,7 @@ export default function PersonalSessionPage() {
       {widgets.tasks && !focusMode && (
         <NoteCard
           className={`${styles.widget} ${styles['session-note']}`}
-          projects={[]}
+          projects={projects}
           sessionId={state.session.id}
         />
       )}

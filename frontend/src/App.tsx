@@ -4,17 +4,16 @@ import { client } from './api/client'
 import CreateProjectModal from './features/projects/CreateProjectModal'
 import ProjectTagModal from './features/projects/ProjectTagModal'
 import ProjectDashboard from './features/projects/ProjectDashboard'
-import type { ProjectLoadStatus } from './features/projects/ProjectDashboard'
 import ProjectDetail from './features/projects/ProjectDetail'
 import ProjectListPage from './features/projects/ProjectListPage'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
-import { getProjects } from './features/projects/projectApi'
 import type { Project } from './features/projects/projectTypes'
 import AppShell from './layout/AppShell'
 import LoginPage from './pages/LoginPage'
 import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
+import { useProjectStore } from './store/projectStore'
 import styles from './App.module.css'
 
 interface HealthResponse {
@@ -40,10 +39,12 @@ function App() {
   const auth = useAuthStore()
   const [mysqlStatus, setMysqlStatus] = useState<ResourceStatus>('checking')
   const [guestView, setGuestView] = useState<GuestView>('home')
-  const [projects, setProjects] = useState<Project[]>([])
-  const [projectsOwnerId, setProjectsOwnerId] = useState<number | null>(null)
-  const [projectStatus, setProjectStatus] = useState<ProjectLoadStatus>('idle')
-  const [projectRequestKey, setProjectRequestKey] = useState(0)
+  const projects = useProjectStore((state) => state.projects)
+  const projectStatus = useProjectStore((state) => state.status)
+  const loadProjects = useProjectStore((state) => state.load)
+  const addProject = useProjectStore((state) => state.add)
+  const removeProject = useProjectStore((state) => state.remove)
+  const resetProjects = useProjectStore((state) => state.reset)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
@@ -69,26 +70,16 @@ function App() {
   }, [auth.status])
 
   useEffect(() => {
+    if (auth.status === 'unauthenticated') {
+      resetProjects()
+      return
+    }
+
     const userId = auth.user?.id
     if (auth.status !== 'authenticated' || userId === undefined) return
 
-    let active = true
-
-    void getProjects()
-      .then((response) => {
-        if (!active) return
-        setProjects(response)
-        setProjectsOwnerId(userId)
-        setProjectStatus('ready')
-      })
-      .catch(() => {
-        if (!active) return
-        setProjectsOwnerId(userId)
-        setProjectStatus('error')
-      })
-
-    return () => { active = false }
-  }, [auth.status, auth.user?.id, projectRequestKey])
+    void loadProjects(userId)
+  }, [auth.status, auth.user?.id, loadProjects, resetProjects])
 
   if (auth.status === 'checking') {
     return (
@@ -104,8 +95,15 @@ function App() {
     unavailable: '연결 대기 중',
   }[mysqlStatus]
 
-  const visibleProjects = auth.user?.id === projectsOwnerId ? projects : []
-  const visibleProjectStatus = auth.user?.id === projectsOwnerId ? projectStatus : 'idle'
+  const retryLoadProjects = () => {
+    const userId = auth.user?.id
+    if (userId !== undefined) void loadProjects(userId)
+  }
+
+  const handleProjectCreated = (project: Project) => {
+    addProject(project)
+    setIsCreateModalOpen(false)
+  }
 
   if (auth.status === 'authenticated' && location.pathname.startsWith('/sessions/')) {
     return (
@@ -119,7 +117,7 @@ function App() {
   return (
     <AppShell
       userEmail={auth.user?.email ?? null}
-      projectCount={auth.status === 'authenticated' ? visibleProjects.length : null}
+      projectCount={auth.status === 'authenticated' ? projects.length : null}
       onLogin={() => setGuestView('login')}
     >
       {auth.status === 'unauthenticated' && guestView === 'login' ? (
@@ -133,25 +131,16 @@ function App() {
             element={(
               <>
                 <ProjectListPage
-                  projects={visibleProjects}
-                  status={visibleProjectStatus}
+                  projects={projects}
+                  status={projectStatus}
                   onOpenCreate={() => setIsCreateModalOpen(true)}
                   onOpenTagManage={() => setIsTagModalOpen(true)}
-                  onRetry={() => {
-                    setProjectsOwnerId(auth.user?.id ?? null)
-                    setProjectStatus('loading')
-                    setProjectRequestKey((key) => key + 1)
-                  }}
+                  onRetry={retryLoadProjects}
                 />
                 {isCreateModalOpen && (
                   <CreateProjectModal
                     onClose={() => setIsCreateModalOpen(false)}
-                    onCreated={(project) => {
-                      setProjects((currentProjects) => [project, ...currentProjects])
-                      setProjectsOwnerId(auth.user?.id ?? null)
-                      setProjectStatus('ready')
-                      setIsCreateModalOpen(false)
-                    }}
+                    onCreated={handleProjectCreated}
                   />
                 )}
                 {isTagModalOpen && <ProjectTagModal onClose={() => setIsTagModalOpen(false)} />}
@@ -163,24 +152,15 @@ function App() {
             element={(
               <>
                 <ProjectDashboard
-                  projects={visibleProjects}
-                  status={visibleProjectStatus}
+                  projects={projects}
+                  status={projectStatus}
                   onOpenCreate={() => setIsCreateModalOpen(true)}
-                  onRetry={() => {
-                    setProjectsOwnerId(auth.user?.id ?? null)
-                    setProjectStatus('loading')
-                    setProjectRequestKey((key) => key + 1)
-                  }}
+                  onRetry={retryLoadProjects}
                 />
                 {isCreateModalOpen && (
                   <CreateProjectModal
                     onClose={() => setIsCreateModalOpen(false)}
-                    onCreated={(project) => {
-                      setProjects((currentProjects) => [project, ...currentProjects])
-                      setProjectsOwnerId(auth.user?.id ?? null)
-                      setProjectStatus('ready')
-                      setIsCreateModalOpen(false)
-                    }}
+                    onCreated={handleProjectCreated}
                   />
                 )}
                 {isTagModalOpen && <ProjectTagModal onClose={() => setIsTagModalOpen(false)} />}
@@ -189,10 +169,7 @@ function App() {
           />
           <Route
             path="/projects/:projectId"
-            element={<ProjectDetailRoute onDeleted={(projectId) => {
-              setProjects((current) => current.filter((project) => project.id !== projectId))
-              setProjectRequestKey((key) => key + 1)
-            }} />}
+            element={<ProjectDetailRoute onDeleted={removeProject} />}
           />
           <Route path="*" element={<Navigate to="/projects" replace />} />
         </Routes>

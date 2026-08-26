@@ -19,8 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -138,30 +136,6 @@ public class TaskService {
         }
 
         taskEntities.forEach(task -> task.changeStatus(statusByTaskId.get(task.getId())));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void updateOrder(Long projectId, List<Long> taskIds) {
-        List<TaskEntity> taskEntities = taskRepository
-                .findAllByProject_IdOrderByOrderIdxAscIdAsc(projectId);
-
-        if (taskEntities.size() != taskIds.size()
-                || new HashSet<>(taskIds).size() != taskIds.size()) {
-            throw new BusinessException(ErrorCode.INVALID_TASK_ORDER);
-        }
-
-        Map<Long, TaskEntity> tasksById = new HashMap<>();
-        for (TaskEntity taskEntity : taskEntities) {
-            tasksById.put(taskEntity.getId(), taskEntity);
-        }
-
-        for (int orderIdx = 0; orderIdx < taskIds.size(); orderIdx++) {
-            TaskEntity taskEntity = tasksById.get(taskIds.get(orderIdx));
-            if (taskEntity == null) {
-                throw new BusinessException(ErrorCode.INVALID_TASK_ORDER);
-            }
-            taskEntity.changeOrder(orderIdx);
-        }
     }
 
     private TaskEntity getOwnedEntity(Long userId, Long taskId) {

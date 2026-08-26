@@ -5,9 +5,9 @@ import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
-import com.swimming.backend.task.dto.in.ReorderTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,13 +43,24 @@ public class TaskUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public TaskResponse update(
+    public TaskResponse updateTitle(
             Long userId,
             Long taskId,
-            UpdateTaskRequest request
+            UpdateTaskTitleRequest request
     ) {
         Task task = taskService.getOne(userId, taskId);
-        task.update(request.title(), request.status());
+        task.changeTitle(request.title());
+        return TaskResponse.from(taskService.update(userId, task));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse updateStatus(
+            Long userId,
+            Long taskId,
+            UpdateTaskStatusRequest request
+    ) {
+        Task task = taskService.getOne(userId, taskId);
+        task.changeStatus(request.status());
         return TaskResponse.from(taskService.update(userId, task));
     }
 
@@ -59,13 +70,4 @@ public class TaskUseCase {
         taskService.deleteAll(userId, taskIds);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void reorder(
-            Long userId,
-            Long projectId,
-            ReorderTasksRequest request
-    ) {
-        ProjectReference project = projectService.getReference(userId, projectId);
-        taskService.updateOrder(project.id(), request.taskIds());
-    }
 }

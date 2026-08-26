@@ -7,9 +7,9 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
-import com.swimming.backend.task.dto.in.ReorderTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -95,43 +95,62 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("Task 제목과 상태를 수정한다")
-    void updatesTask() throws Exception {
-        UpdateTaskRequest request = new UpdateTaskRequest(
-                "API 구현",
-                TaskStatus.DOING
-        );
-        when(taskUseCase.update(1L, 1L, request))
-                .thenReturn(response(1L, "API 구현", TaskStatus.DOING, 0));
+    @DisplayName("Task 제목만 수정한다")
+    void updatesTaskTitle() throws Exception {
+        UpdateTaskTitleRequest request = new UpdateTaskTitleRequest("API 구현");
+        when(taskUseCase.updateTitle(1L, 1L, request))
+                .thenReturn(response(1L, "API 구현", TaskStatus.TODO, 0));
 
-        mockMvc.perform(patch("/api/tasks/1")
+        mockMvc.perform(patch("/api/tasks/1/title")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "title":"API 구현",
-                                  "status":"DOING"
-                                }
+                                {"title":"API 구현"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("API 구현"))
-                .andExpect(jsonPath("$.status").value("DOING"))
                 .andExpect(jsonPath("$.completionPct").doesNotExist());
     }
 
     @Test
-    @DisplayName("Task 수정 입력이 유효하지 않으면 필드 오류를 반환한다")
-    void returnsFieldErrorsForInvalidUpdate() throws Exception {
-        mockMvc.perform(patch("/api/tasks/1")
+    @DisplayName("Task 상태만 수정한다")
+    void updatesTaskStatus() throws Exception {
+        UpdateTaskStatusRequest request = new UpdateTaskStatusRequest(TaskStatus.DOING);
+        when(taskUseCase.updateStatus(1L, 1L, request))
+                .thenReturn(response(1L, "API 구현", TaskStatus.DOING, 0));
+
+        mockMvc.perform(patch("/api/tasks/1/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "title":" ",
-                                  "status":null
-                                }
+                                {"status":"DOING"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("API 구현"))
+                .andExpect(jsonPath("$.status").value("DOING"));
+    }
+
+    @Test
+    @DisplayName("빈 제목으로 수정하면 필드 오류를 반환한다")
+    void returnsFieldErrorForBlankTitle() throws Exception {
+        mockMvc.perform(patch("/api/tasks/1/title")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":" "}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.errors.title").exists())
+                .andExpect(jsonPath("$.errors.title").exists());
+    }
+
+    @Test
+    @DisplayName("상태 없이 상태 수정을 요청하면 필드 오류를 반환한다")
+    void returnsFieldErrorForMissingStatus() throws Exception {
+        mockMvc.perform(patch("/api/tasks/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":null}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.errors.status").exists());
     }
 
@@ -165,37 +184,18 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("프로젝트의 Task 순서를 저장하면 본문 없이 성공한다")
-    void reordersTasks() throws Exception {
-        ReorderTasksRequest request = new ReorderTasksRequest(List.of(3L, 1L, 2L));
-
-        mockMvc.perform(put("/api/projects/10/tasks/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"taskIds":[3,1,2]}
-                                """))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
-
-        verify(taskUseCase).reorder(1L, 10L, request);
-    }
-
-    @Test
     @DisplayName("다른 사용자의 Task는 찾을 수 없음으로 반환한다")
     void returnsNotFoundForAnotherUsersTask() throws Exception {
-        when(taskUseCase.update(
+        when(taskUseCase.updateTitle(
                 1L,
                 1L,
-                new UpdateTaskRequest("수정", TaskStatus.DOING)
+                new UpdateTaskTitleRequest("수정")
         )).thenThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND));
 
-        mockMvc.perform(patch("/api/tasks/1")
+        mockMvc.perform(patch("/api/tasks/1/title")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "title":"수정",
-                                  "status":"DOING"
-                                }
+                                {"title":"수정"}
                                 """))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))

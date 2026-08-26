@@ -8,9 +8,9 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
-import com.swimming.backend.task.dto.in.ReorderTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -71,33 +71,42 @@ class TaskUseCaseTest {
     }
 
     @Test
-    @DisplayName("사용자가 소유한 Task를 수정한다")
-    void updatesTaskAfterOwnershipCheck() {
+    @DisplayName("제목 수정은 상태를 건드리지 않는다")
+    void updatesOnlyTitleAfterOwnershipCheck() {
         Task task = task(1L, 10L, "기존", 0);
-        UpdateTaskRequest request = new UpdateTaskRequest(
-                "수정",
-                TaskStatus.DOING
-        );
+        task.changeStatus(TaskStatus.DOING);
         when(taskService.getOne(1L, 1L)).thenReturn(task);
         when(taskService.update(1L, task)).thenReturn(task);
 
-        TaskResponse response = taskUseCase.update(1L, 1L, request);
+        TaskResponse response = taskUseCase.updateTitle(
+                1L, 1L, new UpdateTaskTitleRequest("  수정  "));
 
         assertThat(response.title()).isEqualTo("수정");
         assertThat(response.status()).isEqualTo(TaskStatus.DOING);
     }
 
     @Test
+    @DisplayName("상태 수정은 제목을 건드리지 않는다")
+    void updatesOnlyStatusAfterOwnershipCheck() {
+        Task task = task(1L, 10L, "기존", 0);
+        when(taskService.getOne(1L, 1L)).thenReturn(task);
+        when(taskService.update(1L, task)).thenReturn(task);
+
+        TaskResponse response = taskUseCase.updateStatus(
+                1L, 1L, new UpdateTaskStatusRequest(TaskStatus.DONE));
+
+        assertThat(response.title()).isEqualTo("기존");
+        assertThat(response.status()).isEqualTo(TaskStatus.DONE);
+    }
+
+    @Test
     @DisplayName("다른 사용자의 Task는 찾을 수 없음으로 처리한다")
     void hidesAnotherUsersTask() {
-        UpdateTaskRequest request = new UpdateTaskRequest(
-                "수정",
-                TaskStatus.DOING
-        );
         when(taskService.getOne(2L, 1L))
                 .thenThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND));
 
-        assertThatThrownBy(() -> taskUseCase.update(2L, 1L, request))
+        assertThatThrownBy(() -> taskUseCase.updateTitle(
+                2L, 1L, new UpdateTaskTitleRequest("수정")))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
         verify(taskService).getOne(2L, 1L);
@@ -127,18 +136,6 @@ class TaskUseCaseTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
         verify(taskService).deleteAll(1L, List.of(1L, 2L));
-    }
-
-    @Test
-    @DisplayName("프로젝트 소유권을 확인한 뒤 Task 순서를 저장한다")
-    void reordersTasksAfterOwnershipCheck() {
-        ReorderTasksRequest request = new ReorderTasksRequest(List.of(2L, 1L));
-        when(projectService.getReference(1L, 10L))
-                .thenReturn(new ProjectReference(10L));
-
-        taskUseCase.reorder(1L, 10L, request);
-
-        verify(taskService).updateOrder(10L, List.of(2L, 1L));
     }
 
     private Task task(Long id, Long projectId, String title, int orderIdx) {

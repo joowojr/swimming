@@ -29,13 +29,25 @@ class TaskTest {
     }
 
     @Test
-    @DisplayName("Task가 자신의 제목과 상태를 수정한다")
-    void updatesTaskState() {
+    @DisplayName("Task가 자신의 제목을 앞뒤 공백 없이 수정한다")
+    void changesTitleOnly() {
         Task task = Task.create(1L, 10L, "API 명세 작성", 0);
+        task.changeStatus(TaskStatus.DOING);
 
-        task.update(" 수정 Task ", TaskStatus.HOLD);
+        task.changeTitle(" 수정 Task ");
 
         assertThat(task.getTitle()).isEqualTo("수정 Task");
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.DOING);
+    }
+
+    @Test
+    @DisplayName("Task가 제목을 유지한 채 상태만 수정한다")
+    void changesStatusOnly() {
+        Task task = Task.create(1L, 10L, "API 명세 작성", 0);
+
+        task.changeStatus(TaskStatus.HOLD);
+
+        assertThat(task.getTitle()).isEqualTo("API 명세 작성");
         assertThat(task.getStatus()).isEqualTo(TaskStatus.HOLD);
     }
 }

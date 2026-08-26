@@ -97,8 +97,11 @@ public class Task {
         );
     }
 
-    public void update(String title, TaskStatus status) {
+    public void changeTitle(String title) {
         this.title = title.trim();
+    }
+
+    public void changeStatus(TaskStatus status) {
         this.status = status;
     }
 }

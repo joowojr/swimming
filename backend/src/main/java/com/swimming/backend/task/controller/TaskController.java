@@ -3,9 +3,9 @@ package com.swimming.backend.task.controller;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
-import com.swimming.backend.task.dto.in.ReorderTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -54,13 +54,22 @@ public class TaskController {
         return ResponseEntity.ok(taskUseCase.getAll(authUser.id(), projectId));
     }
 
-    @PatchMapping("/tasks/{taskId}")
-    public ResponseEntity<TaskResponse> update(
+    @PatchMapping("/tasks/{taskId}/title")
+    public ResponseEntity<TaskResponse> updateTitle(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long taskId,
-            @Valid @RequestBody UpdateTaskRequest request
+            @Valid @RequestBody UpdateTaskTitleRequest request
     ) {
-        return ResponseEntity.ok(taskUseCase.update(authUser.id(), taskId, request));
+        return ResponseEntity.ok(taskUseCase.updateTitle(authUser.id(), taskId, request));
+    }
+
+    @PatchMapping("/tasks/{taskId}/status")
+    public ResponseEntity<TaskResponse> updateStatus(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @Valid @RequestBody UpdateTaskStatusRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updateStatus(authUser.id(), taskId, request));
     }
 
     @DeleteMapping("/tasks")
@@ -72,13 +81,4 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/projects/{projectId}/tasks/order")
-    public ResponseEntity<Void> reorder(
-            @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long projectId,
-            @Valid @RequestBody ReorderTasksRequest request
-    ) {
-        taskUseCase.reorder(authUser.id(), projectId, request);
-        return ResponseEntity.noContent().build();
-    }
 }

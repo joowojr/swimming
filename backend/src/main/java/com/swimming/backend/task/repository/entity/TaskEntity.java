@@ -76,9 +76,6 @@ public class TaskEntity extends BaseTimeEntity {
         this.status = status;
     }
 
-    public void changeOrder(int orderIdx) {
-        this.orderIdx = orderIdx;
-    }
 
     public Task toDomain() {
         return Task.restore(

@@ -150,7 +150,8 @@ class TaskServiceTest {
         when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.of(entity));
 
         Task task = entity.toDomain();
-        task.update(" 수정 Task ", TaskStatus.HOLD);
+        task.changeTitle(" 수정 Task ");
+        task.changeStatus(TaskStatus.HOLD);
 
         Task result = taskService.update(1L, task);
 
@@ -284,52 +285,6 @@ class TaskServiceTest {
         assertThat(owned.getStatus()).isEqualTo(TaskStatus.TODO);
     }
 
-    @Test
-    @DisplayName("전달받은 전체 Task ID 순서대로 순서를 다시 부여한다")
-    void reordersEveryTaskInProject() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        TaskEntity third = taskEntity(3L, 10L, "셋째", 2);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
-                .thenReturn(List.of(first, second, third));
-
-        taskService.updateOrder(10L, List.of(3L, 1L, 2L));
-
-        assertThat(third.getOrderIdx()).isZero();
-        assertThat(first.getOrderIdx()).isEqualTo(1);
-        assertThat(second.getOrderIdx()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("Task ID가 누락되거나 중복된 순서 요청을 거부한다")
-    void rejectsIncompleteOrDuplicateOrder() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
-                .thenReturn(List.of(first, second));
-
-        assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L)))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_ORDER));
-
-        assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L, 1L)))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_ORDER));
-    }
-
-    @Test
-    @DisplayName("다른 프로젝트의 Task가 포함된 순서 요청을 거부한다")
-    void rejectsTaskFromAnotherProjectInOrder() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
-                .thenReturn(List.of(first, second));
-
-        assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L, 99L)))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_ORDER));
-    }
-
     private TaskEntity taskEntity(Long id, Long projectId, String title, int orderIdx) {
         return taskEntity(id, projectId, title, orderIdx, TaskStatus.TODO);
     }
@@ -342,7 +297,7 @@ class TaskServiceTest {
             TaskStatus status
     ) {
         Task task = Task.create(1L, projectId, title, orderIdx);
-        task.update(title, status);
+        task.changeStatus(status);
         TaskEntity entity = TaskEntity.from(task, user(1L), project(projectId), null);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;

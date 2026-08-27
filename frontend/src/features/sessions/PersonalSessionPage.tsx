@@ -238,7 +238,7 @@ export default function PersonalSessionPage() {
             setState({ status: 'loading' })
             setRequestKey((key) => key + 1)
           }}>다시 불러오기</button>}
-          <button type="button" onClick={() => navigate('/projects')}>내 프로젝트로</button>
+          <button type="button" onClick={() => navigate('/folders')}>내 폴더로</button>
         </div>
       </main>
     )

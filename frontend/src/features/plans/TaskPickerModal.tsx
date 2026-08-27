@@ -118,7 +118,7 @@ export default function TaskPickerModal({
         <header className={`${styles.header} ${modalStyles.header}`}>
           <div>
             <h2 id="task-picker-title">할 일 추가</h2>
-            <p>새 할 일을 만들거나 프로젝트별 할 일을 골라 주세요.</p>
+            <p>새 할 일을 만들거나 폴더별 할 일을 골라 주세요.</p>
           </div>
           <button type="button" aria-label="Task 선택 창 닫기" disabled={isSubmitting} onClick={requestClose}>
             <IconX size={20} aria-hidden="true" />
@@ -147,7 +147,7 @@ export default function TaskPickerModal({
           >
             <label htmlFor="daily-plan-ad-hoc-title">직접 추가</label>
             <select
-              aria-label="할 일을 추가할 프로젝트"
+              aria-label="할 일을 추가할 폴더"
               value={projectId}
               disabled={isSubmitting}
               onChange={(event) => {
@@ -187,14 +187,14 @@ export default function TaskPickerModal({
             </div>
           </form>
           <section className={styles['task-select']} aria-labelledby="task-select-label">
-            <label id="task-select-label" htmlFor="daily-plan-task-project">프로젝트에서 선택</label>
+            <label id="task-select-label" htmlFor="daily-plan-task-project">폴더에서 선택</label>
             <select
               id="daily-plan-task-project"
               value={taskProjectId}
               disabled={isSubmitting || state.status !== 'ready'}
               onChange={(event) => setTaskProjectId(event.target.value)}
             >
-              <option value="">프로젝트</option>
+              <option value="">폴더</option>
               {state.status === 'ready' && state.details.map((detail) => (
                 <option value={detail.id} key={detail.id}>{detail.name}</option>
               ))}
@@ -208,9 +208,9 @@ export default function TaskPickerModal({
             ) : state.status === 'error' ? (
               <p className={styles.state} role="alert">작업을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
             ) : !taskProjectId ? (
-              <p className={styles.state}>프로젝트를 선택하면 할 일을 확인할 수 있습니다.</p>
+              <p className={styles.state}>폴더를 선택하면 할 일을 확인할 수 있습니다.</p>
             ) : !activeProject || activeProject.tasks.length === 0 ? (
-              <p className={styles.state}>이 프로젝트에는 선택할 Task가 없습니다.</p>
+              <p className={styles.state}>이 폴더에는 선택할 Task가 없습니다.</p>
             ) : (
               <div className={styles.group}>
                 <ul>

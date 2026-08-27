@@ -36,7 +36,7 @@
     --color-focus-inner: var(--color-on-primary);
     --color-primary-container: #3451b2;
 
-    /* Entity tones - 프로젝트 구분용. 명도를 맞춰 어떤 항목도 더 중요해 보이지 않게 한다. */
+    /* Entity tones - 폴더 구분용. 명도를 맞춰 어떤 항목도 더 중요해 보이지 않게 한다. */
     --color-tone-fountain: #64ADB3;
     --color-tone-indigo: #6276b6;
     --color-tone-glorious: #F1766F;

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { getProjects } from '../features/projects/projectApi'
 import type { Project, ProjectLoadStatus } from '../features/projects/projectTypes'
 
-/** 역할: 프로젝트 목록의 조회와 변경을 한곳에서 관리해, 화면마다 콜백을 배선하지 않게 한다. */
+/** 역할: 폴더 목록의 조회와 변경을 한곳에서 관리해, 화면마다 콜백을 배선하지 않게 한다. */
 interface ProjectStoreState {
   projects: Project[]
   status: ProjectLoadStatus

@@ -121,7 +121,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
 
   const removeTag = async (tag: ProjectTag) => {
     const confirmed = window.confirm(
-      `'${tag.name}' 태그를 삭제하면 연결된 프로젝트에서 태그가 해제됩니다. 삭제할까요?`,
+      `'${tag.name}' 태그를 삭제하면 연결된 폴더에서 태그가 해제됩니다. 삭제할까요?`,
     )
     if (!confirmed) return
 
@@ -148,8 +148,8 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
       <section className={`${styles.modal} ${modalStyles.surface}`} aria-labelledby="project-tag-title">
         <header className={`${styles.header} ${modalStyles.header}`}>
           <div>
-            <h2 id="project-tag-title">프로젝트 태그 관리</h2>
-            <p>프로젝트를 분류할 태그를 추가하고 정리하세요.</p>
+            <h2 id="project-tag-title">폴더 태그 관리</h2>
+            <p>폴더를 분류할 태그를 추가하고 정리하세요.</p>
           </div>
           <button type="button" className={styles.close} aria-label="태그 관리 닫기" onClick={requestClose} disabled={pendingAction !== null}>
             <IconX size={20} aria-hidden="true" />

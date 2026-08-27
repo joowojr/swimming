@@ -20,7 +20,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
-  { label: '프로젝트', icon: IconFolder, href: '/projects', end: true },
+  { label: '폴더', icon: IconFolder, href: '/folders', end: true },
   { label: '다이브 세션', icon: IconUsers, href: '/sessions', end: true },
   { label: '캘린더', icon: IconCalendar, disabled: true },
 ]
@@ -34,7 +34,7 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
         <ul className={styles['navigation-list']}>
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const badge = item.label === '프로젝트' && projectCount !== null
+            const badge = item.label === '폴더' && projectCount !== null
               ? String(projectCount)
               : item.badge
 
@@ -51,7 +51,7 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>
                     {badge && (
-                      <span className={styles['navigation-badge']} aria-label={`프로젝트 ${badge}개`}>
+                      <span className={styles['navigation-badge']} aria-label={`폴더 ${badge}개`}>
                         {badge}
                       </span>
                     )}
@@ -66,7 +66,7 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>
                     {badge && (
-                      <span className={styles['navigation-badge']} aria-label={`프로젝트 ${badge}개`}>
+                      <span className={styles['navigation-badge']} aria-label={`폴더 ${badge}개`}>
                         {badge}
                       </span>
                     )}

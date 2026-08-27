@@ -56,7 +56,7 @@ type OrganizerState =
 
 const LOADING_MESSAGE_INTERVAL_MS = 1000
 const LOADING_MESSAGES = [
-  '최근 프로젝트 목록을 조회하고 있어요',
+  '최근 폴더 목록을 조회하고 있어요',
   '최근 할 일 목록을 살펴보고 있어요',
   '메모에서 할 일을 정리하고 있어요',
   '정리 결과를 준비하고 있어요',
@@ -220,7 +220,7 @@ export default function TaskOrganizerPanel({
           projectId: task.projectId,
           projectName: task.projectId === null
             ? null
-            : projects.find((project) => project.id === task.projectId)?.name ?? '프로젝트',
+            : projects.find((project) => project.id === task.projectId)?.name ?? '폴더',
           planDate: today,
           selected: true,
         })),
@@ -379,7 +379,7 @@ export default function TaskOrganizerPanel({
         <h4 id="organize-preview-title">할 일 미리보기</h4>
         <span>{selectedItems.length}개 등록</span>
       </div>
-      <p className={styles['organize-preview-guide']}>할 일과 프로젝트를 클릭하면 원하는 대로</p>
+      <p className={styles['organize-preview-guide']}>할 일과 폴더를 클릭하면 원하는 대로</p>
       <p className={styles['organize-preview-guide']}>수정할 수 있어요</p>
       <div className={styles['organize-preview-list-wrap']}>
         {state.items.length > 0 ? (
@@ -387,7 +387,7 @@ export default function TaskOrganizerPanel({
             {state.items.map((item) => {
               const projectName = item.projectId === null
                 ? '미분류'
-                : projects.find((project) => project.id === item.projectId)?.name ?? item.projectName ?? '프로젝트'
+                : projects.find((project) => project.id === item.projectId)?.name ?? item.projectName ?? '폴더'
               return (
                 <li className={!item.selected
                   ? styles['organize-task-row-excluded']

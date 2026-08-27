@@ -109,7 +109,7 @@ function App() {
     return (
       <Routes>
         <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
-        <Route path="*" element={<Navigate to="/projects" replace />} />
+        <Route path="*" element={<Navigate to="/folders" replace />} />
       </Routes>
     )
   }
@@ -127,7 +127,7 @@ function App() {
           <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
           <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
-            path="/projects"
+            path="/folders"
             element={(
               <>
                 <ProjectListPage
@@ -178,17 +178,17 @@ function App() {
             )}
           />
           <Route
-            path="/projects/:projectId"
+            path="/folders/:projectId"
             element={<ProjectDetailRoute onDeleted={removeProject} />}
           />
-          <Route path="*" element={<Navigate to="/projects" replace />} />
+          <Route path="*" element={<Navigate to="/folders" replace />} />
         </Routes>
       ) : (
         <section className={styles['home-overview']} aria-live="polite">
           <p className={styles.eyebrow}>Swimming workspace</p>
-          <h1>내 프로젝트</h1>
+          <h1>내 폴더</h1>
           <p className={styles.description}>
-            프로젝트와 몰입 세션을 한 단계씩 쌓아갈 기본 환경입니다.
+            폴더와 몰입 세션을 한 단계씩 쌓아갈 기본 환경입니다.
           </p>
           <div className={styles['connection-status']}>
             <span className={styles['status-dot']} aria-hidden="true" />

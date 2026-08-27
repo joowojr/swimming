@@ -1,6 +1,11 @@
+import { useEffect, useMemo, useState } from 'react'
 import { IconFilter, IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
+import { useSearchParams } from 'react-router-dom'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
+import { getTaskList } from '../tasks/taskApi'
+import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
 import ProjectCard from './ProjectCard'
+import TaskList from './TaskList'
 import type { Project } from './projectTypes'
 import type { ProjectLoadStatus } from './projectTypes'
 import styles from './ProjectListPage.module.css'
@@ -13,6 +18,20 @@ interface ProjectListPageProps {
   onOpenTagManage: () => void
 }
 
+type ProjectView = 'projects' | 'all' | 'unclassified'
+
+interface TaskListState {
+  mode: TaskListMode | null
+  status: ProjectLoadStatus
+  tasks: TaskResponse[]
+}
+
+const PROJECT_VIEWS: { value: ProjectView; label: string }[] = [
+  { value: 'projects', label: '폴더' },
+  { value: 'all', label: '최신순' },
+  { value: 'unclassified', label: '미분류' },
+]
+
 export default function ProjectListPage({
   projects,
   status,
@@ -20,12 +39,51 @@ export default function ProjectListPage({
   onOpenCreate,
   onOpenTagManage,
 }: ProjectListPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const viewParam = searchParams.get('view')
+  const activeView: ProjectView = viewParam === 'all' || viewParam === 'unclassified'
+    ? viewParam
+    : 'projects'
+  const taskMode: TaskListMode | null = activeView === 'projects' ? null : activeView
+  const [taskListState, setTaskListState] = useState<TaskListState>({
+    mode: null,
+    status: 'idle',
+    tasks: [],
+  })
+  const [taskReloadKey, setTaskReloadKey] = useState(0)
+  const folderNameById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project.name])),
+    [projects],
+  )
+
+  useEffect(() => {
+    if (taskMode === null) return
+
+    const controller = new AbortController()
+    setTaskListState({ mode: taskMode, status: 'loading', tasks: [] })
+
+    void getTaskList(taskMode, controller.signal)
+      .then((tasks) => {
+        setTaskListState({ mode: taskMode, status: 'ready', tasks })
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setTaskListState({ mode: taskMode, status: 'error', tasks: [] })
+      })
+
+    return () => controller.abort()
+  }, [taskMode, taskReloadKey])
+
+  const changeView = (view: ProjectView) => {
+    setSearchParams(view === 'projects' ? {} : { view })
+  }
+
   return (
     <section className={styles.page} aria-labelledby="projects-page-title">
       <header className={styles.heading}>
         <div>
-          <h1 id="projects-page-title">프로젝트</h1>
-          <p>진행 중인 프로젝트를 한곳에서 확인합니다.</p>
+          <h1 id="projects-page-title">폴더</h1>
+          <p>진행 중인 할 일을 확인하고 관리합니다.</p>
         </div>
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} disabled title="필터 · 준비 중">
@@ -41,32 +99,80 @@ export default function ProjectListPage({
             icon={<IconPlus size={18} aria-hidden="true" />}
             onClick={onOpenCreate}
           >
-            새 프로젝트
+            새 폴더
           </ModalTriggerButton>
         </div>
       </header>
 
-      {status === 'loading' || status === 'idle' ? (
+      <nav className={styles['view-switcher']} aria-label="폴더 화면 전환">
+        {PROJECT_VIEWS.map((view) => (
+          <button
+            type="button"
+            className={activeView === view.value ? styles['view-button-active'] : styles['view-button']}
+            aria-pressed={activeView === view.value}
+            onClick={() => changeView(view.value)}
+            key={view.value}
+          >
+            {view.label}
+          </button>
+        ))}
+      </nav>
+
+      {taskMode !== null ? (
+        taskListState.mode !== taskMode
+        || taskListState.status === 'loading'
+        || taskListState.status === 'idle' ? (
+          <div className={styles.state} role="status">
+            <span className={styles['state-mark']} aria-hidden="true" />
+            <p>할 일을 불러오고 있습니다.</p>
+          </div>
+        ) : taskListState.status === 'error' ? (
+          <div className={styles.state}>
+            <p>할 일 목록을 불러오지 못했습니다.</p>
+            <button type="button" onClick={() => setTaskReloadKey((key) => key + 1)}>
+              다시 불러오기
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className={styles['section-heading']}>
+              <h2>{taskMode === 'all' ? '최신 할 일' : '미분류 할 일'}</h2>
+              <span>{taskListState.tasks.length}개</span>
+            </div>
+            <TaskList
+              tasks={taskListState.tasks}
+              emptyTitle={taskMode === 'all' ? '등록된 할 일이 없어요.' : '미분류 할 일이 없어요.'}
+              emptyDescription={taskMode === 'all'
+                ? '할 일을 만들면 최신순으로 이곳에 표시됩니다.'
+                : '폴더에 연결되지 않은 할 일이 이곳에 표시됩니다.'}
+              getMetaText={(task) => task.projectId === null
+                ? '미분류'
+                : folderNameById.get(task.projectId ?? -1) ?? '폴더'}
+              onTaskUpdated={() => setTaskReloadKey((key) => key + 1)}
+            />
+          </>
+        )
+      ) : status === 'loading' || status === 'idle' ? (
         <div className={styles.state} role="status">
           <span className={styles['state-mark']} aria-hidden="true" />
-          <p>프로젝트를 불러오고 있습니다.</p>
+          <p>폴더를 불러오고 있습니다.</p>
         </div>
       ) : status === 'error' ? (
         <div className={styles.state}>
-          <p>프로젝트 목록을 불러오지 못했습니다.</p>
+          <p>폴더 목록을 불러오지 못했습니다.</p>
           <button type="button" onClick={onRetry}>다시 불러오기</button>
         </div>
       ) : (
         <>
           <div className={styles['section-heading']}>
-            <h2>전체 프로젝트</h2>
+            <h2>전체 폴더</h2>
             <span>{projects.length}개</span>
           </div>
           {projects.length === 0 ? (
             <div className={styles.empty}>
               <IconFolders size={28} stroke={1.5} aria-hidden="true" />
-              <h3>프로젝트를 시작할 준비가 되었습니다.</h3>
-              <p>새 프로젝트를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
+              <h3>폴더를 시작할 준비가 되었습니다.</h3>
+              <p>새 폴더를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
             </div>
           ) : (
             <div className={styles.grid}>

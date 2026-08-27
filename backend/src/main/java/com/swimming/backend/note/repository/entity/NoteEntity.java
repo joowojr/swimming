@@ -38,8 +38,7 @@ public class NoteEntity extends BaseTimeEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1024)
     private String content;
 
     @Enumerated(EnumType.STRING)

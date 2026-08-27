@@ -85,6 +85,22 @@ public class TaskService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Task> getAll(Long userId) {
+        return taskRepository.findAllByUser_IdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(TaskEntity::toDomain)
+                .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Task> getUnclassified(Long userId) {
+        return taskRepository.findAllByUser_IdAndProjectIsNullOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(TaskEntity::toDomain)
+                .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskReference> getReferences(Long userId, List<Long> taskIds) {
         return taskRepository.findAllOwnedByIds(userId, taskIds);
     }

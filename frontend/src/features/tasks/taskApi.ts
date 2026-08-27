@@ -2,6 +2,7 @@ import { client } from '../../api/client'
 import type {
   CreateTaskRequest,
   DeleteTasksRequest,
+  TaskListMode,
   TaskResponse,
   UpdateTaskStatusRequest,
   UpdateTaskTitleRequest,
@@ -20,6 +21,17 @@ export async function createTask(
 
 export async function getTasks(projectId: number): Promise<TaskResponse[]> {
   const response = await client.get<TaskResponse[]>(`/projects/${projectId}/tasks`)
+  return response.data
+}
+
+export async function getTaskList(
+  mode: TaskListMode,
+  signal?: AbortSignal,
+): Promise<TaskResponse[]> {
+  const response = await client.get<TaskResponse[]>('/tasks', {
+    params: { mode },
+    signal,
+  })
   return response.data
 }
 
@@ -42,4 +54,3 @@ export async function updateTaskStatus(
 export async function deleteTasks(request: DeleteTasksRequest): Promise<void> {
   await client.delete('/tasks', { data: request })
 }
-

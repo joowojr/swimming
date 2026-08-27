@@ -59,9 +59,9 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("프로젝트의 첫 Task를 기본 상태와 순서로 생성해 순수 도메인으로 반환한다")
+    @DisplayName("폴더의 첫 Task를 기본 상태와 순서로 생성해 순수 도메인으로 반환한다")
     void createsFirstTaskWithDefaults() {
-        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdOrderByIdDesc(10L))
                 .thenReturn(Optional.empty());
         when(taskRepository.saveAndFlush(any(TaskEntity.class))).thenAnswer(invocation -> {
             TaskEntity entity = invocation.getArgument(0);
@@ -81,7 +81,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("기존 마지막 Task 다음 순서로 생성한다")
     void createsTaskAfterCurrentLastOrder() {
-        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdOrderByIdDesc(10L))
                 .thenReturn(Optional.of(taskEntity(3L, 10L, "기존 Task", 4)));
 
         Task task = taskService.create(1L, 10L, "새 Task");
@@ -90,7 +90,7 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("프로젝트 없는 Task를 사용자 기준 다음 순서로 생성한다")
+    @DisplayName("폴더 없는 Task를 사용자 기준 다음 순서로 생성한다")
     void createsProjectlessTaskForUser() {
         when(taskRepository.findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(1L))
                 .thenReturn(Optional.empty());
@@ -112,7 +112,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("Note에서 생성한 Task에 원문 Note ID를 저장한다")
     void createsTaskWithSourceNote() {
-        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdOrderByIdDesc(10L))
                 .thenReturn(Optional.empty());
 
         Task task = taskService.createFromNote(1L, 10L, 7L, "새 Task");
@@ -131,6 +131,35 @@ class TaskServiceTest {
 
         assertThat(task.getId()).isEqualTo(1L);
         assertThat(task.getProjectId()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("사용자의 모든 Task를 최신순 조회 결과대로 반환한다")
+    void returnsAllOwnedTasksInLatestOrder() {
+        TaskEntity recent = taskEntity(2L, null, "최근 Task", 0);
+        TaskEntity previous = taskEntity(1L, 10L, "이전 Task", 0);
+        when(taskRepository.findAllByUser_IdOrderByCreatedAtDesc(1L))
+                .thenReturn(List.of(recent, previous));
+
+        List<Task> tasks = taskService.getAll(1L);
+
+        assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
+        verify(taskRepository).findAllByUser_IdOrderByCreatedAtDesc(1L);
+    }
+
+    @Test
+    @DisplayName("사용자의 폴더 없는 Task를 최신순 조회 결과대로 반환한다")
+    void returnsUnclassifiedTasksInLatestOrder() {
+        TaskEntity recent = taskEntity(2L, null, "최근 미분류", 0);
+        TaskEntity previous = taskEntity(1L, null, "이전 미분류", 0);
+        when(taskRepository.findAllByUser_IdAndProjectIsNullOrderByCreatedAtDesc(1L))
+                .thenReturn(List.of(recent, previous));
+
+        List<Task> tasks = taskService.getUnclassified(1L);
+
+        assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
+        assertThat(tasks).allMatch(task -> task.getProjectId() == null);
+        verify(taskRepository).findAllByUser_IdAndProjectIsNullOrderByCreatedAtDesc(1L);
     }
 
     @Test
@@ -161,11 +190,11 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("사용자가 소유한 여러 Task를 프로젝트 정보가 포함된 조회 DTO로 반환한다")
+    @DisplayName("사용자가 소유한 여러 Task를 폴더 정보가 포함된 조회 DTO로 반환한다")
     void returnsTaskReferencesByIds() {
         List<TaskReference> expected = List.of(
-                new TaskReference(1L, 10L, "첫 프로젝트", "첫째", TaskStatus.TODO),
-                new TaskReference(2L, 20L, "둘 프로젝트", "둘째", TaskStatus.DOING)
+                new TaskReference(1L, 10L, "첫 폴더", "첫째", TaskStatus.TODO),
+                new TaskReference(2L, 20L, "둘 폴더", "둘째", TaskStatus.DOING)
         );
         when(taskRepository.findAllOwnedByIds(1L, List.of(2L, 1L)))
                 .thenReturn(expected);
@@ -173,11 +202,11 @@ class TaskServiceTest {
         List<TaskReference> references = taskService.getReferences(1L, List.of(2L, 1L));
 
         assertThat(references).isSameAs(expected);
-        assertThat(references.get(1).projectName()).isEqualTo("둘 프로젝트");
+        assertThat(references.get(1).projectName()).isEqualTo("둘 폴더");
     }
 
     @Test
-    @DisplayName("Task Organizer용 프로젝트와 Task 컨텍스트를 단일 조회 결과로 반환한다")
+    @DisplayName("Task Organizer용 폴더와 Task 컨텍스트를 단일 조회 결과로 반환한다")
     void returnsTaskOrganizerContextFromSingleQuery() {
         List<TaskOrganizerContextRow> expected = List.of(
                 new TaskOrganizerContextRow(
@@ -190,7 +219,7 @@ class TaskServiceTest {
                 ),
                 new TaskOrganizerContextRow(
                         20L,
-                        "빈 프로젝트",
+                        "빈 폴더",
                         null,
                         null,
                         null,
@@ -207,11 +236,11 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("프로젝트 상세용 Task 요약을 저장된 순서대로 반환한다")
+    @DisplayName("폴더 상세용 Task 요약을 저장된 순서대로 반환한다")
     void returnsTaskSummariesInStoredOrder() {
         TaskEntity first = taskEntity(2L, 10L, "첫째", 0, TaskStatus.DOING);
         TaskEntity second = taskEntity(1L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
+        when(taskRepository.findAllByProject_IdOrderByCreatedAtDesc(10L))
                 .thenReturn(List.of(first, second));
 
         List<TaskSummaryResponse> responses = taskService.getSummaries(10L);
@@ -298,7 +327,8 @@ class TaskServiceTest {
     ) {
         Task task = Task.create(1L, projectId, title, orderIdx);
         task.changeStatus(status);
-        TaskEntity entity = TaskEntity.from(task, user(1L), project(projectId), null);
+        ProjectEntity project = projectId == null ? null : project(projectId);
+        TaskEntity entity = TaskEntity.from(task, user(1L), project, null);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
@@ -306,7 +336,7 @@ class TaskServiceTest {
     private ProjectEntity project(Long projectId) {
         User user = user(1L);
         ProjectEntity project = ProjectEntity.from(
-                Project.create(1L, null, "프로젝트", "설명", null),
+                Project.create(1L, null, "폴더", "설명", null),
                 user,
                 null
         );

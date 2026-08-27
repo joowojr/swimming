@@ -15,6 +15,10 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     List<TaskEntity> findAllByProject_IdOrderByCreatedAtDesc(Long projectId);
 
+    List<TaskEntity> findAllByUser_IdOrderByCreatedAtDesc(Long userId);
+
+    List<TaskEntity> findAllByUser_IdAndProjectIsNullOrderByCreatedAtDesc(Long userId);
+
     Optional<TaskEntity> findTopByProject_IdOrderByIdDesc(Long projectId);
 
     Optional<TaskEntity> findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(Long userId);

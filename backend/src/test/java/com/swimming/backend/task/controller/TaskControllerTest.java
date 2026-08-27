@@ -8,6 +8,7 @@ import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
@@ -79,9 +80,9 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("프로젝트 Task 목록을 저장된 순서대로 반환한다")
+    @DisplayName("폴더 Task 목록을 저장된 순서대로 반환한다")
     void returnsProjectTasks() throws Exception {
-        when(taskUseCase.getAll(1L, 10L)).thenReturn(List.of(
+        when(taskUseCase.getByProject(1L, 10L)).thenReturn(List.of(
                 response(2L, "첫째", TaskStatus.DOING, 0),
                 response(1L, "둘째", TaskStatus.TODO, 1)
         ));
@@ -92,6 +93,63 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$[0].orderIdx").value(0))
                 .andExpect(jsonPath("$[1].id").value(1))
                 .andExpect(jsonPath("$[1].orderIdx").value(1));
+    }
+
+    @Test
+    @DisplayName("전체 모드로 사용자의 모든 Task를 조회한다")
+    void returnsAllOwnedTasks() throws Exception {
+        when(taskUseCase.getList(1L, TaskListMode.ALL)).thenReturn(List.of(
+                response(2L, "최근 Task", TaskStatus.DOING, 1),
+                response(1L, "이전 Task", TaskStatus.TODO, 0)
+        ));
+
+        mockMvc.perform(get("/api/tasks").queryParam("mode", "all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[1].id").value(1));
+
+        verify(taskUseCase).getList(1L, TaskListMode.ALL);
+    }
+
+    @Test
+    @DisplayName("미분류 모드로 폴더 없는 Task를 조회한다")
+    void returnsUnclassifiedTasks() throws Exception {
+        TaskResponse unclassified = new TaskResponse(
+                2L,
+                null,
+                "미분류 Task",
+                TaskStatus.TODO,
+                0,
+                LocalDateTime.of(2026, 8, 20, 10, 0),
+                LocalDateTime.of(2026, 8, 20, 10, 0)
+        );
+        when(taskUseCase.getList(1L, TaskListMode.UNCLASSIFIED))
+                .thenReturn(List.of(unclassified));
+
+        mockMvc.perform(get("/api/tasks").queryParam("mode", "unclassified"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[0].projectId").doesNotExist());
+
+        verify(taskUseCase).getList(1L, TaskListMode.UNCLASSIFIED);
+    }
+
+    @Test
+    @DisplayName("지원하지 않는 Task 목록 모드는 ProblemDetail로 거부한다")
+    void rejectsUnsupportedTaskListMode() throws Exception {
+        mockMvc.perform(get("/api/tasks").queryParam("mode", "project"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("INVALID_TASK_LIST_MODE"));
+    }
+
+    @Test
+    @DisplayName("Task 목록 모드가 없으면 ProblemDetail로 거부한다")
+    void rejectsMissingTaskListMode() throws Exception {
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("INVALID_TASK_LIST_MODE"));
     }
 
     @Test

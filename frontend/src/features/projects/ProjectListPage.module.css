@@ -38,6 +38,33 @@
   gap: var(--space-3);
 }
 
+.view-switcher {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-default);
+  background: var(--color-surface-lowest);
+}
+
+.view-button,
+.view-button-active {
+  min-height: var(--button-height);
+  padding: 0 var(--button-padding-inline);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  background: transparent;
+}
+
+.view-button-active {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
 .actions button,
 .state button {
   display: inline-flex;
@@ -147,6 +174,16 @@
   }
 
   .actions button {
+    flex: 1;
+  }
+
+  .view-switcher {
+    display: flex;
+    width: 100%;
+  }
+
+  .view-button,
+  .view-button-active {
     flex: 1;
   }
 

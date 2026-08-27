@@ -4,6 +4,7 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -51,6 +53,14 @@ public class TaskController {
             @PathVariable Long projectId
     ) {
         return ResponseEntity.ok(taskUseCase.getByProject(authUser.id(), projectId));
+    }
+
+    @GetMapping("/tasks")
+    public ResponseEntity<List<TaskResponse>> getList(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(required = false) String mode
+    ) {
+        return ResponseEntity.ok(taskUseCase.getList(authUser.id(), TaskListMode.fromQuery(mode)));
     }
 
     @PatchMapping("/tasks/{taskId}/title")

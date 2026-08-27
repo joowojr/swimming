@@ -11,8 +11,12 @@ import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
 
+interface TaskListItem extends TaskSummaryResponse {
+  projectId?: number | null
+}
+
 interface TaskListProps {
-  tasks: TaskSummaryResponse[]
+  tasks: TaskListItem[]
   emptyTitle?: string
   emptyDescription?: string
   connected?: boolean
@@ -21,6 +25,7 @@ interface TaskListProps {
   isDeleting?: boolean
   onTaskSelectionChange?: (taskId: number) => void
   onTaskUpdated?: () => void
+  getMetaText?: (task: TaskListItem) => string
 }
 
 const MOCK_SESSION_COUNT = 3
@@ -43,6 +48,7 @@ export default function TaskList({
   isDeleting = false,
   onTaskSelectionChange,
   onTaskUpdated,
+  getMetaText,
 }: TaskListProps) {
   const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
@@ -171,7 +177,9 @@ export default function TaskList({
                     ))}
                   </select>
                 </div>
-                <p className={styles.meta}>{getTaskMeta(task.status, MOCK_SESSION_COUNT)}</p>
+                <p className={styles.meta}>
+                  {getMetaText?.(task) ?? getTaskMeta(task.status, MOCK_SESSION_COUNT)}
+                </p>
                 {updateError?.taskId === task.id && (
                     <p className={styles.error} role="alert">{updateError.message}</p>
                 )}

@@ -1,4 +1,5 @@
 export type TaskStatus = 'TODO' | 'DOING' | 'DONE' | 'HOLD'
+export type TaskListMode = 'all' | 'unclassified'
 
 export interface CreateTaskRequest {
   title: string
@@ -18,7 +19,7 @@ export interface DeleteTasksRequest {
 
 export interface TaskResponse {
   id: number
-  projectId: number
+  projectId: number | null
   title: string
   status: TaskStatus
   createdAt: string

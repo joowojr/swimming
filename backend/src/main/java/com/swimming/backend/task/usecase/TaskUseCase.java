@@ -6,6 +6,7 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
@@ -38,6 +39,17 @@ public class TaskUseCase {
         ProjectReference project = projectService.getReference(userId, projectId);
         return taskService.getByProject(project.id())
                 .stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskResponse> getList(Long userId, TaskListMode mode) {
+        List<Task> tasks = switch (mode) {
+            case ALL -> taskService.getAll(userId);
+            case UNCLASSIFIED -> taskService.getUnclassified(userId);
+        };
+        return tasks.stream()
                 .map(TaskResponse::from)
                 .toList();
     }

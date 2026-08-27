@@ -48,7 +48,6 @@ export default function TaskList({
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
-  const orderedTasks = [...tasks].sort((a, b) => a.orderIdx - b.orderIdx)
 
   const changeTaskStatus = async (task: TaskSummaryResponse, status: TaskStatus) => {
     setPendingTaskId(task.id)
@@ -108,7 +107,7 @@ export default function TaskList({
       ?? '할 일제목을 저장하지 못했습니다.'
   }
 
-  if (orderedTasks.length === 0) {
+  if (tasks.length === 0) {
     return (
       <div className={`${styles.empty} ${connected ? styles.connected : ''}`}>
         <span className={styles['empty-node']} aria-hidden="true" />
@@ -121,7 +120,7 @@ export default function TaskList({
   return (
     <>
       <ol className={`${styles.list} ${connected ? styles.connected : ''}`}>
-      {orderedTasks.map((task) => {
+      {tasks.map((task) => {
         const isPending = pendingTaskId === task.id
         const isSelected = selectedTaskIds.has(task.id)
 

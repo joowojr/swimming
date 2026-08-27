@@ -3,6 +3,7 @@ package com.swimming.backend.project.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.domain.ProjectTag;
+import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
 import com.swimming.backend.project.repository.entity.ProjectTagEntity;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.List;
 public class ProjectTagService {
 
     private final ProjectTagRepository projectTagRepository;
+    private final ProjectRepository projectRepository;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public ProjectTag create(ProjectTag projectTag) {
@@ -47,5 +49,38 @@ public class ProjectTagService {
                 .stream()
                 .map(ProjectTagEntity::toDomain)
                 .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public ProjectTag update(ProjectTag projectTag) {
+        if (projectTagRepository.existsByUserIdAndNameAndIdNot(
+                projectTag.getUserId(),
+                projectTag.getName(),
+                projectTag.getId()
+        )) {
+            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
+        }
+
+        ProjectTagEntity entity = getOwnedEntity(projectTag.getUserId(), projectTag.getId());
+        entity.apply(projectTag);
+
+        try {
+            return projectTagRepository.saveAndFlush(entity).toDomain();
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS, exception);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Long userId, Long tagId) {
+        ProjectTagEntity entity = getOwnedEntity(userId, tagId);
+        projectRepository.clearTagFromOwnedProjects(userId, tagId);
+        projectTagRepository.delete(entity);
+        projectTagRepository.flush();
+    }
+
+    private ProjectTagEntity getOwnedEntity(Long userId, Long tagId) {
+        return projectTagRepository.findByIdAndUserId(tagId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
     }
 }

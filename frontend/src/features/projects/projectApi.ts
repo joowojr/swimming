@@ -4,6 +4,7 @@ import type {
   Project,
   ProjectDetail,
   ProjectTag,
+  ProjectTagNameRequest,
   UpdateProjectRequest,
 } from './projectTypes'
 
@@ -39,4 +40,23 @@ export async function deleteProject(projectId: number): Promise<void> {
 export async function getProjectTags(): Promise<ProjectTag[]> {
   const response = await client.get<ProjectTag[]>('/project-tags')
   return response.data
+}
+
+export async function createProjectTag(
+  request: ProjectTagNameRequest,
+): Promise<ProjectTag> {
+  const response = await client.post<ProjectTag>('/project-tags', request)
+  return response.data
+}
+
+export async function updateProjectTag(
+  tagId: number,
+  request: ProjectTagNameRequest,
+): Promise<ProjectTag> {
+  const response = await client.patch<ProjectTag>(`/project-tags/${tagId}`, request)
+  return response.data
+}
+
+export async function deleteProjectTag(tagId: number): Promise<void> {
+  await client.delete(`/project-tags/${tagId}`)
 }

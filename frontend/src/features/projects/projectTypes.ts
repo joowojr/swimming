@@ -9,6 +9,10 @@ export interface ProjectTag {
   name: string
 }
 
+export interface ProjectTagNameRequest {
+  name: string
+}
+
 export interface Project {
   id: number
   name: string

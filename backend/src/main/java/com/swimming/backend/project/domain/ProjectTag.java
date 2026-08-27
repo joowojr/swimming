@@ -9,7 +9,7 @@ public class ProjectTag {
 
     private final Long id;
     private final Long userId;
-    private final String name;
+    private String name;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -39,5 +39,9 @@ public class ProjectTag {
             LocalDateTime updatedAt
     ) {
         return new ProjectTag(id, userId, name, createdAt, updatedAt);
+    }
+
+    public void rename(String name) {
+        this.name = name.trim();
     }
 }

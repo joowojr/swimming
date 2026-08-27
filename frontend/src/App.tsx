@@ -143,7 +143,12 @@ function App() {
                     onCreated={handleProjectCreated}
                   />
                 )}
-                {isTagModalOpen && <ProjectTagModal onClose={() => setIsTagModalOpen(false)} />}
+                {isTagModalOpen && (
+                  <ProjectTagModal
+                    onClose={() => setIsTagModalOpen(false)}
+                    onChanged={retryLoadProjects}
+                  />
+                )}
               </>
             )}
           />
@@ -163,7 +168,12 @@ function App() {
                     onCreated={handleProjectCreated}
                   />
                 )}
-                {isTagModalOpen && <ProjectTagModal onClose={() => setIsTagModalOpen(false)} />}
+                {isTagModalOpen && (
+                  <ProjectTagModal
+                    onClose={() => setIsTagModalOpen(false)}
+                    onChanged={retryLoadProjects}
+                  />
+                )}
               </>
             )}
           />

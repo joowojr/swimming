@@ -34,9 +34,9 @@ public class TaskUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<TaskResponse> getAll(Long userId, Long projectId) {
+    public List<TaskResponse> getByProject(Long userId, Long projectId) {
         ProjectReference project = projectService.getReference(userId, projectId);
-        return taskService.getAll(project.id())
+        return taskService.getByProject(project.id())
                 .stream()
                 .map(TaskResponse::from)
                 .toList();

@@ -52,7 +52,7 @@ public class TaskService {
     ) {
         int nextOrder = (projectId == null
                 ? taskRepository.findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(userId)
-                : taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(projectId))
+                : taskRepository.findTopByProject_IdOrderByIdDesc(projectId))
                 .map(TaskEntity::getOrderIdx)
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
@@ -77,8 +77,8 @@ public class TaskService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Task> getAll(Long projectId) {
-        return taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(projectId)
+    public List<Task> getByProject(Long projectId) {
+        return taskRepository.findAllByProject_IdOrderByCreatedAtDesc(projectId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -99,7 +99,7 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskSummaryResponse> getSummaries(Long projectId) {
-        return getAll(projectId)
+        return getByProject(projectId)
                 .stream()
                 .map(TaskSummaryResponse::from)
                 .toList();

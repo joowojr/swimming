@@ -13,9 +13,9 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
-    List<TaskEntity> findAllByProject_IdOrderByOrderIdxAscIdAsc(Long projectId);
+    List<TaskEntity> findAllByProject_IdOrderByCreatedAtDesc(Long projectId);
 
-    Optional<TaskEntity> findTopByProject_IdOrderByOrderIdxDescIdDesc(Long projectId);
+    Optional<TaskEntity> findTopByProject_IdOrderByIdDesc(Long projectId);
 
     Optional<TaskEntity> findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(Long userId);
 

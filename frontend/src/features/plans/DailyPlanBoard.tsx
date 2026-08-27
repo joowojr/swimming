@@ -172,7 +172,6 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             await deleteDailyPlanItem(date, itemId)
             const remove = (items: DailyPlanItem[]) => items
                 .filter((item) => item.id !== itemId)
-                .map((item, orderIdx) => ({...item, orderIdx}))
             setDrafts((current) => ({...current, [date]: remove(current[date] ?? [])}))
             setPlans((current) => current.map((plan) => plan.date === date
                 ? {...plan, items: remove(plan.items)}

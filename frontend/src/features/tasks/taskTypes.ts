@@ -21,7 +21,6 @@ export interface TaskResponse {
   projectId: number
   title: string
   status: TaskStatus
-  orderIdx: number
   createdAt: string
   updatedAt: string
 }
@@ -30,5 +29,4 @@ export interface TaskSummaryResponse {
   id: number
   title: string
   status: TaskStatus
-  orderIdx: number
 }

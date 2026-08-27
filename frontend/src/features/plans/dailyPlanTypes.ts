@@ -5,7 +5,6 @@ interface DailyPlanItemBase {
   taskId: number
   title: string
   status: TaskStatus
-  orderIdx: number
 }
 
 export type DailyPlanItem = DailyPlanItemBase & (

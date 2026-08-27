@@ -229,7 +229,7 @@ export default function TaskPickerModal({
                           {pending
                             ? <IconCheck size={16} aria-hidden="true" />
                             : !alreadyAdded && <IconPlus size={16} aria-hidden="true" />}
-                          {alreadyAdded ? '추가됨' : pending ? '선택됨' : '선택'}
+                          {alreadyAdded ? '추가됨' : pending ? '' : ''}
                         </button>
                       </li>
                     )

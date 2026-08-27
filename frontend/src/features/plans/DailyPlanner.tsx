@@ -293,7 +293,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                                 getErrorMessage={getTaskTitleError}
                                             />
                                         }
-                                        description={item.projectName}
+                                        description={item.itemType === 'TASK' ? item.projectName : undefined}
                                         checked={item.status === 'DONE'}
                                         ariaLabel={`${item.title} ${item.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
                                         disabled={pendingTaskId === item.taskId}

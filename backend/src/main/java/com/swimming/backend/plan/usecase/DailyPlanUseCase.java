@@ -118,7 +118,7 @@ public class DailyPlanUseCase {
         return new DailyPlanItemResponse(
                 row.id(),
                 row.taskId(),
-                row.projectId() == null ? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
+                (row.projectId() == null || row.projectIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
                 row.projectId(),
                 row.projectName(),
                 row.title(),

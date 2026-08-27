@@ -10,6 +10,7 @@ public record DailyPlanItemQueryRow(
         Long taskId,
         Long projectId,
         String projectName,
+        Boolean projectIsDeleted,
         String title,
         TaskStatus status,
         int orderIdx

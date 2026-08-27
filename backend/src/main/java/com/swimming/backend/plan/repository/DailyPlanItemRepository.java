@@ -22,6 +22,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                 item.taskId,
                 project.id,
                 project.name,
+                project.deleted,
                 task.title,
                 task.status,
                 item.orderIdx
@@ -32,7 +33,6 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
             where item.userId = :userId
               and task.user.id = :userId
               and item.planDate between :fromDate and :toDate
-              and (project.id is null or project.deleted = false)
             order by item.planDate asc, item.orderIdx asc
             """)
     List<DailyPlanItemQueryRow> findRows(@Param("userId") Long userId,

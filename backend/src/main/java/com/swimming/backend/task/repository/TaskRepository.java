@@ -33,7 +33,6 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             LEFT JOIN task.project project
             WHERE task.user.id = :userId
               AND task.id IN :taskIds
-              AND (project.id IS NULL OR project.deleted = false)
             """)
     List<TaskReference> findAllOwnedByIds(
             @Param("userId") Long userId,

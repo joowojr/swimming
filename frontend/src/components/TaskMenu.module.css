@@ -1,0 +1,73 @@
+/* Task 카드에서 공유하는 동작 메뉴 */
+.card-menu {
+  position: absolute;
+  inset: var(--space-2) var(--space-2) auto auto;
+}
+
+.card-menu-inline {
+  position: static;
+}
+
+.card-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-default);
+  color: var(--color-mute);
+  background: var(--color-surface-container-lowest);
+  appearance: none;
+  cursor: pointer;
+}
+
+.floating-card-menu {
+  position: fixed;
+  z-index: calc(var(--z-modal) - 1);
+  display: grid;
+  width: max-content;
+  justify-items: start;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-floating);
+}
+
+.floating-card-menu button {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-height: 2.25rem;
+  justify-content: flex-start;
+  justify-self: start;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-default);
+  color: var(--color-mute);
+  text-align: left;
+  background: transparent;
+  font-size: var(--text-body-sm-size);
+  white-space: nowrap;
+}
+
+.floating-card-menu button:disabled {
+  color: var(--color-mute);
+  opacity: 0.45;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-menu-trigger:hover,
+  .floating-card-menu button:hover:not(:disabled) {
+    background: var(--color-surface-container-high);
+  }
+}
+
+.card-menu-trigger:active,
+.floating-card-menu button:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}

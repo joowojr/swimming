@@ -95,10 +95,6 @@ function formatPlanDate(planDate: string) {
   return month && day ? `${month}/${day}` : planDate
 }
 
-function isAdHocTask(item: PlanLinkItem) {
-  return item.projectId === null
-}
-
 export default function TaskOrganizerPanel({
   source,
   projects,
@@ -238,7 +234,7 @@ export default function TaskOrganizerPanel({
   const handleLinkPlan = async () => {
     if (state.kind !== 'plan-link' || state.isLinking) return
 
-    const selectedItems = state.items.filter((item) => item.selected || isAdHocTask(item))
+    const selectedItems = state.items.filter((item) => item.selected)
     if (selectedItems.length === 0) return
 
     const taskIdsByDate = new Map<string, number[]>()
@@ -304,8 +300,7 @@ export default function TaskOrganizerPanel({
   }
 
   if (state.kind === 'plan-link') {
-    const selectedCount = state.items.filter((item) => item.selected || isAdHocTask(item)).length
-    const hasAdHocTask = state.items.some(isAdHocTask)
+    const selectedCount = state.items.filter((item) => item.selected).length
     return (
       <section className={styles['organize-preview']} aria-labelledby="plan-link-title" aria-busy={state.isLinking}>
         <div className={styles['organize-preview-heading']}>
@@ -317,7 +312,7 @@ export default function TaskOrganizerPanel({
         <div className={styles['organize-preview-list-wrap']}>
           <ul className={styles['organize-task-list']}>
             {state.items.map((item) => (
-              <li className={item.selected || isAdHocTask(item) ? styles['plan-link-task-row'] : styles['organize-task-row-excluded']} key={item.id}>
+              <li className={item.selected ? styles['plan-link-task-row'] : styles['organize-task-row-excluded']} key={item.id}>
                 <div className={styles['plan-link-task-fields']}>
                   <div className={styles['plan-link-title-row']}>
                     <span className={styles['plan-link-task-title']}>{item.title}</span>
@@ -332,7 +327,7 @@ export default function TaskOrganizerPanel({
                           }
                         }} />
                     ) : (
-                      <button type="button" className={styles['plan-link-date-action']} disabled={state.isLinking || (!item.selected && !isAdHocTask(item))}
+                      <button type="button" className={styles['plan-link-date-action']} disabled={state.isLinking || !item.selected}
                         aria-label={`${item.title} 계획 날짜 ${formatPlanDate(item.planDate)}. 두 번 눌러 변경`} title="두 번 눌러 날짜 변경"
                         onDoubleClick={() => setState((current) => current.kind === 'plan-link' ? { ...current, editingPlanDateTaskId: item.id } : current)}
                         onKeyDown={(event) => {
@@ -348,12 +343,10 @@ export default function TaskOrganizerPanel({
                   </div>
                   <span className={styles['plan-link-project-name']}>{item.projectName ?? '미분류'}</span>
                 </div>
-                <button type="button" className={styles['organize-exclude-action']} disabled={state.isLinking || isAdHocTask(item)}
+                <button type="button" className={styles['organize-exclude-action']} disabled={state.isLinking}
                   onClick={() => updatePlanLinkItem(item.id, (current) => ({ ...current, selected: !current.selected }))}
-                  aria-label={isAdHocTask(item)
-                    ? `${item.title} 미분류 할 일은 계획에 연결해야 함`
-                    : item.selected ? `${item.title} 계획 연결에서 빼기` : `${item.title} 계획 연결에 다시 포함`}
-                  title={isAdHocTask(item) ? '미분류 할 일은 계획에 연결해야 해요' : item.selected ? '연결에서 빼기' : '다시 포함'}>
+                  aria-label={item.selected ? `${item.title} 계획 연결에서 빼기` : `${item.title} 계획 연결에 다시 포함`}
+                  title={item.selected ? '연결에서 빼기' : '다시 포함'}>
                   {item.selected ? <IconMinus size={16} aria-hidden="true" /> : <IconPlus size={16} aria-hidden="true" />}
                 </button>
               </li>
@@ -364,7 +357,7 @@ export default function TaskOrganizerPanel({
         <div className={styles['organize-preview-actions']}>
           <ActionButton className={styles['organize-confirm-action']} isLoading={state.isLinking} loadingLabel="계획에 연결하는 중"
             disabled={selectedCount === 0} onClick={handleLinkPlan}>{selectedCount}개 계획에 연결하기</ActionButton>
-          <ActionButton className={styles['organize-cancel-action']} variant="plain" disabled={state.isLinking || hasAdHocTask}
+          <ActionButton className={styles['organize-cancel-action']} variant="plain" disabled={state.isLinking}
             onClick={() => onFinish('할 일을 만들었어요')}>나중에</ActionButton>
         </div>
       </section>

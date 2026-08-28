@@ -13,7 +13,14 @@ import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
-    List<TaskEntity> findAllByProject_IdOrderByCreatedAtDesc(Long projectId);
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            JOIN FETCH task.project project
+            WHERE project.id = :projectId
+            ORDER BY task.createdAt DESC
+            """)
+    List<TaskEntity> findAllByProjectIdWithProject(@Param("projectId") Long projectId);
 
     List<TaskEntity> findAllByUser_IdOrderByCreatedAtDesc(Long userId);
 

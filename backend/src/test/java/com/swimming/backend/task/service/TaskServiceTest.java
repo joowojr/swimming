@@ -240,7 +240,7 @@ class TaskServiceTest {
     void returnsTaskSummariesInStoredOrder() {
         TaskEntity first = taskEntity(2L, 10L, "첫째", 0, TaskStatus.DOING);
         TaskEntity second = taskEntity(1L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByCreatedAtDesc(10L))
+        when(taskRepository.findAllByProjectIdWithProject(10L))
                 .thenReturn(List.of(first, second));
 
         List<TaskSummaryResponse> responses = taskService.getSummaries(10L);

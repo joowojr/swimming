@@ -78,7 +78,7 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Task> getByProject(Long projectId) {
-        return taskRepository.findAllByProject_IdOrderByCreatedAtDesc(projectId)
+        return taskRepository.findAllByProjectIdWithProject(projectId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();

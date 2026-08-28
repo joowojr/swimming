@@ -5,8 +5,7 @@ erDiagram
     users ||--o{ tasks : owns
     projects o|--o{ tasks : contains
     notes o|--o{ tasks : sources
-    users ||--o{ daily_plans : owns
-    daily_plans ||--o{ daily_plan_items : "contains (delete cascades)"
+    users ||--o{ daily_plan_items : owns
     tasks ||--o{ daily_plan_items : "plans (delete cascades)"
     users ||--o{ sessions : runs
     users ||--o{ notes : owns
@@ -65,17 +64,10 @@ erDiagram
         timestamp updated_at
     }
 
-    daily_plans {
+    daily_plan_items {
         bigint id PK
         bigint user_id FK
         date plan_date
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    daily_plan_items {
-        bigint id PK
-        bigint daily_plan_id FK
         bigint task_id FK
         int order_idx
         timestamp created_at
@@ -104,12 +96,13 @@ erDiagram
         bigint session_id PK,FK
         bigint task_id FK
         int order_idx PK
+        boolean is_completed "nullable; 종료 전 또는 미기록"
     }
 
     notes {
         bigint id PK
         bigint user_id FK
-        text content
+        varchar(1024) content
         varchar status
         boolean is_deleted
         varchar context_type

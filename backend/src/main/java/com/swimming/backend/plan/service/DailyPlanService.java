@@ -5,7 +5,7 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.domain.DailyPlanItem;
 import com.swimming.backend.plan.repository.DailyPlanItemRepository;
 import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
-import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

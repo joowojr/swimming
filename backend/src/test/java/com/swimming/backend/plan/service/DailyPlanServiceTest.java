@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -106,14 +107,34 @@ class DailyPlanServiceTest {
     }
 
     @Test
-    @DisplayName("요청한 Task가 모두 그날 계획에 있어야 참을 반환한다")
-    void checksLinkedTasks() {
-        when(repository.containsTask(1L, DATE, 10L)).thenReturn(true);
-        when(repository.containsTask(1L, DATE, 20L)).thenReturn(true);
-        when(repository.containsTask(1L, DATE, 30L)).thenReturn(false);
+    @DisplayName("요청한 Task를 한 번에 조회해 모두 그날 계획에 있는지 확인한다")
+    void checksLinkedTasksAtOnce() {
+        when(repository.countDistinctTaskIds(1L, DATE, Set.of(10L, 20L)))
+                .thenReturn(2L);
+        when(repository.countDistinctTaskIds(1L, DATE, Set.of(10L, 30L)))
+                .thenReturn(1L);
 
         assertThat(service.containsAllTasks(1L, DATE, List.of(10L, 20L))).isTrue();
         assertThat(service.containsAllTasks(1L, DATE, List.of(10L, 30L))).isFalse();
+    }
+
+    @Test
+    @DisplayName("중복 Task ID는 한 번만 세어 일괄 확인한다")
+    void ignoresDuplicateTaskIdsWhenCheckingLinkedTasks() {
+        when(repository.countDistinctTaskIds(1L, DATE, Set.of(10L, 20L)))
+                .thenReturn(2L);
+
+        assertThat(service.containsAllTasks(1L, DATE, List.of(10L, 10L, 20L))).isTrue();
+
+        verify(repository).countDistinctTaskIds(1L, DATE, Set.of(10L, 20L));
+    }
+
+    @Test
+    @DisplayName("확인할 Task가 없으면 조회하지 않고 참을 반환한다")
+    void acceptsEmptyTaskIdsWithoutQuery() {
+        assertThat(service.containsAllTasks(1L, DATE, List.of())).isTrue();
+
+        verify(repository, never()).countDistinctTaskIds(any(), any(), any());
     }
 
     private DailyPlanItemEntity entity(Long id, Long taskId, int orderIdx) {

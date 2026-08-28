@@ -8,7 +8,7 @@ import com.swimming.backend.plan.dto.DailyPlanItemResponse;
 import com.swimming.backend.plan.dto.DailyPlanItemType;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
@@ -52,7 +52,7 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("조회 기간에 프로젝트 Task와 프로젝트 없는 Task의 UI 타입을 함께 반환한다")
+    @DisplayName("조회 기간에 폴더 Task와 폴더 없는 Task의 UI 타입을 함께 반환한다")
     void returnsMixedItemsAndEmptyDates() {
         when(dailyPlanService.getRows(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(
                 projectRow(1L, 10L, 0),
@@ -84,7 +84,7 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("프로젝트 없는 Task를 만들어 그날 계획에 추가한다")
+    @DisplayName("폴더 없는 Task를 만들어 그날 계획에 추가한다")
     void createsAdHocTaskAndAddsIt() {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
         when(taskService.createAndGetId(1L, null, "장보기")).thenReturn(20L);
@@ -183,13 +183,14 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("프로젝트를 선택해 새 Task를 만들고 계획에 연결한다")
+    @DisplayName("폴더를 선택해 새 Task를 만들고 계획에 연결한다")
     void createsProjectTaskAndAddsIt() {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
-        when(projectService.getReference(1L, 100L)).thenReturn(new ProjectReference(100L));
+        when(projectService.getReference(1L, 100L))
+                .thenReturn(new ProjectReference(100L, "폴더", null));
         when(taskService.createAndGetId(1L, 100L, "API 문서 작성")).thenReturn(20L);
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(new DailyPlanItemQueryRow(
-                1L, DATE, 20L, 100L, "프로젝트", "API 문서 작성", TaskStatus.TODO, 0)));
+                1L, DATE, 20L, 100L, "폴더", false, "API 문서 작성", TaskStatus.TODO, 0)));
 
         DailyPlanResponse response = useCase.addItems(
                 1L, DATE, new CreateDailyPlanItemsRequest(null, 100L, "API 문서 작성"));
@@ -243,14 +244,14 @@ class DailyPlanUseCaseTest {
     }
 
     private DailyPlanItemQueryRow projectRow(Long id, Long taskId, int orderIdx) {
-        return new DailyPlanItemQueryRow(id, DATE, taskId, 100L, "프로젝트", "API 구현", TaskStatus.DOING, orderIdx);
+        return new DailyPlanItemQueryRow(id, DATE, taskId, 100L, "폴더", false, "API 구현", TaskStatus.DOING, orderIdx);
     }
 
     private DailyPlanItemQueryRow adHocRow(Long id, Long taskId, String title, int orderIdx) {
-        return new DailyPlanItemQueryRow(id, DATE, taskId, null, null, title, TaskStatus.TODO, orderIdx);
+        return new DailyPlanItemQueryRow(id, DATE, taskId, null, null, null, title, TaskStatus.TODO, orderIdx);
     }
 
     private TaskReference taskReference(Long id) {
-        return new TaskReference(id, 100L, "프로젝트", "API 구현", TaskStatus.DOING);
+        return new TaskReference(id, 100L, "폴더", "API 구현", TaskStatus.DOING);
     }
 }

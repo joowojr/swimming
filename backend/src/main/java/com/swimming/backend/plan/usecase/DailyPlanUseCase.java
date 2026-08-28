@@ -8,7 +8,7 @@ import com.swimming.backend.plan.dto.DailyPlanItemResponse;
 import com.swimming.backend.plan.dto.DailyPlanItemType;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.service.TaskService;

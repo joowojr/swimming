@@ -8,6 +8,8 @@ import com.swimming.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -18,6 +20,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional(propagation = Propagation.REQUIRED)
     public void changePassword(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -30,16 +33,19 @@ public class UserService {
         user.changePasswordHash(passwordEncoder.encode(newPassword));
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Optional<UserAuthInfo> getAuthInfoByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
                 .map(this::toAuthInfo);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Optional<UserAuthInfo> getAuthInfoById(Long id) {
         return userRepository.findById(id)
                 .map(this::toAuthInfo);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public String getTimezone(Long id) {
         return userRepository.findById(id)
                 .map(User::getTimezone)

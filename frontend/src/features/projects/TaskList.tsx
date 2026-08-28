@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
+import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
+import TaskMenu from '../../components/TaskMenu'
 import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
@@ -184,34 +185,51 @@ export default function TaskList({
                     <p className={styles.error} role="alert">{updateError.message}</p>
                 )}
               </div>
-              <span
-                  className={`${styles['play-control']} ${isDeleteMode ? styles['delete-control'] : ''}`}
-              >
-              <button
-                  type="button"
-                  disabled={isPending || isDeleting}
-                  aria-pressed={isDeleteMode ? isSelected : undefined}
-                  aria-describedby={`task-${task.id}-action-tooltip`}
-                  onClick={() => {
-                    if (isDeleteMode) onTaskSelectionChange?.(task.id)
-                    else void startSession(task)
-                  }}
-              >
-                {isPending || (isDeleting && isSelected)
-                    ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true"/>
-                    : isDeleteMode
-                        ? isSelected
-                            ? <IconCheck size={16} stroke={2.2} aria-hidden="true"/>
-                            : <IconTrash size={16} stroke={2} aria-hidden="true"/>
-                        : <IconPlayerPlay size={16} stroke={2} aria-hidden="true"/>}
-                <span className="sr-only">
-                  {isDeleteMode ? (isSelected ? '삭제 선택 해제' : '삭제 선택') : '다이브 세션'}
+              {isDeleteMode ? (
+                <span className={`${styles['play-control']} ${styles['delete-control']}`}>
+                  <button
+                    type="button"
+                    disabled={isPending || isDeleting}
+                    aria-pressed={isSelected}
+                    aria-describedby={`task-${task.id}-action-tooltip`}
+                    onClick={() => onTaskSelectionChange?.(task.id)}
+                  >
+                    {isPending || (isDeleting && isSelected)
+                      ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true"/>
+                      : isSelected
+                        ? <IconCheck size={16} stroke={2.2} aria-hidden="true"/>
+                        : <IconTrash size={16} stroke={2} aria-hidden="true"/>}
+                    <span className="sr-only">
+                      {isSelected ? '삭제 선택 해제' : '삭제 선택'}
+                    </span>
+                  </button>
+                  <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
+                    {isSelected ? '선택 해제' : '삭제 선택'}
+                  </span>
                 </span>
-              </button>
-              <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
-                {isDeleteMode ? (isSelected ? '선택 해제' : '삭제 선택') : '다이브 세션'}
-              </span>
-            </span>
+              ) : (
+                <TaskMenu inline label={`${task.title} 카드 메뉴`}>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => void startSession(task)}
+                  >
+                    {isPending
+                      ? <IconLoader2 className={styles.spinner} size={15} aria-hidden="true"/>
+                      : <IconPlayerPlay size={15} aria-hidden="true"/>}
+                    다이브 세션
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    title="폴더 이동 · 준비 중"
+                    aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
+                  >
+                    <IconFolder size={15} aria-hidden="true"/>
+                    이동하기
+                  </button>
+                </TaskMenu>
+              )}
             </li>
         )
       })}

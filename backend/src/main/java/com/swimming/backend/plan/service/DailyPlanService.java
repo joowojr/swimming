@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +65,14 @@ public class DailyPlanService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public boolean containsAllTasks(Long userId, LocalDate planDate, List<Long> taskIds) {
-        return taskIds.stream().allMatch(taskId -> containsTask(userId, planDate, taskId));
+        Set<Long> uniqueTaskIds = Set.copyOf(taskIds);
+        if (uniqueTaskIds.isEmpty()) {
+            return true;
+        }
+        return dailyPlanItemRepository.countDistinctTaskIds(
+                userId,
+                planDate,
+                uniqueTaskIds
+        ) == uniqueTaskIds.size();
     }
 }

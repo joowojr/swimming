@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEntity, Long> {
     List<DailyPlanItemEntity> findAllByUserIdAndPlanDateOrderByOrderIdxAsc(Long userId, LocalDate planDate);
@@ -46,4 +47,14 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
     boolean containsTask(@Param("userId") Long userId,
                          @Param("planDate") LocalDate planDate,
                          @Param("taskId") Long taskId);
+
+    @Query("""
+            select count(distinct item.taskId) from DailyPlanItemEntity item
+            where item.userId = :userId
+              and item.planDate = :planDate
+              and item.taskId in :taskIds
+            """)
+    long countDistinctTaskIds(@Param("userId") Long userId,
+                              @Param("planDate") LocalDate planDate,
+                              @Param("taskIds") Set<Long> taskIds);
 }

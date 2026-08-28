@@ -9,6 +9,7 @@ import type {ApiError} from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -21,7 +22,6 @@ import {
 } from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
-import DailyPlanCardMenu from './DailyPlanCardMenu'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
 
@@ -288,7 +288,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                         </span>
                                                     </div>
                                                     {selected && (
-                                                        <DailyPlanCardMenu
+                                                        <TaskMenu
                                                             label={`${item.title} 카드 메뉴`}>
                                                                 {plan.date === today && (
                                                                     <ModalTriggerButton
@@ -307,7 +307,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                                     iconSize={15}
                                                                     onClick={() => void removeItem(plan.date, item.id)}
                                                                 />
-                                                        </DailyPlanCardMenu>
+                                                        </TaskMenu>
                                                     )}
                                                 </li>
                                             ))}

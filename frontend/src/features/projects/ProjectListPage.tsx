@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconFilter, IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
 import { useSearchParams } from 'react-router-dom'
+import type { ApiError } from '../../api/client'
+import DeleteIconButton from '../../components/DeleteIconButton'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
-import { getTaskList } from '../tasks/taskApi'
+import { deleteTasks, getTaskList } from '../tasks/taskApi'
 import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
 import ProjectCard from './ProjectCard'
 import TaskList from './TaskList'
@@ -51,10 +53,20 @@ export default function ProjectListPage({
     tasks: [],
   })
   const [taskReloadKey, setTaskReloadKey] = useState(0)
+  const [isDeleteMode, setIsDeleteMode] = useState(false)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
+  const [isDeletingTasks, setIsDeletingTasks] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const folderNameById = useMemo(
     () => new Map(projects.map((project) => [project.id, project.name])),
     [projects],
   )
+
+  useEffect(() => {
+    setIsDeleteMode(false)
+    setSelectedTaskIds(new Set())
+    setDeleteError(null)
+  }, [taskMode])
 
   useEffect(() => {
     if (taskMode === null) return
@@ -75,7 +87,45 @@ export default function ProjectListPage({
   }, [taskMode, taskReloadKey])
 
   const changeView = (view: ProjectView) => {
+    setIsDeleteMode(false)
+    setSelectedTaskIds(new Set())
+    setDeleteError(null)
     setSearchParams(view === 'projects' ? {} : { view })
+  }
+
+  const leaveDeleteMode = () => {
+    setIsDeleteMode(false)
+    setSelectedTaskIds(new Set())
+    setDeleteError(null)
+  }
+
+  const toggleTaskSelection = (taskId: number) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current)
+      if (next.has(taskId)) next.delete(taskId)
+      else next.add(taskId)
+      return next
+    })
+    setDeleteError(null)
+  }
+
+  const removeSelectedTasks = async () => {
+    if (selectedTaskIds.size === 0) return
+
+    setIsDeletingTasks(true)
+    setDeleteError(null)
+    try {
+      await deleteTasks({ taskIds: [...selectedTaskIds] })
+      leaveDeleteMode()
+      setTaskReloadKey((key) => key + 1)
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null
+        ? (error as ApiError).message
+        : undefined
+      setDeleteError(apiMessage ?? '선택한 작업을 삭제하지 못했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsDeletingTasks(false)
+    }
   }
 
   return (
@@ -137,8 +187,31 @@ export default function ProjectListPage({
           <>
             <div className={styles['section-heading']}>
               <h2>{taskMode === 'all' ? '최신 할 일' : '미분류 할 일'}</h2>
-              <span>{taskListState.tasks.length}개</span>
+              <div className={styles['task-list-actions']}>
+                <span>{taskListState.tasks.length}개</span>
+                <DeleteIconButton
+                  label={isDeleteMode ? '할 일 삭제 선택 취소' : '할 일 삭제 선택'}
+                  active={isDeleteMode}
+                  disabled={isDeletingTasks}
+                  onClick={() => {
+                    if (isDeleteMode) leaveDeleteMode()
+                    else setIsDeleteMode(true)
+                  }}
+                >
+                  {isDeleteMode ? '취소' : <span className="sr-only">Task 삭제 선택</span>}
+                </DeleteIconButton>
+                {isDeleteMode && (
+                  <DeleteIconButton
+                    label="선택한 Task 삭제"
+                    disabled={selectedTaskIds.size === 0 || isDeletingTasks}
+                    onClick={() => void removeSelectedTasks()}
+                  >
+                    {isDeletingTasks ? '삭제 중' : <span className="sr-only">선택한 Task 삭제</span>}
+                  </DeleteIconButton>
+                )}
+              </div>
             </div>
+            {deleteError && <p className={styles['delete-error']} role="alert">{deleteError}</p>}
             <TaskList
               tasks={taskListState.tasks}
               emptyTitle={taskMode === 'all' ? '등록된 할 일이 없어요.' : '미분류 할 일이 없어요.'}
@@ -148,6 +221,10 @@ export default function ProjectListPage({
               getMetaText={(task) => task.projectId === null
                 ? '미분류'
                 : folderNameById.get(task.projectId ?? -1) ?? '폴더'}
+              isDeleteMode={isDeleteMode}
+              selectedTaskIds={selectedTaskIds}
+              isDeleting={isDeletingTasks}
+              onTaskSelectionChange={toggleTaskSelection}
               onTaskUpdated={() => setTaskReloadKey((key) => key + 1)}
             />
           </>

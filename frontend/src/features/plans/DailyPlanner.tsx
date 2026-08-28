@@ -11,6 +11,7 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import ChecklistCard from '../../components/ChecklistCard'
+import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -19,7 +20,6 @@ import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {addDailyPlanItems, deleteDailyPlanItem, getDailyPlans} from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
-import DailyPlanCardMenu from './DailyPlanCardMenu'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanner.module.css'
 
@@ -310,14 +310,14 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                         >
                                             {TASK_STATUS_VALUES.map((taskStatus) => <option value={taskStatus} key={taskStatus}>{TASK_STATUS_LABEL[taskStatus]}</option>)}
                                         </select>
-                                        <DailyPlanCardMenu inline label={`${item.title} 카드 메뉴`}>
+                                        <TaskMenu inline label={`${item.title} 카드 메뉴`}>
                                             {selectedDate === today && (
                                                 <ModalTriggerButton dialogId="create-session-dialog" isOpen={sessionTaskId === item.taskId} variant="plain" icon={<IconPlayerPlay size={15} aria-hidden="true" />} onClick={() => setSessionTaskId(item.taskId)}>
                                                     다이브 세션
                                                 </ModalTriggerButton>
                                             )}
                                             <DeleteIconButton label="계획에서 제거" iconSize={15} onClick={() => void removeItem(item.id)} />
-                                        </DailyPlanCardMenu>
+                                        </TaskMenu>
                                           </>
                                         )}
                                     />

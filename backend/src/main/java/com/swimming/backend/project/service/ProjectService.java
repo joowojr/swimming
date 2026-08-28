@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +62,18 @@ public class ProjectService {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public void validateOwnership(Long userId, Long projectId) {
         getOwnedProjectEntity(userId, projectId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public void validateOwnerships(Long userId, List<Long> projectIds) {
+        Set<Long> uniqueProjectIds = Set.copyOf(projectIds);
+        if (uniqueProjectIds.isEmpty()) {
+            return;
+        }
+        if (projectRepository.countOwnedActiveByIds(userId, uniqueProjectIds)
+                != uniqueProjectIds.size()) {
+            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

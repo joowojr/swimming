@@ -9,6 +9,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,15 +43,19 @@ class SessionEntityTest {
         ReflectionTestUtils.setField(entity, "id", 5L);
         ReflectionTestUtils.setField(entity, "startedAt", STARTED_AT);
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), "메모");
+        session.end(
+                STARTED_AT.plusSeconds(600),
+                "메모",
+                Map.of(10L, true, 11L, false)
+        );
 
         entity.apply(session);
 
-        assertThat(entity.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(entity.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(entity.getSummary()).isEqualTo("메모");
         assertThat(entity.getTasks())
-                .extracting(SessionTaskEmbeddable::getTaskId)
-                .containsExactly(10L, 11L);
+                .extracting(SessionTaskEmbeddable::getIsCompleted)
+                .containsExactly(true, false);
     }
 
     @Test
@@ -78,13 +83,13 @@ class SessionEntityTest {
         ReflectionTestUtils.setField(entity, "id", 5L);
         ReflectionTestUtils.setField(entity, "startedAt", STARTED_AT);
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), null);
+        session.end(STARTED_AT.plusSeconds(600), null, Map.of());
 
         entity.apply(session);
 
         assertThat(entity.getActualDurationSec()).isEqualTo(600);
         assertThat(entity.getEndedAt()).isEqualTo(STARTED_AT.plusSeconds(600));
-        assertThat(entity.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(entity.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(entity.getActiveUserId()).isNull();
     }
 

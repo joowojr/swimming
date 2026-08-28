@@ -80,7 +80,7 @@ public class SessionUseCase {
                 taskIds,
                 request.plannedDurationSec()
         );
-        return SessionResponse.from(sessionService.save(session), place);
+        return SessionResponse.from(sessionService.create(session), place);
     }
 
     @Transactional(
@@ -116,13 +116,13 @@ public class SessionUseCase {
         Instant endTime = request != null && request.usePlannedDuration()
                 ? session.getStartedAt().plusSeconds(session.getPlannedDurationSec())
                 : clock.instant();
-        session.end(endTime, toSummary(request));
+        session.end(endTime, toSummary(request), completionByTaskId);
 
         if (!completionByTaskId.isEmpty()) {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));
         }
 
-        Session savedSession = sessionService.save(session);
+        Session savedSession = sessionService.update(session);
         PlaceReference place = placeVideoService.getReference(savedSession.getPlaceId());
         return SessionResponse.from(savedSession, place);
     }
@@ -173,7 +173,7 @@ public class SessionUseCase {
 
         Session session = sessionService.getOwned(userId, sessionId);
         session.updateMusicUrl(request.musicUrl());
-        sessionService.save(session);
+        sessionService.update(session);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -184,7 +184,7 @@ public class SessionUseCase {
     ) {
         Session session = sessionService.getOwned(userId, sessionId);
         session.updatePlannedDuration(request.plannedDurationSec());
-        sessionService.save(session);
+        sessionService.update(session);
     }
 
     private SessionDetailResponse toDetailResponse(Long userId, Session session) {
@@ -202,10 +202,12 @@ public class SessionUseCase {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
-        return session.getTaskIds()
+        return session.getTasks()
                 .stream()
-                .map(tasksById::get)
-                .map(SessionTaskResponse::from)
+                .map(sessionTask -> SessionTaskResponse.from(
+                        tasksById.get(sessionTask.taskId()),
+                        sessionTask.isCompleted()
+                ))
                 .toList();
     }
 

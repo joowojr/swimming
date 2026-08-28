@@ -6,14 +6,16 @@ public record SessionTaskResponse(
         Long id,
         Long projectId,
         String projectName,
-        String title
+        String title,
+        Boolean isCompleted
 ) {
-    public static SessionTaskResponse from(TaskReference task) {
+    public static SessionTaskResponse from(TaskReference task, Boolean isCompleted) {
         return new SessionTaskResponse(
                 task.id(),
                 task.projectId(),
                 task.projectName(),
-                task.title()
+                task.title(),
+                isCompleted
         );
     }
 }

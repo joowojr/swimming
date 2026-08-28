@@ -82,7 +82,7 @@ class SessionUseCaseTest {
                 List.of(10L, 11L)
         )).thenReturn(true);
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
-        when(sessionService.save(any(Session.class))).thenReturn(session);
+        when(sessionService.create(any(Session.class))).thenReturn(session);
 
         SessionResponse response = sessionUseCase.startPersonal(1L, request);
 
@@ -110,7 +110,7 @@ class SessionUseCaseTest {
                 List.of(10L, 11L)
         )).thenReturn(true);
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
-        when(sessionService.save(any(Session.class))).thenReturn(startedSession(NOW));
+        when(sessionService.create(any(Session.class))).thenReturn(startedSession(NOW));
 
         sessionUseCase.startPersonal(1L, request);
 
@@ -137,7 +137,7 @@ class SessionUseCaseTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND));
-        verify(sessionService, never()).save(any(Session.class));
+        verify(sessionService, never()).create(any(Session.class));
     }
 
     @Test
@@ -145,17 +145,17 @@ class SessionUseCaseTest {
     void endsOwnedSessionAtServerTime() {
         Session session = startedSession(NOW.minusSeconds(600));
         when(sessionService.getOwned(1L, 5L)).thenReturn(session);
-        when(sessionService.save(session)).thenReturn(session);
+        when(sessionService.update(session)).thenReturn(session);
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
 
         SessionResponse response = sessionUseCase.end(1L, 5L, null);
 
         assertThat(response.actualDurationSec()).isEqualTo(600);
         assertThat(response.endedAt()).isEqualTo(NOW);
-        assertThat(response.status()).isEqualTo(SessionStatus.COMPLETED);
-        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(response.status()).isEqualTo(SessionStatus.INTERRUPTED);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(session.getSummary()).isNull();
-        verify(sessionService).save(session);
+        verify(sessionService).update(session);
         verify(taskService, never()).updateStatuses(any(), any());
     }
 
@@ -164,7 +164,7 @@ class SessionUseCaseTest {
     void endsOwnedSessionAtPlannedTime() {
         Session session = startedSession(NOW.minusSeconds(600));
         when(sessionService.getOwned(1L, 5L)).thenReturn(session);
-        when(sessionService.save(session)).thenReturn(session);
+        when(sessionService.update(session)).thenReturn(session);
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
 
         SessionResponse response = sessionUseCase.end(
@@ -182,7 +182,7 @@ class SessionUseCaseTest {
     void endsWithRecordAndTransitionsTasks() {
         Session session = startedSession(NOW.minusSeconds(600));
         when(sessionService.getOwned(1L, 5L)).thenReturn(session);
-        when(sessionService.save(session)).thenReturn(session);
+        when(sessionService.update(session)).thenReturn(session);
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
 
         EndSessionRequest request = new EndSessionRequest(
@@ -196,8 +196,11 @@ class SessionUseCaseTest {
 
         sessionUseCase.end(1L, 5L, request);
 
-        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(session.getSummary()).isEqualTo("1페이지 완료");
+        assertThat(session.getTasks())
+                .extracting(SessionTask::isCompleted)
+                .containsExactly(true, false);
         verify(taskService).updateStatuses(
                 1L,
                 Map.of(10L, TaskStatus.DONE, 11L, TaskStatus.DOING)
@@ -220,7 +223,7 @@ class SessionUseCaseTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.INVALID_SESSION_TASKS));
-        verify(sessionService, never()).save(any(Session.class));
+        verify(sessionService, never()).update(any(Session.class));
     }
 
     @Test
@@ -230,8 +233,8 @@ class SessionUseCaseTest {
         when(sessionService.getActive(1L)).thenReturn(Optional.of(session));
         when(placeVideoService.getReference(20L)).thenReturn(placeReference());
         when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
-                new TaskReference(11L, 2L, "프로젝트", "다음 Task", null),
-                new TaskReference(10L, 2L, "프로젝트", "첫 Task", null)
+                new TaskReference(11L, 2L, "폴더", "다음 Task", null),
+                new TaskReference(10L, 2L, "폴더", "첫 Task", null)
         ));
 
         var response = sessionUseCase.getActive(1L).orElseThrow();
@@ -255,7 +258,7 @@ class SessionUseCaseTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.INVALID_SESSION_TASKS));
-        verify(sessionService, never()).save(any(Session.class));
+        verify(sessionService, never()).create(any(Session.class));
     }
 
     @Test
@@ -277,7 +280,7 @@ class SessionUseCaseTest {
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.PLACE_NOT_FOUND));
-        verify(sessionService, never()).save(any(Session.class));
+        verify(sessionService, never()).create(any(Session.class));
     }
 
     @Test
@@ -285,7 +288,7 @@ class SessionUseCaseTest {
     void updatesMusicUrl() {
         Session session = startedSession(NOW);
         when(sessionService.getOwned(1L, 5L)).thenReturn(session);
-        when(sessionService.save(session)).thenReturn(session);
+        when(sessionService.update(session)).thenReturn(session);
 
         sessionUseCase.updateMusicUrl(
                 1L,
@@ -295,7 +298,7 @@ class SessionUseCaseTest {
 
         assertThat(session.getMusicUrl())
                 .isEqualTo("https://www.youtube.com/playlist?list=example");
-        verify(sessionService).save(session);
+        verify(sessionService).update(session);
     }
 
     @Test
@@ -329,7 +332,7 @@ class SessionUseCaseTest {
     void updatesPlannedDuration() {
         Session session = startedSession(NOW);
         when(sessionService.getOwned(1L, 5L)).thenReturn(session);
-        when(sessionService.save(session)).thenReturn(session);
+        when(sessionService.update(session)).thenReturn(session);
 
         sessionUseCase.updatePlannedDuration(
                 1L,
@@ -338,7 +341,7 @@ class SessionUseCaseTest {
         );
 
         assertThat(session.getPlannedDurationSec()).isEqualTo(1800);
-        verify(sessionService).save(session);
+        verify(sessionService).update(session);
     }
 
     private Session startedSession(Instant startedAt) {

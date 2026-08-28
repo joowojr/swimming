@@ -51,15 +51,16 @@ public class SessionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Session save(Session session) {
-        if (session.getId() == null) {
-            try {
-                return sessionRepository.saveAndFlush(SessionEntity.from(session)).toDomain();
-            } catch (DataIntegrityViolationException exception) {
-                throw new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS, exception);
-            }
+    public Session create(Session session) {
+        try {
+            return sessionRepository.saveAndFlush(SessionEntity.from(session)).toDomain();
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS, exception);
         }
+    }
 
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Session update(Session session) {
         SessionEntity entity = sessionRepository
                 .findByIdAndUserId(session.getId(), session.getUserId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));

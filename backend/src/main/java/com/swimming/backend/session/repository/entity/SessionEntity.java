@@ -3,6 +3,7 @@ package com.swimming.backend.session.repository.entity;
 import com.swimming.backend.common.entity.BaseTimeEntity;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
+import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.CollectionTable;
@@ -111,6 +112,16 @@ public class SessionEntity extends BaseTimeEntity {
     }
 
     public void apply(Session session) {
+        synchronizeTasks(session.getTasks());
+        applySessionState(session);
+    }
+
+    private void synchronizeTasks(List<SessionTask> sessionTasks) {
+        tasks.clear();
+        sessionTasks.forEach(task -> tasks.add(SessionTaskEmbeddable.from(task)));
+    }
+
+    private void applySessionState(Session session) {
         plannedDurationSec = session.getPlannedDurationSec();
         actualDurationSec = session.getActualDurationSec();
         endedAt = session.getEndedAt();

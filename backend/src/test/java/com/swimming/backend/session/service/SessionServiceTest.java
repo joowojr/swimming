@@ -50,7 +50,7 @@ class SessionServiceTest {
                     return entity;
                 });
 
-        Session saved = sessionService.save(session);
+        Session saved = sessionService.create(session);
 
         assertThat(saved.getId()).isEqualTo(5L);
         assertThat(saved.getTaskIds()).containsExactly(10L, 11L);
@@ -66,7 +66,7 @@ class SessionServiceTest {
         when(sessionRepository.saveAndFlush(any(SessionEntity.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate active user"));
 
-        assertThatThrownBy(() -> sessionService.save(session))
+        assertThatThrownBy(() -> sessionService.create(session))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS));
@@ -114,14 +114,14 @@ class SessionServiceTest {
     void appliesAndSavesExistingSession() {
         SessionEntity entity = startedEntity();
         Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), null);
+        session.end(STARTED_AT.plusSeconds(600), null, java.util.Map.of());
         when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
         when(sessionRepository.saveAndFlush(entity)).thenReturn(entity);
 
-        Session saved = sessionService.save(session);
+        Session saved = sessionService.update(session);
 
         assertThat(saved.getActualDurationSec()).isEqualTo(600);
-        assertThat(saved.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(saved.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(entity.getActiveUserId()).isNull();
         verify(sessionRepository).saveAndFlush(entity);
     }

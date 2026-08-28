@@ -7,6 +7,7 @@ import lombok.Getter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 public class Session {
@@ -15,7 +16,7 @@ public class Session {
     private final Long userId;
     private final SessionType type;
     private final Long placeId;
-    private final List<SessionTask> tasks;
+    private List<SessionTask> tasks;
     private String musicUrl;
     private int plannedDurationSec;
     private Integer actualDurationSec;
@@ -108,7 +109,11 @@ public class Session {
         return tasks.stream().map(SessionTask::taskId).toList();
     }
 
-    public void end(Instant endTime, String summary) {
+    public void end(
+            Instant endTime,
+            String summary,
+            Map<Long, Boolean> completionByTaskId
+    ) {
         if (status != SessionStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.SESSION_ALREADY_ENDED);
         }
@@ -117,13 +122,14 @@ public class Session {
         long elapsedSeconds = Duration.between(startedAt, effectiveEndTime).toSeconds();
         actualDurationSec = Math.toIntExact(elapsedSeconds);
         endedAt = effectiveEndTime;
-        status = SessionStatus.COMPLETED;
-        // 세션은 몰입 창을 열었다 닫는 단위이지 할 일을 완수했다는 단위가 아니므로,
-        // 소요 시간으로 완주 여부를 판정하지 않는다.
-        // status = elapsedSeconds >= plannedDurationSec
-        //         ? SessionStatus.COMPLETED
-        //         : SessionStatus.INTERRUPTED;
-
+        status = elapsedSeconds >= plannedDurationSec
+                ? SessionStatus.COMPLETED
+                : SessionStatus.INTERRUPTED;
+        tasks = tasks.stream()
+                .map(task -> completionByTaskId.containsKey(task.taskId())
+                        ? task.recordCompletion(completionByTaskId.get(task.taskId()))
+                        : task)
+                .toList();
         this.summary = summary;
     }
 

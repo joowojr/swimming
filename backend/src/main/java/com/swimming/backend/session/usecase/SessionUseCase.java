@@ -7,6 +7,7 @@ import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.place.dto.PlaceReference;
 import com.swimming.backend.place.service.PlaceVideoService;
 import com.swimming.backend.session.domain.Session;
+import com.swimming.backend.session.dto.SessionWithPlace;
 import com.swimming.backend.session.dto.web.SessionTaskResponse;
 import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
@@ -31,6 +32,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,9 +96,31 @@ public class SessionUseCase {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<SessionDetailResponse> getAll(Long userId) {
-        return sessionService.getOwnedSessions(userId)
+        List<SessionWithPlace> sessionsWithPlaces = sessionService.getOwnedSessionsWithPlaces(userId);
+        if (sessionsWithPlaces.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> taskIds = sessionsWithPlaces.stream()
+                .flatMap(item -> item.session().getTaskIds().stream())
+                .collect(Collectors.toCollection(LinkedHashSet::new))
                 .stream()
-                .map(session -> toDetailResponse(userId, session))
+                .toList();
+        Map<Long, TaskReference> tasksById = taskIds.isEmpty()
+                ? Map.of()
+                : taskService.getReferences(userId, taskIds).stream()
+                .collect(Collectors.toMap(TaskReference::id, Function.identity()));
+
+        if (tasksById.size() != taskIds.size()) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+
+        return sessionsWithPlaces.stream()
+                .map(item -> SessionDetailResponse.from(
+                        item.session(),
+                        placeVideoService.resolveReference(item.place()),
+                        getTasks(item.session(), tasksById)
+                ))
                 .toList();
     }
 
@@ -122,7 +146,7 @@ public class SessionUseCase {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));
         }
 
-        Session savedSession = sessionService.update(session);
+        Session savedSession = sessionService.end(session);
         PlaceReference place = placeVideoService.getReference(savedSession.getPlaceId());
         return SessionResponse.from(savedSession, place);
     }
@@ -173,7 +197,7 @@ public class SessionUseCase {
 
         Session session = sessionService.getOwned(userId, sessionId);
         session.updateMusicUrl(request.musicUrl());
-        sessionService.update(session);
+        sessionService.updateMusicUrl(session);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -184,7 +208,7 @@ public class SessionUseCase {
     ) {
         Session session = sessionService.getOwned(userId, sessionId);
         session.updatePlannedDuration(request.plannedDurationSec());
-        sessionService.update(session);
+        sessionService.updatePlannedDuration(session);
     }
 
     private SessionDetailResponse toDetailResponse(Long userId, Session session) {
@@ -202,6 +226,13 @@ public class SessionUseCase {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
+        return getTasks(session, tasksById);
+    }
+
+    private List<SessionTaskResponse> getTasks(
+            Session session,
+            Map<Long, TaskReference> tasksById
+    ) {
         return session.getTasks()
                 .stream()
                 .map(sessionTask -> SessionTaskResponse.from(

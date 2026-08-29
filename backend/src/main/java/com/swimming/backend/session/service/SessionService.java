@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,9 +46,17 @@ public class SessionService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<SessionWithPlace> getOwnedSessionsWithPlaces(Long userId) {
-        MapBuilder sessions = new MapBuilder();
-        sessionRepository.findListRows(userId).forEach(sessions::add);
-        return sessions.build();
+        return sessionRepository.findListRows(userId)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        SessionListRow::sessionId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values()
+                .stream()
+                .map(this::toSessionWithPlace)
+                .toList();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -60,13 +69,10 @@ public class SessionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Session update(Session session) {
-        int updatedCount = sessionRepository.updateOwnedSession(
+    public Session end(Session session) {
+        int updatedCount = sessionRepository.endOwnedSession(
                 session.getId(),
                 session.getUserId(),
-                session.getStatus() == SessionStatus.IN_PROGRESS ? session.getUserId() : null,
-                session.getMusicUrl(),
-                session.getPlannedDurationSec(),
                 session.getActualDurationSec(),
                 session.getEndedAt(),
                 session.getStatus(),
@@ -82,49 +88,56 @@ public class SessionService {
         return session;
     }
 
-    private static final class MapBuilder {
-        private final LinkedHashMap<Long, List<SessionListRow>> rowsBySessionId = new LinkedHashMap<>();
-
-        private void add(SessionListRow row) {
-            rowsBySessionId.computeIfAbsent(row.sessionId(), key -> new java.util.ArrayList<>())
-                    .add(row);
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updateMusicUrl(Session session) {
+        if (sessionRepository.updateOwnedMusicUrl(
+                session.getId(),
+                session.getUserId(),
+                session.getMusicUrl()
+        ) != 1) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
+    }
 
-        private List<SessionWithPlace> build() {
-            return rowsBySessionId.values().stream()
-                    .map(this::toSessionWithPlace)
-                    .toList();
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updatePlannedDuration(Session session) {
+        if (sessionRepository.updateOwnedPlannedDuration(
+                session.getId(),
+                session.getUserId(),
+                session.getPlannedDurationSec()
+        ) != 1) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
+    }
 
-        private SessionWithPlace toSessionWithPlace(List<SessionListRow> rows) {
-            SessionListRow first = rows.getFirst();
-            Session session = Session.restore(
-                    first.sessionId(),
-                    first.userId(),
-                    first.type(),
-                    first.placeId(),
-                    rows.stream()
-                            .map(row -> new SessionTask(row.taskId(), row.taskCompleted()))
-                            .toList(),
-                    first.musicUrl(),
-                    first.plannedDurationSec(),
-                    first.actualDurationSec(),
-                    first.startedAt(),
-                    first.endedAt(),
-                    first.status(),
-                    first.summary()
-            );
-            PlaceReferenceRow place = new PlaceReferenceRow(
-                    first.placeId(),
-                    first.cityId(),
-                    first.cityName(),
-                    first.placeName(),
-                    first.backgroundAssetType(),
-                    first.backgroundAssetKey(),
-                    first.defaultMusicUrl()
-            );
-            return new SessionWithPlace(session, place);
-        }
+    private SessionWithPlace toSessionWithPlace(List<SessionListRow> rows) {
+        SessionListRow first = rows.getFirst();
+        Session session = Session.restore(
+                first.sessionId(),
+                first.userId(),
+                first.type(),
+                first.placeId(),
+                rows.stream()
+                        .map(row -> new SessionTask(row.taskId(), row.taskCompleted()))
+                        .toList(),
+                first.musicUrl(),
+                first.plannedDurationSec(),
+                first.actualDurationSec(),
+                first.startedAt(),
+                first.endedAt(),
+                first.status(),
+                first.summary()
+        );
+        PlaceReferenceRow place = new PlaceReferenceRow(
+                first.placeId(),
+                first.cityId(),
+                first.cityName(),
+                first.placeName(),
+                first.backgroundAssetType(),
+                first.backgroundAssetKey(),
+                first.defaultMusicUrl()
+        );
+        return new SessionWithPlace(session, place);
     }
 
 }

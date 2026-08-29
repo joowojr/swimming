@@ -3,6 +3,7 @@ package com.swimming.backend.plan.repository;
 import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
 import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,8 +14,6 @@ import java.util.Set;
 
 public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEntity, Long> {
     List<DailyPlanItemEntity> findAllByUserIdAndPlanDateOrderByOrderIdxAsc(Long userId, LocalDate planDate);
-
-    Optional<DailyPlanItemEntity> findByIdAndUserIdAndPlanDate(Long id, Long userId, LocalDate planDate);
 
     @Query("""
             select new com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow(
@@ -49,4 +48,15 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
     long countDistinctTaskIds(@Param("userId") Long userId,
                               @Param("planDate") LocalDate planDate,
                               @Param("taskIds") Set<Long> taskIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            delete from DailyPlanItemEntity item
+            where item.id = :itemId
+              and item.userId = :userId
+              and item.planDate = :planDate
+            """)
+    int deleteOwnedItem(@Param("itemId") Long itemId,
+                        @Param("userId") Long userId,
+                        @Param("planDate") LocalDate planDate);
 }

@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -69,11 +71,6 @@ public class TaskService {
         return taskRepository.saveAndFlush(
                 TaskEntity.from(task, user, project, sourceNote)
         ).toDomain();
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
-    public Long createAndGetId(Long userId, Long projectId, String title) {
-        return create(userId, projectId, title).getId();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -128,30 +125,62 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task update(Long userId, Task task) {
-        TaskEntity taskEntity = getOwnedEntity(userId, task.getId());
-        taskEntity.apply(task);
-        return taskRepository.saveAndFlush(taskEntity).toDomain();
+        if (taskRepository.updateOwnedTask(
+                task.getId(),
+                userId,
+                task.getTitle(),
+                task.getStatus(),
+                task.getOrderIdx()
+        ) != 1) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
+        }
+        LocalDateTime updatedAt = taskRepository
+                .findUpdatedAtByIdAndUserId(task.getId(), userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        return Task.restore(
+                task.getId(),
+                task.getUserId(),
+                task.getProjectId(),
+                task.getSourceNoteId(),
+                task.getTitle(),
+                task.getStatus(),
+                task.getOrderIdx(),
+                task.getCreatedAt(),
+                updatedAt
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void deleteAll(Long userId, List<Long> taskIds) {
-        List<TaskEntity> taskEntities = taskRepository.findAllOwnedEntitiesByIds(userId, taskIds);
-        if (taskEntities.size() != taskIds.size()) {
+        if (taskIds.isEmpty()) {
+            return;
+        }
+        if (taskRepository.deleteAllOwnedByIds(userId, taskIds) != taskIds.size()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
-        taskRepository.deleteAllInBatch(taskEntities);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void updateStatuses(Long userId, Map<Long, TaskStatus> statusByTaskId) {
-        List<TaskEntity> taskEntities = taskRepository
-                .findAllOwnedEntitiesByIds(userId, List.copyOf(statusByTaskId.keySet()));
-
-        if (taskEntities.size() != statusByTaskId.size()) {
+        if (statusByTaskId.isEmpty()) {
+            return;
+        }
+        int updatedCount = statusByTaskId.entrySet().stream()
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getValue,
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())
+                ))
+                .entrySet()
+                .stream()
+                .mapToInt(entry -> taskRepository.updateOwnedStatuses(
+                        userId,
+                        entry.getValue(),
+                        entry.getKey()
+                ))
+                .sum();
+        if (updatedCount != statusByTaskId.size()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
-
-        taskEntities.forEach(task -> task.changeStatus(statusByTaskId.get(task.getId())));
     }
 
     private TaskEntity getOwnedEntity(Long userId, Long taskId) {

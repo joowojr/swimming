@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -148,18 +149,30 @@ public class NoteService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Note update(Note note) {
-        NoteEntity entity = getOwnedNoteEntity(
+        if (noteRepository.updateOwnedNote(
+                note.getId(),
                 note.getUserId(),
-                note.getId()
-        );
-
-        entity.update(
                 note.getContent(),
                 note.getStatus(),
                 note.isDeleted()
+        ) != 1) {
+            throw noteNotFound();
+        }
+        LocalDateTime updatedAt = noteRepository
+                .findUpdatedAtByIdAndUserId(note.getId(), note.getUserId())
+                .orElseThrow(this::noteNotFound);
+        return Note.restore(
+                note.getId(),
+                note.getUserId(),
+                note.getContent(),
+                note.getStatus(),
+                note.isDeleted(),
+                note.getContextType(),
+                note.getProjectId(),
+                note.getSessionId(),
+                note.getCreatedAt(),
+                updatedAt
         );
-
-        return toDomain(noteRepository.saveAndFlush(entity));
     }
 
     private NoteEntity getOwnedNoteEntity(

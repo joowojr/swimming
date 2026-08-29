@@ -61,11 +61,15 @@ public class ProjectTagService {
             throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
         }
 
-        ProjectTagEntity entity = getOwnedEntity(projectTag.getUserId(), projectTag.getId());
-        entity.apply(projectTag);
-
         try {
-            return projectTagRepository.saveAndFlush(entity).toDomain();
+            if (projectTagRepository.updateOwnedTag(
+                    projectTag.getId(),
+                    projectTag.getUserId(),
+                    projectTag.getName()
+            ) != 1) {
+                throw new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND);
+            }
+            return projectTag;
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS, exception);
         }
@@ -73,14 +77,9 @@ public class ProjectTagService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long tagId) {
-        ProjectTagEntity entity = getOwnedEntity(userId, tagId);
         projectRepository.clearTagFromOwnedProjects(userId, tagId);
-        projectTagRepository.delete(entity);
-        projectTagRepository.flush();
-    }
-
-    private ProjectTagEntity getOwnedEntity(Long userId, Long tagId) {
-        return projectTagRepository.findByIdAndUserId(tagId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+        if (projectTagRepository.deleteOwnedTag(tagId, userId) != 1) {
+            throw new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND);
+        }
     }
 }

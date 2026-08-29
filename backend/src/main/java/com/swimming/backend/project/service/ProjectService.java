@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -60,11 +61,6 @@ public class ProjectService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public void validateOwnership(Long userId, Long projectId) {
-        getOwnedProjectEntity(userId, projectId);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public void validateOwnerships(Long userId, List<Long> projectIds) {
         Set<Long> uniqueProjectIds = Set.copyOf(projectIds);
         if (uniqueProjectIds.isEmpty()) {
@@ -78,17 +74,40 @@ public class ProjectService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Project update(Project project) {
-        ProjectEntity projectEntity = getOwnedProjectEntity(project.getUserId(), project.getId());
-        ProjectTagEntity tagEntity = getOwnedTagEntity(project.getUserId(), project.getTag());
-        projectEntity.apply(project, tagEntity);
-        return projectRepository.saveAndFlush(projectEntity).toDomain();
+        int updatedCount = projectRepository.updateOwnedProject(
+                project.getId(),
+                project.getUserId(),
+                project.getTag() == null ? null : project.getTag().getId(),
+                project.getName(),
+                project.getDescription(),
+                project.getTargetDate(),
+                project.getStatus().name()
+        );
+        if (updatedCount != 1) {
+            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
+        }
+        LocalDateTime updatedAt = projectRepository
+                .findUpdatedAtByIdAndUserId(project.getId(), project.getUserId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+        return Project.restore(
+                project.getId(),
+                project.getUserId(),
+                project.getTag(),
+                project.getName(),
+                project.getDescription(),
+                project.getTargetDate(),
+                project.getStatus(),
+                project.isDeleted(),
+                project.getCreatedAt(),
+                updatedAt
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long projectId) {
-        Project project = getOwnedProjectEntity(userId, projectId).toDomain();
-        project.delete();
-        update(project);
+        if (projectRepository.softDeleteOwnedProject(projectId, userId) != 1) {
+            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
+        }
     }
 
     private ProjectEntity getOwnedProjectEntity(Long userId, Long projectId) {

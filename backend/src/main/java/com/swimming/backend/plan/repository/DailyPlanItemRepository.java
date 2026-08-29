@@ -41,14 +41,6 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                                          @Param("toDate") LocalDate toDate);
 
     @Query("""
-            select (count(item) > 0) from DailyPlanItemEntity item
-            where item.userId = :userId and item.planDate = :planDate and item.taskId = :taskId
-            """)
-    boolean containsTask(@Param("userId") Long userId,
-                         @Param("planDate") LocalDate planDate,
-                         @Param("taskId") Long taskId);
-
-    @Query("""
             select count(distinct item.taskId) from DailyPlanItemEntity item
             where item.userId = :userId
               and item.planDate = :planDate

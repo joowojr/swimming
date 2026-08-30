@@ -28,14 +28,16 @@ public class ProjectTagUseCase {
         );
     }
 
-    public ProjectTagResponse update(
+    public ProjectTagResponse updateName(
             Long userId,
             Long tagId,
             ProjectTagNameRequest request
     ) {
-        ProjectTag projectTag = projectTagService.getOne(userId, tagId);
-        projectTag.rename(request.name());
-        return ProjectTagResponse.from(projectTagService.update(projectTag));
+        return ProjectTagResponse.from(projectTagService.updateName(
+                userId,
+                tagId,
+                request.name()
+        ));
     }
 
     public void delete(Long userId, Long tagId) {

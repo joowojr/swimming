@@ -83,18 +83,15 @@ public class ProjectUseCase {
             Long projectId,
             UpdateProjectRequest request
     ) {
-        Project project = projectService.getOne(userId, projectId);
-        ProjectTag tag = request.tagId() == null
-                ? null
-                : projectTagService.getOne(userId, request.tagId());
-        project.update(
+        return ProjectResponse.from(projectService.update(
+                userId,
+                projectId,
+                request.tagId(),
                 request.name(),
                 request.description(),
                 request.targetDate(),
-                request.status(),
-                tag
-        );
-        return ProjectResponse.from(projectService.update(project));
+                request.status()
+        ));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

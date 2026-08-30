@@ -52,24 +52,22 @@ public class ProjectTagService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public ProjectTag update(ProjectTag projectTag) {
+    public ProjectTag updateName(Long userId, Long tagId, String name) {
+        ProjectTagEntity entity = projectTagRepository.findByIdAndUserId(tagId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+        String normalizedName = name.trim();
         if (projectTagRepository.existsByUserIdAndNameAndIdNot(
-                projectTag.getUserId(),
-                projectTag.getName(),
-                projectTag.getId()
+                userId,
+                normalizedName,
+                tagId
         )) {
             throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
         }
 
         try {
-            if (projectTagRepository.updateOwnedTag(
-                    projectTag.getId(),
-                    projectTag.getUserId(),
-                    projectTag.getName()
-            ) != 1) {
-                throw new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND);
-            }
-            return projectTag;
+            entity.updateName(normalizedName);
+            projectTagRepository.flush();
+            return entity.toDomain();
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS, exception);
         }

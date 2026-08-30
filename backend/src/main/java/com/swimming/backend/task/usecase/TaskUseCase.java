@@ -60,9 +60,7 @@ public class TaskUseCase {
             Long taskId,
             UpdateTaskTitleRequest request
     ) {
-        Task task = taskService.getOne(userId, taskId);
-        task.changeTitle(request.title());
-        return TaskResponse.from(taskService.update(userId, task));
+        return TaskResponse.from(taskService.updateTitle(userId, taskId, request.title()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -71,9 +69,7 @@ public class TaskUseCase {
             Long taskId,
             UpdateTaskStatusRequest request
     ) {
-        Task task = taskService.getOne(userId, taskId);
-        task.changeStatus(request.status());
-        return TaskResponse.from(taskService.update(userId, task));
+        return TaskResponse.from(taskService.updateStatus(userId, taskId, request.status()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

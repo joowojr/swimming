@@ -66,16 +66,13 @@ public class TaskEntity extends BaseTimeEntity {
         return new TaskEntity(task, user, project, sourceNote);
     }
 
-    public void apply(Task task) {
-        this.title = task.getTitle();
-        this.status = task.getStatus();
-        this.orderIdx = task.getOrderIdx();
+    public void updateTitle(String title) {
+        this.title = title;
     }
 
-    public void changeStatus(TaskStatus status) {
+    public void updateStatus(TaskStatus status) {
         this.status = status;
     }
-
 
     public Task toDomain() {
         return Task.restore(

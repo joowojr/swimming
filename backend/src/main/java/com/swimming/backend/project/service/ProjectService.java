@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -73,41 +73,37 @@ public class ProjectService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Project update(Project project) {
-        int updatedCount = projectRepository.updateOwnedProject(
-                project.getId(),
-                project.getUserId(),
-                project.getTag() == null ? null : project.getTag().getId(),
-                project.getName(),
-                project.getDescription(),
-                project.getTargetDate(),
-                project.getStatus().name()
+    public Project update(
+            Long userId,
+            Long projectId,
+            Long tagId,
+            String name,
+            String description,
+            LocalDate targetDate,
+            ProjectStatus status
+    ) {
+        ProjectEntity entity = getOwnedProjectEntity(userId, projectId);
+        ProjectTagEntity tagEntity = tagId == null
+                ? null
+                : getOwnedTagEntity(userId, tagId);
+        Project project = entity.toDomain();
+        project.update(
+                name,
+                description,
+                targetDate,
+                status,
+                tagEntity == null ? null : tagEntity.toDomain()
         );
-        if (updatedCount != 1) {
-            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
-        }
-        LocalDateTime updatedAt = projectRepository
-                .findUpdatedAtByIdAndUserId(project.getId(), project.getUserId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
-        return Project.restore(
-                project.getId(),
-                project.getUserId(),
-                project.getTag(),
-                project.getName(),
-                project.getDescription(),
-                project.getTargetDate(),
-                project.getStatus(),
-                project.isDeleted(),
-                project.getCreatedAt(),
-                updatedAt
-        );
+        entity.apply(project, tagEntity);
+        projectRepository.flush();
+        return entity.toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long projectId) {
-        if (projectRepository.softDeleteOwnedProject(projectId, userId) != 1) {
-            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
-        }
+        ProjectEntity entity = getOwnedProjectEntity(userId, projectId);
+        entity.delete();
+        projectRepository.flush();
     }
 
     private ProjectEntity getOwnedProjectEntity(Long userId, Long projectId) {
@@ -120,6 +116,11 @@ public class ProjectService {
             return null;
         }
         return projectTagRepository.findByIdAndUserId(tag.getId(), userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+    }
+
+    private ProjectTagEntity getOwnedTagEntity(Long userId, Long tagId) {
+        return projectTagRepository.findByIdAndUserId(tagId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
     }
 }

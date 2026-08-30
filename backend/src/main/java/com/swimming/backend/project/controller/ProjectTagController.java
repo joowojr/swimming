@@ -54,7 +54,7 @@ public class ProjectTagController {
             @PathVariable Long tagId,
             @Valid @RequestBody ProjectTagNameRequest request
     ) {
-        return ResponseEntity.ok(projectTagUseCase.update(authUser.id(), tagId, request));
+        return ResponseEntity.ok(projectTagUseCase.updateName(authUser.id(), tagId, request));
     }
 
     @DeleteMapping("/{tagId}")

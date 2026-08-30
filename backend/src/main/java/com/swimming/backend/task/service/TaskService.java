@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
@@ -124,30 +123,19 @@ public class TaskService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Task update(Long userId, Task task) {
-        if (taskRepository.updateOwnedTask(
-                task.getId(),
-                userId,
-                task.getTitle(),
-                task.getStatus(),
-                task.getOrderIdx()
-        ) != 1) {
-            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
-        }
-        LocalDateTime updatedAt = taskRepository
-                .findUpdatedAtByIdAndUserId(task.getId(), userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
-        return Task.restore(
-                task.getId(),
-                task.getUserId(),
-                task.getProjectId(),
-                task.getSourceNoteId(),
-                task.getTitle(),
-                task.getStatus(),
-                task.getOrderIdx(),
-                task.getCreatedAt(),
-                updatedAt
-        );
+    public Task updateTitle(Long userId, Long taskId, String title) {
+        TaskEntity entity = getOwnedEntity(userId, taskId);
+        entity.updateTitle(title.trim());
+        taskRepository.flush();
+        return entity.toDomain();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task updateStatus(Long userId, Long taskId, TaskStatus status) {
+        TaskEntity entity = getOwnedEntity(userId, taskId);
+        entity.updateStatus(status);
+        taskRepository.flush();
+        return entity.toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

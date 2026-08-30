@@ -38,10 +38,17 @@
   gap: var(--space-3);
 }
 
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
 .view-switcher {
   display: inline-flex;
   gap: var(--space-1);
-  margin-bottom: var(--space-6);
   padding: var(--space-1);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-default);
@@ -66,6 +73,7 @@
 }
 
 .actions button,
+.filter-button,
 .state button {
   display: inline-flex;
   align-items: center;
@@ -79,6 +87,10 @@
   white-space: nowrap;
 }
 
+.filter-button {
+  flex: 0 0 auto;
+}
+
 .secondary,
 .state button {
   border: var(--border-width) solid var(--color-border-subtle);
@@ -86,7 +98,8 @@
   background: var(--color-surface-lowest);
 }
 
-.actions button:disabled {
+.actions button:disabled,
+.filter-button:disabled {
   cursor: default;
   opacity: 1;
 }
@@ -115,6 +128,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.task-content {
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
 }
 
 .delete-error {
@@ -170,6 +189,15 @@
   }
 }
 
+@media (min-width: 64.01rem) {
+  .task-content {
+    width: min(
+      calc(100% - 20rem - var(--space-8)),
+      calc(var(--content-width) - 20rem - var(--space-8))
+    );
+  }
+}
+
 @media (max-width: 48rem) {
   .page {
     padding: var(--space-6) var(--space-4);
@@ -191,7 +219,8 @@
 
   .view-switcher {
     display: flex;
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .view-button,

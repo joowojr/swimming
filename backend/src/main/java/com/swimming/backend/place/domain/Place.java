@@ -1,27 +1,29 @@
 package com.swimming.backend.place.domain;
 
 import lombok.Getter;
+import lombok.Builder;
 
 @Getter
 public class Place {
 
     private final Long id;
-    private final Long cityId;
+    private final City city;
     private final String name;
     private final BackgroundAssetType backgroundAssetType;
     private final String backgroundAssetKey;
     private final String defaultMusicUrl;
 
+    @Builder
     private Place(
             Long id,
-            Long cityId,
+            City city,
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
             String defaultMusicUrl
     ) {
         this.id = id;
-        this.cityId = cityId;
+        this.city = city;
         this.name = name;
         this.backgroundAssetType = backgroundAssetType;
         this.backgroundAssetKey = backgroundAssetKey;
@@ -30,19 +32,23 @@ public class Place {
 
     public static Place restore(
             Long id,
-            Long cityId,
+            City city,
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
             String defaultMusicUrl
     ) {
-        return new Place(
-                id,
-                cityId,
-                name,
-                backgroundAssetType,
-                backgroundAssetKey,
-                defaultMusicUrl
-        );
+        return Place.builder()
+                .id(id)
+                .city(city)
+                .name(name)
+                .backgroundAssetType(backgroundAssetType)
+                .backgroundAssetKey(backgroundAssetKey)
+                .defaultMusicUrl(defaultMusicUrl)
+                .build();
+    }
+
+    public Long getCityId() {
+        return city.getId();
     }
 }

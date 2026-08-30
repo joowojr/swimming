@@ -10,8 +10,12 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -25,8 +29,9 @@ public class PlaceEntity extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "city_id", nullable = false)
-    private Long cityId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "city_id", nullable = false)
+    private CityEntity city;
 
     @Column(nullable = false)
     private String name;
@@ -41,14 +46,15 @@ public class PlaceEntity extends BaseTimeEntity {
     @Column(name = "default_music_url", length = 2048)
     private String defaultMusicUrl;
 
+    @Builder
     private PlaceEntity(
-            Long cityId,
+            CityEntity city,
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
             String defaultMusicUrl
     ) {
-        this.cityId = cityId;
+        this.city = city;
         this.name = name;
         this.backgroundAssetType = backgroundAssetType;
         this.backgroundAssetKey = backgroundAssetKey;
@@ -56,25 +62,25 @@ public class PlaceEntity extends BaseTimeEntity {
     }
 
     public static PlaceEntity create(
-            Long cityId,
+            CityEntity city,
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
             String defaultMusicUrl
     ) {
-        return new PlaceEntity(
-                cityId,
-                name,
-                backgroundAssetType,
-                backgroundAssetKey,
-                defaultMusicUrl
-        );
+        return PlaceEntity.builder()
+                .city(city)
+                .name(name)
+                .backgroundAssetType(backgroundAssetType)
+                .backgroundAssetKey(backgroundAssetKey)
+                .defaultMusicUrl(defaultMusicUrl)
+                .build();
     }
 
     public Place toDomain() {
         return Place.restore(
                 id,
-                cityId,
+                city.toDomain(),
                 name,
                 backgroundAssetType,
                 backgroundAssetKey,

@@ -2,7 +2,6 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.common.util.UrlUtils;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.place.service.PlaceService;
@@ -17,6 +16,7 @@ import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.session.service.SessionService;
+import com.swimming.backend.session.validator.SessionMusicUrlValidator;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -43,10 +42,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SessionUseCase {
-
-    private static final String YOUTUBE_DOMAIN = "youtube.com";
-    private static final String YOUTUBE_SHORT_DOMAIN = "youtu.be";
-    private static final String YOUTUBE_NO_COOKIE_DOMAIN = "youtube-nocookie.com";
 
     private final SessionService sessionService;
     private final DailyPlanService dailyPlanService;
@@ -68,9 +63,6 @@ public class SessionUseCase {
 
         if (taskIds.isEmpty() || new HashSet<>(taskIds).size() != taskIds.size()) {
             throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
-        }
-        if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
-            throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
         }
         Place place = placeService.getOne(request.placeId());
 
@@ -193,10 +185,7 @@ public class SessionUseCase {
             Long sessionId,
             UpdateSessionMusicUrlRequest request
     ) {
-        if (!isValidMusicUrl(request.musicUrl())) {
-            throw new BusinessException(ErrorCode.INVALID_MUSIC_URL);
-        }
-
+        SessionMusicUrlValidator.validate(request.musicUrl());
         sessionService.updateMusicUrl(userId, sessionId, request.musicUrl());
     }
 
@@ -249,42 +238,4 @@ public class SessionUseCase {
                 .toList();
     }
 
-    private boolean isValidMusicUrl(String musicUrl) {
-        if (musicUrl == null) {
-            return true;
-        }
-        if (musicUrl.isBlank()) {
-            return false;
-        }
-
-        return UrlUtils.parseHttpUrl(musicUrl)
-                .map(this::isYouTubeVideoOrPlaylistUrl)
-                .orElse(false);
-    }
-
-    private boolean isYouTubeVideoOrPlaylistUrl(URI uri) {
-        String path = uri.getPath();
-        if (UrlUtils.hasHostOrSubdomain(uri, YOUTUBE_SHORT_DOMAIN)) {
-            return path != null && path.length() > 1;
-        }
-
-        boolean youtubeHost = UrlUtils.hasHostOrSubdomain(uri, YOUTUBE_DOMAIN);
-        boolean youtubeNoCookieHost = UrlUtils.hasHostOrSubdomain(
-                uri,
-                YOUTUBE_NO_COOKIE_DOMAIN
-        );
-        if (!youtubeHost && !youtubeNoCookieHost) {
-            return false;
-        }
-
-        if (path != null && (path.startsWith("/embed/") || path.startsWith("/shorts/"))) {
-            return path.length() > path.indexOf('/', 1) + 1;
-        }
-        if (!youtubeHost || path == null) {
-            return false;
-        }
-        return (path.equals("/watch") && UrlUtils.hasNonEmptyQueryParameter(uri, "v"))
-                || (path.equals("/playlist")
-                && UrlUtils.hasNonEmptyQueryParameter(uri, "list"));
-    }
 }

@@ -7,8 +7,8 @@ import lombok.Getter;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 
 @Getter
 public class Session {
@@ -114,6 +114,12 @@ public class Session {
             throw new BusinessException(ErrorCode.SESSION_ALREADY_ENDED);
         }
 
+        var completedTaskIdSet = new HashSet<>(completedTaskIds);
+        if (completedTaskIdSet.size() != completedTaskIds.size()
+                || !new HashSet<>(getTaskIds()).containsAll(completedTaskIdSet)) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
+        }
+
         Instant effectiveEndTime = endTime.isBefore(startedAt) ? startedAt : endTime;
         long elapsedSeconds = Duration.between(startedAt, effectiveEndTime).toSeconds();
         actualDurationSec = Math.toIntExact(elapsedSeconds);
@@ -121,7 +127,6 @@ public class Session {
         status = elapsedSeconds >= plannedDurationSec
                 ? SessionStatus.COMPLETED
                 : SessionStatus.INTERRUPTED;
-        var completedTaskIdSet = new HashSet<>(completedTaskIds);
         tasks = tasks.stream()
                 .map(task -> completedTaskIdSet.contains(task.taskId())
                         ? task.recordCompletion(true)

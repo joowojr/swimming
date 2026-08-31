@@ -10,6 +10,12 @@ public record DailyPlanItemResponse(
         String projectName,
         String title,
         TaskStatus status,
+        boolean priority,
+        boolean urgent,
         int orderIdx
 ) {
+    public DailyPlanItemResponse(Long id, Long taskId, DailyPlanItemType itemType, Long projectId,
+                                 String projectName, String title, TaskStatus status, int orderIdx) {
+        this(id, taskId, itemType, projectId, projectName, title, status, false, false, orderIdx);
+    }
 }

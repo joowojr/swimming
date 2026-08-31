@@ -14,6 +14,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -76,5 +78,50 @@ class TaskRepositoryJoinTest {
                 .containsExactly(savedTask.getId());
         assertThat(tasks.getFirst().getProject().getName()).isEqualTo("폴더");
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("soft delete된 Task는 일반 조회에서 제외하고 이력용 참조 조회에는 유지한다")
+    @Transactional(propagation = Propagation.REQUIRED)
+    void keepsSoftDeletedTaskForHistoricalReference() {
+        User user = userRepository.saveAndFlush(User.builder()
+                .email("soft-delete-task@example.com")
+                .passwordHash("password")
+                .nickname("soft-delete-task-user")
+                .timezone("Asia/Seoul")
+                .build());
+        ProjectEntity project = projectRepository.saveAndFlush(ProjectEntity.from(
+                Project.create(user.getId(), null, "폴더", "설명", null),
+                user,
+                null
+        ));
+        TaskEntity task = taskRepository.saveAndFlush(TaskEntity.from(
+                Task.create(user.getId(), project.getId(), "세션에 기록된 Task", 0),
+                user,
+                project,
+                null
+        ));
+
+        assertThat(taskRepository.softDeleteAllOwnedByIds(
+                user.getId(),
+                List.of(task.getId())
+        )).isEqualTo(1);
+
+        assertThat(taskRepository.findAllByProjectIdWithProject(project.getId())).isEmpty();
+        assertThat(taskRepository.findByIdAndUser_IdAndDeletedFalse(
+                task.getId(),
+                user.getId()
+        )).isEmpty();
+        assertThat(taskRepository.findAllOwnedActiveByIds(
+                user.getId(),
+                List.of(task.getId())
+        )).isEmpty();
+        assertThat(taskRepository.findAllOwnedByIdsIncludingDeleted(
+                user.getId(),
+                List.of(task.getId())
+        )).singleElement().satisfies(reference -> {
+            assertThat(reference.id()).isEqualTo(task.getId());
+            assertThat(reference.title()).isEqualTo("세션에 기록된 Task");
+        });
     }
 }

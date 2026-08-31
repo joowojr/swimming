@@ -52,8 +52,8 @@ public class TaskService {
             String title
     ) {
         int nextOrder = (projectId == null
-                ? taskRepository.findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(userId)
-                : taskRepository.findTopByProject_IdOrderByIdDesc(projectId))
+                ? taskRepository.findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
+                : taskRepository.findTopByProject_IdAndDeletedFalseOrderByIdDesc(projectId))
                 .map(TaskEntity::getOrderIdx)
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
@@ -82,7 +82,7 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Task> getAll(Long userId) {
-        return taskRepository.findAllByUser_IdOrderByCreatedAtDesc(userId)
+        return taskRepository.findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -90,7 +90,7 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Task> getUnclassified(Long userId) {
-        return taskRepository.findAllByUser_IdAndProjectIsNullOrderByCreatedAtDesc(userId)
+        return taskRepository.findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -98,7 +98,12 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskReference> getReferences(Long userId, List<Long> taskIds) {
-        return taskRepository.findAllOwnedByIds(userId, taskIds);
+        return taskRepository.findAllOwnedByIdsIncludingDeleted(userId, taskIds);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskReference> getActiveReferences(Long userId, List<Long> taskIds) {
+        return taskRepository.findAllOwnedActiveByIds(userId, taskIds);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -143,7 +148,7 @@ public class TaskService {
         if (taskIds.isEmpty()) {
             return;
         }
-        if (taskRepository.deleteAllOwnedByIds(userId, taskIds) != taskIds.size()) {
+        if (taskRepository.softDeleteAllOwnedByIds(userId, taskIds) != taskIds.size()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
     }
@@ -172,7 +177,7 @@ public class TaskService {
     }
 
     private TaskEntity getOwnedEntity(Long userId, Long taskId) {
-        return taskRepository.findByIdAndUser_Id(taskId, userId)
+        return taskRepository.findByIdAndUser_IdAndDeletedFalse(taskId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
     }
 }

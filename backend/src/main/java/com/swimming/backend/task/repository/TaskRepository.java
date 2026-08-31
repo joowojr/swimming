@@ -20,19 +20,20 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             FROM TaskEntity task
             JOIN FETCH task.project project
             WHERE project.id = :projectId
+              AND task.deleted = false
             ORDER BY task.createdAt DESC
             """)
     List<TaskEntity> findAllByProjectIdWithProject(@Param("projectId") Long projectId);
 
-    List<TaskEntity> findAllByUser_IdOrderByCreatedAtDesc(Long userId);
+    List<TaskEntity> findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
-    List<TaskEntity> findAllByUser_IdAndProjectIsNullOrderByCreatedAtDesc(Long userId);
+    List<TaskEntity> findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
-    Optional<TaskEntity> findTopByProject_IdOrderByIdDesc(Long projectId);
+    Optional<TaskEntity> findTopByProject_IdAndDeletedFalseOrderByIdDesc(Long projectId);
 
-    Optional<TaskEntity> findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(Long userId);
+    Optional<TaskEntity> findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(Long userId);
 
-    Optional<TaskEntity> findByIdAndUser_Id(Long taskId, Long userId);
+    Optional<TaskEntity> findByIdAndUser_IdAndDeletedFalse(Long taskId, Long userId);
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskReference(
@@ -47,7 +48,26 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             WHERE task.user.id = :userId
               AND task.id IN :taskIds
             """)
-    List<TaskReference> findAllOwnedByIds(
+    List<TaskReference> findAllOwnedByIdsIncludingDeleted(
+            @Param("userId") Long userId,
+            @Param("taskIds") List<Long> taskIds
+    );
+
+    @Query("""
+            SELECT new com.swimming.backend.task.dto.projection.TaskReference(
+                task.id,
+                project.id,
+                project.name,
+                task.title,
+                task.status
+            )
+            FROM TaskEntity task
+            LEFT JOIN task.project project
+            WHERE task.user.id = :userId
+              AND task.id IN :taskIds
+              AND task.deleted = false
+            """)
+    List<TaskReference> findAllOwnedActiveByIds(
             @Param("userId") Long userId,
             @Param("taskIds") List<Long> taskIds
     );
@@ -62,7 +82,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
                 task.status
             )
             FROM ProjectEntity project
-            LEFT JOIN TaskEntity task ON task.project = project
+            LEFT JOIN TaskEntity task ON task.project = project AND task.deleted = false
             WHERE project.user.id = :userId
               AND project.status <> :excludedStatus
               AND project.deleted = false
@@ -75,12 +95,15 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-            delete from TaskEntity task
+            update TaskEntity task
+            set task.deleted = true,
+                task.updatedAt = CURRENT_TIMESTAMP
             where task.user.id = :userId
               and task.id in :taskIds
+              and task.deleted = false
             """)
-    int deleteAllOwnedByIds(@Param("userId") Long userId,
-                            @Param("taskIds") List<Long> taskIds);
+    int softDeleteAllOwnedByIds(@Param("userId") Long userId,
+                                @Param("taskIds") List<Long> taskIds);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

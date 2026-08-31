@@ -19,6 +19,8 @@ app:
       - http://localhost:5173
   auth:
     secure-cookie: false
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:local-google-client-id}
 
 logging:
   level:

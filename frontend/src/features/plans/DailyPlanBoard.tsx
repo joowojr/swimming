@@ -20,7 +20,7 @@ import {
     deleteDailyPlanItem,
     getDailyPlans,
 } from './dailyPlanApi'
-import type {TaskStatus} from '../tasks/taskTypes'
+import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
@@ -169,13 +169,11 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         }
     }
 
-    const replaceTaskFlag = (
-        taskId: number,
-        field: 'priority' | 'urgent',
-        value: boolean,
-    ) => {
+    const replaceTaskFlags = (task: Pick<TaskResponse, 'id' | 'priority' | 'urgent'>) => {
         const replace = (items: DailyPlanItem[]) => items.map((candidate) => (
-            candidate.taskId === taskId ? {...candidate, [field]: value} : candidate
+            candidate.taskId === task.id
+                ? {...candidate, priority: task.priority, urgent: task.urgent}
+                : candidate
         ))
         setDrafts((current) => Object.fromEntries(
             Object.entries(current).map(([date, items]) => [date, replace(items)]),
@@ -190,8 +188,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         setPendingTaskId(item.taskId)
         setMessage(null)
         try {
-            await updateTaskPriority(item.taskId, {priority: !item.priority})
-            replaceTaskFlag(item.taskId, 'priority', !item.priority)
+            replaceTaskFlags(await updateTaskPriority(item.taskId, {priority: !item.priority}))
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? '우선 표시를 변경하지 못했습니다.')
@@ -204,8 +201,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         setPendingTaskId(item.taskId)
         setMessage(null)
         try {
-            await updateTaskUrgent(item.taskId, {urgent: !item.urgent})
-            replaceTaskFlag(item.taskId, 'urgent', !item.urgent)
+            replaceTaskFlags(await updateTaskUrgent(item.taskId, {urgent: !item.urgent}))
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? '긴급 표시를 변경하지 못했습니다.')

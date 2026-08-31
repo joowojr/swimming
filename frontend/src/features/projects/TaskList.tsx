@@ -9,12 +9,14 @@ import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import { updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
-import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
+import type { TaskResponse, TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
 
 interface TaskListItem extends TaskSummaryResponse {
   projectId?: number | null
 }
+
+type TaskFlagOverride = Pick<TaskResponse, 'status' | 'priority' | 'urgent'>
 
 interface TaskListProps {
   tasks: TaskListItem[]
@@ -59,14 +61,30 @@ export default function TaskList({
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
+  const [taskFlagOverrides, setTaskFlagOverrides] = useState<Record<number, TaskFlagOverride>>({})
+
+  const applyTaskFlagOverride = (task: TaskListItem): TaskListItem => ({
+    ...task,
+    ...taskFlagOverrides[task.id],
+  })
+
+  const updateTaskFlags = (updatedTask: TaskResponse) => {
+    setTaskFlagOverrides((current) => ({
+      ...current,
+      [updatedTask.id]: {
+        status: updatedTask.status,
+        priority: updatedTask.priority,
+        urgent: updatedTask.urgent,
+      },
+    }))
+  }
 
   const changeTaskStatus = async (task: TaskSummaryResponse, status: TaskStatus) => {
     setPendingTaskId(task.id)
     setUpdateError(null)
 
     try {
-      await updateTaskStatus(task.id, { status })
-      onTaskUpdated?.()
+      updateTaskFlags(await updateTaskStatus(task.id, { status }))
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
@@ -113,8 +131,7 @@ export default function TaskList({
     setPendingTaskId(task.id)
     setUpdateError(null)
     try {
-      await updateTaskPriority(task.id, { priority: !task.priority })
-      onTaskUpdated?.()
+      updateTaskFlags(await updateTaskPriority(task.id, { priority: !task.priority }))
     } catch (error: unknown) {
       const message = isApiError(error) && error.message
         ? error.message
@@ -129,8 +146,7 @@ export default function TaskList({
     setPendingTaskId(task.id)
     setUpdateError(null)
     try {
-      await updateTaskUrgent(task.id, { urgent: !task.urgent })
-      onTaskUpdated?.()
+      updateTaskFlags(await updateTaskUrgent(task.id, { urgent: !task.urgent }))
     } catch (error: unknown) {
       const message = isApiError(error) && error.message
         ? error.message
@@ -163,7 +179,7 @@ export default function TaskList({
   return (
     <>
       <ol className={`${styles.list} ${connected ? styles.connected : ''}`}>
-      {tasks.map((task) => {
+      {tasks.map(applyTaskFlagOverride).map((task) => {
         const isPending = pendingTaskId === task.id
         const isSelected = selectedTaskIds.has(task.id)
 
@@ -173,20 +189,10 @@ export default function TaskList({
                 aria-busy={isPending}
                 key={task.id}
             >
-            <span
-                className={styles.node}
-                aria-hidden="true"
-            >
-            {/*<button*/}
-              {/*  type="button"*/}
-              {/*  className={styles.node}*/}
-              {/*  aria-label={`${task.title} 상태 변경`}*/}
-              {/*  disabled={isPending}*/}
-              {/*  onClick={() => openStatusPicker(task.id)}*/}
-              {/*>*/}
+            <span className={styles.check} aria-hidden="true">
               {task.status === 'DONE' ? <IconCheck size={16} stroke={2.2}/> : null}
               {task.status === 'HOLD' ? <IconPlayerPause size={14} stroke={2}/> : null}
-              {task.status === 'DOING' ? <span className={styles['node-core']}/> : null}
+              {task.status === 'DOING' ? <span className={styles['check-core']}/> : null}
             </span>
               <div className={styles.content}>
                 <div className={styles.heading}>

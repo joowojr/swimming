@@ -28,7 +28,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       className={`${styles.card} ${routeTone}`}
-      to={`/folders/${project.id}`}
+      to={`/tasks/folders/${project.id}`}
       aria-label={`${project.name} 상세 보기`}
     >
       <span className={styles.route} aria-hidden="true" />

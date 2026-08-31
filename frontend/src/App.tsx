@@ -109,7 +109,7 @@ function App() {
     return (
       <Routes>
         <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
-        <Route path="*" element={<Navigate to="/folders" replace />} />
+        <Route path="*" element={<Navigate to="/tasks" replace />} />
       </Routes>
     )
   }
@@ -127,7 +127,7 @@ function App() {
           <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
           <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
-            path="/folders"
+            path="/tasks"
             element={(
               <>
                 <ProjectListPage
@@ -159,15 +159,8 @@ function App() {
                 <ProjectDashboard
                   projects={projects}
                   status={projectStatus}
-                  onOpenCreate={() => setIsCreateModalOpen(true)}
                   onRetry={retryLoadProjects}
                 />
-                {isCreateModalOpen && (
-                  <CreateProjectModal
-                    onClose={() => setIsCreateModalOpen(false)}
-                    onCreated={handleProjectCreated}
-                  />
-                )}
                 {isTagModalOpen && (
                   <ProjectTagModal
                     onClose={() => setIsTagModalOpen(false)}
@@ -178,10 +171,10 @@ function App() {
             )}
           />
           <Route
-            path="/folders/:projectId"
+            path="/tasks/folders/:projectId"
             element={<ProjectDetailRoute onDeleted={removeProject} />}
           />
-          <Route path="*" element={<Navigate to="/folders" replace />} />
+          <Route path="*" element={<Navigate to="/tasks" replace />} />
         </Routes>
       ) : (
         <section className={styles['home-overview']} aria-live="polite">

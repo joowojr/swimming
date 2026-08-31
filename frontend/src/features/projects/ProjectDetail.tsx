@@ -154,7 +154,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     try {
       await deleteProject(project.id)
       onDeleted(project.id)
-      navigate('/folders', { replace: true })
+      navigate('/tasks', { replace: true })
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
@@ -316,7 +316,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         </p>
         <div className={styles['state-actions']}>
           {!state.notFound && <button type="button" onClick={retry}>다시 불러오기</button>}
-          <Link to="/folders">폴더 목록</Link>
+          <Link to="/tasks">폴더 목록</Link>
         </div>
       </section>
     )
@@ -356,7 +356,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   return (
     <article className={styles.page} aria-labelledby="project-detail-title">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link to="/folders">폴더</Link>
+        <Link to="/tasks">폴더</Link>
         {project.tag && (
             <>
               <IconChevronRight size={14} aria-hidden="true" />

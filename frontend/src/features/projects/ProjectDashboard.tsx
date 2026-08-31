@@ -1,6 +1,4 @@
 // import { useMemo } from 'react'
-import { IconPlus } from '@tabler/icons-react'
-import ModalTriggerButton from '../../components/ModalTriggerButton'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
@@ -11,7 +9,6 @@ interface ProjectDashboardProps {
   projects: Project[]
   status: ProjectLoadStatus
   onRetry: () => void
-  onOpenCreate: () => void
 }
 
 /*
@@ -26,7 +23,6 @@ export default function ProjectDashboard({
   projects,
   status,
   onRetry,
-  onOpenCreate,
 }: ProjectDashboardProps) {
   /*
   const upcomingProjects = useMemo(
@@ -52,13 +48,6 @@ export default function ProjectDashboard({
             {/*  <button type="button" className={styles['mode-toggle-active']} aria-pressed="true">루틴</button>*/}
             {/*  <button type="button" aria-pressed="false" disabled>가볍게</button>*/}
             {/*</div>*/}
-            <ModalTriggerButton
-              dialogId="create-project-dialog"
-              icon={<IconPlus size={18} aria-hidden="true" />}
-              onClick={onOpenCreate}
-            >
-              새 폴더
-            </ModalTriggerButton>
           </div>
         </header>
 

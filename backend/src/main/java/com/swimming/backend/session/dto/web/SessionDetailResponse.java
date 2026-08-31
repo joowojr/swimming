@@ -1,9 +1,8 @@
 package com.swimming.backend.session.dto.web;
 
-import com.swimming.backend.place.domain.Place;
-import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionType;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 
 import java.time.Instant;
 import java.util.List;
@@ -21,21 +20,20 @@ public record SessionDetailResponse(
         List<SessionTaskResponse> tasks
 ) {
     public static SessionDetailResponse from(
-            Session session,
-            Place place,
+            SessionWithPlaceRow row,
             String backgroundAssetUrl,
             List<SessionTaskResponse> tasks
     ) {
         return new SessionDetailResponse(
-                session.getId(),
-                session.getType(),
-                session.getStatus(),
-                session.getPlannedDurationSec(),
-                session.getActualDurationSec(),
-                session.getStartedAt(),
-                session.getEndedAt(),
-                SessionDetailPlaceResponse.from(place, backgroundAssetUrl),
-                session.getMusicUrl(),
+                row.sessionId(),
+                row.type(),
+                row.status(),
+                row.plannedDurationSec(),
+                row.actualDurationSec(),
+                row.startedAt(),
+                row.endedAt(),
+                SessionDetailPlaceResponse.from(row, backgroundAssetUrl),
+                row.musicUrl(),
                 List.copyOf(tasks)
         );
     }

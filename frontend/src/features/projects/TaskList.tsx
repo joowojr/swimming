@@ -7,7 +7,7 @@ import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import { updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
+import { updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
@@ -30,6 +30,10 @@ interface TaskListProps {
 }
 
 const MOCK_SESSION_COUNT = 3
+
+function isApiError(error: unknown): error is ApiError {
+  return typeof error === 'object' && error !== null
+}
 
 function getTaskMeta(status: TaskStatus, sessionCount: number) {
   if (status === 'DOING') return `${sessionCount}회 세션을 진행했어요`
@@ -100,6 +104,38 @@ export default function TaskList({
     try {
       await updateTaskTitle(task.id, { title })
       onTaskUpdated?.()
+    } finally {
+      setPendingTaskId(null)
+    }
+  }
+
+  const changeTaskPriority = async (task: TaskListItem) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+    try {
+      await updateTaskPriority(task.id, { priority: !task.priority })
+      onTaskUpdated?.()
+    } catch (error: unknown) {
+      const message = isApiError(error) && error.message
+        ? error.message
+        : '우선 표시를 변경하지 못했습니다.'
+      setUpdateError({ taskId: task.id, message })
+    } finally {
+      setPendingTaskId(null)
+    }
+  }
+
+  const changeTaskUrgent = async (task: TaskListItem) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+    try {
+      await updateTaskUrgent(task.id, { urgent: !task.urgent })
+      onTaskUpdated?.()
+    } catch (error: unknown) {
+      const message = isApiError(error) && error.message
+        ? error.message
+        : '긴급 표시를 변경하지 못했습니다.'
+      setUpdateError({ taskId: task.id, message })
     } finally {
       setPendingTaskId(null)
     }
@@ -213,6 +249,20 @@ export default function TaskList({
                 </span>
               ) : (
                 <TaskMenu inline label={`${task.title} 카드 메뉴`}>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => void changeTaskPriority(task)}
+                  >
+                    {task.priority ? '우선 해제' : '우선 설정'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => void changeTaskUrgent(task)}
+                  >
+                    {task.urgent ? '긴급 해제' : '긴급 설정'}
+                  </button>
                   <button
                     type="button"
                     disabled={isPending}

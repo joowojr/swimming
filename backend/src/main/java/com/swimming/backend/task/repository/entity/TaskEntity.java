@@ -86,6 +86,14 @@ public class TaskEntity extends BaseTimeEntity {
         this.status = status;
     }
 
+    public void updatePriority(boolean priority) {
+        this.priority = priority;
+    }
+
+    public void updateUrgent(boolean urgent) {
+        this.urgent = urgent;
+    }
+
     public void delete() {
         this.deleted = true;
     }

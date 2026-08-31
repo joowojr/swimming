@@ -151,6 +151,22 @@ public class TaskService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
+    public Task updatePriority(Long userId, Long taskId, boolean priority) {
+        TaskEntity entity = getOwnedEntity(userId, taskId);
+        entity.updatePriority(priority);
+        taskRepository.flush();
+        return entity.toDomain();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task updateUrgent(Long userId, Long taskId, boolean urgent) {
+        TaskEntity entity = getOwnedEntity(userId, taskId);
+        entity.updateUrgent(urgent);
+        taskRepository.flush();
+        return entity.toDomain();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
     public void deleteAll(Long userId, List<Long> taskIds) {
         if (taskIds.isEmpty()) {
             return;

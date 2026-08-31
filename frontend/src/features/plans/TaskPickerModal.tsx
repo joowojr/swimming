@@ -26,7 +26,7 @@ type AddMode = 'direct' | 'folder'
 //   { label: '오후', emoji: '🌤️' },
 //   { label: '밤', emoji: '🌙' },
 //   { label: '새벽', emoji: '🌌' },
-//   { label: '직접 설정', emoji: '🕰️' },
+//   { label: '직접 해제', emoji: '🕰️' },
 // ]
 
 const PRIORITY_CHIPS = [

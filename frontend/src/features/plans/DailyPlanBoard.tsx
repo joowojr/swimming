@@ -13,7 +13,7 @@ import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
+import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {
     addDailyPlanItems,
@@ -169,6 +169,51 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         }
     }
 
+    const replaceTaskFlag = (
+        taskId: number,
+        field: 'priority' | 'urgent',
+        value: boolean,
+    ) => {
+        const replace = (items: DailyPlanItem[]) => items.map((candidate) => (
+            candidate.taskId === taskId ? {...candidate, [field]: value} : candidate
+        ))
+        setDrafts((current) => Object.fromEntries(
+            Object.entries(current).map(([date, items]) => [date, replace(items)]),
+        ))
+        setPlans((current) => current.map((plan) => ({
+            ...plan,
+            items: replace(plan.items),
+        })))
+    }
+
+    const changeTaskPriority = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            await updateTaskPriority(item.taskId, {priority: !item.priority})
+            replaceTaskFlag(item.taskId, 'priority', !item.priority)
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '우선 표시를 변경하지 못했습니다.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const changeTaskUrgent = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            await updateTaskUrgent(item.taskId, {urgent: !item.urgent})
+            replaceTaskFlag(item.taskId, 'urgent', !item.urgent)
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '긴급 표시를 변경하지 못했습니다.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
     const removeItem = async (date: string, itemId: number) => {
         try {
             await deleteDailyPlanItem(date, itemId)
@@ -297,6 +342,12 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                     {selected && (
                                                         <TaskMenu
                                                             label={`${item.title} 카드 메뉴`}>
+                                                                <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
+                                                                    {item.priority ? '우선 해제' : '우선 설정'}
+                                                                </button>
+                                                                <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
+                                                                    {item.urgent ? '긴급 해제' : '긴급 설정'}
+                                                                </button>
                                                                 {plan.date === today && (
                                                                     <ModalTriggerButton
                                                                         dialogId="create-session-dialog"

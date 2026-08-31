@@ -9,6 +9,8 @@ import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskUrgentRequest;
 import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -71,6 +73,16 @@ public class TaskUseCase {
             UpdateTaskStatusRequest request
     ) {
         return TaskResponse.from(taskService.updateStatus(userId, taskId, request.status()));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse updatePriority(Long userId, Long taskId, UpdateTaskPriorityRequest request) {
+        return TaskResponse.from(taskService.updatePriority(userId, taskId, request.priority()));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse updateUrgent(Long userId, Long taskId, UpdateTaskUrgentRequest request) {
+        return TaskResponse.from(taskService.updateUrgent(userId, taskId, request.urgent()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

@@ -15,6 +15,14 @@ export interface UpdateTaskStatusRequest {
   status: TaskStatus
 }
 
+export interface UpdateTaskPriorityRequest {
+  priority: boolean
+}
+
+export interface UpdateTaskUrgentRequest {
+  urgent: boolean
+}
+
 export interface DeleteTasksRequest {
   taskIds: number[]
 }

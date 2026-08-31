@@ -6,6 +6,8 @@ import type {
   TaskResponse,
   UpdateTaskStatusRequest,
   UpdateTaskTitleRequest,
+  UpdateTaskPriorityRequest,
+  UpdateTaskUrgentRequest,
 } from './taskTypes'
 
 export async function createTask(
@@ -48,6 +50,22 @@ export async function updateTaskStatus(
   request: UpdateTaskStatusRequest,
 ): Promise<TaskResponse> {
   const response = await client.patch<TaskResponse>(`/tasks/${taskId}/status`, request)
+  return response.data
+}
+
+export async function updateTaskPriority(
+  taskId: number,
+  request: UpdateTaskPriorityRequest,
+): Promise<TaskResponse> {
+  const response = await client.patch<TaskResponse>(`/tasks/${taskId}/priority`, request)
+  return response.data
+}
+
+export async function updateTaskUrgent(
+  taskId: number,
+  request: UpdateTaskUrgentRequest,
+): Promise<TaskResponse> {
+  const response = await client.patch<TaskResponse>(`/tasks/${taskId}/urgent`, request)
   return response.data
 }
 

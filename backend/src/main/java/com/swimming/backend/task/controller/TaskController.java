@@ -7,6 +7,8 @@ import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskUrgentRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +81,24 @@ public class TaskController {
             @Valid @RequestBody UpdateTaskStatusRequest request
     ) {
         return ResponseEntity.ok(taskUseCase.updateStatus(authUser.id(), taskId, request));
+    }
+
+    @PatchMapping("/tasks/{taskId}/priority")
+    public ResponseEntity<TaskResponse> updatePriority(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @RequestBody UpdateTaskPriorityRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updatePriority(authUser.id(), taskId, request));
+    }
+
+    @PatchMapping("/tasks/{taskId}/urgent")
+    public ResponseEntity<TaskResponse> updateUrgent(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @RequestBody UpdateTaskUrgentRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updateUrgent(authUser.id(), taskId, request));
     }
 
     @DeleteMapping("/tasks")

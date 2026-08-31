@@ -15,7 +15,7 @@ import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
+import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {addDailyPlanItems, deleteDailyPlanItem, getDailyPlans} from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
@@ -27,7 +27,7 @@ interface DailyPlannerProps {
     projects: Project[]
 }
 
-type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status'>>
+type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status' | 'priority' | 'urgent'>>
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {year: 'numeric', month: 'long'})
 const selectedDateFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'long'})
@@ -169,8 +169,8 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
 
     const updateTaskOverride = (
         taskId: number,
-        field: 'title' | 'status',
-        value: string,
+        field: 'title' | 'status' | 'priority' | 'urgent',
+        value: string | boolean,
     ) => {
         setTaskOverrides((current) => ({
             ...current,
@@ -195,6 +195,34 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? '상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const changeTaskPriority = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            await updateTaskPriority(item.taskId, {priority: !item.priority})
+            updateTaskOverride(item.taskId, 'priority', !item.priority)
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '우선 표시를 변경하지 못했습니다.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const changeTaskUrgent = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            await updateTaskUrgent(item.taskId, {urgent: !item.urgent})
+            updateTaskOverride(item.taskId, 'urgent', !item.urgent)
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '긴급 표시를 변경하지 못했습니다.')
         } finally {
             setPendingTaskId(null)
         }
@@ -321,6 +349,12 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                             {TASK_STATUS_VALUES.map((taskStatus) => <option value={taskStatus} key={taskStatus}>{TASK_STATUS_LABEL[taskStatus]}</option>)}
                                         </select>
                                         <TaskMenu inline label={`${item.title} 카드 메뉴`}>
+                                            <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
+                                                {item.priority ? '우선 해제' : '우선 설정'}
+                                            </button>
+                                            <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
+                                                {item.urgent ? '긴급 해제' : '긴급 설정'}
+                                            </button>
                                             {selectedDate === today && (
                                                 <ModalTriggerButton dialogId="create-session-dialog" isOpen={sessionTaskId === item.taskId} variant="plain" icon={<IconPlayerPlay size={15} aria-hidden="true" />} onClick={() => setSessionTaskId(item.taskId)}>
                                                     다이브 세션

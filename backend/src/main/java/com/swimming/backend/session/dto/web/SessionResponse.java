@@ -3,7 +3,7 @@ package com.swimming.backend.session.dto.web;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionType;
-import com.swimming.backend.place.dto.PlaceReference;
+import com.swimming.backend.place.domain.Place;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,7 +20,7 @@ public record SessionResponse(
         Instant endedAt,
         SessionStatus status
 ) {
-    public static SessionResponse from(Session session, PlaceReference place) {
+    public static SessionResponse from(Session session, Place place) {
         return new SessionResponse(
                 session.getId(),
                 session.getType(),

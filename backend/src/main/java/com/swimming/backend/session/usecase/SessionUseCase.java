@@ -4,7 +4,8 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.common.util.UrlUtils;
 import com.swimming.backend.plan.service.DailyPlanService;
-import com.swimming.backend.place.dto.PlaceReference;
+import com.swimming.backend.place.domain.Place;
+import com.swimming.backend.place.service.PlaceService;
 import com.swimming.backend.place.service.PlaceVideoService;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.dto.SessionWithPlace;
@@ -36,7 +37,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -52,6 +52,7 @@ public class SessionUseCase {
     private final DailyPlanService dailyPlanService;
     private final UserService userService;
     private final TaskService taskService;
+    private final PlaceService placeService;
     private final PlaceVideoService placeVideoService;
     private final Clock clock;
 
@@ -71,14 +72,14 @@ public class SessionUseCase {
         if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
             throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
         }
-        PlaceReference place = placeVideoService.getReference(request.placeId());
+        Place place = placeService.getOne(request.placeId());
 
         taskService.updateStatuses(userId, taskIds.stream()
                 .collect(Collectors.toMap(Function.identity(), taskId -> TaskStatus.DOING)));
 
-        Session session = Session.startPersonal(
+        Session session = Session.createPersonal(
                 userId,
-                place.id(),
+                place.getId(),
                 taskIds,
                 request.plannedDurationSec()
         );
@@ -118,7 +119,8 @@ public class SessionUseCase {
         return sessionsWithPlaces.stream()
                 .map(item -> SessionDetailResponse.from(
                         item.session(),
-                        placeVideoService.resolveReference(item.place()),
+                        item.place(),
+                        placeVideoService.resolveBackgroundUrl(item.place()),
                         getTasks(item.session(), tasksById)
                 ))
                 .toList();
@@ -134,20 +136,25 @@ public class SessionUseCase {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public SessionResponse end(Long userId, Long sessionId, EndSessionRequest request) {
-        Session session = sessionService.getOwned(userId, sessionId);
-        Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(session, request);
-
-        Instant endTime = request != null && request.usePlannedDuration()
-                ? session.getStartedAt().plusSeconds(session.getPlannedDurationSec())
-                : clock.instant();
-        session.end(endTime, toSummary(request), completionByTaskId);
+        Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(request);
+        List<Long> completedTaskIds = completionByTaskId.entrySet().stream()
+                .filter(entry -> Boolean.TRUE.equals(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
+        Session savedSession = sessionService.end(
+                userId,
+                sessionId,
+                clock.instant(),
+                request != null && request.usePlannedDuration(),
+                toSummary(request),
+                completedTaskIds
+        );
 
         if (!completionByTaskId.isEmpty()) {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));
         }
 
-        Session savedSession = sessionService.end(session);
-        PlaceReference place = placeVideoService.getReference(savedSession.getPlaceId());
+        Place place = placeService.getOne(savedSession.getPlaceId());
         return SessionResponse.from(savedSession, place);
     }
 
@@ -158,7 +165,7 @@ public class SessionUseCase {
         return request.summary();
     }
 
-    private Map<Long, Boolean> toCompletionByTaskId(Session session, EndSessionRequest request) {
+    private Map<Long, Boolean> toCompletionByTaskId(EndSessionRequest request) {
         if (request == null || request.taskResults() == null) {
             return Map.of();
         }
@@ -170,10 +177,6 @@ public class SessionUseCase {
             }
         }
 
-        Set<Long> sessionTaskIds = new HashSet<>(session.getTaskIds());
-        if (!sessionTaskIds.containsAll(completionByTaskId.keySet())) {
-            throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
-        }
         return completionByTaskId;
     }
 
@@ -195,9 +198,7 @@ public class SessionUseCase {
             throw new BusinessException(ErrorCode.INVALID_MUSIC_URL);
         }
 
-        Session session = sessionService.getOwned(userId, sessionId);
-        session.updateMusicUrl(request.musicUrl());
-        sessionService.updateMusicUrl(session);
+        sessionService.updateMusicUrl(userId, sessionId, request.musicUrl());
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -206,14 +207,21 @@ public class SessionUseCase {
             Long sessionId,
             UpdateSessionPlannedDurationRequest request
     ) {
-        Session session = sessionService.getOwned(userId, sessionId);
-        session.updatePlannedDuration(request.plannedDurationSec());
-        sessionService.updatePlannedDuration(session);
+        sessionService.updatePlannedDuration(
+                userId,
+                sessionId,
+                request.plannedDurationSec()
+        );
     }
 
     private SessionDetailResponse toDetailResponse(Long userId, Session session) {
-        PlaceReference place = placeVideoService.getReference(session.getPlaceId());
-        return SessionDetailResponse.from(session, place, getTasks(userId, session));
+        Place place = placeService.getOne(session.getPlaceId());
+        return SessionDetailResponse.from(
+                session,
+                place,
+                placeVideoService.resolveBackgroundUrl(place),
+                getTasks(userId, session)
+        );
     }
 
     private List<SessionTaskResponse> getTasks(Long userId, Session session) {

@@ -1,7 +1,7 @@
 package com.swimming.backend.session.dto.web;
 
 import com.swimming.backend.place.dto.BackgroundAssetResponse;
-import com.swimming.backend.place.dto.PlaceReference;
+import com.swimming.backend.place.domain.Place;
 
 public record SessionDetailPlaceResponse(
         Long id,
@@ -11,18 +11,18 @@ public record SessionDetailPlaceResponse(
         BackgroundAssetResponse backgroundAsset,
         String defaultMusicUrl
 ) {
-    public static SessionDetailPlaceResponse from(PlaceReference place) {
+    public static SessionDetailPlaceResponse from(Place place, String backgroundAssetUrl) {
         return new SessionDetailPlaceResponse(
-                place.id(),
-                place.cityId(),
-                place.cityName(),
-                place.name(),
+                place.getId(),
+                place.getCity().getId(),
+                place.getCity().getName(),
+                place.getName(),
                 new BackgroundAssetResponse(
-                        place.backgroundAssetType(),
-                        place.backgroundAssetKey(),
-                        place.backgroundAssetUrl()
+                        place.getBackgroundAssetType(),
+                        place.getBackgroundAssetKey(),
+                        backgroundAssetUrl
                 ),
-                place.defaultMusicUrl()
+                place.getDefaultMusicUrl()
         );
     }
 }

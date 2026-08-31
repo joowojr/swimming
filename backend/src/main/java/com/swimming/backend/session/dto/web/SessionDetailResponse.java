@@ -1,6 +1,6 @@
 package com.swimming.backend.session.dto.web;
 
-import com.swimming.backend.place.dto.PlaceReference;
+import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionType;
@@ -22,7 +22,8 @@ public record SessionDetailResponse(
 ) {
     public static SessionDetailResponse from(
             Session session,
-            PlaceReference place,
+            Place place,
+            String backgroundAssetUrl,
             List<SessionTaskResponse> tasks
     ) {
         return new SessionDetailResponse(
@@ -33,7 +34,7 @@ public record SessionDetailResponse(
                 session.getActualDurationSec(),
                 session.getStartedAt(),
                 session.getEndedAt(),
-                SessionDetailPlaceResponse.from(place),
+                SessionDetailPlaceResponse.from(place, backgroundAssetUrl),
                 session.getMusicUrl(),
                 List.copyOf(tasks)
         );

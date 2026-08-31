@@ -22,6 +22,8 @@ public record SessionListRow(
         String summary,
         Long cityId,
         String cityName,
+        String cityCountryCode,
+        String cityTimezone,
         String placeName,
         BackgroundAssetType backgroundAssetType,
         String backgroundAssetKey,

@@ -1,43 +1,57 @@
 import type { ReactNode } from 'react'
 import styles from './ChecklistCard.module.css'
 
-interface ChecklistCardProps {
-  id: number
+interface ChecklistCardBaseProps {
   title: ReactNode
   description?: ReactNode
+  actions?: ReactNode
+}
+
+interface ChecklistCardSelectionProps extends ChecklistCardBaseProps {
+  id: number
   checked: boolean
   ariaLabel: string
   name?: string
   disabled?: boolean
-  actions?: ReactNode
   onToggle: () => void
+  leadingControl?: never
 }
 
-export default function ChecklistCard({
-  id,
-  title,
-  description,
-  checked,
-  ariaLabel,
-  name,
-  disabled = false,
-  actions,
-  onToggle,
-}: ChecklistCardProps) {
+interface ChecklistCardDisplayProps extends ChecklistCardBaseProps {
+  leadingControl: ReactNode
+  id?: never
+  checked?: never
+  ariaLabel?: never
+  name?: never
+  disabled?: never
+  onToggle?: never
+}
+
+type ChecklistCardProps = ChecklistCardSelectionProps | ChecklistCardDisplayProps
+
+function hasLeadingControl(props: ChecklistCardProps): props is ChecklistCardDisplayProps {
+  return props.leadingControl !== undefined
+}
+
+export default function ChecklistCard(props: ChecklistCardProps) {
+  const { title, description, actions } = props
+
   return (
     <div className={styles.card}>
       <div className={styles.identity}>
-        <input
-          className={styles.checkbox}
-          type="checkbox"
-          id={name ? `${name}-${id}` : undefined}
-          name={name}
-          value={id}
-          checked={checked}
-          aria-label={ariaLabel}
-          onChange={onToggle}
-          disabled={disabled}
-        />
+        {hasLeadingControl(props) ? props.leadingControl : (
+          <input
+            className={styles.checkbox}
+            type="checkbox"
+            id={props.name ? `${props.name}-${props.id}` : undefined}
+            name={props.name}
+            value={props.id}
+            checked={props.checked}
+            aria-label={props.ariaLabel}
+            onChange={props.onToggle}
+            disabled={props.disabled ?? false}
+          />
+        )}
         <div className={styles.copy}>
           {description && <span className={styles.description}>{description}</span>}
           <span className={styles.title}>{title}</span>

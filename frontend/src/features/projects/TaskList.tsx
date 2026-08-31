@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
+import ChecklistCard from '../../components/ChecklistCard'
 import TaskMenu from '../../components/TaskMenu'
 import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
@@ -31,8 +32,6 @@ interface TaskListProps {
   getMetaText?: (task: TaskListItem) => string
 }
 
-const MOCK_SESSION_COUNT = 3
-
 function isApiError(error: unknown): error is ApiError {
   return typeof error === 'object' && error !== null
 }
@@ -55,7 +54,6 @@ export default function TaskList({
   isDeleting = false,
   onTaskSelectionChange,
   onTaskUpdated,
-  getMetaText,
 }: TaskListProps) {
   const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
@@ -185,19 +183,22 @@ export default function TaskList({
 
         return (
             <li
-                className={`${styles.item} ${styles[`is-${task.status.toLowerCase()}`]}`}
-                aria-busy={isPending}
-                key={task.id}
+              className={styles[`is-${task.status.toLowerCase()}`]}
+              aria-busy={isPending}
+              key={task.id}
             >
-            <span className={styles.check} aria-hidden="true">
-              {task.status === 'DONE' ? <IconCheck size={16} stroke={2.2}/> : null}
-              {task.status === 'HOLD' ? <IconPlayerPause size={14} stroke={2}/> : null}
-              {task.status === 'DOING' ? <span className={styles['check-core']}/> : null}
-            </span>
-              <div className={styles.content}>
-                <div className={styles.heading}>
-                  <h3>
-                    <InlineEditableText
+              <ChecklistCard
+                leadingControl={(
+                  <span className={styles.check} aria-hidden="true">
+                    {task.status === 'DONE' ? <IconCheck size={16} stroke={2.2}/> : null}
+                    {task.status === 'HOLD' ? <IconPlayerPause size={14} stroke={2}/> : null}
+                    {task.status === 'DOING' ? <span className={styles['check-core']}/> : null}
+                  </span>
+                )}
+                title={(
+                  <div className={styles.content}>
+                    <h3>
+                      <InlineEditableText
                         className={[
                           styles['task-title'],
                           task.priority && styles['is-priority'],
@@ -210,86 +211,90 @@ export default function TaskList({
                         disabled={isPending || isDeleteMode}
                         onSave={(title) => changeTaskTitle(task, title)}
                         getErrorMessage={getTaskTitleError}
-                    />
-                  </h3>
-                  <select
+                      />
+                    </h3>
+                    {updateError?.taskId === task.id && (
+                      <p className={styles.error} role="alert">{updateError.message}</p>
+                    )}
+                  </div>
+                )}
+                actions={(
+                  <>
+                    <select
                       className={styles.status}
                       value={task.status}
                       aria-label={`${task.title} 상태`}
                       disabled={isPending}
                       onChange={(event) => void changeTaskStatus(task, event.target.value as TaskStatus)}
-                  >
-                    {TASK_STATUS_VALUES.map((status) => (
+                    >
+                      {TASK_STATUS_VALUES.map((status) => (
                         <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
-                    ))}
-                  </select>
-                </div>
-                {/*<p className={styles.meta}>*/}
-                {/*  {getMetaText?.(task) ?? getTaskMeta(task.status, MOCK_SESSION_COUNT)}*/}
-                {/*</p>*/}
-                {updateError?.taskId === task.id && (
-                    <p className={styles.error} role="alert">{updateError.message}</p>
+                      ))}
+                    </select>
+                    {isDeleteMode ? (
+                      <span className={`${styles['play-control']} ${styles['delete-control']}`}>
+                        <button
+                          type="button"
+                          disabled={isPending || isDeleting}
+                          aria-pressed={isSelected}
+                          aria-describedby={`task-${task.id}-action-tooltip`}
+                          onClick={() => onTaskSelectionChange?.(task.id)}
+                        >
+                          {isPending || (isDeleting && isSelected)
+                            ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true"/>
+                            : isSelected
+                              ? <IconCheck size={16} stroke={2.2} aria-hidden="true"/>
+                              : <IconTrash size={16} stroke={2} aria-hidden="true"/>}
+                          <span className="sr-only">
+                            {isSelected ? '삭제 선택 해제' : '삭제 선택'}
+                          </span>
+                        </button>
+                        <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
+                          {isSelected ? '선택 해제' : '삭제 선택'}
+                        </span>
+                      </span>
+                    ) : (
+                      <TaskMenu inline label={`${task.title} 카드 메뉴`}>
+                      <>
+                        <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => void changeTaskPriority(task)}
+                      >
+                        {task.priority ? '우선 해제' : '우선 설정'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => void changeTaskUrgent(task)}
+                      >
+                          {task.urgent ? '긴급 해제' : '긴급 설정'}
+                        </button>
+                      </>
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => void startSession(task)}
+                        >
+                          {isPending
+                            ? <IconLoader2 className={styles.spinner} size={15} aria-hidden="true"/>
+                            : <IconPlayerPlay size={15} aria-hidden="true"/>}
+                          다이브 세션
+                        </button>
+                        <button
+                          type="button"
+                          disabled
+                          title="폴더 이동 · 준비 중"
+                          aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
+                        >
+                          <IconFolder size={15} aria-hidden="true"/>
+                          이동하기
+                        </button>
+                      </TaskMenu>
+                    )}
+                  </>
                 )}
-              </div>
-              {isDeleteMode ? (
-                <span className={`${styles['play-control']} ${styles['delete-control']}`}>
-                  <button
-                    type="button"
-                    disabled={isPending || isDeleting}
-                    aria-pressed={isSelected}
-                    aria-describedby={`task-${task.id}-action-tooltip`}
-                    onClick={() => onTaskSelectionChange?.(task.id)}
-                  >
-                    {isPending || (isDeleting && isSelected)
-                      ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true"/>
-                      : isSelected
-                        ? <IconCheck size={16} stroke={2.2} aria-hidden="true"/>
-                        : <IconTrash size={16} stroke={2} aria-hidden="true"/>}
-                    <span className="sr-only">
-                      {isSelected ? '삭제 선택 해제' : '삭제 선택'}
-                    </span>
-                  </button>
-                  <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
-                    {isSelected ? '선택 해제' : '삭제 선택'}
-                  </span>
-                </span>
-              ) : (
-                <TaskMenu inline label={`${task.title} 카드 메뉴`}>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => void changeTaskPriority(task)}
-                  >
-                    {task.priority ? '우선 해제' : '우선 설정'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => void changeTaskUrgent(task)}
-                  >
-                    {task.urgent ? '긴급 해제' : '긴급 설정'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => void startSession(task)}
-                  >
-                    {isPending
-                      ? <IconLoader2 className={styles.spinner} size={15} aria-hidden="true"/>
-                      : <IconPlayerPlay size={15} aria-hidden="true"/>}
-                    다이브 세션
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    title="폴더 이동 · 준비 중"
-                    aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
-                  >
-                    <IconFolder size={15} aria-hidden="true"/>
-                    이동하기
-                  </button>
-                </TaskMenu>
-              )}
+              />
             </li>
         )
       })}

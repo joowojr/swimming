@@ -1,8 +1,9 @@
-// import { useMemo } from 'react'
+import { useState } from 'react'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
 import type { Project, ProjectLoadStatus } from './projectTypes'
+import TaskMatrix from './TaskMatrix'
 import styles from './ProjectDashboard.module.css'
 
 interface ProjectDashboardProps {
@@ -24,6 +25,7 @@ export default function ProjectDashboard({
   status,
   onRetry,
 }: ProjectDashboardProps) {
+  const [plannerView, setPlannerView] = useState<'daily' | 'matrix'>('daily')
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -81,7 +83,27 @@ export default function ProjectDashboard({
               <div className={styles['home-grid']}>
                 <div className={styles['home-main']}>
                   <ContinueSessionWidget/>
-                  <DailyPlanner projects={projects}/>
+                  <div className={styles['planner-area']}>
+                    <div className={styles['planner-toggle']} role="group" aria-label="Task 보기 방식">
+                      <button
+                        type="button"
+                        aria-pressed={plannerView === 'daily'}
+                        onClick={() => setPlannerView('daily')}
+                      >
+                        오늘 할 일
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={plannerView === 'matrix'}
+                        onClick={() => setPlannerView('matrix')}
+                      >
+                        매트릭스
+                      </button>
+                    </div>
+                    {plannerView === 'daily'
+                      ? <DailyPlanner projects={projects}/>
+                      : <TaskMatrix/>}
+                  </div>
                 </div>
 
                 <NoteCard projects={projects} />

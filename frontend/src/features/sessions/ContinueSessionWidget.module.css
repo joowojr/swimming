@@ -6,15 +6,24 @@
 .widget {
   position: relative;
   display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr) auto;
+  grid-template-columns: 20rem minmax(0, 1fr) auto;
   align-items: stretch;
   max-width: 100%;
-  min-height: 8.5rem;
+  height: 8.5rem;
   margin-bottom: var(--space-4);
   overflow: clip;
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
   background: var(--color-surface-container-lowest);
+}
+
+.empty-session {
+  height: 14rem;
+  min-height: 14rem;
+}
+
+.home {
+  grid-template-columns: 10rem minmax(0, 1fr) auto;
 }
 
 .thumbnail {
@@ -134,9 +143,13 @@
 }
 /* ── 빈 상태: 초대 모드 ── */
 .is-invite {
-  grid-template-columns: 10rem minmax(0, 1fr);
+  grid-template-columns: 20rem minmax(0, 1fr);
   cursor: pointer;
   transition: background-color 140ms ease;
+}
+
+.home.is-invite {
+  grid-template-columns: 10rem minmax(0, 1fr);
 }
 
 .is-invite:hover {

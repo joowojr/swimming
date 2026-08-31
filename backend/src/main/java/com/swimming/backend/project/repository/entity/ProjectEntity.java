@@ -82,6 +82,10 @@ public class ProjectEntity extends BaseTimeEntity {
         this.deleted = project.isDeleted();
     }
 
+    public void delete() {
+        this.deleted = true;
+    }
+
     public Project toDomain() {
         return Project.restore(
                 id,

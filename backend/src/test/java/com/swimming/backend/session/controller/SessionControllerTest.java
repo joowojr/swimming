@@ -118,14 +118,15 @@ class SessionControllerTest {
                 STARTED_AT.plusSeconds(1200),
                 sessionDetailPlace(),
                 null,
-                List.of(new SessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"))
+                List.of(new SessionTaskResponse(10L, 2L, "폴더", "첫 Task", true))
         )));
 
         mockMvc.perform(get("/api/sessions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(5))
                 .andExpect(jsonPath("$[0].status").value("COMPLETED"))
-                .andExpect(jsonPath("$[0].tasks[0].title").value("첫 Task"));
+                .andExpect(jsonPath("$[0].tasks[0].title").value("첫 Task"))
+                .andExpect(jsonPath("$[0].tasks[0].isCompleted").value(true));
 
         verify(sessionUseCase).getAll(1L);
     }
@@ -147,7 +148,7 @@ class SessionControllerTest {
     }
 
     @Test
-    @DisplayName("진행 중인 세션과 선택한 Task 목록을 순서대로 반환한다")
+    @DisplayName("진행 중인 세션과 Task 목록을 반환한다")
     void getsActiveSession() throws Exception {
         when(sessionUseCase.getActive(1L)).thenReturn(java.util.Optional.of(
                 new SessionDetailResponse(
@@ -161,8 +162,8 @@ class SessionControllerTest {
                         sessionDetailPlace(),
                         "https://youtu.be/example",
                         List.of(
-                                new SessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"),
-                                new SessionTaskResponse(11L, 2L, "프로젝트", "다음 Task")
+                                new SessionTaskResponse(10L, 2L, "폴더", "첫 Task", null),
+                                new SessionTaskResponse(11L, 2L, "폴더", "다음 Task", null)
                         )
                 )
         ));
@@ -171,7 +172,7 @@ class SessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.tasks[0].id").value(10))
-                .andExpect(jsonPath("$.tasks[0].projectName").value("프로젝트"))
+                .andExpect(jsonPath("$.tasks[0].projectName").value("폴더"))
                 .andExpect(jsonPath("$.tasks[1].id").value(11));
     }
 
@@ -198,14 +199,14 @@ class SessionControllerTest {
                 600,
                 STARTED_AT,
                 STARTED_AT.plusSeconds(600),
-                SessionStatus.COMPLETED
+                SessionStatus.INTERRUPTED
         ));
 
         mockMvc.perform(post("/api/sessions/5/end"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.actualDurationSec").value(600))
                 .andExpect(jsonPath("$.endedAt").value("2026-08-20T00:10:00Z"))
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.status").value("INTERRUPTED"));
     }
 
     @Test
@@ -244,7 +245,7 @@ class SessionControllerTest {
                 null,
                 sessionDetailPlace(),
                 "https://youtu.be/example",
-                List.of(new SessionTaskResponse(10L, 2L, "프로젝트", "첫 Task"))
+                List.of(new SessionTaskResponse(10L, 2L, "폴더", "첫 Task", null))
         ));
 
         mockMvc.perform(get("/api/sessions/5"))

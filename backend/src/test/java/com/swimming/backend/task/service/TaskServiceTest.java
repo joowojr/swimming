@@ -56,12 +56,16 @@ class TaskServiceTest {
                 });
         when(taskRepository.saveAndFlush(any(TaskEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(taskRepository.softDeleteAllOwnedByIds(any(), any())).thenAnswer(invocation ->
+                ((List<?>) invocation.getArgument(1)).size());
+        when(taskRepository.updateOwnedStatuses(any(), any(), any())).thenAnswer(invocation ->
+                ((List<?>) invocation.getArgument(1)).size());
     }
 
     @Test
-    @DisplayName("프로젝트의 첫 Task를 기본 상태와 순서로 생성해 순수 도메인으로 반환한다")
+    @DisplayName("폴더의 첫 Task를 기본 상태와 순서로 생성해 순수 도메인으로 반환한다")
     void createsFirstTaskWithDefaults() {
-        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdAndDeletedFalseOrderByIdDesc(10L))
                 .thenReturn(Optional.empty());
         when(taskRepository.saveAndFlush(any(TaskEntity.class))).thenAnswer(invocation -> {
             TaskEntity entity = invocation.getArgument(0);
@@ -81,7 +85,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("기존 마지막 Task 다음 순서로 생성한다")
     void createsTaskAfterCurrentLastOrder() {
-        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdAndDeletedFalseOrderByIdDesc(10L))
                 .thenReturn(Optional.of(taskEntity(3L, 10L, "기존 Task", 4)));
 
         Task task = taskService.create(1L, 10L, "새 Task");
@@ -90,9 +94,9 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("프로젝트 없는 Task를 사용자 기준 다음 순서로 생성한다")
+    @DisplayName("폴더 없는 Task를 사용자 기준 다음 순서로 생성한다")
     void createsProjectlessTaskForUser() {
-        when(taskRepository.findTopByUser_IdAndProjectIsNullOrderByOrderIdxDescIdDesc(1L))
+        when(taskRepository.findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(1L))
                 .thenReturn(Optional.empty());
         when(taskRepository.saveAndFlush(any(TaskEntity.class))).thenAnswer(invocation -> {
             TaskEntity entity = invocation.getArgument(0);
@@ -112,7 +116,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("Note에서 생성한 Task에 원문 Note ID를 저장한다")
     void createsTaskWithSourceNote() {
-        when(taskRepository.findTopByProject_IdOrderByOrderIdxDescIdDesc(10L))
+        when(taskRepository.findTopByProject_IdAndDeletedFalseOrderByIdDesc(10L))
                 .thenReturn(Optional.empty());
 
         Task task = taskService.createFromNote(1L, 10L, 7L, "새 Task");
@@ -124,7 +128,7 @@ class TaskServiceTest {
     @Test
     @DisplayName("사용자가 소유한 Task 상세를 순수 도메인으로 조회한다")
     void returnsOwnedTaskDetail() {
-        when(taskRepository.findByIdAndUser_Id(1L, 1L))
+        when(taskRepository.findByIdAndUser_IdAndDeletedFalse(1L, 1L))
                 .thenReturn(Optional.of(taskEntity(1L, 10L, "Task", 0)));
 
         Task task = taskService.getOne(1L, 1L);
@@ -134,9 +138,38 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("사용자의 모든 Task를 최신순 조회 결과대로 반환한다")
+    void returnsAllOwnedTasksInLatestOrder() {
+        TaskEntity recent = taskEntity(2L, null, "최근 Task", 0);
+        TaskEntity previous = taskEntity(1L, 10L, "이전 Task", 0);
+        when(taskRepository.findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(1L))
+                .thenReturn(List.of(recent, previous));
+
+        List<Task> tasks = taskService.getAll(1L);
+
+        assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
+        verify(taskRepository).findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(1L);
+    }
+
+    @Test
+    @DisplayName("사용자의 폴더 없는 Task를 최신순 조회 결과대로 반환한다")
+    void returnsUnclassifiedTasksInLatestOrder() {
+        TaskEntity recent = taskEntity(2L, null, "최근 미분류", 0);
+        TaskEntity previous = taskEntity(1L, null, "이전 미분류", 0);
+        when(taskRepository.findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(1L))
+                .thenReturn(List.of(recent, previous));
+
+        List<Task> tasks = taskService.getUnclassified(1L);
+
+        assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
+        assertThat(tasks).allMatch(task -> task.getProjectId() == null);
+        verify(taskRepository).findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(1L);
+    }
+
+    @Test
     @DisplayName("존재하지 않는 Task를 조회하면 찾을 수 없음으로 처리한다")
     void rejectsMissingTask() {
-        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.empty());
+        when(taskRepository.findByIdAndUser_IdAndDeletedFalse(1L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> taskService.getOne(1L, 1L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -144,39 +177,86 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("Task 제목과 상태를 수정한다")
-    void updatesTaskFields() {
+    @DisplayName("제목 수정 API는 소유 Entity의 제목만 변경 감지로 저장한다")
+    void updatesOnlyTaskTitle() {
         TaskEntity entity = taskEntity(1L, 10L, "기존 Task", 0);
-        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.of(entity));
+        when(taskRepository.findByIdAndUser_IdAndDeletedFalse(1L, 1L)).thenReturn(Optional.of(entity));
 
-        Task task = entity.toDomain();
-        task.update(" 수정 Task ", TaskStatus.HOLD);
-
-        Task result = taskService.update(1L, task);
+        Task result = taskService.updateTitle(1L, 1L, " 수정 Task ");
 
         assertThat(result.getTitle()).isEqualTo("수정 Task");
-        assertThat(result.getStatus()).isEqualTo(TaskStatus.HOLD);
-        verify(taskRepository).saveAndFlush(entity);
+        assertThat(result.getStatus()).isEqualTo(TaskStatus.TODO);
+        verify(taskRepository).findByIdAndUser_IdAndDeletedFalse(1L, 1L);
+        verify(taskRepository).flush();
     }
 
     @Test
-    @DisplayName("사용자가 소유한 여러 Task를 프로젝트 정보가 포함된 조회 DTO로 반환한다")
+    @DisplayName("상태 수정 API는 소유 Entity의 상태만 변경 감지로 저장한다")
+    void updatesOnlyTaskStatus() {
+        TaskEntity entity = taskEntity(1L, 10L, "기존 Task", 0);
+        when(taskRepository.findByIdAndUser_IdAndDeletedFalse(1L, 1L)).thenReturn(Optional.of(entity));
+
+        Task result = taskService.updateStatus(1L, 1L, TaskStatus.HOLD);
+
+        assertThat(result.getTitle()).isEqualTo("기존 Task");
+        assertThat(result.getStatus()).isEqualTo(TaskStatus.HOLD);
+        verify(taskRepository).findByIdAndUser_IdAndDeletedFalse(1L, 1L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    @DisplayName("제목 수정 대상이 없으면 찾을 수 없음으로 처리한다")
+    void rejectsMissingTaskWhenUpdatingTitle() {
+        when(taskRepository.findByIdAndUser_IdAndDeletedFalse(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> taskService.updateTitle(1L, 1L, "수정 Task"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskRepository, org.mockito.Mockito.never()).flush();
+    }
+
+    @Test
+    @DisplayName("상태 수정 대상이 없으면 찾을 수 없음으로 처리한다")
+    void rejectsMissingTaskWhenUpdatingStatus() {
+        when(taskRepository.findByIdAndUser_IdAndDeletedFalse(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> taskService.updateStatus(1L, 1L, TaskStatus.DONE))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskRepository, org.mockito.Mockito.never()).flush();
+    }
+
+    @Test
+    @DisplayName("사용자가 소유한 여러 Task를 폴더 정보가 포함된 조회 DTO로 반환한다")
     void returnsTaskReferencesByIds() {
         List<TaskReference> expected = List.of(
-                new TaskReference(1L, 10L, "첫 프로젝트", "첫째", TaskStatus.TODO),
-                new TaskReference(2L, 20L, "둘 프로젝트", "둘째", TaskStatus.DOING)
+                new TaskReference(1L, 10L, "첫 폴더", "첫째", TaskStatus.TODO),
+                new TaskReference(2L, 20L, "둘 폴더", "둘째", TaskStatus.DOING)
         );
-        when(taskRepository.findAllOwnedByIds(1L, List.of(2L, 1L)))
+        when(taskRepository.findAllOwnedByIdsIncludingDeleted(1L, List.of(2L, 1L)))
                 .thenReturn(expected);
 
         List<TaskReference> references = taskService.getReferences(1L, List.of(2L, 1L));
 
         assertThat(references).isSameAs(expected);
-        assertThat(references.get(1).projectName()).isEqualTo("둘 프로젝트");
+        assertThat(references.get(1).projectName()).isEqualTo("둘 폴더");
     }
 
     @Test
-    @DisplayName("Task Organizer용 프로젝트와 Task 컨텍스트를 단일 조회 결과로 반환한다")
+    @DisplayName("활성 Task 검증은 soft delete되지 않은 Task만 조회한다")
+    void returnsOnlyActiveTaskReferencesForValidation() {
+        List<TaskReference> expected = List.of(
+                new TaskReference(1L, 10L, "폴더", "활성 Task", TaskStatus.TODO)
+        );
+        when(taskRepository.findAllOwnedActiveByIds(1L, List.of(1L, 2L)))
+                .thenReturn(expected);
+
+        assertThat(taskService.getActiveReferences(1L, List.of(1L, 2L)))
+                .isSameAs(expected);
+    }
+
+    @Test
+    @DisplayName("Task Organizer용 폴더와 Task 컨텍스트를 단일 조회 결과로 반환한다")
     void returnsTaskOrganizerContextFromSingleQuery() {
         List<TaskOrganizerContextRow> expected = List.of(
                 new TaskOrganizerContextRow(
@@ -189,7 +269,7 @@ class TaskServiceTest {
                 ),
                 new TaskOrganizerContextRow(
                         20L,
-                        "빈 프로젝트",
+                        "빈 폴더",
                         null,
                         null,
                         null,
@@ -206,11 +286,11 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("프로젝트 상세용 Task 요약을 저장된 순서대로 반환한다")
+    @DisplayName("폴더 상세용 Task 요약을 저장된 순서대로 반환한다")
     void returnsTaskSummariesInStoredOrder() {
         TaskEntity first = taskEntity(2L, 10L, "첫째", 0, TaskStatus.DOING);
         TaskEntity second = taskEntity(1L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
+        when(taskRepository.findAllByProjectIdWithProject(10L))
                 .thenReturn(List.of(first, second));
 
         List<TaskSummaryResponse> responses = taskService.getSummaries(10L);
@@ -224,110 +304,50 @@ class TaskServiceTest {
     @Test
     @DisplayName("여러 Task를 ID 기준으로 배치 삭제한다")
     void deletesTasksInBatch() {
-        List<TaskEntity> tasks = List.of(
-                taskEntity(1L, 10L, "첫째", 0),
-                taskEntity(2L, 10L, "둘째", 1)
-        );
-        when(taskRepository.findAllOwnedEntitiesByIds(1L, List.of(1L, 2L)))
-                .thenReturn(tasks);
-
         taskService.deleteAll(1L, List.of(1L, 2L));
 
-        verify(taskRepository).deleteAllInBatch(tasks);
+        verify(taskRepository).softDeleteAllOwnedByIds(1L, List.of(1L, 2L));
     }
 
     @Test
     @DisplayName("삭제 대상에 다른 사용자의 Task가 있으면 삭제하지 않는다")
     void rejectsDeletingTasksNotOwnedByUser() {
-        when(taskRepository.findAllOwnedEntitiesByIds(1L, List.of(1L, 2L)))
-                .thenReturn(List.of(taskEntity(1L, 10L, "내 Task", 0)));
+        when(taskRepository.softDeleteAllOwnedByIds(1L, List.of(1L, 2L))).thenReturn(1);
 
         assertThatThrownBy(() -> taskService.deleteAll(1L, List.of(1L, 2L)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
 
-        verify(taskRepository, org.mockito.Mockito.never()).deleteAllInBatch(any());
+        verify(taskRepository).softDeleteAllOwnedByIds(1L, List.of(1L, 2L));
     }
 
     @Test
     @DisplayName("사용자가 소유한 여러 Task의 상태를 한 번에 변경한다")
     void updatesStatusesOfOwnedTasks() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
         Map<Long, TaskStatus> statusByTaskId = Map.of(
                 1L, TaskStatus.DONE,
                 2L, TaskStatus.DOING
         );
-        when(taskRepository.findAllOwnedEntitiesByIds(any(), any()))
-                .thenReturn(List.of(first, second));
-
         taskService.updateStatuses(1L, statusByTaskId);
 
-        assertThat(first.getStatus()).isEqualTo(TaskStatus.DONE);
-        assertThat(second.getStatus()).isEqualTo(TaskStatus.DOING);
+        verify(taskRepository).updateOwnedStatuses(1L, List.of(1L), TaskStatus.DONE);
+        verify(taskRepository).updateOwnedStatuses(1L, List.of(2L), TaskStatus.DOING);
     }
 
     @Test
     @DisplayName("상태를 변경할 Task 중 소유하지 않은 Task가 있으면 아무것도 변경하지 않는다")
     void rejectsStatusUpdateWhenAnyTaskIsNotOwned() {
-        TaskEntity owned = taskEntity(1L, 10L, "내 Task", 0);
         Map<Long, TaskStatus> statusByTaskId = Map.of(
                 1L, TaskStatus.DONE,
                 2L, TaskStatus.DOING
         );
-        when(taskRepository.findAllOwnedEntitiesByIds(any(), any()))
-                .thenReturn(List.of(owned));
+        org.mockito.Mockito.doReturn(0)
+                .when(taskRepository)
+                .updateOwnedStatuses(1L, List.of(2L), TaskStatus.DOING);
 
         assertThatThrownBy(() -> taskService.updateStatuses(1L, statusByTaskId))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        assertThat(owned.getStatus()).isEqualTo(TaskStatus.TODO);
-    }
-
-    @Test
-    @DisplayName("전달받은 전체 Task ID 순서대로 순서를 다시 부여한다")
-    void reordersEveryTaskInProject() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        TaskEntity third = taskEntity(3L, 10L, "셋째", 2);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
-                .thenReturn(List.of(first, second, third));
-
-        taskService.updateOrder(10L, List.of(3L, 1L, 2L));
-
-        assertThat(third.getOrderIdx()).isZero();
-        assertThat(first.getOrderIdx()).isEqualTo(1);
-        assertThat(second.getOrderIdx()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("Task ID가 누락되거나 중복된 순서 요청을 거부한다")
-    void rejectsIncompleteOrDuplicateOrder() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
-                .thenReturn(List.of(first, second));
-
-        assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L)))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_ORDER));
-
-        assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L, 1L)))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_ORDER));
-    }
-
-    @Test
-    @DisplayName("다른 프로젝트의 Task가 포함된 순서 요청을 거부한다")
-    void rejectsTaskFromAnotherProjectInOrder() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
-        when(taskRepository.findAllByProject_IdOrderByOrderIdxAscIdAsc(10L))
-                .thenReturn(List.of(first, second));
-
-        assertThatThrownBy(() -> taskService.updateOrder(10L, List.of(1L, 99L)))
-                .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_ORDER));
     }
 
     private TaskEntity taskEntity(Long id, Long projectId, String title, int orderIdx) {
@@ -342,8 +362,9 @@ class TaskServiceTest {
             TaskStatus status
     ) {
         Task task = Task.create(1L, projectId, title, orderIdx);
-        task.update(title, status);
-        TaskEntity entity = TaskEntity.from(task, user(1L), project(projectId), null);
+        task.changeStatus(status);
+        ProjectEntity project = projectId == null ? null : project(projectId);
+        TaskEntity entity = TaskEntity.from(task, user(1L), project, null);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
@@ -351,7 +372,7 @@ class TaskServiceTest {
     private ProjectEntity project(Long projectId) {
         User user = user(1L);
         ProjectEntity project = ProjectEntity.from(
-                Project.create(1L, null, "프로젝트", "설명", null),
+                Project.create(1L, null, "폴더", "설명", null),
                 user,
                 null
         );

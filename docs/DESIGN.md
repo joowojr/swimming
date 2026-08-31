@@ -1,214 +1,202 @@
----
-name: 'Cinematic Intelligence: Daylight Focus'
-colors:
-  surface: '#F7F9F8'
-  surface-dim: '#D8DBD9'
-  surface-bright: '#FBFCFB'
-  surface-container-lowest: '#FFFFFF'
-  surface-container-low: '#F1F3F2'
-  surface-container: '#EBEEEC'
-  surface-container-high: '#E5E8E6'
-  surface-container-highest: '#DEE2DF'
-  on-surface: '#1A1C1B'
-  on-surface-variant: '#414845'
-  inverse-surface: '#2F312F'
-  inverse-on-surface: '#F0F1EF'
-  outline: '#727A76'
-  outline-variant: '#C1C8C4'
-  surface-tint: '#206D80'
-  primary: '#206D80'
-  on-primary: '#FFFFFF'
-  primary-container: '#D0EFF7'
-  on-primary-container: '#001F27'
-  inverse-primary: '#8CD1E6'
-  secondary: '#59605D'
-  on-secondary: '#FFFFFF'
-  secondary-container: '#DDE4E0'
-  on-secondary-container: '#161C19'
-  tertiary: '#8F5549'
-  on-tertiary: '#FFFFFF'
-  tertiary-container: '#FFDAD3'
-  on-tertiary-container: '#360E07'
-  error: '#BA1A1A'
-  on-error: '#FFFFFF'
-  error-container: '#FFDAD6'
-  on-error-container: '#410002'
-  primary-fixed: '#b0ecff'
-  primary-fixed-dim: '#8cd1e6'
-  on-primary-fixed: '#001f27'
-  on-primary-fixed-variant: '#004e5e'
-  secondary-fixed: '#e3e2e3'
-  secondary-fixed-dim: '#c6c6c7'
-  on-secondary-fixed: '#1a1c1d'
-  on-secondary-fixed-variant: '#454748'
-  tertiary-fixed: '#ffdad3'
-  tertiary-fixed-dim: '#ffb4a5'
-  on-tertiary-fixed: '#360e07'
-  on-tertiary-fixed-variant: '#6c382e'
-  background: '#F7F9F8'
-  on-background: '#1A1C1B'
-  surface-variant: '#DEE2DF'
-  oceanic-depth: '#E8F3F5'
-  outline-muted: '#D4D9D6'
-typography:
-  display-lg:
-    fontFamily: Geist
-    fontSize: 48px
-    fontWeight: '600'
-    lineHeight: 52px
-    letterSpacing: -0.02em
-  display-lg-mobile:
-    fontFamily: Geist
-    fontSize: 32px
-    fontWeight: '600'
-    lineHeight: 38px
-    letterSpacing: -0.02em
-  headline-md:
-    fontFamily: Geist
-    fontSize: 24px
-    fontWeight: '500'
-    lineHeight: 32px
-  body-lg:
-    fontFamily: Geist
-    fontSize: 16px
-    fontWeight: '400'
-    lineHeight: 26px
-  body-sm:
-    fontFamily: Geist
-    fontSize: 14px
-    fontWeight: '400'
-    lineHeight: 21px
-  label-mono:
-    fontFamily: JetBrains Mono
-    fontSize: 12px
-    fontWeight: '500'
-    lineHeight: 14px
-    letterSpacing: 0.05em
-rounded:
-  sm: 0.125rem
-  DEFAULT: 0.25rem
-  md: 0.375rem
-  lg: 0.5rem
-  xl: 0.75rem
-  full: 9999px
-spacing:
-  unit: 4px
-  gutter: 16px
-  margin-mobile: 16px
-  margin-desktop: 32px
-  sidebar-width: 280px
----
+# Swimming — Design System
 
-## Brand & Style
+> **Theme:** light
+> **Reference:** warm parchment workspace where color marks identity, never urgency
 
-This design system embodies a **Calm Exploratory Minimalist** aesthetic, designed for people planning and progressing toward meaningful personal goals. The brand personality is thoughtful, focused, and quietly optimistic, reflecting the feeling of preparing for a journey and gradually moving toward a destination.
+Swimming is a workspace for people who work alone. The interface stays quiet so the work can be loud: warm off-whites carry every surface, charcoal rather than black carries the text, and Camera Plain Variable keeps display and body in one compact voice — the Lovable foundation this system is built on. Two things are ours. First, **surfaces separate by fill, not by border**: white at rest, light gray on hover, ink when active. Second, **color is reserved for identity** — a project's tone — while state is expressed by how heavily a chip is filled. Progress accumulates rather than runs out, so warning colors never appear on a task, a project, or a date. The immersive session screen is the single deliberate exception, where a full-bleed backdrop carries translucent widgets in the corners.
 
-The visual direction draws inspiration from **travel planning, wayfinding, and quiet transit spaces** rather than conventional productivity software. The interface should feel less like a task manager and more like a personal journey in progress — a place where destinations, stops, and next steps naturally unfold.
-
-Negative space and clear hierarchy create a sense of openness and distance. The UI should recede behind the user's journey, allowing their **destination, current progress, and next stop** to remain the focal points.
-
-The emotional response should be one of **anticipation, possibility, and steady progress** — the feeling of looking forward to a journey while calmly preparing for what comes next.
+Values live in `frontend/src/styles/tokens.css`. That file is authoritative; update this document alongside it.
 
 ## Colors
 
-The palette is anchored by a quiet, light background that creates openness and distance while allowing destinations, progress, and important actions to stand out.
+### Surface and ink
 
-* **Primary:** A focused Ocean Blue (#206D80) represents movement, direction, and active progress. Use it sparingly for primary actions, route progress, selected destinations, and active states.
-* **Neutral:** Warm off-whites and light grays establish hierarchy between the surrounding environment and journey-related content. Surfaces use restrained tonal differences instead of heavy borders or shadows.
-* **Accents:** Near-black text is reserved for destinations and primary information, while Ocean Blue identifies high-priority actions and active progress.
+| Token | Value | Usage |
+| --- | --- | --- |
+| `--color-canvas` | `#fcfbf8` | Page canvas |
+| `--color-surface` / `--color-surface-card` | `#f7f4ed` | Warm sand cards and secondary surfaces |
+| `--color-surface-container-lowest` | `#ffffff` | **Resting background for every interactive surface** |
+| `--color-surface-container-high` | `#ebe7e7` | **Hover gray** |
+| `--color-surface-container-highest` | `#e5e2e1` | Pressed, and neutral selection |
+| `--color-border-subtle` / `--color-hairline` | `#eceae4` | Borders and separators |
+| `--color-stone` / `--color-ash` | `#d4d3d0` | Disabled edges |
+| `--color-mute` | `#5f5f5d` | Supporting copy, labels, meta |
+| `--color-primary` | `#1c1c1c` | Primary text, and the active fill |
+| `--color-on-primary` | `#fcfbf8` | Text on ink |
+| `--color-ink` | `#030303` | Highest-emphasis text |
+| `--color-on-dark` / `--color-on-dark-mute` | `#fcfbf8` / `rgba(252,251,248,.7)` | Text over the session backdrop |
+| `--color-primary-container` | `#3451b2` | Inline links and focus rings |
 
-Color should primarily communicate **direction and progress**, not decoration.
+### Project tones
+
+Four tones cycle to tell projects apart. They sit at matched lightness so no project outranks another, and each carries a tint for backgrounds.
+
+| Token | Value | Tint |
+| --- | --- | --- |
+| `--color-tone-fountain` | `#64ADB3` | `#e4f1ef` |
+| `--color-tone-indigo` | `#6276b6` | `#e6e9f3` |
+| `--color-tone-glorious` | `#F1766F` | `#fcefee` |
+| `--color-tone-wild-willow` | `#BCC95D` | `#f1f4ea` |
+| `--color-tone-bay-leaf` | `#79B089` | `#e9f5eb` |
+
+Pick the tone with `project.id % 4`; every screen must use the same key, or one project changes color as the user moves around. Bay leaf stays out of the rotation — it belongs to the in-progress chip. Use the base tone for fills such as dots and bars, the tint for backgrounds, and keep small text on `--color-mute`, which clears 5.2:1 on every tint.
+
+### Task status
+
+State reads as fill weight, not hue. Done is the heaviest because completion is what accumulates.
+
+| Status | Background | Text | Border |
+| --- | --- | --- | --- |
+| 시작 전 | transparent | mute | `--color-border-subtle` |
+| 하는 중 | bay leaf tint | bay leaf | bay leaf tint |
+| 완료 | `--color-primary` | `--color-on-primary` | `--color-primary` |
+| 잠시 멈춤 | `--color-surface-container-high` | mute | mute, dashed |
+
+Read them through `--chip-todo-*`, `--chip-doing-*`, `--chip-done-*`, `--chip-hold-*` rather than reaching for the underlying colors.
+
+### Error
+
+`--color-error` `#EF4444` and its container are for **form validation only**. Red never marks a task, a project, a date, or a session.
+
+### Accent
+
+Coral — `--color-tertiary` `#F48067` with its container and on-container pair — belongs to graphics and brand marks, not to controls.
 
 ## Typography
 
-The typography system uses **Geist** for its neutral clarity and contemporary character, keeping information easy to scan without making the experience feel like conventional productivity software.
+Camera Plain Variable is the sole family; `Inter Variable` and `DM Sans` are fallbacks only. Default tracking is `-0.025em`. Weight 480 is the heaviest step in normal use — the system rations weight. `--text-label-strong-weight` (700) exists for section labels alone.
 
-It is paired with **JetBrains Mono** selectively for journey metadata such as dates, distances, progress values, location codes, or small navigational labels.
+| Role | Size / line-height | Weight | Token prefix |
+| --- | --- | --- | --- |
+| label-caps | `14px / 1.3125` | 400 | `--text-label-caps-` |
+| body-sm | `14px / 1.3125` | 400 | `--text-body-sm-` |
+| body-md | `16px / 1.5` | 400 | `--text-body-md-` |
+| body-lg | `18px / 1.5525` | 400 | `--text-body-lg-` |
+| button | `16px / 1.5` | 480 | `--text-button-` |
+| headline-md | `20px / 1.5625` | 480 | `--text-headline-md-` |
+| headline-lg | `36px / 2.475` | 480 | `--text-headline-lg-` |
+| headline-xl | `60px / 60px` | 480 | `--text-headline-xl-` |
 
-* **Scale:** Strong contrast between destination titles and supporting information establishes a clear sense of orientation.
-* **Micro-copy:** Monospaced typography may be used for route metadata, dates, coordinates, progress values, and small wayfinding labels.
-* **Tracking:** Headlines use slightly negative letter-spacing to create compact, confident destination headings.
+`--text-display`, `--text-heading`, `--text-body`, `--text-label`, and `--text-meta` are the semantic aliases; `--text-display` drops to the mobile headline below 48rem. `--font-family-mono` currently points at the sans stack, so align numbers with `font-variant-numeric: tabular-nums` instead of a second family.
 
-Typography should distinguish between **where the user is going** and **the information needed to get there**.
+## Layout, spacing and shape
 
-## Layout & Spacing
+The centered page is `1280px` at most (`--layout-container-max`), with a `24px` gutter and margins of `16px` on mobile and `80px` on desktop. Sections separate by `32px`, cards pad `16px`, and tight groups use `12px`.
 
-The design system employs a **Journey-Centered Fluid Layout**.
+| Scale | `1` | `2` | `3` | `4` | `5` | `6` | `8` | `10` | `12` | `16` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Value | 4px | 8px | 12px | 16px | 20px | 24px | 32px | 40px | 48px | 80px |
 
-The primary journey area remains visually dominant, while navigation, planning tools, and contextual information occupy quieter supporting regions.
+| Element | Radius | Token |
+| --- | --- | --- |
+| Checkboxes, small surfaces | 8px | `--radius-sm` / `--radius-default` |
+| Buttons, inputs, choice rows | 12px | `--radius-md` |
+| Cards and panels | 16px | `--radius-lg` / `--radius-panel` |
+| Modal shell | 24px | `--radius-xl` |
+| Chips, circular icon buttons | full | `--radius-full` / `--radius-control` |
 
-Rather than presenting everything as equally weighted dashboard modules, layouts should establish a clear relationship between:
+Controls are `48px` tall (`--control-height`); buttons are `32px`, growing to `44px` on coarse pointers. The default modal is `28rem` wide and forms cap at `30rem`.
 
-**Destination → Current Position → Next Step**
+## Elevation and motion
 
-* **Rhythm:** A 4px baseline grid governs internal spacing.
-* **Safe Areas:** Maintain a 32px outer margin on desktop to preserve openness and prevent the interface from becoming dense.
-* **Journey Focus:** The primary destination or current stage should receive significantly more visual space than secondary planning information.
-* **Reflow:** On mobile, supporting panels collapse into bottom sheets or full-screen views so the user's current journey remains the primary focus.
+Depth is nearly absent. The scrim separates a modal from the page, so the modal itself takes neither shadow nor border.
 
-Avoid conventional productivity-dashboard layouts where every piece of information becomes an equally weighted card.
+| Token | Value | Usage |
+| --- | --- | --- |
+| `--shadow-control` | `oklch(0 0 0 / 0.25) 0px 0px 0px 0.5px inset` | Inset edge |
+| `--shadow-floating` | `oklab(0 0 0 / 0.08) 0px 0px 0px 1px, rgba(0,0,0,.1) 0px 20px 25px -5px, rgba(0,0,0,.1) 0px 8px 10px -6px` | Rare; never on a modal shell |
+| `--overlay-scrim` / `--overlay-blur` | `rgb(28 28 28 / 40%)` / `4px` | Modal backdrop |
 
-## Elevation & Depth
+Transitions run `120ms` for micro states, `220ms` for short moves, `300ms` for modals, and `140ms` for plain color changes. Use `--ease-out` entering, `--ease-in` leaving, `--ease-in-out` between states.
 
-Depth is communicated through **Tonal Layering** and restrained borders rather than heavy shadows.
+## Interaction states
 
-Layers should suggest different levels of the journey: the surrounding environment, active planning surfaces, and temporary contextual information.
+This is the load-bearing rule of the system.
 
-* **Level 0 (Environment):** Soft off-white (#F7F9F8), providing an open and calm surrounding space.
-* **Level 1 (Journey Surfaces):** White (#FFFFFF) with a subtle 1px border (#D4D9D6) when a meaningful boundary is required.
-* **Level 2 (Temporary Context):** Slightly elevated white surfaces or translucent overlays for destination details and contextual planning information.
-* **Active State:** The current destination, route, or next actionable step may use a restrained Primary-color tint or border.
+| State | Background | Text |
+| --- | --- | --- |
+| Rest | `--color-surface-container-lowest` | `--color-primary` |
+| Hover | `--color-surface-container-high` | `--color-primary` |
+| Selected | `--color-on-surface` | `--color-on-primary` |
+| Neutral selection | `--color-surface-container-highest` | `--color-primary` |
+| Disabled | unchanged | opacity `.55`, `cursor: not-allowed` |
+| Loading | unchanged | opacity `.55`, `cursor: wait` |
+| Focus | unchanged | `2px` outline, offset `2px` |
 
-Elevation should communicate **context and focus**, not simply container hierarchy.
-
-## Shapes
-
-The shape language is **Soft-Structured**.
-
-Low-radius corners (4px to 8px) keep the interface calm and deliberate while avoiding the overly friendly appearance common to lifestyle and productivity applications.
-
-* **Buttons & Inputs:** Use the standard 4px radius.
-* **Journey Panels & Large Containers:** Use 8px radius for clearly defined planning surfaces.
-* **Destination Media:** Images and visual destination elements should inherit the radius of their surrounding container.
-* **Route Elements:** Lines, markers, and progress indicators may use circular endpoints while maintaining restrained geometry elsewhere.
-
-Avoid excessive pill-shaped elements unless the shape carries navigational or status meaning.
+Gate hover behind `@media (hover: hover) and (pointer: fine)`, and exclude selected items with `:not(:has(input:checked))` — hover gray over an ink fill erases the selection. Icons inside an ink fill invert to `--color-on-primary`.
 
 ## Components
 
-* **Buttons:** Primary buttons represent meaningful movement such as starting a journey, continuing to the next step, or confirming a plan. Use Ocean Blue with white text. Secondary actions remain visually quiet.
-* **Inputs:** White field fills (#FFFFFF) with subtle 1px borders (#D4D9D6). Focus transitions to the Primary color. Inputs should feel integrated into the journey rather than isolated form controls.
-* **Markers/Labels:** Compact labels may represent locations, stages, dates, or journey states. Use monospaced text selectively for navigational metadata.
-* **Journey Panels:** Prefer spatial grouping and hierarchy over excessive card containers. Borders and tonal surfaces should only appear when they clarify meaningful boundaries.
-* **Route & Progress:** Use the Primary Blue for completed or active portions of a route. Upcoming portions should remain visually subdued.
-* **Destination Markers:** Current and target destinations should be visually distinguishable without relying solely on color.
-* **Progress Controls:** Minimal tracks and indicators may visualize distance or progress toward a destination, but should avoid resembling conventional project-management progress bars where possible.
+### Modal
 
-## Visual Metaphor
+The shell is white with `24px` radius and `32px` padding, and carries no border and no shadow. Header, body, and footer are one continuous white surface; do not rule them apart. Header and body sit close — roughly `24px` between the title block and the first section — so the modal opens on content rather than air.
 
-The interface should consistently reinforce the idea that **a goal is a destination and progress is a journey**.
+### Section label
 
-Prefer visual language inspired by:
+`14px / 700 / --color-mute` at `0.02em`. Never attach a numbered badge; numbered steps make a form read as a wizard.
 
-* destinations
-* routes
-* stops
-* departures
-* arrivals
-* wayfinding
-* distance
-* travel preparation
-* movement through space
-* places waiting to be reached
+### Choice row
 
-Avoid visual language strongly associated with:
+White, `12px` radius, `12px` padding, `4px` between rows. The checkbox is `16px` and fills with ink and a white check when selected; the row itself moves to `--color-surface-container-highest`.
 
-* corporate project management
-* kanban boards
-* admin dashboards
-* performance analytics
-* gamified habit trackers
-* AI assistants
-* generic productivity software
+### Filter chip
 
-The user should feel that they are **preparing for somewhere they want to go**, not managing another list of tasks.
+White, fully pill-shaped, `8px 16px` padding, `40px` tall, ink-filled when active. Let chips wrap with `flex-wrap` rather than locking them into a fixed grid — the count is data-driven.
+
+### Tile
+
+White, `12px` radius, `12px` padding, holding an icon with a title and a supporting line. When active, the fill, the title, the supporting line, and the icon all invert together.
+
+### Stepper
+
+A white pill wrapping two `32px` circular buttons around a value. The value uses `tabular-nums` so it does not shift width as it changes.
+
+### Buttons
+
+Primary is `--color-primary` with `--color-on-primary` at `12px` radius. Tertiary is transparent with charcoal text and a gray hover. Icon-only controls are `40px` circles, transparent until hovered.
+
+### Status chip
+
+A pill using the status tokens. Where the status is editable, build it as a `<select>` styled identically to the read-only chip — the same state should not look like two different things.
+
+### Tag chip
+
+`8px` radius on `--project-tone-tint`, mute text, preceded by an `8px` dot in `--project-tone` drawn with `::before`.
+
+### Project card
+
+White with a `4px` tone bar across the top (`--progress-height`). Set `--project-tone` and `--project-tone-tint` at card level so the bar, the tag, and anything else inherit one identity.
+
+### Session widget
+
+The backdrop image or video runs full-bleed; widgets float in the corners as translucent cards over `backdrop-filter: blur(20px)`, using `--color-on-dark` and `--color-on-dark-mute`.
+
+## Rules
+
+### Do
+
+- Take every color, space, and font value from `tokens.css`.
+- Separate surfaces with radius and fill; treat a border as the last resort.
+- Express state as fill weight and identity as hue.
+- Frame progress as accumulation — "task 12/20 완료", "이번 주 4일 접속".
+- Write the target date plainly as 목표일.
+- Check contrast before tinting small text: 4.5:1 for body, 3:1 for large.
+- Extract a repeated CSS recipe into tokens, not into a premature component.
+
+### Avoid
+
+- Pressure language such as "지연 위험" or "3일 늦음".
+- Red or amber on any task, project, date, or session.
+- Deficit framing — "남은 task 8" instead of "task 12/20 완료".
+- Softened euphemisms such as "마음속 목표" or "소프트 목표".
+- Heavy travel theming; keep the layout of a productivity tool and remove only the pressure signals.
+- Numbered step badges in a form.
+- A shadow and a border stacked on the same modal.
+- Choosing a project tone from list position rather than project identity.
+
+## Known gaps
+
+- `--color-ink-soft`, `--color-body`, `--color-charcoal`, and `--color-success-deep` all resolve to `#1c1c1c`; distinct roles are pointing at one value.
+- `--color-primary-container`, `--color-surface-tint`, `--color-inverse-primary`, and `--color-accent-purple-deep` all resolve to `#3451b2`.
+- `project.id % 4` still collides for ids four apart. Storing a tone on the project, or deriving it from the tag, is the real fix.
+- `--font-family-mono` is not a monospace stack.

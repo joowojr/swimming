@@ -5,6 +5,7 @@ import type {ApiError} from '../../api/client'
 import ChecklistCard from '../../components/ChecklistCard'
 import type {DailyPlanItem} from '../plans/dailyPlanTypes'
 import {TASK_STATUS_LABEL} from '../tasks/taskLabels'
+import type {TaskStatus} from '../tasks/taskTypes'
 import {getPlaces} from '../places/placeApi'
 import type {City, Place} from '../places/placeTypes'
 import {startPersonalSession} from './sessionApi'
@@ -24,6 +25,14 @@ interface CreateSessionModalProps {
 type SessionMode = 'personal' | 'group'
 type DurationPreset = 25 | 45 | 60 | 'custom'
 type PlacesStatus = 'loading' | 'ready' | 'error'
+
+// 지금 하는 일을 먼저, 끝난 일을 마지막에 둔다.
+const TASK_STATUS_ORDER: Record<TaskStatus, number> = {
+  DOING: 0,
+  TODO: 1,
+  HOLD: 2,
+  DONE: 3,
+}
 
 interface PlaceOption {
   city: City
@@ -49,13 +58,15 @@ export default function CreateSessionModal({
   onStarted,
 }: CreateSessionModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const linkedTasks = todayTasks
+  // 같은 상태끼리는 계획에 담은 순서를 유지한다(Array.prototype.sort는 안정 정렬).
+  const linkedTasks = useMemo(
+    () => [...todayTasks].sort(
+      (first, second) => TASK_STATUS_ORDER[first.status] - TASK_STATUS_ORDER[second.status],
+    ),
+    [todayTasks],
+  )
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>(
-    initialTaskId !== undefined
-      ? [initialTaskId]
-      : linkedTasks[0]
-        ? [linkedTasks[0].taskId]
-        : [],
+    initialTaskId !== undefined ? [initialTaskId] : [],
   )
   const [mode, setMode] = useState<SessionMode>('personal')
   const [cities, setCities] = useState<City[]>([])

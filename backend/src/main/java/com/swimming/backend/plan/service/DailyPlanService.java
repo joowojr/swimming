@@ -3,9 +3,10 @@ package com.swimming.backend.plan.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.plan.repository.DailyPlanItemBatchRepository;
 import com.swimming.backend.plan.repository.DailyPlanItemRepository;
 import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
-import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -14,11 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class DailyPlanService {
     private final DailyPlanItemRepository dailyPlanItemRepository;
+    private final DailyPlanItemBatchRepository dailyPlanItemBatchRepository;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<DailyPlanItemQueryRow> getRows(Long userId, LocalDate fromDate, LocalDate toDate) {
@@ -36,6 +39,11 @@ public class DailyPlanService {
     @Transactional(propagation = Propagation.REQUIRED)
     public DailyPlanItem save(Long userId, LocalDate planDate, DailyPlanItem item) {
         return dailyPlanItemRepository.save(DailyPlanItemEntity.from(userId, planDate, item)).toDomain();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void saveAll(Long userId, LocalDate planDate, List<DailyPlanItem> items) {
+        dailyPlanItemBatchRepository.insertAll(userId, planDate, items);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -58,12 +66,24 @@ public class DailyPlanService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public boolean containsTask(Long userId, LocalDate planDate, Long taskId) {
-        return dailyPlanItemRepository.containsTask(userId, planDate, taskId);
+    public boolean containsAnyTasks(Long userId, LocalDate planDate, List<Long> taskIds) {
+        Set<Long> uniqueTaskIds = Set.copyOf(taskIds);
+        if (uniqueTaskIds.isEmpty()) {
+            return false;
+        }
+        return dailyPlanItemRepository.countDistinctTaskIds(userId, planDate, uniqueTaskIds) > 0;
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public boolean containsAllTasks(Long userId, LocalDate planDate, List<Long> taskIds) {
-        return taskIds.stream().allMatch(taskId -> containsTask(userId, planDate, taskId));
+        Set<Long> uniqueTaskIds = Set.copyOf(taskIds);
+        if (uniqueTaskIds.isEmpty()) {
+            return true;
+        }
+        return dailyPlanItemRepository.countDistinctTaskIds(
+                userId,
+                planDate,
+                uniqueTaskIds
+        ) == uniqueTaskIds.size();
     }
 }

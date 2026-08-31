@@ -1,27 +1,28 @@
 package com.swimming.backend.plan.repository;
 
 import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
-import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEntity, Long> {
     List<DailyPlanItemEntity> findAllByUserIdAndPlanDateOrderByOrderIdxAsc(Long userId, LocalDate planDate);
 
-    Optional<DailyPlanItemEntity> findByIdAndUserIdAndPlanDate(Long id, Long userId, LocalDate planDate);
-
     @Query("""
-            select new com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow(
+            select new com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow(
                 item.id,
                 item.planDate,
                 item.taskId,
                 project.id,
                 project.name,
+                project.deleted,
                 task.title,
                 task.status,
                 item.orderIdx
@@ -32,7 +33,6 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
             where item.userId = :userId
               and task.user.id = :userId
               and item.planDate between :fromDate and :toDate
-              and (project.id is null or project.deleted = false)
             order by item.planDate asc, item.orderIdx asc
             """)
     List<DailyPlanItemQueryRow> findRows(@Param("userId") Long userId,
@@ -40,10 +40,23 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                                          @Param("toDate") LocalDate toDate);
 
     @Query("""
-            select (count(item) > 0) from DailyPlanItemEntity item
-            where item.userId = :userId and item.planDate = :planDate and item.taskId = :taskId
+            select count(distinct item.taskId) from DailyPlanItemEntity item
+            where item.userId = :userId
+              and item.planDate = :planDate
+              and item.taskId in :taskIds
             """)
-    boolean containsTask(@Param("userId") Long userId,
-                         @Param("planDate") LocalDate planDate,
-                         @Param("taskId") Long taskId);
+    long countDistinctTaskIds(@Param("userId") Long userId,
+                              @Param("planDate") LocalDate planDate,
+                              @Param("taskIds") Set<Long> taskIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            delete from DailyPlanItemEntity item
+            where item.id = :itemId
+              and item.userId = :userId
+              and item.planDate = :planDate
+            """)
+    int deleteOwnedItem(@Param("itemId") Long itemId,
+                        @Param("userId") Long userId,
+                        @Param("planDate") LocalDate planDate);
 }

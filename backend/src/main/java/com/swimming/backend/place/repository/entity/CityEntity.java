@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -31,6 +32,7 @@ public class CityEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private String timezone;
 
+    @Builder
     private CityEntity(String name, String countryCode, String timezone) {
         this.name = name;
         this.countryCode = countryCode;
@@ -38,7 +40,11 @@ public class CityEntity extends BaseTimeEntity {
     }
 
     public static CityEntity create(String name, String countryCode, String timezone) {
-        return new CityEntity(name, countryCode, timezone);
+        return CityEntity.builder()
+                .name(name)
+                .countryCode(countryCode)
+                .timezone(timezone)
+                .build();
     }
 
     public City toDomain() {

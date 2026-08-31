@@ -17,6 +17,8 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
+import { useAuthStore } from '../../store/authStore'
+import { useProjectStore } from '../../store/projectStore'
 import { getPlaces } from '../places/placeApi'
 import { getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
@@ -78,6 +80,8 @@ function errorMessage(error: unknown) {
 
 export default function PersonalSessionPage() {
   const navigate = useNavigate()
+  const auth = useAuthStore()
+  const projects = useProjectStore((state) => state.projects)
   const { sessionId } = useParams()
   const parsedSessionId = Number(sessionId)
   const validSessionId = Number.isSafeInteger(parsedSessionId) && parsedSessionId > 0
@@ -234,7 +238,7 @@ export default function PersonalSessionPage() {
             setState({ status: 'loading' })
             setRequestKey((key) => key + 1)
           }}>다시 불러오기</button>}
-          <button type="button" onClick={() => navigate('/projects')}>내 프로젝트로</button>
+          <button type="button" onClick={() => navigate('/tasks')}>내 폴더로</button>
         </div>
       </main>
     )
@@ -342,7 +346,7 @@ export default function PersonalSessionPage() {
       {widgets.tasks && !focusMode && (
         <NoteCard
           className={`${styles.widget} ${styles['session-note']}`}
-          projects={[]}
+          projects={projects}
           sessionId={state.session.id}
         />
       )}
@@ -416,6 +420,7 @@ export default function PersonalSessionPage() {
           className={styles.music}
           source={state.session.musicUrl}
           options={musicOptions}
+          historyOwnerId={auth.user?.id ?? null}
           onSourceChange={saveMusicSource}
         />
       )}

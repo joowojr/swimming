@@ -9,10 +9,11 @@ import type {ApiError} from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import {updateTask} from '../tasks/taskApi'
+import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {
     addDailyPlanItems,
@@ -21,7 +22,6 @@ import {
 } from './dailyPlanApi'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
-import DailyPlanCardMenu from './DailyPlanCardMenu'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
 
@@ -125,10 +125,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
     }
 
     const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
-        await updateTask(item.taskId, {
-            title,
-            status: item.status,
-        })
+        await updateTaskTitle(item.taskId, {title})
 
         const replaceTitle = (items: DailyPlanItem[]) => items.map((candidate) => (
             candidate.taskId === item.taskId ? {...candidate, title} : candidate
@@ -147,7 +144,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         setMessage(null)
 
         try {
-            await updateTask(item.taskId, {title: item.title, status})
+            await updateTaskStatus(item.taskId, {status})
 
             // 같은 Task가 여러 날짜에 담겨 있을 수 있어 전 날짜에 반영한다.
             const replaceStatus = (items: DailyPlanItem[]) => items.map((candidate) => (
@@ -164,7 +161,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             const apiMessage = typeof error === 'object' && error !== null
                 ? (error as ApiError).message
                 : undefined
-            setMessage(apiMessage ?? '할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+            setMessage(apiMessage ?? '상태를 변경하지 못했습니다. 다시 시도해 주세요.')
         } finally {
             setPendingTaskId(null)
         }
@@ -175,7 +172,6 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             await deleteDailyPlanItem(date, itemId)
             const remove = (items: DailyPlanItem[]) => items
                 .filter((item) => item.id !== itemId)
-                .map((item, orderIdx) => ({...item, orderIdx}))
             setDrafts((current) => ({...current, [date]: remove(current[date] ?? [])}))
             setPlans((current) => current.map((plan) => plan.date === date
                 ? {...plan, items: remove(plan.items)}
@@ -292,7 +288,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                         </span>
                                                     </div>
                                                     {selected && (
-                                                        <DailyPlanCardMenu
+                                                        <TaskMenu
                                                             label={`${item.title} 카드 메뉴`}>
                                                                 {plan.date === today && (
                                                                     <ModalTriggerButton
@@ -311,7 +307,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                                     iconSize={15}
                                                                     onClick={() => void removeItem(plan.date, item.id)}
                                                                 />
-                                                        </DailyPlanCardMenu>
+                                                        </TaskMenu>
                                                     )}
                                                 </li>
                                             ))}

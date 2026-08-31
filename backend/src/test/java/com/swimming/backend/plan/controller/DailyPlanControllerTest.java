@@ -67,7 +67,7 @@ class DailyPlanControllerTest {
     }
 
     @Test
-    @DisplayName("날짜를 경로로 받아 프로젝트 없는 Task를 생성한다")
+    @DisplayName("날짜를 경로로 받아 폴더 없는 Task를 생성한다")
     void addsAdHocItem() throws Exception {
         CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
                 null, null, "장보기");
@@ -100,7 +100,7 @@ class DailyPlanControllerTest {
     }
 
     @Test
-    @DisplayName("날짜와 프로젝트를 받아 새 Task 항목을 생성한다")
+    @DisplayName("날짜와 폴더를 받아 새 Task 항목을 생성한다")
     void createsProjectTaskItem() throws Exception {
         CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
                 null, 100L, "API 문서 작성");
@@ -115,7 +115,7 @@ class DailyPlanControllerTest {
     }
 
     @Test
-    @DisplayName("프로젝트 없이 새 Task 항목을 생성한다")
+    @DisplayName("폴더 없이 새 Task 항목을 생성한다")
     void createsProjectlessTaskItem() throws Exception {
         CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
                 null, null, "자격증 접수");
@@ -155,7 +155,7 @@ class DailyPlanControllerTest {
     private DailyPlanResponse planResponse() {
         return new DailyPlanResponse(DATE, List.of(new DailyPlanItemResponse(
                 1L, 10L, DailyPlanItemType.TASK,
-                100L, "프로젝트", "API 구현", TaskStatus.DOING, 0
+                100L, "폴더", "API 구현", TaskStatus.DOING, 0
         )));
     }
 

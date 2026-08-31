@@ -3,9 +3,10 @@ package com.swimming.backend.task.controller;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
-import com.swimming.backend.task.dto.in.ReorderTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.TaskListMode;
+import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -47,20 +48,37 @@ public class TaskController {
     }
 
     @GetMapping("/projects/{projectId}/tasks")
-    public ResponseEntity<List<TaskResponse>> getAll(
+    public ResponseEntity<List<TaskResponse>> getByProject(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long projectId
     ) {
-        return ResponseEntity.ok(taskUseCase.getAll(authUser.id(), projectId));
+        return ResponseEntity.ok(taskUseCase.getByProject(authUser.id(), projectId));
     }
 
-    @PatchMapping("/tasks/{taskId}")
-    public ResponseEntity<TaskResponse> update(
+    @GetMapping("/tasks")
+    public ResponseEntity<List<TaskResponse>> getList(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(required = false) String mode
+    ) {
+        return ResponseEntity.ok(taskUseCase.getList(authUser.id(), TaskListMode.fromQuery(mode)));
+    }
+
+    @PatchMapping("/tasks/{taskId}/title")
+    public ResponseEntity<TaskResponse> updateTitle(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long taskId,
-            @Valid @RequestBody UpdateTaskRequest request
+            @Valid @RequestBody UpdateTaskTitleRequest request
     ) {
-        return ResponseEntity.ok(taskUseCase.update(authUser.id(), taskId, request));
+        return ResponseEntity.ok(taskUseCase.updateTitle(authUser.id(), taskId, request));
+    }
+
+    @PatchMapping("/tasks/{taskId}/status")
+    public ResponseEntity<TaskResponse> updateStatus(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @Valid @RequestBody UpdateTaskStatusRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updateStatus(authUser.id(), taskId, request));
     }
 
     @DeleteMapping("/tasks")
@@ -72,13 +90,4 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/projects/{projectId}/tasks/order")
-    public ResponseEntity<Void> reorder(
-            @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long projectId,
-            @Valid @RequestBody ReorderTasksRequest request
-    ) {
-        taskUseCase.reorder(authUser.id(), projectId, request);
-        return ResponseEntity.noContent().build();
-    }
 }

@@ -86,7 +86,7 @@ export default function DiveSessionFeedPage() {
             <IconClock size={24} aria-hidden="true" />
             <strong>아직 기록된 다이브 세션이 없습니다.</strong>
             <span>오늘의 Task에서 첫 세션을 시작해 보세요.</span>
-            <Link className={styles['state-link']} to="/projects">프로젝트 보기</Link>
+            <Link className={styles['state-link']} to="/tasks">폴더 보기</Link>
           </section>
         )}
 

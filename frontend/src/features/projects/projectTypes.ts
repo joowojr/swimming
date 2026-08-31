@@ -2,8 +2,14 @@ import type { TaskSummaryResponse } from '../tasks/taskTypes'
 
 export type ProjectStatus = 'IN_PROGRESS' | 'ARCHIVED'
 
+export type ProjectLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
+
 export interface ProjectTag {
   id: number
+  name: string
+}
+
+export interface ProjectTagNameRequest {
   name: string
 }
 

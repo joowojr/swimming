@@ -197,19 +197,20 @@ class ProjectUseCaseTest {
                 ProjectStatus.ARCHIVED,
                 null
         );
-        Project project = project(10L, "기존 프로젝트", "기존 설명", null);
-        when(projectService.getOne(1L, 10L)).thenReturn(project);
-        when(projectService.update(any(Project.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        Project project = project(10L, "수정 프로젝트", "수정 설명", null);
+        project.update("수정 프로젝트", "수정 설명", null, ProjectStatus.ARCHIVED, null);
+        when(projectService.update(
+                1L, 10L, null, "수정 프로젝트", "수정 설명", null,
+                ProjectStatus.ARCHIVED
+        )).thenReturn(project);
 
         ProjectResponse response = projectUseCase.update(1L, 10L, request);
 
         assertThat(response.status()).isEqualTo(ProjectStatus.ARCHIVED);
-        verify(projectService).update(argThat(updated ->
-                updated.getId().equals(10L)
-                        && updated.getName().equals("수정 프로젝트")
-                        && updated.getStatus() == ProjectStatus.ARCHIVED
-        ));
+        verify(projectService).update(
+                1L, 10L, null, "수정 프로젝트", "수정 설명", null,
+                ProjectStatus.ARCHIVED
+        );
     }
 
     @Test

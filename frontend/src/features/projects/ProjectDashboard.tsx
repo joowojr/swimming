@@ -1,19 +1,14 @@
 // import { useMemo } from 'react'
-import { IconPlus } from '@tabler/icons-react'
-import ModalTriggerButton from '../../components/ModalTriggerButton'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
-import type { Project } from './projectTypes'
+import type { Project, ProjectLoadStatus } from './projectTypes'
 import styles from './ProjectDashboard.module.css'
-
-export type ProjectLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 interface ProjectDashboardProps {
   projects: Project[]
   status: ProjectLoadStatus
   onRetry: () => void
-  onOpenCreate: () => void
 }
 
 /*
@@ -28,7 +23,6 @@ export default function ProjectDashboard({
   projects,
   status,
   onRetry,
-  onOpenCreate,
 }: ProjectDashboardProps) {
   /*
   const upcomingProjects = useMemo(
@@ -47,37 +41,30 @@ export default function ProjectDashboard({
         <header className={styles['dashboard-heading']}>
           <div>
             <h2 id="project-dashboard-title">안녕하세요</h2>
-            <p>현재 진행 중인 프로젝트 현황입니다.</p>
+            <p>현재 진행 중인 폴더 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>
             {/*<div className={styles['mode-toggle']} aria-label="핀보드 보기 모드">*/}
             {/*  <button type="button" className={styles['mode-toggle-active']} aria-pressed="true">루틴</button>*/}
             {/*  <button type="button" aria-pressed="false" disabled>가볍게</button>*/}
             {/*</div>*/}
-            <ModalTriggerButton
-              dialogId="create-project-dialog"
-              icon={<IconPlus size={18} aria-hidden="true" />}
-              onClick={onOpenCreate}
-            >
-              새 프로젝트
-            </ModalTriggerButton>
           </div>
         </header>
 
         {status === 'loading' || status === 'idle' ? (
           <div className={styles['dashboard-state']} role="status">
             <span className={styles['dashboard-state-mark']} aria-hidden="true" />
-            <p>프로젝트를 불러오고 있습니다.</p>
+            <p>폴더를 불러오고 있습니다.</p>
           </div>
         ) : status === 'error' ? (
           <div className={styles['dashboard-state']}>
-            <p>프로젝트 목록을 불러오지 못했습니다.</p>
+            <p>폴더 목록을 불러오지 못했습니다.</p>
             <button type="button" onClick={onRetry}>다시 불러오기</button>
           </div>
         ) : (
             <>
-              {/*프로젝트 정리 표*/}
-            {/*<section className={styles['project-metrics']} aria-label="프로젝트 요약">*/}
+              {/*폴더 정리 표*/}
+            {/*<section className={styles['project-metrics']} aria-label="폴더 요약">*/}
             {/*  {metrics.map(({ label, value, icon: Icon, tone }) => (*/}
             {/*    <article className={styles['metric-card']} key={label}>*/}
             {/*      <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">*/}

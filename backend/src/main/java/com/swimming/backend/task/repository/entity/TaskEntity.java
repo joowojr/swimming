@@ -43,6 +43,9 @@ public class TaskEntity extends BaseTimeEntity {
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
     private TaskEntity(
             Task task,
             User user,
@@ -55,6 +58,7 @@ public class TaskEntity extends BaseTimeEntity {
         this.title = task.getTitle();
         this.status = task.getStatus();
         this.orderIdx = task.getOrderIdx();
+        this.deleted = false;
     }
 
     public static TaskEntity from(
@@ -66,18 +70,16 @@ public class TaskEntity extends BaseTimeEntity {
         return new TaskEntity(task, user, project, sourceNote);
     }
 
-    public void apply(Task task) {
-        this.title = task.getTitle();
-        this.status = task.getStatus();
-        this.orderIdx = task.getOrderIdx();
+    public void updateTitle(String title) {
+        this.title = title;
     }
 
-    public void changeStatus(TaskStatus status) {
+    public void updateStatus(TaskStatus status) {
         this.status = status;
     }
 
-    public void changeOrder(int orderIdx) {
-        this.orderIdx = orderIdx;
+    public void delete() {
+        this.deleted = true;
     }
 
     public Task toDomain() {

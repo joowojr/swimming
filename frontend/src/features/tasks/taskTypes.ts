@@ -1,16 +1,16 @@
 export type TaskStatus = 'TODO' | 'DOING' | 'DONE' | 'HOLD'
+export type TaskListMode = 'all' | 'unclassified'
 
 export interface CreateTaskRequest {
   title: string
 }
 
-export interface UpdateTaskRequest {
+export interface UpdateTaskTitleRequest {
   title: string
-  status: TaskStatus
 }
 
-export interface ReorderTasksRequest {
-  taskIds: number[]
+export interface UpdateTaskStatusRequest {
+  status: TaskStatus
 }
 
 export interface DeleteTasksRequest {
@@ -19,10 +19,9 @@ export interface DeleteTasksRequest {
 
 export interface TaskResponse {
   id: number
-  projectId: number
+  projectId: number | null
   title: string
   status: TaskStatus
-  orderIdx: number
   createdAt: string
   updatedAt: string
 }
@@ -31,5 +30,4 @@ export interface TaskSummaryResponse {
   id: number
   title: string
   status: TaskStatus
-  orderIdx: number
 }

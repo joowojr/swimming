@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -59,23 +61,49 @@ public class ProjectService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public void validateOwnership(Long userId, Long projectId) {
-        getOwnedProjectEntity(userId, projectId);
+    public void validateOwnerships(Long userId, List<Long> projectIds) {
+        Set<Long> uniqueProjectIds = Set.copyOf(projectIds);
+        if (uniqueProjectIds.isEmpty()) {
+            return;
+        }
+        if (projectRepository.countOwnedActiveByIds(userId, uniqueProjectIds)
+                != uniqueProjectIds.size()) {
+            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Project update(Project project) {
-        ProjectEntity projectEntity = getOwnedProjectEntity(project.getUserId(), project.getId());
-        ProjectTagEntity tagEntity = getOwnedTagEntity(project.getUserId(), project.getTag());
-        projectEntity.apply(project, tagEntity);
-        return projectRepository.saveAndFlush(projectEntity).toDomain();
+    public Project update(
+            Long userId,
+            Long projectId,
+            Long tagId,
+            String name,
+            String description,
+            LocalDate targetDate,
+            ProjectStatus status
+    ) {
+        ProjectEntity entity = getOwnedProjectEntity(userId, projectId);
+        ProjectTagEntity tagEntity = tagId == null
+                ? null
+                : getOwnedTagEntity(userId, tagId);
+        Project project = entity.toDomain();
+        project.update(
+                name,
+                description,
+                targetDate,
+                status,
+                tagEntity == null ? null : tagEntity.toDomain()
+        );
+        entity.apply(project, tagEntity);
+        projectRepository.flush();
+        return entity.toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long projectId) {
-        Project project = getOwnedProjectEntity(userId, projectId).toDomain();
-        project.delete();
-        update(project);
+        ProjectEntity entity = getOwnedProjectEntity(userId, projectId);
+        entity.delete();
+        projectRepository.flush();
     }
 
     private ProjectEntity getOwnedProjectEntity(Long userId, Long projectId) {
@@ -88,6 +116,11 @@ public class ProjectService {
             return null;
         }
         return projectTagRepository.findByIdAndUserId(tag.getId(), userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+    }
+
+    private ProjectTagEntity getOwnedTagEntity(Long userId, Long tagId) {
+        return projectTagRepository.findByIdAndUserId(tagId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
     }
 }

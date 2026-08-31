@@ -11,6 +11,7 @@ import {deleteTasks} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
 import {deleteProject, getProject, updateProject} from './projectApi'
+import {useProjectStore} from '../../store/projectStore'
 import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
 import TaskList from './TaskList'
 import NoteCard from '../note/NoteCard'
@@ -70,6 +71,7 @@ function openSelectPicker(select: HTMLSelectElement | null | undefined) {
 
 export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailProps) {
   const navigate = useNavigate()
+  const applyProjectToStore = useProjectStore((state) => state.apply)
   const [requestKey, setRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     projectId === null ? { status: 'error', notFound: true } : { status: 'loading' },
@@ -152,12 +154,12 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     try {
       await deleteProject(project.id)
       onDeleted(project.id)
-      navigate('/projects', { replace: true })
+      navigate('/tasks', { replace: true })
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
         : undefined
-      setProjectDeleteError(apiMessage ?? '프로젝트를 삭제하지 못했습니다. 다시 시도해 주세요.')
+      setProjectDeleteError(apiMessage ?? '폴더를 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsDeletingProject(false)
     }
@@ -178,6 +180,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   }
 
   const applyUpdatedProject = (project: ProjectDetailData, updated: Awaited<ReturnType<typeof updateProject>>) => {
+    applyProjectToStore(updated)
     setState({
       status: 'ready',
       project: {
@@ -215,7 +218,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
     return apiError?.errors?.[field]
       ?? apiError?.message
-      ?? '프로젝트 정보를 저장하지 못했습니다.'
+      ?? '폴더 정보를 저장하지 못했습니다.'
   }
 
   const saveTargetDate = async (project: ProjectDetailData) => {
@@ -289,7 +292,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   if (state.status === 'loading') {
     return (
       <section className={styles.page} aria-busy="true" aria-labelledby="project-loading-title">
-        <p className="sr-only" id="project-loading-title" role="status">프로젝트 상세를 불러오고 있습니다.</p>
+        <p className="sr-only" id="project-loading-title" role="status">폴더 상세를 불러오고 있습니다.</p>
         <div className={styles['skeleton-breadcrumb']} aria-hidden="true" />
         <div className={styles['skeleton-heading']} aria-hidden="true" />
         <div className={styles['skeleton-copy']} aria-hidden="true" />
@@ -304,16 +307,16 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
       <section className={`${styles.page} ${styles['state-page']}`} aria-labelledby="project-error-title">
         <p className={styles.eyebrow}>Project detail</p>
         <h1 id="project-error-title">
-          {state.notFound ? '프로젝트를 찾을 수 없습니다.' : '프로젝트 상세를 불러오지 못했습니다.'}
+          {state.notFound ? '폴더를 찾을 수 없습니다.' : '폴더 상세를 불러오지 못했습니다.'}
         </h1>
         <p>
           {state.notFound
-            ? '프로젝트 주소를 확인하거나 프로젝트 목록으로 돌아가 주세요.'
+            ? '폴더 주소를 확인하거나 폴더 목록으로 돌아가 주세요.'
             : '연결 상태를 확인한 뒤 다시 불러와 주세요.'}
         </p>
         <div className={styles['state-actions']}>
           {!state.notFound && <button type="button" onClick={retry}>다시 불러오기</button>}
-          <Link to="/projects">프로젝트 목록</Link>
+          <Link to="/tasks">폴더 목록</Link>
         </div>
       </section>
     )
@@ -353,7 +356,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   return (
     <article className={styles.page} aria-labelledby="project-detail-title">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link to="/projects">프로젝트</Link>
+        <Link to="/tasks">폴더</Link>
         {project.tag && (
             <>
               <IconChevronRight size={14} aria-hidden="true" />
@@ -376,9 +379,9 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           <h1 id="project-detail-title">
             <InlineEditableText
               value={project.name}
-              ariaLabel="프로젝트 제목"
+              ariaLabel="폴더 제목"
               maxLength={255}
-              requiredMessage="프로젝트 이름을 입력해 주세요."
+              requiredMessage="폴더 이름을 입력해 주세요."
               disabled={isSavingProject}
               onSave={(value) => saveProjectTextField(project, 'name', value)}
               getErrorMessage={(error) => getProjectFieldError(error, 'name')}
@@ -389,9 +392,9 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           <p>
             <InlineEditableText
               value={project.description}
-              emptyText="프로젝트 설명이 아직 없습니다."
-              ariaLabel="프로젝트 설명"
-              requiredMessage="프로젝트 설명을 입력해 주세요."
+              emptyText="폴더 설명이 아직 없습니다."
+              ariaLabel="폴더 설명"
+              requiredMessage="폴더 설명을 입력해 주세요."
               disabled={isSavingProject}
               onSave={(value) => saveProjectTextField(project, 'description', value)}
               getErrorMessage={(error) => getProjectFieldError(error, 'description')}
@@ -402,7 +405,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
 
       <div className={styles['project-delete-actions']}>
         <DeleteIconButton
-          label="프로젝트 삭제"
+          label="폴더 삭제"
           active={isConfirmingProjectDelete}
           disabled={isDeletingProject}
           onClick={() => {
@@ -410,12 +413,12 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
             setProjectDeleteError(null)
           }}
         >
-          <span>{isConfirmingProjectDelete ? '취소' : '프로젝트 삭제'}</span>
+          <span>{isConfirmingProjectDelete ? '취소' : '폴더 삭제'}</span>
         </DeleteIconButton>
       </div>
       {isConfirmingProjectDelete && (
-        <section className={styles['project-delete-confirmation']} aria-label="프로젝트 삭제 확인">
-          <p>프로젝트를 삭제할까요? 연결된 할 일과 메모는 유지됩니다.</p>
+        <section className={styles['project-delete-confirmation']} aria-label="폴더 삭제 확인">
+          <p>폴더를 삭제할까요? 연결된 할 일과 메모는 유지됩니다.</p>
           <ActionButton variant="plain" onClick={() => setIsConfirmingProjectDelete(false)} disabled={isDeletingProject}>취소</ActionButton>
           <ActionButton isLoading={isDeletingProject} loadingLabel="삭제 중…" onClick={() => void removeProject(project)}>삭제</ActionButton>
         </section>
@@ -432,7 +435,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           <div
             className={styles['progress-track']}
             role="progressbar"
-            aria-label="프로젝트 진행률"
+            aria-label="폴더 진행률"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={completionPct}
@@ -453,7 +456,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
                   <input
                     type="date"
                     value={editValue}
-                    aria-label="프로젝트 목표일"
+                    aria-label="폴더 목표일"
                     aria-invalid={Boolean(editError)}
                     disabled={isSavingProject}
                     autoFocus
@@ -553,7 +556,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
       </section>
         </div>
 
-        <aside className={styles['detail-aside']} aria-label="프로젝트 메모">
+        <aside className={styles['detail-aside']} aria-label="폴더 메모">
           <NoteCard key={project.id} projects={[project]} projectId={project.id} />
         </aside>
       </div>

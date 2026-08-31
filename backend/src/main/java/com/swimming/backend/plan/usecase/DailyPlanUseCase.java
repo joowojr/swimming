@@ -8,7 +8,7 @@ import com.swimming.backend.plan.dto.DailyPlanItemResponse;
 import com.swimming.backend.plan.dto.DailyPlanItemType;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
-import com.swimming.backend.plan.repository.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.service.TaskService;
@@ -63,20 +63,22 @@ public class DailyPlanUseCase {
         int nextOrderIdx = dailyPlanService.getItems(userId, date).size();
         if (linksExistingTasks) {
             if (new HashSet<>(taskIds).size() != taskIds.size()
-                    || taskIds.stream().anyMatch(taskId -> dailyPlanService.containsTask(userId, date, taskId))) {
+                    || dailyPlanService.containsAnyTasks(userId, date, taskIds)) {
                 throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_TASKS);
             }
             if (taskService.getReferences(userId, taskIds).size() != new HashSet<>(taskIds).size()) {
                 throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
             }
+            List<DailyPlanItem> items = new ArrayList<>();
             for (Long taskId : taskIds) {
-                dailyPlanService.save(userId, date, DailyPlanItem.restore(null, taskId, nextOrderIdx++, null, null));
+                items.add(DailyPlanItem.restore(null, taskId, nextOrderIdx++, null, null));
             }
+            dailyPlanService.saveAll(userId, date, items);
         } else {
             Long projectId = request.projectId() == null
                     ? null
                     : projectService.getReference(userId, request.projectId()).id();
-            Long createdTaskId = taskService.createAndGetId(userId, projectId, title);
+            Long createdTaskId = taskService.create(userId, projectId, title).getId();
             dailyPlanService.save(userId, date, DailyPlanItem.restore(null, createdTaskId, nextOrderIdx, null, null));
         }
         return loadPlanResponse(userId, date);
@@ -118,7 +120,7 @@ public class DailyPlanUseCase {
         return new DailyPlanItemResponse(
                 row.id(),
                 row.taskId(),
-                row.projectId() == null ? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
+                (row.projectId() == null || row.projectIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
                 row.projectId(),
                 row.projectName(),
                 row.title(),

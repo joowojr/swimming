@@ -3,6 +3,7 @@ package com.swimming.backend.project.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.domain.ProjectTag;
+import com.swimming.backend.project.repository.ProjectRepository;
 import com.swimming.backend.project.repository.ProjectTagRepository;
 import com.swimming.backend.project.repository.entity.ProjectTagEntity;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.List;
 public class ProjectTagService {
 
     private final ProjectTagRepository projectTagRepository;
+    private final ProjectRepository projectRepository;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public ProjectTag create(ProjectTag projectTag) {
@@ -47,5 +49,35 @@ public class ProjectTagService {
                 .stream()
                 .map(ProjectTagEntity::toDomain)
                 .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public ProjectTag updateName(Long userId, Long tagId, String name) {
+        ProjectTagEntity entity = projectTagRepository.findByIdAndUserId(tagId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+        String normalizedName = name.trim();
+        if (projectTagRepository.existsByUserIdAndNameAndIdNot(
+                userId,
+                normalizedName,
+                tagId
+        )) {
+            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
+        }
+
+        try {
+            entity.updateName(normalizedName);
+            projectTagRepository.flush();
+            return entity.toDomain();
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS, exception);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Long userId, Long tagId) {
+        projectRepository.clearTagFromOwnedProjects(userId, tagId);
+        if (projectTagRepository.deleteOwnedTag(tagId, userId) != 1) {
+            throw new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND);
+        }
     }
 }

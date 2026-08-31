@@ -41,17 +41,10 @@ CREATE TABLE `tasks` (
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
-CREATE TABLE `daily_plans` (
+CREATE TABLE `daily_plan_items` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `user_id` bigint NOT NULL,
   `plan_date` date NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
-);
-
-CREATE TABLE `daily_plan_items` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `daily_plan_id` bigint NOT NULL,
   `task_id` bigint NOT NULL,
   `order_idx` int NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
@@ -91,15 +84,16 @@ CREATE TABLE `sessions` (
 CREATE TABLE `session_tasks` (
   `session_id` bigint NOT NULL,
   `task_id` bigint NOT NULL,
-  `order_idx` int NOT NULL,
-  PRIMARY KEY (`session_id`, `order_idx`),
-  UNIQUE (`session_id`, `task_id`)
+  `is_completed` boolean,
+  `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  PRIMARY KEY (`session_id`, `task_id`)
 );
 
 CREATE TABLE `notes` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `user_id` bigint NOT NULL,
-  `content` text NOT NULL,
+  `content` varchar(1024) NOT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
   `is_deleted` boolean NOT NULL DEFAULT false,
   `context_type` varchar(20) NOT NULL,
@@ -140,13 +134,12 @@ CREATE TABLE `places` (
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
-CREATE UNIQUE INDEX `daily_plans_index_0` ON `daily_plans` (`user_id`, `plan_date`);
-
 CREATE UNIQUE INDEX `project_tags_user_name_index` ON `project_tags` (`user_id`, `name`);
 
 CREATE INDEX `idx_projects_user_status_deleted_created_at` ON `projects` (`user_id`, `status`, `is_deleted`, `created_at`);
 
-CREATE UNIQUE INDEX `daily_plan_items_index_1` ON `daily_plan_items` (`daily_plan_id`, `task_id`);
+CREATE UNIQUE INDEX `daily_plan_items_user_date_task_index`
+  ON `daily_plan_items` (`user_id`, `plan_date`, `task_id`);
 
 CREATE INDEX `idx_tasks_user_id` ON `tasks` (`user_id`);
 
@@ -176,11 +169,11 @@ ALTER TABLE `tasks` ADD FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`);
 
 ALTER TABLE `tasks` ADD FOREIGN KEY (`source_note_id`) REFERENCES `notes` (`id`);
 
-ALTER TABLE `daily_plans` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+ALTER TABLE `daily_plan_items` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
-ALTER TABLE `daily_plan_items` ADD FOREIGN KEY (`daily_plan_id`) REFERENCES `daily_plans` (`id`) ON DELETE CASCADE;
-
-ALTER TABLE `daily_plan_items` ADD FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
+ALTER TABLE `daily_plan_items`
+  ADD CONSTRAINT `daily_plan_items_task_fk`
+  FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `group_rooms` ADD FOREIGN KEY (`place_id`) REFERENCES `places` (`id`);
 

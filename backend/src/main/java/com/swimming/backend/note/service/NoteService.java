@@ -147,19 +147,39 @@ public class NoteService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Note update(Note note) {
-        NoteEntity entity = getOwnedNoteEntity(
-                note.getUserId(),
-                note.getId()
-        );
+    public Note updateContent(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(note.getId(), note.getUserId())
+                .orElseThrow(this::noteNotFound);
+        entity.updateContent(note.getContent());
+        noteRepository.flush();
+        return toDomain(entity);
+    }
 
-        entity.update(
-                note.getContent(),
-                note.getStatus(),
-                note.isDeleted()
-        );
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void archive(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(note.getId(), note.getUserId())
+                .orElseThrow(this::noteNotFound);
+        entity.archive();
+        noteRepository.flush();
+    }
 
-        return toDomain(noteRepository.saveAndFlush(entity));
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void restore(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(note.getId(), note.getUserId())
+                .orElseThrow(this::noteNotFound);
+        entity.restore();
+        noteRepository.flush();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(
+                        note.getId(),
+                        note.getUserId()
+                )
+                .orElseThrow(this::noteNotFound);
+        entity.delete();
+        noteRepository.flush();
     }
 
     private NoteEntity getOwnedNoteEntity(

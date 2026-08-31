@@ -1,18 +1,23 @@
 import { useState } from 'react'
-import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
+import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
+import TaskMenu from '../../components/TaskMenu'
 import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import { updateTask } from '../tasks/taskApi'
+import { updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
 import styles from './TaskList.module.css'
 
+interface TaskListItem extends TaskSummaryResponse {
+  projectId?: number | null
+}
+
 interface TaskListProps {
-  tasks: TaskSummaryResponse[]
+  tasks: TaskListItem[]
   emptyTitle?: string
   emptyDescription?: string
   connected?: boolean
@@ -21,6 +26,7 @@ interface TaskListProps {
   isDeleting?: boolean
   onTaskSelectionChange?: (taskId: number) => void
   onTaskUpdated?: () => void
+  getMetaText?: (task: TaskListItem) => string
 }
 
 const MOCK_SESSION_COUNT = 3
@@ -43,22 +49,19 @@ export default function TaskList({
   isDeleting = false,
   onTaskSelectionChange,
   onTaskUpdated,
+  getMetaText,
 }: TaskListProps) {
   const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
-  const orderedTasks = [...tasks].sort((a, b) => a.orderIdx - b.orderIdx)
 
   const changeTaskStatus = async (task: TaskSummaryResponse, status: TaskStatus) => {
     setPendingTaskId(task.id)
     setUpdateError(null)
 
     try {
-      await updateTask(task.id, {
-        title: task.title,
-        status,
-      })
+      await updateTaskStatus(task.id, { status })
       onTaskUpdated?.()
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
@@ -95,10 +98,7 @@ export default function TaskList({
     setUpdateError(null)
 
     try {
-      await updateTask(task.id, {
-        title,
-        status: task.status,
-      })
+      await updateTaskTitle(task.id, { title })
       onTaskUpdated?.()
     } finally {
       setPendingTaskId(null)
@@ -114,7 +114,7 @@ export default function TaskList({
       ?? '할 일제목을 저장하지 못했습니다.'
   }
 
-  if (orderedTasks.length === 0) {
+  if (tasks.length === 0) {
     return (
       <div className={`${styles.empty} ${connected ? styles.connected : ''}`}>
         <span className={styles['empty-node']} aria-hidden="true" />
@@ -127,7 +127,7 @@ export default function TaskList({
   return (
     <>
       <ol className={`${styles.list} ${connected ? styles.connected : ''}`}>
-      {orderedTasks.map((task) => {
+      {tasks.map((task) => {
         const isPending = pendingTaskId === task.id
         const isSelected = selectedTaskIds.has(task.id)
 
@@ -178,39 +178,58 @@ export default function TaskList({
                     ))}
                   </select>
                 </div>
-                <p className={styles.meta}>{getTaskMeta(task.status, MOCK_SESSION_COUNT)}</p>
+                <p className={styles.meta}>
+                  {getMetaText?.(task) ?? getTaskMeta(task.status, MOCK_SESSION_COUNT)}
+                </p>
                 {updateError?.taskId === task.id && (
                     <p className={styles.error} role="alert">{updateError.message}</p>
                 )}
               </div>
-              <span
-                  className={`${styles['play-control']} ${isDeleteMode ? styles['delete-control'] : ''}`}
-              >
-              <button
-                  type="button"
-                  disabled={isPending || isDeleting}
-                  aria-pressed={isDeleteMode ? isSelected : undefined}
-                  aria-describedby={`task-${task.id}-action-tooltip`}
-                  onClick={() => {
-                    if (isDeleteMode) onTaskSelectionChange?.(task.id)
-                    else void startSession(task)
-                  }}
-              >
-                {isPending || (isDeleting && isSelected)
-                    ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true"/>
-                    : isDeleteMode
-                        ? isSelected
-                            ? <IconCheck size={16} stroke={2.2} aria-hidden="true"/>
-                            : <IconTrash size={16} stroke={2} aria-hidden="true"/>
-                        : <IconPlayerPlay size={16} stroke={2} aria-hidden="true"/>}
-                <span className="sr-only">
-                  {isDeleteMode ? (isSelected ? '삭제 선택 해제' : '삭제 선택') : '다이브 세션'}
+              {isDeleteMode ? (
+                <span className={`${styles['play-control']} ${styles['delete-control']}`}>
+                  <button
+                    type="button"
+                    disabled={isPending || isDeleting}
+                    aria-pressed={isSelected}
+                    aria-describedby={`task-${task.id}-action-tooltip`}
+                    onClick={() => onTaskSelectionChange?.(task.id)}
+                  >
+                    {isPending || (isDeleting && isSelected)
+                      ? <IconLoader2 className={styles.spinner} size={16} aria-hidden="true"/>
+                      : isSelected
+                        ? <IconCheck size={16} stroke={2.2} aria-hidden="true"/>
+                        : <IconTrash size={16} stroke={2} aria-hidden="true"/>}
+                    <span className="sr-only">
+                      {isSelected ? '삭제 선택 해제' : '삭제 선택'}
+                    </span>
+                  </button>
+                  <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
+                    {isSelected ? '선택 해제' : '삭제 선택'}
+                  </span>
                 </span>
-              </button>
-              <span className={styles.tooltip} id={`task-${task.id}-action-tooltip`} role="tooltip">
-                {isDeleteMode ? (isSelected ? '선택 해제' : '삭제 선택') : '다이브 세션'}
-              </span>
-            </span>
+              ) : (
+                <TaskMenu inline label={`${task.title} 카드 메뉴`}>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => void startSession(task)}
+                  >
+                    {isPending
+                      ? <IconLoader2 className={styles.spinner} size={15} aria-hidden="true"/>
+                      : <IconPlayerPlay size={15} aria-hidden="true"/>}
+                    다이브 세션
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    title="폴더 이동 · 준비 중"
+                    aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
+                  >
+                    <IconFolder size={15} aria-hidden="true"/>
+                    이동하기
+                  </button>
+                </TaskMenu>
+              )}
             </li>
         )
       })}

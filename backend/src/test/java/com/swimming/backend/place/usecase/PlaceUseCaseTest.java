@@ -69,7 +69,7 @@ class PlaceUseCaseTest {
     private Place place(Long id, Long cityId, String name, String backgroundAssetKey) {
         return Place.restore(
                 id,
-                cityId,
+                city(cityId, "City " + cityId, "CC"),
                 name,
                 BackgroundAssetType.VIDEO,
                 backgroundAssetKey,

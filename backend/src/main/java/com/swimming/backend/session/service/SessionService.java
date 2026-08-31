@@ -4,8 +4,10 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.session.repository.entity.SessionEntity;
 import com.swimming.backend.session.repository.SessionRepository;
+import com.swimming.backend.session.repository.SessionTaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -20,51 +22,89 @@ import java.util.List;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
+    private final SessionTaskRepository sessionTaskRepository;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Session getOwned(Long userId, Long sessionId) {
-        return sessionRepository.findByIdAndUserId(sessionId, userId)
-                .map(SessionEntity::toDomain)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
+        return getOwnedEntity(userId, sessionId).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public void validateOwnership(Long userId, Long sessionId) {
-        sessionRepository.findByIdAndUserId(sessionId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public Optional<Session> getActive(Long userId) {
-        return sessionRepository.findByUserIdAndStatus(
+    public List<SessionWithPlaceRow> getActiveRows(Long userId) {
+        return sessionRepository.findActiveRows(
                 userId,
                 SessionStatus.IN_PROGRESS
-        ).map(SessionEntity::toDomain);
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Session> getOwnedSessions(Long userId) {
-        return sessionRepository.findAllByUserIdOrderByStartedAtDesc(userId)
-                .stream()
-                .map(SessionEntity::toDomain)
-                .toList();
+    public List<SessionWithPlaceRow> getOwnedRows(Long userId, Long sessionId) {
+        List<SessionWithPlaceRow> rows = sessionRepository.findOwnedRows(userId, sessionId);
+        if (rows.isEmpty()) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+        return rows;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<SessionWithPlaceRow> getOwnedRows(Long userId) {
+        return sessionRepository.findListRows(userId);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Session save(Session session) {
-        if (session.getId() == null) {
-            try {
-                return sessionRepository.saveAndFlush(SessionEntity.from(session)).toDomain();
-            } catch (DataIntegrityViolationException exception) {
-                throw new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS, exception);
-            }
+    public Session create(Session session) {
+        try {
+            return sessionRepository.saveAndFlush(SessionEntity.from(session)).toDomain();
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS, exception);
         }
+    }
 
-        SessionEntity entity = sessionRepository
-                .findByIdAndUserId(session.getId(), session.getUserId())
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Session updateEnd(
+            Session session,
+            List<Long> completedTaskIds
+    ) {
+        SessionEntity entity = sessionRepository.findById(session.getId())
+                .filter(candidate -> candidate.getUserId().equals(session.getUserId()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
-        entity.apply(session);
-        return sessionRepository.saveAndFlush(entity).toDomain();
+        entity.end(session);
+        if (!completedTaskIds.isEmpty()
+                && sessionTaskRepository.completeAll(session.getId(), completedTaskIds)
+                != completedTaskIds.size()) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+        return session;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updateMusicUrl(Long userId, Long sessionId, String musicUrl) {
+        SessionEntity entity = getOwnedEntity(userId, sessionId);
+        validateInProgress(entity);
+        entity.updateMusicUrl(musicUrl);
+        sessionRepository.flush();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updatePlannedDuration(Long userId, Long sessionId, int plannedDurationSec) {
+        SessionEntity entity = getOwnedEntity(userId, sessionId);
+        validateInProgress(entity);
+        if (plannedDurationSec < 60 || plannedDurationSec > 86400) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
+        }
+        entity.updatePlannedDuration(plannedDurationSec);
+        sessionRepository.flush();
+    }
+
+    private void validateInProgress(SessionEntity entity) {
+        if (entity.getStatus() != SessionStatus.IN_PROGRESS) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+    }
+
+    private SessionEntity getOwnedEntity(Long userId, Long sessionId) {
+        return sessionRepository.findByIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
     }
 
 }

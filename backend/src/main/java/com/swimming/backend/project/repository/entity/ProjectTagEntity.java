@@ -44,6 +44,10 @@ public class ProjectTagEntity extends BaseTimeEntity {
         return new ProjectTagEntity(projectTag.getUserId(), projectTag.getName());
     }
 
+    public void updateName(String name) {
+        this.name = name;
+    }
+
     public ProjectTag toDomain() {
         return ProjectTag.restore(id, userId, name, getCreatedAt(), getUpdatedAt());
     }

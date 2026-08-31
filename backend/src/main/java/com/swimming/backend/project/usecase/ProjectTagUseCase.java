@@ -1,5 +1,7 @@
 package com.swimming.backend.project.usecase;
 
+import com.swimming.backend.project.domain.ProjectTag;
+import com.swimming.backend.project.dto.ProjectTagNameRequest;
 import com.swimming.backend.project.dto.ProjectTagResponse;
 import com.swimming.backend.project.service.ProjectTagService;
 import lombok.RequiredArgsConstructor;
@@ -18,5 +20,27 @@ public class ProjectTagUseCase {
                 .stream()
                 .map(ProjectTagResponse::from)
                 .toList();
+    }
+
+    public ProjectTagResponse create(Long userId, ProjectTagNameRequest request) {
+        return ProjectTagResponse.from(
+                projectTagService.create(ProjectTag.create(userId, request.name()))
+        );
+    }
+
+    public ProjectTagResponse updateName(
+            Long userId,
+            Long tagId,
+            ProjectTagNameRequest request
+    ) {
+        return ProjectTagResponse.from(projectTagService.updateName(
+                userId,
+                tagId,
+                request.name()
+        ));
+    }
+
+    public void delete(Long userId, Long tagId) {
+        projectTagService.delete(userId, tagId);
     }
 }

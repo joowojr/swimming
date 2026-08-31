@@ -1,4 +1,4 @@
-package com.swimming.backend.plan.repository.projection;
+package com.swimming.backend.plan.dto.projection;
 
 import com.swimming.backend.task.domain.TaskStatus;
 
@@ -10,7 +10,9 @@ public record DailyPlanItemQueryRow(
         Long taskId,
         Long projectId,
         String projectName,
+        Boolean projectIsDeleted,
         String title,
         TaskStatus status,
         int orderIdx
-) {}
+) {
+}

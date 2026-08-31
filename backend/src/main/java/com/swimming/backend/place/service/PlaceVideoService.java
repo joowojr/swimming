@@ -1,20 +1,9 @@
 package com.swimming.backend.place.service;
 
-import com.swimming.backend.common.exception.BusinessException;
-import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.place.config.PlaceBackgroundProperties;
-import com.swimming.backend.place.domain.City;
-import com.swimming.backend.place.domain.Place;
-import com.swimming.backend.place.dto.PlaceReference;
-import com.swimming.backend.place.repository.CityRepository;
-import com.swimming.backend.place.repository.PlaceRepository;
-import com.swimming.backend.place.repository.entity.CityEntity;
-import com.swimming.backend.place.repository.entity.PlaceEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -28,27 +17,9 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 public class PlaceVideoService {
 
-    private final CityRepository cityRepository;
-    private final PlaceRepository placeRepository;
     private final PlaceBackgroundProperties placeBackgroundProperties;
 
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public PlaceReference getReference(Long placeId) {
-        Place place = placeRepository.findById(placeId)
-                .map(PlaceEntity::toDomain)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
-        City city = cityRepository.findById(place.getCityId())
-                .map(CityEntity::toDomain)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
-
-        return PlaceReference.from(
-                place,
-                city,
-                resolveBackgroundUrl(place.getBackgroundAssetKey())
-        );
-    }
-
-    private String resolveBackgroundUrl(String backgroundAssetKey) {
+    public String resolveBackgroundUrl(String backgroundAssetKey) {
         if (backgroundAssetKey == null || backgroundAssetKey.isBlank()) {
             log.warn("[SWIMMING_PLACE] 배경 에셋 키가 비어 있어 배경 URL을 만들지 않습니다");
             return null;

@@ -38,8 +38,7 @@ public class NoteEntity extends BaseTimeEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1024)
     private String content;
 
     @Enumerated(EnumType.STRING)
@@ -78,14 +77,20 @@ public class NoteEntity extends BaseTimeEntity {
         this.contextType = contextType;
     }
 
-    public void update(
-            String content,
-            NoteStatus status,
-            boolean deleted
-    ) {
+    public void updateContent(String content) {
         this.content = content;
-        this.status = status;
-        this.deleted = deleted;
+    }
+
+    public void archive() {
+        this.status = NoteStatus.ARCHIVED;
+    }
+
+    public void restore() {
+        this.status = NoteStatus.ACTIVE;
+    }
+
+    public void delete() {
+        this.deleted = true;
     }
 
 }

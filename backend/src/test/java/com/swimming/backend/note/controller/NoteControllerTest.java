@@ -41,6 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class NoteControllerTest {
 
+    private static final int NOTE_CONTENT_MAX_LENGTH = 1024;
+
     private NoteUseCase noteUseCase;
     private MockMvc mockMvc;
 
@@ -94,6 +96,48 @@ class NoteControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.errors.content").exists());
+    }
+
+    @Test
+    @DisplayName("Note 생성 시 내용은 1024자까지 허용한다")
+    void acceptsMaxLengthNoteContentOnCreate() throws Exception {
+        String content = "가".repeat(NOTE_CONTENT_MAX_LENGTH);
+        NoteCreateRequest request = new NoteCreateRequest(
+                content,
+                NoteContextType.DEFAULT,
+                null,
+                null
+        );
+        when(noteUseCase.create(1L, request)).thenReturn(new NoteCreateResponse(7L));
+
+        mockMvc.perform(post("/api/notes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content":"%s",
+                                  "contextType":"DEFAULT"
+                                }
+                                """.formatted(content)))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    @DisplayName("Note 생성 시 내용이 1024자를 초과하면 필드 오류를 반환한다")
+    void rejectsTooLongNoteContentOnCreate() throws Exception {
+        String content = "가".repeat(NOTE_CONTENT_MAX_LENGTH + 1);
+
+        mockMvc.perform(post("/api/notes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content":"%s",
+                                  "contextType":"DEFAULT"
+                                }
+                                """.formatted(content)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errors.content")
+                        .value("노트 내용은 1024자 이하여야 합니다"));
     }
 
     @Test
@@ -153,6 +197,38 @@ class NoteControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("수정한 메모"));
+    }
+
+    @Test
+    @DisplayName("Note 수정 시 내용은 1024자까지 허용한다")
+    void acceptsMaxLengthNoteContentOnUpdate() throws Exception {
+        String content = "가".repeat(NOTE_CONTENT_MAX_LENGTH);
+        NoteUpdateRequest request = new NoteUpdateRequest(content);
+        when(noteUseCase.update(1L, 1L, request))
+                .thenReturn(response(1L, content, NoteContextType.DEFAULT, null, null));
+
+        mockMvc.perform(patch("/api/notes/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"content":"%s"}
+                                """.formatted(content)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Note 수정 시 내용이 1024자를 초과하면 필드 오류를 반환한다")
+    void rejectsTooLongNoteContentOnUpdate() throws Exception {
+        String content = "가".repeat(NOTE_CONTENT_MAX_LENGTH + 1);
+
+        mockMvc.perform(patch("/api/notes/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"content":"%s"}
+                                """.formatted(content)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errors.content")
+                        .value("노트 내용은 1024자 이하여야 합니다"));
     }
 
     @Test

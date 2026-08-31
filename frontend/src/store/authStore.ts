@@ -9,6 +9,10 @@ import type {
   AuthUser,
 } from '../features/auth/authTypes'
 import { AUTH_SESSION_EXPIRED_EVENT } from '../api/client'
+import {
+  clearRecentMusicHistory,
+  readRecentMusicHistory,
+} from '../features/sessions/music/recentMusicHistory'
 
 interface AuthSnapshot {
   status: AuthStatus
@@ -54,6 +58,8 @@ function readStoredUser(): AuthUser | null {
 }
 
 function clearAuthentication() {
+  const storedUser = snapshot.user ?? readStoredUser()
+  clearRecentMusicHistory(storedUser?.id ?? null)
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(AUTH_USER_KEY)
   emit({ status: 'unauthenticated', user: null })
@@ -77,6 +83,8 @@ async function initialize() {
       clearAuthentication()
       return
     }
+
+    readRecentMusicHistory(storedUser.id)
 
     try {
       const response = await refreshAuthentication()

@@ -57,17 +57,17 @@ class NoteUseCaseTest {
     }
 
     @Test
-    @DisplayName("소유한 프로젝트에 Note를 생성한다")
+    @DisplayName("소유한 폴더에 Note를 생성한다")
     void createsProjectNoteAfterOwnershipCheck() {
-        Note saved = note(2L, "프로젝트 메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null);
+        Note saved = note(2L, "폴더 메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null);
         when(noteService.create(any(Note.class))).thenReturn(saved);
 
         NoteCreateResponse response = noteUseCase.create(
                 1L,
-                new NoteCreateRequest("프로젝트 메모", NoteContextType.PROJECT, 10L, null)
+                new NoteCreateRequest("폴더 메모", NoteContextType.PROJECT, 10L, null)
         );
 
-        verify(projectService).validateOwnership(1L, 10L);
+        verify(projectService).getReference(1L, 10L);
         assertThat(response.id()).isEqualTo(2L);
     }
 
@@ -82,7 +82,7 @@ class NoteUseCaseTest {
                 new NoteCreateRequest("세션 메모", NoteContextType.SESSION, null, 20L)
         );
 
-        verify(sessionService).validateOwnership(1L, 20L);
+        verify(sessionService).getOwned(1L, 20L);
     }
 
     @Test
@@ -102,7 +102,7 @@ class NoteUseCaseTest {
     }
 
     @Test
-    @DisplayName("프로젝트 소유권을 확인한 뒤 프로젝트 Note를 조회한다")
+    @DisplayName("폴더 소유권을 확인한 뒤 폴더 Note를 조회한다")
     void returnsProjectNotesAfterOwnershipCheck() {
         when(noteService.getByProject(1L, 10L, NoteStatus.ACTIVE)).thenReturn(List.of(
                 note(1L, "메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null)
@@ -116,7 +116,7 @@ class NoteUseCaseTest {
                 null
         );
 
-        verify(projectService).validateOwnership(1L, 10L);
+        verify(projectService).getReference(1L, 10L);
         assertThat(responses).extracting(NoteResponse::id).containsExactly(1L);
     }
 
@@ -140,7 +140,7 @@ class NoteUseCaseTest {
     void updatesNoteContent() {
         Note note = note(1L, "기존", NoteStatus.ACTIVE, NoteContextType.DEFAULT, null, null);
         when(noteService.getOne(1L, 1L, NoteStatus.ACTIVE)).thenReturn(note);
-        when(noteService.update(note)).thenReturn(note);
+        when(noteService.updateContent(note)).thenReturn(note);
 
         NoteResponse response = noteUseCase.update(
                 1L,
@@ -149,7 +149,7 @@ class NoteUseCaseTest {
         );
 
         assertThat(response.content()).isEqualTo("수정");
-        verify(noteService).update(note);
+        verify(noteService).updateContent(note);
     }
 
     @Test
@@ -161,7 +161,7 @@ class NoteUseCaseTest {
         noteUseCase.archive(1L, 1L);
 
         assertThat(note.getStatus()).isEqualTo(NoteStatus.ARCHIVED);
-        verify(noteService).update(note);
+        verify(noteService).archive(note);
     }
 
     @Test
@@ -173,7 +173,7 @@ class NoteUseCaseTest {
         noteUseCase.restore(1L, 1L);
 
         assertThat(note.getStatus()).isEqualTo(NoteStatus.ACTIVE);
-        verify(noteService).update(note);
+        verify(noteService).restore(note);
     }
 
     @Test
@@ -185,7 +185,7 @@ class NoteUseCaseTest {
         noteUseCase.delete(1L, 1L);
 
         assertThat(note.isDeleted()).isTrue();
-        verify(noteService).update(note);
+        verify(noteService).delete(note);
     }
 
     private Note note(

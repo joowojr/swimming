@@ -5,9 +5,10 @@ import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
-import com.swimming.backend.task.dto.in.ReorderTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.UpdateTaskRequest;
+import com.swimming.backend.task.dto.in.TaskListMode;
+import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,23 +35,41 @@ public class TaskUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<TaskResponse> getAll(Long userId, Long projectId) {
+    public List<TaskResponse> getByProject(Long userId, Long projectId) {
         ProjectReference project = projectService.getReference(userId, projectId);
-        return taskService.getAll(project.id())
+        return taskService.getByProject(project.id())
                 .stream()
                 .map(TaskResponse::from)
                 .toList();
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskResponse> getList(Long userId, TaskListMode mode) {
+        List<Task> tasks = switch (mode) {
+            case ALL -> taskService.getAll(userId);
+            case UNCLASSIFIED -> taskService.getUnclassified(userId);
+        };
+        return tasks.stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+
     @Transactional(propagation = Propagation.REQUIRED)
-    public TaskResponse update(
+    public TaskResponse updateTitle(
             Long userId,
             Long taskId,
-            UpdateTaskRequest request
+            UpdateTaskTitleRequest request
     ) {
-        Task task = taskService.getOne(userId, taskId);
-        task.update(request.title(), request.status());
-        return TaskResponse.from(taskService.update(userId, task));
+        return TaskResponse.from(taskService.updateTitle(userId, taskId, request.title()));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse updateStatus(
+            Long userId,
+            Long taskId,
+            UpdateTaskStatusRequest request
+    ) {
+        return TaskResponse.from(taskService.updateStatus(userId, taskId, request.status()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -59,13 +78,4 @@ public class TaskUseCase {
         taskService.deleteAll(userId, taskIds);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void reorder(
-            Long userId,
-            Long projectId,
-            ReorderTasksRequest request
-    ) {
-        ProjectReference project = projectService.getReference(userId, projectId);
-        taskService.updateOrder(project.id(), request.taskIds());
-    }
 }

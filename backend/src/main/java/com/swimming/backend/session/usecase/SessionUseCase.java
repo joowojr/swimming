@@ -2,11 +2,12 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.common.util.UrlUtils;
 import com.swimming.backend.plan.service.DailyPlanService;
-import com.swimming.backend.place.dto.PlaceReference;
+import com.swimming.backend.place.domain.Place;
+import com.swimming.backend.place.service.PlaceService;
 import com.swimming.backend.place.service.PlaceVideoService;
 import com.swimming.backend.session.domain.Session;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.session.dto.web.SessionTaskResponse;
 import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
@@ -15,6 +16,7 @@ import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
 import com.swimming.backend.session.service.SessionService;
+import com.swimming.backend.session.validator.SessionMusicUrlValidator;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
@@ -24,17 +26,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,14 +43,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SessionUseCase {
 
-    private static final String YOUTUBE_DOMAIN = "youtube.com";
-    private static final String YOUTUBE_SHORT_DOMAIN = "youtu.be";
-    private static final String YOUTUBE_NO_COOKIE_DOMAIN = "youtube-nocookie.com";
-
     private final SessionService sessionService;
     private final DailyPlanService dailyPlanService;
     private final UserService userService;
     private final TaskService taskService;
+    private final PlaceService placeService;
     private final PlaceVideoService placeVideoService;
     private final Clock clock;
 
@@ -69,18 +67,18 @@ public class SessionUseCase {
         if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
             throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
         }
-        PlaceReference place = placeVideoService.getReference(request.placeId());
+        Place place = placeService.getOne(request.placeId());
 
         taskService.updateStatuses(userId, taskIds.stream()
                 .collect(Collectors.toMap(Function.identity(), taskId -> TaskStatus.DOING)));
 
-        Session session = Session.startPersonal(
+        Session session = Session.createPersonal(
                 userId,
-                place.id(),
+                place.getId(),
                 taskIds,
                 request.plannedDurationSec()
         );
-        return SessionResponse.from(sessionService.save(session), place);
+        return SessionResponse.from(sessionService.create(session), place);
     }
 
     @Transactional(
@@ -88,15 +86,48 @@ public class SessionUseCase {
             readOnly = true
     )
     public Optional<SessionDetailResponse> getActive(Long userId) {
-        return sessionService.getActive(userId)
-                .map(session -> toDetailResponse(userId, session));
+        List<SessionWithPlaceRow> rows = sessionService.getActiveRows(userId);
+        return rows.isEmpty()
+                ? Optional.empty()
+                : Optional.of(toDetailResponse(userId, rows));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<SessionDetailResponse> getAll(Long userId) {
-        return sessionService.getOwnedSessions(userId)
+        List<SessionWithPlaceRow> rows = sessionService.getOwnedRows(userId);
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> taskIds = rows.stream()
+                .map(SessionWithPlaceRow::taskId)
+                .collect(Collectors.toCollection(LinkedHashSet::new))
                 .stream()
-                .map(session -> toDetailResponse(userId, session))
+                .toList();
+        Map<Long, TaskReference> tasksById = taskIds.isEmpty()
+                ? Map.of()
+                : taskService.getReferences(userId, taskIds).stream()
+                .collect(Collectors.toMap(TaskReference::id, Function.identity()));
+
+        if (tasksById.size() != taskIds.size()) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+
+        return rows.stream()
+                .collect(Collectors.groupingBy(
+                        SessionWithPlaceRow::sessionId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values()
+                .stream()
+                .map(sessionRows -> SessionDetailResponse.from(
+                        sessionRows.getFirst(),
+                        placeVideoService.resolveBackgroundUrl(
+                                sessionRows.getFirst().backgroundAssetKey()
+                        ),
+                        getTasks(sessionRows, tasksById)
+                ))
                 .toList();
     }
 
@@ -105,25 +136,32 @@ public class SessionUseCase {
             readOnly = true
     )
     public SessionDetailResponse get(Long userId, Long sessionId) {
-        return toDetailResponse(userId, sessionService.getOwned(userId, sessionId));
+        return toDetailResponse(
+                userId,
+                sessionService.getOwnedRows(userId, sessionId)
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public SessionResponse end(Long userId, Long sessionId, EndSessionRequest request) {
+        Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(request);
+        List<Long> completedTaskIds = completionByTaskId.entrySet().stream()
+                .filter(entry -> Boolean.TRUE.equals(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
         Session session = sessionService.getOwned(userId, sessionId);
-        Map<Long, Boolean> completionByTaskId = toCompletionByTaskId(session, request);
-
+        Instant currentTime = clock.instant();
         Instant endTime = request != null && request.usePlannedDuration()
                 ? session.getStartedAt().plusSeconds(session.getPlannedDurationSec())
-                : clock.instant();
-        session.end(endTime, toSummary(request));
+                : currentTime;
+        session.end(endTime, toSummary(request), completedTaskIds);
+        Session savedSession = sessionService.updateEnd(session, completedTaskIds);
 
         if (!completionByTaskId.isEmpty()) {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));
         }
 
-        Session savedSession = sessionService.save(session);
-        PlaceReference place = placeVideoService.getReference(savedSession.getPlaceId());
+        Place place = placeService.getOne(savedSession.getPlaceId());
         return SessionResponse.from(savedSession, place);
     }
 
@@ -134,7 +172,7 @@ public class SessionUseCase {
         return request.summary();
     }
 
-    private Map<Long, Boolean> toCompletionByTaskId(Session session, EndSessionRequest request) {
+    private Map<Long, Boolean> toCompletionByTaskId(EndSessionRequest request) {
         if (request == null || request.taskResults() == null) {
             return Map.of();
         }
@@ -146,10 +184,6 @@ public class SessionUseCase {
             }
         }
 
-        Set<Long> sessionTaskIds = new HashSet<>(session.getTaskIds());
-        if (!sessionTaskIds.containsAll(completionByTaskId.keySet())) {
-            throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
-        }
         return completionByTaskId;
     }
 
@@ -167,13 +201,8 @@ public class SessionUseCase {
             Long sessionId,
             UpdateSessionMusicUrlRequest request
     ) {
-        if (!isValidMusicUrl(request.musicUrl())) {
-            throw new BusinessException(ErrorCode.INVALID_MUSIC_URL);
-        }
-
-        Session session = sessionService.getOwned(userId, sessionId);
-        session.updateMusicUrl(request.musicUrl());
-        sessionService.save(session);
+        SessionMusicUrlValidator.validate(request.musicUrl());
+        sessionService.updateMusicUrl(userId, sessionId, request.musicUrl());
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -182,69 +211,55 @@ public class SessionUseCase {
             Long sessionId,
             UpdateSessionPlannedDurationRequest request
     ) {
-        Session session = sessionService.getOwned(userId, sessionId);
-        session.updatePlannedDuration(request.plannedDurationSec());
-        sessionService.save(session);
+        sessionService.updatePlannedDuration(
+                userId,
+                sessionId,
+                request.plannedDurationSec()
+        );
     }
 
-    private SessionDetailResponse toDetailResponse(Long userId, Session session) {
-        PlaceReference place = placeVideoService.getReference(session.getPlaceId());
-        return SessionDetailResponse.from(session, place, getTasks(userId, session));
+    private SessionDetailResponse toDetailResponse(
+            Long userId,
+            List<SessionWithPlaceRow> rows
+    ) {
+        SessionWithPlaceRow first = rows.getFirst();
+        return SessionDetailResponse.from(
+                first,
+                placeVideoService.resolveBackgroundUrl(first.backgroundAssetKey()),
+                getTasks(userId, rows)
+        );
     }
 
-    private List<SessionTaskResponse> getTasks(Long userId, Session session) {
+    private List<SessionTaskResponse> getTasks(
+            Long userId,
+            List<SessionWithPlaceRow> rows
+    ) {
+        List<Long> taskIds = rows.stream()
+                .map(SessionWithPlaceRow::taskId)
+                .toList();
         Map<Long, TaskReference> tasksById = taskService
-                .getReferences(userId, session.getTaskIds())
+                .getReferences(userId, taskIds)
                 .stream()
                 .collect(Collectors.toMap(TaskReference::id, Function.identity()));
 
-        if (tasksById.size() != session.getTaskIds().size()) {
+        if (tasksById.size() != taskIds.size()) {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
-        return session.getTaskIds()
+        return getTasks(rows, tasksById);
+    }
+
+    private List<SessionTaskResponse> getTasks(
+            List<SessionWithPlaceRow> rows,
+            Map<Long, TaskReference> tasksById
+    ) {
+        return rows
                 .stream()
-                .map(tasksById::get)
-                .map(SessionTaskResponse::from)
+                .map(row -> SessionTaskResponse.from(
+                        tasksById.get(row.taskId()),
+                        row.taskCompleted()
+                ))
                 .toList();
     }
 
-    private boolean isValidMusicUrl(String musicUrl) {
-        if (musicUrl == null) {
-            return true;
-        }
-        if (musicUrl.isBlank()) {
-            return false;
-        }
-
-        return UrlUtils.parseHttpUrl(musicUrl)
-                .map(this::isYouTubeVideoOrPlaylistUrl)
-                .orElse(false);
-    }
-
-    private boolean isYouTubeVideoOrPlaylistUrl(URI uri) {
-        String path = uri.getPath();
-        if (UrlUtils.hasHostOrSubdomain(uri, YOUTUBE_SHORT_DOMAIN)) {
-            return path != null && path.length() > 1;
-        }
-
-        boolean youtubeHost = UrlUtils.hasHostOrSubdomain(uri, YOUTUBE_DOMAIN);
-        boolean youtubeNoCookieHost = UrlUtils.hasHostOrSubdomain(
-                uri,
-                YOUTUBE_NO_COOKIE_DOMAIN
-        );
-        if (!youtubeHost && !youtubeNoCookieHost) {
-            return false;
-        }
-
-        if (path != null && (path.startsWith("/embed/") || path.startsWith("/shorts/"))) {
-            return path.length() > path.indexOf('/', 1) + 1;
-        }
-        if (!youtubeHost || path == null) {
-            return false;
-        }
-        return (path.equals("/watch") && UrlUtils.hasNonEmptyQueryParameter(uri, "v"))
-                || (path.equals("/playlist")
-                && UrlUtils.hasNonEmptyQueryParameter(uri, "list"));
-    }
 }

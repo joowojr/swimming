@@ -17,7 +17,7 @@ function formatTargetDate(targetDate: string) {
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
-  // 톤은 화면마다 같아야 하므로 목록 순서가 아닌 프로젝트 id로 고른다.
+  // 톤은 화면마다 같아야 하므로 목록 순서가 아닌 폴더 id로 고른다.
   const routeTone = [
     styles['is-clay'],
     styles['is-sky'],
@@ -28,7 +28,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       className={`${styles.card} ${routeTone}`}
-      to={`/projects/${project.id}`}
+      to={`/tasks/folders/${project.id}`}
       aria-label={`${project.name} 상세 보기`}
     >
       <span className={styles.route} aria-hidden="true" />
@@ -48,7 +48,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         )}
       </div>
       <p className={styles.description}>
-        {project.description || '프로젝트 설명이 아직 없습니다.'}
+        {project.description || '폴더 설명이 아직 없습니다.'}
       </p>
       <div className={styles.footer}>
         <span>목표일</span>

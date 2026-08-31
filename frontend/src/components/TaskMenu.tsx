@@ -9,9 +9,9 @@ import {
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { IconDots } from '@tabler/icons-react'
-import styles from './DailyPlanBoard.module.css'
+import styles from './TaskMenu.module.css'
 
-interface DailyPlanCardMenuProps {
+interface TaskMenuProps {
   label: string
   children: ReactNode
   inline?: boolean
@@ -26,11 +26,11 @@ interface MenuPosition {
 const MENU_GAP_PX = 4
 const VIEWPORT_PADDING_PX = 8
 
-export default function DailyPlanCardMenu({
+export default function TaskMenu({
   label,
   children,
   inline = false,
-}: DailyPlanCardMenuProps) {
+}: TaskMenuProps) {
   const menuId = useId()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)

@@ -18,7 +18,7 @@ class SessionTest {
     @Test
     @DisplayName("개인 세션을 진행 상태로 생성한다")
     void startsPersonalSession() {
-        Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
+        Session session = Session.createPersonal(1L, 20L, List.of(10L, 11L), 1500);
 
         assertThat(session.getId()).isNull();
         assertThat(session.getUserId()).isEqualTo(1L);
@@ -36,7 +36,7 @@ class SessionTest {
     @DisplayName("생성 시 전달한 Task 목록을 외부에서 변경할 수 없다")
     void protectsTaskIds() {
         List<Long> taskIds = new java.util.ArrayList<>(List.of(10L, 11L));
-        Session session = Session.startPersonal(1L, 20L, taskIds, 1500);
+        Session session = Session.createPersonal(1L, 20L, taskIds, 1500);
 
         taskIds.add(12L);
 
@@ -46,16 +46,16 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("계획 시간 전에 종료해도 실제 시간과 종료 상태를 기록한다")
+    @DisplayName("계획 시간 전에 종료하면 실제 시간과 중단 상태를 기록한다")
     void endsBeforePlannedDuration() {
         Session session = startedSession();
         Instant endedAt = STARTED_AT.plusSeconds(600);
 
-        session.end(endedAt, null);
+        session.end(endedAt, null, List.of());
 
         assertThat(session.getActualDurationSec()).isEqualTo(600);
         assertThat(session.getEndedAt()).isEqualTo(endedAt);
-        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
     }
 
     @Test
@@ -63,7 +63,7 @@ class SessionTest {
     void endsAfterPlannedDuration() {
         Session session = startedSession();
 
-        session.end(STARTED_AT.plusSeconds(1560), null);
+        session.end(STARTED_AT.plusSeconds(1560), null, List.of());
 
         assertThat(session.getActualDurationSec()).isEqualTo(1560);
         assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
@@ -74,20 +74,20 @@ class SessionTest {
     void clampsEndTimeBeforeStart() {
         Session session = startedSession();
 
-        session.end(STARTED_AT.minusSeconds(1), null);
+        session.end(STARTED_AT.minusSeconds(1), null, List.of());
 
         assertThat(session.getActualDurationSec()).isZero();
         assertThat(session.getEndedAt()).isEqualTo(STARTED_AT);
-        assertThat(session.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
     }
 
     @Test
     @DisplayName("이미 종료한 세션은 다시 종료할 수 없다")
     void rejectsRepeatedEnd() {
         Session session = startedSession();
-        session.end(STARTED_AT.plusSeconds(600), null);
+        session.end(STARTED_AT.plusSeconds(600), null, List.of());
 
-        assertThatThrownBy(() -> session.end(STARTED_AT.plusSeconds(700), null))
+        assertThatThrownBy(() -> session.end(STARTED_AT.plusSeconds(700), null, List.of()))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.SESSION_ALREADY_ENDED));
@@ -105,10 +105,28 @@ class SessionTest {
     }
 
     @Test
+    @DisplayName("음악 URL 삭제는 세션의 다른 데이터를 유지한다")
+    void clearsOnlyMusicUrl() {
+        Session session = startedSession();
+        session.updateMusicUrl("https://youtu.be/example");
+
+        session.updateMusicUrl(null);
+
+        assertThat(session.getMusicUrl()).isNull();
+        assertThat(session.getId()).isEqualTo(5L);
+        assertThat(session.getUserId()).isEqualTo(1L);
+        assertThat(session.getPlaceId()).isEqualTo(20L);
+        assertThat(session.getTaskIds()).containsExactly(10L, 11L);
+        assertThat(session.getPlannedDurationSec()).isEqualTo(1500);
+        assertThat(session.getStartedAt()).isEqualTo(STARTED_AT);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.IN_PROGRESS);
+    }
+
+    @Test
     @DisplayName("종료한 세션의 음악 URL은 변경할 수 없다")
     void rejectsMusicUpdateAfterEnd() {
         Session session = startedSession();
-        session.end(STARTED_AT.plusSeconds(600), null);
+        session.end(STARTED_AT.plusSeconds(600), null, List.of());
 
         assertThatThrownBy(() -> session.updateMusicUrl("https://youtu.be/example"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -141,7 +159,7 @@ class SessionTest {
     @DisplayName("종료한 세션의 계획 시간은 변경할 수 없다")
     void rejectsPlannedDurationUpdateAfterEnd() {
         Session session = startedSession();
-        session.end(STARTED_AT.plusSeconds(600), null);
+        session.end(STARTED_AT.plusSeconds(600), null, List.of());
 
         assertThatThrownBy(() -> session.updatePlannedDuration(1800))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

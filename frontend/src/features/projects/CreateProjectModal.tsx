@@ -23,13 +23,13 @@ type FieldErrors = Partial<Record<ProjectFormField, string>>
 type TouchedFields = Partial<Record<ProjectFormField, boolean>>
 
 function validateName(value: string) {
-  if (!value.trim()) return '프로젝트 이름을 입력해 주세요.'
-  if (value.trim().length > 255) return '프로젝트 이름은 255자 이하로 입력해 주세요.'
+  if (!value.trim()) return '폴더 이름을 입력해 주세요.'
+  if (value.trim().length > 255) return '폴더 이름은 255자 이하로 입력해 주세요.'
   return undefined
 }
 
 function validateDescription(value: string) {
-  if (!value.trim()) return '프로젝트 설명을 입력해 주세요.'
+  if (!value.trim()) return '폴더 설명을 입력해 주세요.'
   return undefined
 }
 
@@ -172,7 +172,7 @@ export default function CreateProjectModal({
         setSubmitError(
           isApiError(error) && error.message
             ? error.message
-            : '프로젝트를 만들지 못했습니다. 입력 내용을 확인한 뒤 다시 시도해 주세요.',
+            : '폴더를 만들지 못했습니다. 입력 내용을 확인한 뒤 다시 시도해 주세요.',
         )
       }
       setIsSubmitting(false)
@@ -210,13 +210,13 @@ export default function CreateProjectModal({
       <section className={`${styles['create-project-modal']} ${modalStyles.surface}`}>
         <header className={`${styles['modal-header']} ${modalStyles.header}`}>
           <div>
-            <h2 id="create-project-title">새 프로젝트</h2>
-            <p id="create-project-description">새 프로젝트 정보를 입력해 주세요.</p>
+            <h2 id="create-project-title">새 폴더</h2>
+            <p id="create-project-description">새 폴더 정보를 입력해 주세요.</p>
           </div>
           <button
             type="button"
             className={styles['modal-close']}
-            aria-label="새 프로젝트 창 닫기"
+            aria-label="새 폴더 창 닫기"
             onClick={requestClose}
             disabled={isSubmitting}
           >
@@ -227,7 +227,7 @@ export default function CreateProjectModal({
         <form onSubmit={(event) => void handleSubmit(event)} noValidate>
           <div className={styles['modal-body']}>
             <div className={styles['modal-field']}>
-              <label htmlFor="project-name">프로젝트 이름</label>
+              <label htmlFor="project-name">폴더 이름</label>
               <input
                 ref={nameInputRef}
                 id="project-name"
@@ -261,7 +261,7 @@ export default function CreateProjectModal({
                 id="project-description-input"
                 value={description}
                 rows={3}
-                placeholder="예: 프로젝트에서 이루고 싶은 목표를 적어주세요."
+                placeholder="예: 폴더에서 다루고 싶은 주제를 적어주세요."
                 aria-required="true"
                 aria-invalid={Boolean(fieldErrors.description)}
                 aria-describedby={fieldErrors.description ? 'project-description-error' : undefined}

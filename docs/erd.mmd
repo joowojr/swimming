@@ -5,8 +5,7 @@ erDiagram
     users ||--o{ tasks : owns
     projects o|--o{ tasks : contains
     notes o|--o{ tasks : sources
-    users ||--o{ daily_plans : owns
-    daily_plans ||--o{ daily_plan_items : "contains (delete cascades)"
+    users ||--o{ daily_plan_items : owns
     tasks ||--o{ daily_plan_items : "plans (delete cascades)"
     users ||--o{ sessions : runs
     users ||--o{ notes : owns
@@ -61,22 +60,16 @@ erDiagram
         varchar title
         varchar status
         int order_idx
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    daily_plans {
-        bigint id PK
-        bigint user_id FK
-        date plan_date
+        boolean is_deleted
         timestamp created_at
         timestamp updated_at
     }
 
     daily_plan_items {
         bigint id PK
-        bigint daily_plan_id FK
-        bigint task_id FK
+        bigint user_id FK
+        date plan_date
+        bigint task_id FK "ON DELETE CASCADE"
         int order_idx
         timestamp created_at
         timestamp updated_at
@@ -102,14 +95,16 @@ erDiagram
 
     session_tasks {
         bigint session_id PK,FK
-        bigint task_id FK
-        int order_idx PK
+        bigint task_id PK,FK
+        boolean is_completed "기본 false; 완료 시 true"
+        timestamp created_at
+        timestamp updated_at
     }
 
     notes {
         bigint id PK
         bigint user_id FK
-        text content
+        varchar(1024) content
         varchar status
         boolean is_deleted
         varchar context_type

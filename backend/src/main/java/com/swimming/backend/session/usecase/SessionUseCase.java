@@ -7,7 +7,7 @@ import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.place.service.PlaceService;
 import com.swimming.backend.place.service.PlaceVideoService;
 import com.swimming.backend.session.domain.Session;
-import com.swimming.backend.session.dto.SessionWithPlace;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.session.dto.web.SessionTaskResponse;
 import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
@@ -64,6 +64,9 @@ public class SessionUseCase {
         if (taskIds.isEmpty() || new HashSet<>(taskIds).size() != taskIds.size()) {
             throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
         }
+        if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
+            throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
+        }
         Place place = placeService.getOne(request.placeId());
 
         taskService.updateStatuses(userId, taskIds.stream()
@@ -83,19 +86,21 @@ public class SessionUseCase {
             readOnly = true
     )
     public Optional<SessionDetailResponse> getActive(Long userId) {
-        return sessionService.getActive(userId)
-                .map(session -> toDetailResponse(userId, session));
+        List<SessionWithPlaceRow> rows = sessionService.getActiveRows(userId);
+        return rows.isEmpty()
+                ? Optional.empty()
+                : Optional.of(toDetailResponse(userId, rows));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<SessionDetailResponse> getAll(Long userId) {
-        List<SessionWithPlace> sessionsWithPlaces = sessionService.getOwnedSessionsWithPlaces(userId);
-        if (sessionsWithPlaces.isEmpty()) {
+        List<SessionWithPlaceRow> rows = sessionService.getOwnedRows(userId);
+        if (rows.isEmpty()) {
             return List.of();
         }
 
-        List<Long> taskIds = sessionsWithPlaces.stream()
-                .flatMap(item -> item.session().getTaskIds().stream())
+        List<Long> taskIds = rows.stream()
+                .map(SessionWithPlaceRow::taskId)
                 .collect(Collectors.toCollection(LinkedHashSet::new))
                 .stream()
                 .toList();
@@ -108,12 +113,20 @@ public class SessionUseCase {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
-        return sessionsWithPlaces.stream()
-                .map(item -> SessionDetailResponse.from(
-                        item.session(),
-                        item.place(),
-                        placeVideoService.resolveBackgroundUrl(item.place()),
-                        getTasks(item.session(), tasksById)
+        return rows.stream()
+                .collect(Collectors.groupingBy(
+                        SessionWithPlaceRow::sessionId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values()
+                .stream()
+                .map(sessionRows -> SessionDetailResponse.from(
+                        sessionRows.getFirst(),
+                        placeVideoService.resolveBackgroundUrl(
+                                sessionRows.getFirst().backgroundAssetKey()
+                        ),
+                        getTasks(sessionRows, tasksById)
                 ))
                 .toList();
     }
@@ -123,7 +136,10 @@ public class SessionUseCase {
             readOnly = true
     )
     public SessionDetailResponse get(Long userId, Long sessionId) {
-        return toDetailResponse(userId, sessionService.getOwned(userId, sessionId));
+        return toDetailResponse(
+                userId,
+                sessionService.getOwnedRows(userId, sessionId)
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -202,38 +218,46 @@ public class SessionUseCase {
         );
     }
 
-    private SessionDetailResponse toDetailResponse(Long userId, Session session) {
-        Place place = placeService.getOne(session.getPlaceId());
+    private SessionDetailResponse toDetailResponse(
+            Long userId,
+            List<SessionWithPlaceRow> rows
+    ) {
+        SessionWithPlaceRow first = rows.getFirst();
         return SessionDetailResponse.from(
-                session,
-                place,
-                placeVideoService.resolveBackgroundUrl(place),
-                getTasks(userId, session)
+                first,
+                placeVideoService.resolveBackgroundUrl(first.backgroundAssetKey()),
+                getTasks(userId, rows)
         );
     }
 
-    private List<SessionTaskResponse> getTasks(Long userId, Session session) {
+    private List<SessionTaskResponse> getTasks(
+            Long userId,
+            List<SessionWithPlaceRow> rows
+    ) {
+        List<Long> taskIds = rows.stream()
+                .map(SessionWithPlaceRow::taskId)
+                .toList();
         Map<Long, TaskReference> tasksById = taskService
-                .getReferences(userId, session.getTaskIds())
+                .getReferences(userId, taskIds)
                 .stream()
                 .collect(Collectors.toMap(TaskReference::id, Function.identity()));
 
-        if (tasksById.size() != session.getTaskIds().size()) {
+        if (tasksById.size() != taskIds.size()) {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
-        return getTasks(session, tasksById);
+        return getTasks(rows, tasksById);
     }
 
     private List<SessionTaskResponse> getTasks(
-            Session session,
+            List<SessionWithPlaceRow> rows,
             Map<Long, TaskReference> tasksById
     ) {
-        return session.getTasks()
+        return rows
                 .stream()
-                .map(sessionTask -> SessionTaskResponse.from(
-                        tasksById.get(sessionTask.taskId()),
-                        sessionTask.isCompleted()
+                .map(row -> SessionTaskResponse.from(
+                        tasksById.get(row.taskId()),
+                        row.taskCompleted()
                 ))
                 .toList();
     }

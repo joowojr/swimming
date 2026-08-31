@@ -1,7 +1,6 @@
 package com.swimming.backend.place.service;
 
 import com.swimming.backend.place.config.PlaceBackgroundProperties;
-import com.swimming.backend.place.domain.Place;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,8 +19,7 @@ public class PlaceVideoService {
 
     private final PlaceBackgroundProperties placeBackgroundProperties;
 
-    public String resolveBackgroundUrl(Place place) {
-        String backgroundAssetKey = place.getBackgroundAssetKey();
+    public String resolveBackgroundUrl(String backgroundAssetKey) {
         if (backgroundAssetKey == null || backgroundAssetKey.isBlank()) {
             log.warn("[SWIMMING_PLACE] 배경 에셋 키가 비어 있어 배경 URL을 만들지 않습니다");
             return null;

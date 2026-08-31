@@ -61,9 +61,9 @@ class SessionListProjectionTest {
     private EntityManagerFactory entityManagerFactory;
 
     @Test
-    @DisplayName("SessionTask를 Task ID 순서로 Place와 City까지 한 번의 flat projection으로 조회한다")
+    @DisplayName("목록·활성·단건 조회가 같은 Place projection을 한 쿼리로 사용한다")
     @Transactional(propagation = Propagation.REQUIRED)
-    void findsSessionListRowsWithPlaceInOneQuery() {
+    void reusesSessionWithPlaceProjectionInOneQuery() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("session-list-projection@example.com")
                 .passwordHash("password")
@@ -100,6 +100,23 @@ class SessionListProjectionTest {
                 .containsExactly(firstTask.getId(), secondTask.getId());
         assertThat(rows.getFirst().cityName()).isEqualTo("Lisbon");
         assertThat(rows.getFirst().placeName()).isEqualTo("Alfama Cafe");
+
+        statistics.clear();
+        var activeRows = sessionRepository.findActiveRows(
+                user.getId(),
+                com.swimming.backend.session.domain.SessionStatus.IN_PROGRESS
+        );
+
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+        assertThat(activeRows).hasSize(2);
+        assertThat(activeRows.getFirst().placeName()).isEqualTo("Alfama Cafe");
+
+        statistics.clear();
+        var ownedRows = sessionRepository.findOwnedRows(user.getId(), session.getId());
+
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+        assertThat(ownedRows).hasSize(2);
+        assertThat(ownedRows.getFirst().cityName()).isEqualTo("Lisbon");
 
         assertThat(sessionTaskRepository.completeAll(
                 session.getId(),

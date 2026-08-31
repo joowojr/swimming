@@ -4,11 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
-import com.swimming.backend.session.domain.SessionTask;
-import com.swimming.backend.session.dto.SessionWithPlace;
-import com.swimming.backend.session.dto.projection.SessionListRow;
-import com.swimming.backend.place.domain.City;
-import com.swimming.backend.place.domain.Place;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.session.repository.entity.SessionEntity;
 import com.swimming.backend.session.repository.SessionRepository;
 import com.swimming.backend.session.repository.SessionTaskRepository;
@@ -20,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,26 +30,25 @@ public class SessionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public Optional<Session> getActive(Long userId) {
-        return sessionRepository.findByUserIdAndStatus(
+    public List<SessionWithPlaceRow> getActiveRows(Long userId) {
+        return sessionRepository.findActiveRows(
                 userId,
                 SessionStatus.IN_PROGRESS
-        ).map(SessionEntity::toDomain);
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<SessionWithPlace> getOwnedSessionsWithPlaces(Long userId) {
-        return sessionRepository.findListRows(userId)
-                .stream()
-                .collect(Collectors.groupingBy(
-                        SessionListRow::sessionId,
-                        LinkedHashMap::new,
-                        Collectors.toList()
-                ))
-                .values()
-                .stream()
-                .map(this::toSessionWithPlace)
-                .toList();
+    public List<SessionWithPlaceRow> getOwnedRows(Long userId, Long sessionId) {
+        List<SessionWithPlaceRow> rows = sessionRepository.findOwnedRows(userId, sessionId);
+        if (rows.isEmpty()) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+        return rows;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<SessionWithPlaceRow> getOwnedRows(Long userId) {
+        return sessionRepository.findListRows(userId);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -112,40 +105,6 @@ public class SessionService {
     private SessionEntity getOwnedEntity(Long userId, Long sessionId) {
         return sessionRepository.findByIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
-    }
-
-    private SessionWithPlace toSessionWithPlace(List<SessionListRow> rows) {
-        SessionListRow first = rows.getFirst();
-        Session session = Session.restore(
-                first.sessionId(),
-                first.userId(),
-                first.type(),
-                first.placeId(),
-                rows.stream()
-                        .map(row -> new SessionTask(row.taskId(), row.taskCompleted()))
-                        .toList(),
-                first.musicUrl(),
-                first.plannedDurationSec(),
-                first.actualDurationSec(),
-                first.startedAt(),
-                first.endedAt(),
-                first.status(),
-                first.summary()
-        );
-        Place place = Place.restore(
-                first.placeId(),
-                City.restore(
-                        first.cityId(),
-                        first.cityName(),
-                        first.cityCountryCode(),
-                        first.cityTimezone()
-                ),
-                first.placeName(),
-                first.backgroundAssetType(),
-                first.backgroundAssetKey(),
-                first.defaultMusicUrl()
-        );
-        return new SessionWithPlace(session, place);
     }
 
 }

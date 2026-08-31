@@ -8,7 +8,7 @@ import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
 import com.swimming.backend.session.repository.SessionRepository;
 import com.swimming.backend.session.repository.SessionTaskRepository;
-import com.swimming.backend.session.dto.projection.SessionListRow;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.session.repository.entity.SessionEntity;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,25 +93,36 @@ class SessionServiceTest {
     }
 
     @Test
-    @DisplayName("현재 사용자의 진행 중인 엔티티를 순수 도메인으로 조회한다")
+    @DisplayName("현재 사용자의 진행 중인 세션과 공간을 projection으로 조회한다")
     void getsActiveSession() {
-        SessionEntity entity = startedEntity();
-        when(sessionRepository.findByUserIdAndStatus(1L, SessionStatus.IN_PROGRESS))
-                .thenReturn(Optional.of(entity));
+        when(sessionRepository.findActiveRows(1L, SessionStatus.IN_PROGRESS))
+                .thenReturn(List.of(sessionWithPlaceRow(10L)));
 
-        assertThat(sessionService.getActive(1L))
-                .get()
-                .extracting(Session::getId)
+        assertThat(sessionService.getActiveRows(1L))
+                .extracting(SessionWithPlaceRow::sessionId)
+                .singleElement()
                 .isEqualTo(5L);
+    }
+
+    @Test
+    @DisplayName("사용자가 소유한 세션과 공간을 projection으로 조회한다")
+    void getsOwnedSessionWithPlace() {
+        when(sessionRepository.findOwnedRows(1L, 5L))
+                .thenReturn(List.of(sessionWithPlaceRow(10L)));
+
+        List<SessionWithPlaceRow> result = sessionService.getOwnedRows(1L, 5L);
+
+        assertThat(result.getFirst().sessionId()).isEqualTo(5L);
+        assertThat(result.getFirst().placeName()).isEqualTo("Alfama Cafe");
     }
 
     @Test
     @DisplayName("사용자의 세션을 최신 시작 시각 순서로 조회한다")
     void getsOwnedSessionsInLatestOrder() {
-        when(sessionRepository.findListRows(1L)).thenReturn(List.of(sessionListRow(10L)));
+        when(sessionRepository.findListRows(1L)).thenReturn(List.of(sessionWithPlaceRow(10L)));
 
-        assertThat(sessionService.getOwnedSessionsWithPlaces(1L))
-                .extracting(item -> item.session().getId())
+        assertThat(sessionService.getOwnedRows(1L))
+                .extracting(SessionWithPlaceRow::sessionId)
                 .containsExactly(5L);
     }
 
@@ -209,8 +220,8 @@ class SessionServiceTest {
         return entity;
     }
 
-    private SessionListRow sessionListRow(Long taskId) {
-        return new SessionListRow(
+    private SessionWithPlaceRow sessionWithPlaceRow(Long taskId) {
+        return new SessionWithPlaceRow(
                 5L, 1L, SessionType.PERSONAL, 20L, taskId, null, null,
                 1500, null, STARTED_AT, null, SessionStatus.IN_PROGRESS, null,
                 3L, "Lisbon", "PT", "Europe/Lisbon", "Alfama Cafe", BackgroundAssetType.VIDEO,

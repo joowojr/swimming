@@ -12,7 +12,7 @@ import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
-import com.swimming.backend.session.dto.SessionWithPlace;
+import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
@@ -33,7 +33,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -237,8 +236,13 @@ class SessionUseCaseTest {
     @DisplayName("진행 중인 세션의 Task 표시 정보를 Session 도메인 순서대로 반환한다")
     void getsActiveSessionWithOrderedTasks() {
         Session session = startedSession(NOW);
-        when(sessionService.getActive(1L)).thenReturn(Optional.of(session));
-        when(placeService.getOne(20L)).thenReturn(place());
+        Place place = place();
+        when(sessionService.getActiveRows(1L)).thenReturn(List.of(
+                sessionWithPlaceRow(session, place, 10L, false),
+                sessionWithPlaceRow(session, place, 11L, false)
+        ));
+        when(placeVideoService.resolveBackgroundUrl("places/video/alfama.mp4"))
+                .thenReturn("https://cdn.example.com/alfama.mp4");
         when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
                 new TaskReference(11L, 2L, "폴더", "다음 Task", null),
                 new TaskReference(10L, 2L, "폴더", "첫 Task", null)
@@ -249,6 +253,7 @@ class SessionUseCaseTest {
         assertThat(response.tasks()).extracting(task -> task.id())
                 .containsExactly(10L, 11L);
         assertThat(response.tasks().getFirst().title()).isEqualTo("첫 Task");
+        verify(placeService, never()).getOne(any());
     }
 
     @Test
@@ -266,13 +271,15 @@ class SessionUseCaseTest {
         );
         Place firstPlace = place(20L, "Alfama Cafe", "places/video/alfama.mp4");
         Place secondPlace = place(21L, "Belem Cafe", "places/video/belem.mp4");
-        when(sessionService.getOwnedSessionsWithPlaces(1L)).thenReturn(List.of(
-                new SessionWithPlace(first, firstPlace),
-                new SessionWithPlace(second, secondPlace)
+        when(sessionService.getOwnedRows(1L)).thenReturn(List.of(
+                sessionWithPlaceRow(first, firstPlace, 10L, false),
+                sessionWithPlaceRow(first, firstPlace, 11L, false),
+                sessionWithPlaceRow(second, secondPlace, 11L, false),
+                sessionWithPlaceRow(second, secondPlace, 12L, false)
         ));
-        when(placeVideoService.resolveBackgroundUrl(firstPlace))
+        when(placeVideoService.resolveBackgroundUrl("places/video/alfama.mp4"))
                 .thenReturn("https://cdn.example.com/alfama.mp4");
-        when(placeVideoService.resolveBackgroundUrl(secondPlace))
+        when(placeVideoService.resolveBackgroundUrl("places/video/belem.mp4"))
                 .thenReturn("https://cdn.example.com/belem.mp4");
         when(taskService.getReferences(1L, List.of(10L, 11L, 12L))).thenReturn(List.of(
                 new TaskReference(12L, 2L, "폴더", "세 번째 Task", TaskStatus.TODO),
@@ -287,8 +294,8 @@ class SessionUseCaseTest {
                 .containsExactly(10L, 11L);
         assertThat(responses.getLast().tasks()).extracting(task -> task.id())
                 .containsExactly(11L, 12L);
-        verify(placeVideoService).resolveBackgroundUrl(firstPlace);
-        verify(placeVideoService).resolveBackgroundUrl(secondPlace);
+        verify(placeVideoService).resolveBackgroundUrl("places/video/alfama.mp4");
+        verify(placeVideoService).resolveBackgroundUrl("places/video/belem.mp4");
         verify(taskService).getReferences(1L, List.of(10L, 11L, 12L));
     }
 
@@ -414,6 +421,37 @@ class SessionUseCaseTest {
                 BackgroundAssetType.VIDEO,
                 backgroundAssetKey,
                 "https://youtu.be/default"
+        );
+    }
+
+    private SessionWithPlaceRow sessionWithPlaceRow(
+            Session session,
+            Place place,
+            Long taskId,
+            boolean taskCompleted
+    ) {
+        return new SessionWithPlaceRow(
+                session.getId(),
+                session.getUserId(),
+                session.getType(),
+                place.getId(),
+                taskId,
+                taskCompleted,
+                session.getMusicUrl(),
+                session.getPlannedDurationSec(),
+                session.getActualDurationSec(),
+                session.getStartedAt(),
+                session.getEndedAt(),
+                session.getStatus(),
+                session.getSummary(),
+                place.getCity().getId(),
+                place.getCity().getName(),
+                place.getCity().getCountryCode(),
+                place.getCity().getTimezone(),
+                place.getName(),
+                place.getBackgroundAssetType(),
+                place.getBackgroundAssetKey(),
+                place.getDefaultMusicUrl()
         );
     }
 }

@@ -6,7 +6,7 @@ import com.swimming.backend.session.domain.SessionType;
 
 import java.time.Instant;
 
-public record SessionListRow(
+public record SessionWithPlaceRow(
         Long sessionId,
         Long userId,
         SessionType type,

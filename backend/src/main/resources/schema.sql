@@ -1,7 +1,7 @@
 CREATE TABLE `users` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `email` varchar(255) UNIQUE NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
+  `google_subject` varchar(255) UNIQUE NOT NULL,
   `nickname` varchar(255) NOT NULL,
   `timezone` varchar(255) NOT NULL DEFAULT 'Asia/Seoul',
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
@@ -36,7 +36,10 @@ CREATE TABLE `tasks` (
   `source_note_id` bigint,
   `title` varchar(255) NOT NULL,
   `status` varchar(255) NOT NULL DEFAULT 'TODO',
+  `is_priority` boolean NOT NULL DEFAULT false,
+  `is_urgent` boolean NOT NULL DEFAULT false,
   `order_idx` int NOT NULL DEFAULT 0,
+  `is_deleted` boolean NOT NULL DEFAULT false,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -84,7 +87,7 @@ CREATE TABLE `sessions` (
 CREATE TABLE `session_tasks` (
   `session_id` bigint NOT NULL,
   `task_id` bigint NOT NULL,
-  `is_completed` boolean,
+  `is_completed` boolean NOT NULL DEFAULT false,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   PRIMARY KEY (`session_id`, `task_id`)
@@ -141,7 +144,8 @@ CREATE INDEX `idx_projects_user_status_deleted_created_at` ON `projects` (`user_
 CREATE UNIQUE INDEX `daily_plan_items_user_date_task_index`
   ON `daily_plan_items` (`user_id`, `plan_date`, `task_id`);
 
-CREATE INDEX `idx_tasks_user_id` ON `tasks` (`user_id`);
+CREATE INDEX `idx_tasks_user_deleted_created_at`
+  ON `tasks` (`user_id`, `is_deleted`, `created_at`);
 
 CREATE INDEX `sessions_index_2` ON `sessions` (`user_id`, `started_at`);
 

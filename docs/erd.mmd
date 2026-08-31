@@ -95,7 +95,7 @@ erDiagram
     session_tasks {
         bigint session_id PK,FK
         bigint task_id PK,FK
-        boolean is_completed "nullable; 종료 전 또는 미기록"
+        boolean is_completed "기본 false; 완료 시 true"
         timestamp created_at
         timestamp updated_at
     }

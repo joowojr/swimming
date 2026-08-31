@@ -7,10 +7,11 @@ import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.dto.SessionWithPlace;
 import com.swimming.backend.session.dto.projection.SessionListRow;
-import com.swimming.backend.place.dto.projection.PlaceReferenceRow;
+import com.swimming.backend.place.domain.City;
+import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.session.repository.entity.SessionEntity;
 import com.swimming.backend.session.repository.SessionRepository;
-import com.swimming.backend.session.repository.SessionTaskBatchRepository;
+import com.swimming.backend.session.repository.SessionTaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -27,13 +28,11 @@ import java.util.stream.Collectors;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
-    private final SessionTaskBatchRepository sessionTaskBatchRepository;
+    private final SessionTaskRepository sessionTaskRepository;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Session getOwned(Long userId, Long sessionId) {
-        return sessionRepository.findByIdAndUserId(sessionId, userId)
-                .map(SessionEntity::toDomain)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
+        return getOwnedEntity(userId, sessionId).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -69,45 +68,50 @@ public class SessionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Session end(Session session) {
-        int updatedCount = sessionRepository.endOwnedSession(
-                session.getId(),
-                session.getUserId(),
-                session.getActualDurationSec(),
-                session.getEndedAt(),
-                session.getStatus(),
-                session.getSummary()
-        );
-        if (updatedCount != 1) {
-            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
-        }
-        if (sessionTaskBatchRepository.updateCompletions(session.getId(), session.getTasks())
-                != session.getTasks().size()) {
+    public Session updateEnd(
+            Session session,
+            List<Long> completedTaskIds
+    ) {
+        SessionEntity entity = sessionRepository.findById(session.getId())
+                .filter(candidate -> candidate.getUserId().equals(session.getUserId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
+        entity.end(session);
+        if (!completedTaskIds.isEmpty()
+                && sessionTaskRepository.completeAll(session.getId(), completedTaskIds)
+                != completedTaskIds.size()) {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
         return session;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void updateMusicUrl(Session session) {
-        if (sessionRepository.updateOwnedMusicUrl(
-                session.getId(),
-                session.getUserId(),
-                session.getMusicUrl()
-        ) != 1) {
+    public void updateMusicUrl(Long userId, Long sessionId, String musicUrl) {
+        SessionEntity entity = getOwnedEntity(userId, sessionId);
+        validateInProgress(entity);
+        entity.updateMusicUrl(musicUrl);
+        sessionRepository.flush();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updatePlannedDuration(Long userId, Long sessionId, int plannedDurationSec) {
+        SessionEntity entity = getOwnedEntity(userId, sessionId);
+        validateInProgress(entity);
+        if (plannedDurationSec < 60 || plannedDurationSec > 86400) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
+        }
+        entity.updatePlannedDuration(plannedDurationSec);
+        sessionRepository.flush();
+    }
+
+    private void validateInProgress(SessionEntity entity) {
+        if (entity.getStatus() != SessionStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void updatePlannedDuration(Session session) {
-        if (sessionRepository.updateOwnedPlannedDuration(
-                session.getId(),
-                session.getUserId(),
-                session.getPlannedDurationSec()
-        ) != 1) {
-            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
-        }
+    private SessionEntity getOwnedEntity(Long userId, Long sessionId) {
+        return sessionRepository.findByIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
     }
 
     private SessionWithPlace toSessionWithPlace(List<SessionListRow> rows) {
@@ -128,10 +132,14 @@ public class SessionService {
                 first.status(),
                 first.summary()
         );
-        PlaceReferenceRow place = new PlaceReferenceRow(
+        Place place = Place.restore(
                 first.placeId(),
-                first.cityId(),
-                first.cityName(),
+                City.restore(
+                        first.cityId(),
+                        first.cityName(),
+                        first.cityCountryCode(),
+                        first.cityTimezone()
+                ),
                 first.placeName(),
                 first.backgroundAssetType(),
                 first.backgroundAssetKey(),

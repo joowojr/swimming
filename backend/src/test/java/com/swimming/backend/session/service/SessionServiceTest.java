@@ -116,26 +116,21 @@ class SessionServiceTest {
     }
 
     @Test
-    @DisplayName("소유 세션을 조회해 종료 상태는 변경 감지하고 Task 결과는 일괄 저장한다")
+    @DisplayName("종료된 Session 도메인을 Entity와 완료 Task에 반영한다")
     void savesEndedSessionStateAndTaskResults() {
         SessionEntity entity = startedEntity();
-        when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
+        Session session = entity.toDomain();
+        session.end(STARTED_AT.plusSeconds(600), null, List.of(10L));
+        when(sessionRepository.findById(5L)).thenReturn(Optional.of(entity));
         when(sessionTaskRepository.completeAll(5L, List.of(10L))).thenReturn(1);
 
-        Session saved = sessionService.end(
-                1L,
-                5L,
-                STARTED_AT.plusSeconds(600),
-                false,
-                null,
-                List.of(10L)
-        );
+        Session saved = sessionService.updateEnd(session, List.of(10L));
 
         assertThat(saved.getActualDurationSec()).isEqualTo(600);
         assertThat(saved.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(entity.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(entity.getActiveUserId()).isNull();
-        verify(sessionRepository).findByIdAndUserId(5L, 1L);
+        verify(sessionRepository).findById(5L);
         verify(sessionTaskRepository).completeAll(5L, List.of(10L));
     }
 
@@ -143,16 +138,11 @@ class SessionServiceTest {
     @DisplayName("완료한 Task가 없으면 완료 처리 JPQL을 실행하지 않는다")
     void skipsCompletionUpdateWithoutCompletedTasks() {
         SessionEntity entity = startedEntity();
-        when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
+        Session session = entity.toDomain();
+        session.end(STARTED_AT.plusSeconds(600), null, List.of());
+        when(sessionRepository.findById(5L)).thenReturn(Optional.of(entity));
 
-        sessionService.end(
-                1L,
-                5L,
-                STARTED_AT.plusSeconds(600),
-                false,
-                null,
-                List.of()
-        );
+        sessionService.updateEnd(session, List.of());
 
         verify(sessionTaskRepository, org.mockito.Mockito.never())
                 .completeAll(any(), any());

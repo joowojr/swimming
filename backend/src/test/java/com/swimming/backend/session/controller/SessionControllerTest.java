@@ -148,7 +148,7 @@ class SessionControllerTest {
     }
 
     @Test
-    @DisplayName("진행 중인 세션과 선택한 Task 목록을 순서대로 반환한다")
+    @DisplayName("진행 중인 세션과 Task 목록을 반환한다")
     void getsActiveSession() throws Exception {
         when(sessionUseCase.getActive(1L)).thenReturn(java.util.Optional.of(
                 new SessionDetailResponse(

@@ -107,7 +107,7 @@ class SessionListProjectionTest {
         )).isEqualTo(1);
         assertThat(sessionRepository.findListRows(user.getId()))
                 .extracting(row -> row.taskCompleted())
-                .containsExactly(true, null);
+                .containsExactly(true, false);
     }
 
     private TaskEntity saveTask(User user, String title, int orderIdx) {

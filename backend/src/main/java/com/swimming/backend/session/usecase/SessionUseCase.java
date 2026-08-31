@@ -141,14 +141,13 @@ public class SessionUseCase {
                 .filter(entry -> Boolean.TRUE.equals(entry.getValue()))
                 .map(Map.Entry::getKey)
                 .toList();
-        Session savedSession = sessionService.end(
-                userId,
-                sessionId,
-                clock.instant(),
-                request != null && request.usePlannedDuration(),
-                toSummary(request),
-                completedTaskIds
-        );
+        Session session = sessionService.getOwned(userId, sessionId);
+        Instant currentTime = clock.instant();
+        Instant endTime = request != null && request.usePlannedDuration()
+                ? session.getStartedAt().plusSeconds(session.getPlannedDurationSec())
+                : currentTime;
+        session.end(endTime, toSummary(request), completedTaskIds);
+        Session savedSession = sessionService.updateEnd(session, completedTaskIds);
 
         if (!completionByTaskId.isEmpty()) {
             taskService.updateStatuses(userId, toStatusByTaskId(completionByTaskId));

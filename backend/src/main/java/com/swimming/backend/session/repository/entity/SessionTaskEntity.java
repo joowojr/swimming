@@ -28,7 +28,7 @@ public class SessionTaskEntity extends BaseTimeEntity {
     @JoinColumn(name = "session_id", nullable = false)
     private SessionEntity session;
 
-    @Column(name = "is_completed")
+    @Column(name = "is_completed", nullable = false)
     private Boolean isCompleted;
 
     private SessionTaskEntity(

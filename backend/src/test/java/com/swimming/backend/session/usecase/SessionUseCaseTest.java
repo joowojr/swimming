@@ -150,8 +150,8 @@ class SessionUseCaseTest {
     @DisplayName("소유한 세션을 서버 현재 시각으로 종료한다")
     void endsOwnedSessionAtServerTime() {
         Session session = startedSession(NOW.minusSeconds(600));
-        session.end(NOW, null, List.of());
-        when(sessionService.end(1L, 5L, NOW, false, null, List.of())).thenReturn(session);
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+        when(sessionService.updateEnd(session, List.of())).thenReturn(session);
         when(placeService.getOne(20L)).thenReturn(place());
 
         SessionResponse response = sessionUseCase.end(1L, 5L, null);
@@ -161,7 +161,7 @@ class SessionUseCaseTest {
         assertThat(response.status()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(session.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(session.getSummary()).isNull();
-        verify(sessionService).end(1L, 5L, NOW, false, null, List.of());
+        verify(sessionService).updateEnd(session, List.of());
         verify(taskService, never()).updateStatuses(any(), any());
     }
 
@@ -169,8 +169,8 @@ class SessionUseCaseTest {
     @DisplayName("계획 시간으로 종료하도록 요청하면 계획된 시각과 시간으로 기록한다")
     void endsOwnedSessionAtPlannedTime() {
         Session session = startedSession(NOW.minusSeconds(600));
-        session.end(NOW.plusSeconds(900), null, List.of());
-        when(sessionService.end(1L, 5L, NOW, true, null, List.of())).thenReturn(session);
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+        when(sessionService.updateEnd(session, List.of())).thenReturn(session);
         when(placeService.getOne(20L)).thenReturn(place());
 
         SessionResponse response = sessionUseCase.end(
@@ -187,10 +187,8 @@ class SessionUseCaseTest {
     @DisplayName("기록과 함께 종료하면 기록을 저장하고 Task 상태를 전이한다")
     void endsWithRecordAndTransitionsTasks() {
         Session session = startedSession(NOW.minusSeconds(600));
-        session.end(NOW, "1페이지 완료", List.of(10L));
-        when(sessionService.end(
-                1L, 5L, NOW, false, "1페이지 완료", List.of(10L)
-        )).thenReturn(session);
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+        when(sessionService.updateEnd(session, List.of(10L))).thenReturn(session);
         when(placeService.getOne(20L)).thenReturn(place());
 
         EndSessionRequest request = new EndSessionRequest(
@@ -218,21 +216,21 @@ class SessionUseCaseTest {
     @Test
     @DisplayName("세션에 없는 Task를 기록하면 거부한다")
     void rejectsRecordWithUnknownTask() {
+        Session session = startedSession(NOW.minusSeconds(600));
         EndSessionRequest request = new EndSessionRequest(
                 null,
                 false,
                 List.of(new EndSessionRequest.TaskResult(99L, true))
         );
 
-        when(sessionService.end(
-                1L, 5L, NOW, false, null, List.of(99L)
-        )).thenThrow(new BusinessException(ErrorCode.INVALID_SESSION_TASKS));
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
 
         assertThatThrownBy(() -> sessionUseCase.end(1L, 5L, request))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.INVALID_SESSION_TASKS));
         verify(taskService, never()).updateStatuses(any(), any());
+        verify(sessionService, never()).updateEnd(any(), any());
     }
 
     @Test

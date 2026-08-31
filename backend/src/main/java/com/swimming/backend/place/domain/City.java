@@ -1,6 +1,7 @@
 package com.swimming.backend.place.domain;
 
 import lombok.Getter;
+import lombok.Builder;
 
 @Getter
 public class City {
@@ -10,6 +11,7 @@ public class City {
     private final String countryCode;
     private final String timezone;
 
+    @Builder
     private City(Long id, String name, String countryCode, String timezone) {
         this.id = id;
         this.name = name;
@@ -18,6 +20,11 @@ public class City {
     }
 
     public static City restore(Long id, String name, String countryCode, String timezone) {
-        return new City(id, name, countryCode, timezone);
+        return City.builder()
+                .id(id)
+                .name(name)
+                .countryCode(countryCode)
+                .timezone(timezone)
+                .build();
     }
 }

@@ -52,7 +52,7 @@
 
 | ID | 요구사항 | 우선순위 |
 | --- | --- | --- |
-| AUTH-1 | 이메일/비밀번호로 회원가입·로그인한다. | P0 |
+| AUTH-1 | Google 계정으로 로그인한다. | P0 |
 | AUTH-2 | JWT 기반 인증, 액세스/리프레시 토큰을 발급한다. | P0 |
 | AUTH-3 | 사용자 프로필(닉네임, 타임존)을 관리한다. | P0 |
 | AUTH-4 | 소셜 로그인(Google 등). | P2 |
@@ -202,8 +202,7 @@
 
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
-| POST | /auth/signup | 회원가입 |
-| POST | /auth/login | 로그인(토큰 발급) |
+| POST | /auth/google | Google 로그인(토큰 발급) |
 | POST | /auth/refresh | 토큰 갱신 |
 |  |  |  |
 | GET | /projects | 내 폴더 목록 |

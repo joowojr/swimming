@@ -24,7 +24,7 @@ erDiagram
     users {
         bigint id PK
         varchar email UK
-        varchar password_hash
+        varchar google_subject UK
         varchar nickname
         varchar timezone
         timestamp created_at
@@ -59,6 +59,8 @@ erDiagram
         bigint source_note_id FK "nullable"
         varchar title
         varchar status
+        boolean is_priority "기본 false"
+        boolean is_urgent "기본 false"
         int order_idx
         boolean is_deleted
         timestamp created_at

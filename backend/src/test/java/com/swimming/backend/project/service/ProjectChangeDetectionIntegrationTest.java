@@ -54,7 +54,7 @@ class ProjectChangeDetectionIntegrationTest {
     void updatesAndDeletesProjectWithDirtyChecking() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("project-direct-mutation@example.com")
-                .passwordHash("password")
+                .googleSubject("project-change-detection-google-subject")
                 .nickname("project-direct-mutation-user")
                 .timezone("Asia/Seoul")
                 .build());

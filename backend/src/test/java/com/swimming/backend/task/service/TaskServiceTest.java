@@ -383,7 +383,7 @@ class TaskServiceTest {
     private User user(Long userId) {
         User user = User.builder()
                 .email("user@example.com")
-                .passwordHash("password")
+                .googleSubject("task-service-google-subject")
                 .nickname("사용자")
                 .timezone("Asia/Seoul")
                 .build();

@@ -51,7 +51,7 @@ class TaskRepositoryJoinTest {
     void findsTasksWithProjectsInSingleQuery() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("task-list@example.com")
-                .passwordHash("password")
+                .googleSubject("task-repository-google-subject-1")
                 .nickname("task-list-user")
                 .timezone("Asia/Seoul")
                 .build());
@@ -86,7 +86,7 @@ class TaskRepositoryJoinTest {
     void keepsSoftDeletedTaskForHistoricalReference() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("soft-delete-task@example.com")
-                .passwordHash("password")
+                .googleSubject("task-repository-google-subject-2")
                 .nickname("soft-delete-task-user")
                 .timezone("Asia/Seoul")
                 .build());

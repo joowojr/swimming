@@ -66,7 +66,7 @@ class SessionListProjectionTest {
     void reusesSessionWithPlaceProjectionInOneQuery() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("session-list-projection@example.com")
-                .passwordHash("password")
+                .googleSubject("session-list-projection-google-subject")
                 .nickname("session-list-projection-user")
                 .timezone("Asia/Seoul")
                 .build());

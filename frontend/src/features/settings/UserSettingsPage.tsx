@@ -1,12 +1,25 @@
 import { IconBrandGoogle, IconUser } from '@tabler/icons-react'
+import { useState } from 'react'
 import type { AuthUser } from '../auth/authTypes'
 import styles from './UserSettingsPage.module.css'
 
 interface UserSettingsPageProps {
   user: AuthUser
+  onLogout: () => Promise<void>
 }
 
-export default function UserSettingsPage({ user }: UserSettingsPageProps) {
+export default function UserSettingsPage({ user, onLogout }: UserSettingsPageProps) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await onLogout()
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -42,6 +55,23 @@ export default function UserSettingsPage({ user }: UserSettingsPageProps) {
               <span>로그인에 사용 중</span>
             </div>
           </div>
+        </div>
+
+        <div className={styles.divider} />
+
+        <div className={`${styles.section} ${styles['logout-section']}`}>
+          <div className={styles['section-heading']}>
+            <h2>로그아웃</h2>
+            <p>이 기기에서 로그인 정보를 제거합니다.</p>
+          </div>
+          <button
+            className={styles['secondary-button']}
+            type="button"
+            disabled={isLoggingOut}
+            onClick={() => void handleLogout()}
+          >
+            {isLoggingOut ? '로그아웃 중…' : '로그아웃'}
+          </button>
         </div>
       </section>
     </div>

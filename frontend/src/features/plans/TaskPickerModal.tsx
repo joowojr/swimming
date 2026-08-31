@@ -10,7 +10,7 @@ interface TaskPickerModalProps {
   projects: Project[]
   selectedTaskIds: ReadonlySet<number>
   onAdd: (tasks: ProjectDetail['tasks']) => Promise<void>
-  onAddTask: (title: string, projectId: number | null) => Promise<void>
+  onAddTask: (title: string, projectId: number | null, priority: boolean, urgent: boolean) => Promise<void>
   onClose: () => void
 }
 
@@ -30,9 +30,11 @@ type AddMode = 'direct' | 'folder'
 // ]
 
 const PRIORITY_CHIPS = [
-  { label: '먼저', emoji: '📌' },
-  { label: '보통', emoji: '☀️' },
-  { label: '여유', emoji: '🌿' },
+  { label: '우선', emoji: '📌' },
+]
+
+const URGENCY_CHIPS = [
+  { label: '긴급', emoji: '⚡' },
 ]
 
 export default function TaskPickerModal({
@@ -52,6 +54,7 @@ export default function TaskPickerModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null)
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null)
+  const [selectedUrgent, setSelectedUrgent] = useState(false)
 
   const activeProject = state.status === 'ready'
     ? state.details.find((detail) => detail.id === Number(taskProjectId))
@@ -114,7 +117,12 @@ export default function TaskPickerModal({
 
     try {
       if (addMode === 'direct') {
-        await onAddTask(trimmedTitle, projectId ? Number(projectId) : null)
+        await onAddTask(
+          trimmedTitle,
+          projectId ? Number(projectId) : null,
+          selectedPriority === '우선',
+          selectedUrgent,
+        )
       } else {
         await onAdd(pendingTasks.map(({ task }) => task))
       }
@@ -220,36 +228,27 @@ export default function TaskPickerModal({
                 ))}
               </div>
             </div>
-            {/*<div className={styles['planning-option-group']}>*/}
-            {/*  <span className={styles['planning-option-label']}>시간대</span>*/}
-            {/*  <div className={styles['planning-option-chips']} role="list">*/}
-            {/*    {TIME_PERIOD_CHIPS.map((option) => (*/}
-            {/*      <span role="listitem" key={option.label}>*/}
-            {/*        <button*/}
-            {/*          type="button"*/}
-            {/*          aria-pressed={selectedTimePeriod === option.label}*/}
-            {/*          onClick={() => setSelectedTimePeriod((current) => (*/}
-            {/*            current === option.label ? null : option.label*/}
-            {/*          ))}*/}
-            {/*        >*/}
-            {/*          <span aria-hidden="true">{option.emoji}</span>*/}
-            {/*          {option.label}*/}
-            {/*        </button>*/}
-            {/*      </span>*/}
-            {/*    ))}*/}
-            {/*  </div>*/}
-            {/*</div>*/}
-            {/*{selectedTimePeriod === '직접 설정' && (*/}
-            {/*  <label className={styles['custom-time']} htmlFor="daily-plan-custom-time">*/}
-            {/*    <span>시각 선택</span>*/}
-            {/*    <input*/}
-            {/*      id="daily-plan-custom-time"*/}
-            {/*      type="time"*/}
-            {/*      value={customTime}*/}
-            {/*      onChange={(event) => setCustomTime(event.target.value)}*/}
-            {/*    />*/}
-            {/*  </label>*/}
-            {/*)}*/}
+            <div className={styles['planning-option-group']}>
+              <div className={styles['planning-option-heading']}>
+                <span className={styles['planning-option-label']}>긴급도</span>
+                <span className={styles['planning-option-help']}>선택</span>
+              </div>
+              <div className={styles['planning-option-chips']} role="list">
+                {URGENCY_CHIPS.map((option) => (
+                  <span role="listitem" key={option.label}>
+                    <button
+                      type="button"
+                      aria-pressed={selectedUrgent}
+                      disabled={isSubmitting}
+                      onClick={() => setSelectedUrgent((current) => !current)}
+                    >
+                      <span aria-hidden="true">{option.emoji}</span>
+                      {option.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
           </section>
           <section
             id="direct-add-panel"
@@ -325,7 +324,13 @@ export default function TaskPickerModal({
                       const pending = pendingTaskIds.has(task.id)
                       return (
                         <li className={alreadyAdded || pending ? styles.selected : undefined} key={task.id}>
-                          <span>{task.title}</span>
+                          <span>
+                            {(task.priority || task.urgent) && (
+                              <span aria-label={`${task.priority ? '우선 ' : ''}${task.urgent ? '긴급' : ''}`}>
+                                {task.priority ? '📌' : ''}{task.urgent ? '⚡' : ''}
+                              </span>
+                            )} {task.title}
+                          </span>
                           <button
                             type="button"
                             aria-pressed={pending}

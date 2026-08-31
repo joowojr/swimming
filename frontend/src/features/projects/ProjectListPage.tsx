@@ -132,7 +132,7 @@ export default function ProjectListPage({
     <section className={styles.page} aria-labelledby="projects-page-title">
       <header className={styles.heading}>
         <div>
-          <h1 id="projects-page-title">폴더</h1>
+          <h1 id="projects-page-title">할 일</h1>
           <p>진행 중인 할 일을 확인하고 관리합니다.</p>
         </div>
         <div className={styles.actions}>

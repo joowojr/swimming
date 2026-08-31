@@ -3,6 +3,8 @@ export type TaskListMode = 'all' | 'unclassified'
 
 export interface CreateTaskRequest {
   title: string
+  priority?: boolean
+  urgent?: boolean
 }
 
 export interface UpdateTaskTitleRequest {
@@ -22,6 +24,8 @@ export interface TaskResponse {
   projectId: number | null
   title: string
   status: TaskStatus
+  priority: boolean
+  urgent: boolean
   createdAt: string
   updatedAt: string
 }
@@ -30,4 +34,6 @@ export interface TaskSummaryResponse {
   id: number
   title: string
   status: TaskStatus
+  priority: boolean
+  urgent: boolean
 }

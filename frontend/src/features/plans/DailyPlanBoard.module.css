@@ -398,3 +398,17 @@
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation-duration: 1.5s; }
 }
+
+span.task-title-editor.is-priority button::before {
+  content: '📌';
+  margin-right: var(--space-2);
+}
+
+span.task-title-editor.is-urgent button::before {
+  content: '⚡';
+  margin-right: var(--space-2);
+}
+
+span.task-title-editor.is-priority.is-urgent button::before {
+  content: '📌 ⚡';
+}

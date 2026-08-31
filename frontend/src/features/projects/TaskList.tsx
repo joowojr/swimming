@@ -156,9 +156,13 @@ export default function TaskList({
                 <div className={styles.heading}>
                   <h3>
                     <InlineEditableText
-                        className={styles['task-title']}
+                        className={[
+                          styles['task-title'],
+                          task.priority && styles['is-priority'],
+                          task.urgent && styles['is-urgent'],
+                        ].filter(Boolean).join(' ')}
                         value={task.title}
-                        ariaLabel="Task 제목"
+                        ariaLabel={`${task.priority ? '우선 ' : ''}${task.urgent ? '긴급 ' : ''}Task 제목`}
                         maxLength={255}
                         requiredMessage="할 일 제목을 입력해 주세요."
                         disabled={isPending || isDeleteMode}

@@ -117,9 +117,11 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
-    const addTask = async (title: string, projectId: number | null) => {
+    const addTask = async (title: string, projectId: number | null, priority: boolean, urgent: boolean) => {
         replacePlan(await addDailyPlanItems(selectedDate, {
             title,
+            priority,
+            urgent,
             ...(projectId === null ? {} : {projectId}),
         }))
     }
@@ -264,8 +266,13 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                         <strong>
                                                             <InlineEditableText
                                                                 value={item.title}
-                                                                ariaLabel="Task 제목"
+                                                                ariaLabel={`${item.priority ? '우선 ' : ''}${item.urgent ? '긴급 ' : ''}Task 제목`}
                                                                 maxLength={255}
+                                                                className={[
+                                                                    styles['task-title-editor'],
+                                                                    item.priority && styles['is-priority'],
+                                                                    item.urgent && styles['is-urgent'],
+                                                                ].filter(Boolean).join(' ')}
                                                                 requiredMessage="Task 제목을 입력해 주세요."
                                                                 onSave={(title) => changeTaskTitle(item, title)}
                                                                 getErrorMessage={getTaskTitleError}

@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -148,31 +147,39 @@ public class NoteService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Note update(Note note) {
-        if (noteRepository.updateOwnedNote(
-                note.getId(),
-                note.getUserId(),
-                note.getContent(),
-                note.getStatus(),
-                note.isDeleted()
-        ) != 1) {
-            throw noteNotFound();
-        }
-        LocalDateTime updatedAt = noteRepository
-                .findUpdatedAtByIdAndUserId(note.getId(), note.getUserId())
+    public Note updateContent(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(note.getId(), note.getUserId())
                 .orElseThrow(this::noteNotFound);
-        return Note.restore(
-                note.getId(),
-                note.getUserId(),
-                note.getContent(),
-                note.getStatus(),
-                note.isDeleted(),
-                note.getContextType(),
-                note.getProjectId(),
-                note.getSessionId(),
-                note.getCreatedAt(),
-                updatedAt
-        );
+        entity.updateContent(note.getContent());
+        noteRepository.flush();
+        return toDomain(entity);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void archive(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(note.getId(), note.getUserId())
+                .orElseThrow(this::noteNotFound);
+        entity.archive();
+        noteRepository.flush();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void restore(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(note.getId(), note.getUserId())
+                .orElseThrow(this::noteNotFound);
+        entity.restore();
+        noteRepository.flush();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void delete(Note note) {
+        NoteEntity entity = noteRepository.findByIdAndUserId(
+                        note.getId(),
+                        note.getUserId()
+                )
+                .orElseThrow(this::noteNotFound);
+        entity.delete();
+        noteRepository.flush();
     }
 
     private NoteEntity getOwnedNoteEntity(

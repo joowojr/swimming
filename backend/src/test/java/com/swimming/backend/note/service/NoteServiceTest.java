@@ -96,12 +96,8 @@ class NoteServiceTest {
     }
 
     @Test
-    @DisplayName("Note 내용과 보관 상태를 반영하고 즉시 저장한다")
+    @DisplayName("Note 내용을 반영하고 즉시 저장한다")
     void updatesAndFlushesNote() {
-        NoteEntity entity = entity(1L, 1L, "기존", NoteStatus.ACTIVE);
-        when(noteRepository.findByIdAndUserIdAndDeletedFalse(1L, 1L))
-                .thenReturn(Optional.of(entity));
-        when(noteRepository.saveAndFlush(entity)).thenReturn(entity);
         Note note = Note.restore(
                 1L,
                 1L,
@@ -115,13 +111,16 @@ class NoteServiceTest {
                 null
         );
 
-        Note updated = noteService.update(note);
+        NoteEntity entity = entity(1L, 1L, "기존", NoteStatus.ACTIVE);
+        when(noteRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(entity));
+
+        Note updated = noteService.updateContent(note);
 
         assertThat(updated.getContent()).isEqualTo("수정");
-        assertThat(updated.getStatus()).isEqualTo(NoteStatus.ARCHIVED);
-        assertThat(updated.isDeleted()).isTrue();
-        assertThat(entity.isDeleted()).isTrue();
-        verify(noteRepository).saveAndFlush(entity);
+        assertThat(updated.getStatus()).isEqualTo(NoteStatus.ACTIVE);
+        assertThat(updated.isDeleted()).isFalse();
+        verify(noteRepository).findByIdAndUserId(1L, 1L);
+        verify(noteRepository).flush();
     }
 
     private NoteEntity entity(

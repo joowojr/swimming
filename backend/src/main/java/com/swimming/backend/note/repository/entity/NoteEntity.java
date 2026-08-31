@@ -77,14 +77,20 @@ public class NoteEntity extends BaseTimeEntity {
         this.contextType = contextType;
     }
 
-    public void update(
-            String content,
-            NoteStatus status,
-            boolean deleted
-    ) {
+    public void updateContent(String content) {
         this.content = content;
-        this.status = status;
-        this.deleted = deleted;
+    }
+
+    public void archive() {
+        this.status = NoteStatus.ARCHIVED;
+    }
+
+    public void restore() {
+        this.status = NoteStatus.ACTIVE;
+    }
+
+    public void delete() {
+        this.deleted = true;
     }
 
 }

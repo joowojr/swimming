@@ -63,7 +63,7 @@ public class NoteUseCase {
         List<Note> notes;
 
         if (projectId != null) {
-            validateProjectContext(
+            projectService.getReference(
                     userId,
                     projectId
             );
@@ -75,7 +75,7 @@ public class NoteUseCase {
             );
 
         } else if (sessionId != null) {
-            validateSessionContext(
+            sessionService.getOwned(
                     userId,
                     sessionId
             );
@@ -126,13 +126,10 @@ public class NoteUseCase {
                 NoteStatus.ACTIVE
         );
 
-        /*
-         * 변경의 주체는 Domain.
-         */
         note.updateContent(request.content());
 
         return toResponse(
-                noteService.update(note)
+                noteService.updateContent(note)
         );
     }
 
@@ -148,7 +145,7 @@ public class NoteUseCase {
 
         note.archive();
 
-        noteService.update(note);
+        noteService.archive(note);
     }
 
     public void restore(
@@ -163,7 +160,7 @@ public class NoteUseCase {
 
         note.restoreFromArchive();
 
-        noteService.update(note);
+        noteService.restore(note);
     }
 
     public void delete(
@@ -177,7 +174,7 @@ public class NoteUseCase {
 
         note.delete();
 
-        noteService.update(note);
+        noteService.delete(note);
     }
 
     private Note createDefault(
@@ -208,7 +205,7 @@ public class NoteUseCase {
             );
         }
 
-        validateProjectContext(
+        projectService.getReference(
                 userId,
                 request.projectId()
         );
@@ -231,7 +228,7 @@ public class NoteUseCase {
             );
         }
 
-        validateSessionContext(
+        sessionService.getOwned(
                 userId,
                 request.sessionId()
         );
@@ -240,26 +237,6 @@ public class NoteUseCase {
                 userId,
                 request.sessionId(),
                 request.content()
-        );
-    }
-
-    private void validateProjectContext(
-            Long userId,
-            Long projectId
-    ) {
-        projectService.validateOwnership(
-                userId,
-                projectId
-        );
-    }
-
-    private void validateSessionContext(
-            Long userId,
-            Long sessionId
-    ) {
-        sessionService.validateOwnership(
-                userId,
-                sessionId
         );
     }
 

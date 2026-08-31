@@ -6,6 +6,11 @@ import jakarta.validation.constraints.Size;
 public record CreateTaskRequest(
         @NotBlank(message = "Task 제목을 입력해 주세요")
         @Size(max = 255, message = "Task 제목은 255자 이하여야 합니다")
-        String title
+        String title,
+        boolean priority,
+        boolean urgent
 ) {
+    public CreateTaskRequest(String title) {
+        this(title, false, false);
+    }
 }

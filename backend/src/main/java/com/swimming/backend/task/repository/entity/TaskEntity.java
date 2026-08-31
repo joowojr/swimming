@@ -40,6 +40,12 @@ public class TaskEntity extends BaseTimeEntity {
     @Column(nullable = false)
     private TaskStatus status;
 
+    @Column(name = "is_priority", nullable = false)
+    private boolean priority;
+
+    @Column(name = "is_urgent", nullable = false)
+    private boolean urgent;
+
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
 
@@ -57,6 +63,8 @@ public class TaskEntity extends BaseTimeEntity {
         this.sourceNote = sourceNote;
         this.title = task.getTitle();
         this.status = task.getStatus();
+        this.priority = task.isPriority();
+        this.urgent = task.isUrgent();
         this.orderIdx = task.getOrderIdx();
         this.deleted = false;
     }
@@ -90,6 +98,8 @@ public class TaskEntity extends BaseTimeEntity {
                 sourceNote == null ? null : sourceNote.getId(),
                 title,
                 status,
+                priority,
+                urgent,
                 orderIdx,
                 getCreatedAt(),
                 getUpdatedAt()

@@ -31,7 +31,8 @@ public class TaskUseCase {
             CreateTaskRequest request
     ) {
         ProjectReference project = projectService.getReference(userId, projectId);
-        return TaskResponse.from(taskService.create(userId, project.id(), request.title()));
+        return TaskResponse.from(taskService.create(
+                userId, project.id(), request.title(), request.priority(), request.urgent()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

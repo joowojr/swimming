@@ -13,6 +13,8 @@ public class Task {
     private final Long sourceNoteId;
     private String title;
     private TaskStatus status;
+    private boolean priority;
+    private boolean urgent;
     private int orderIdx;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
@@ -24,6 +26,8 @@ public class Task {
             Long sourceNoteId,
             String title,
             TaskStatus status,
+            boolean priority,
+            boolean urgent,
             int orderIdx,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -34,12 +38,19 @@ public class Task {
         this.sourceNoteId = sourceNoteId;
         this.title = title;
         this.status = status;
+        this.priority = priority;
+        this.urgent = urgent;
         this.orderIdx = orderIdx;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static Task create(Long userId, Long projectId, String title, int orderIdx) {
+        return create(userId, projectId, title, orderIdx, false, false);
+    }
+
+    public static Task create(Long userId, Long projectId, String title, int orderIdx,
+                              boolean priority, boolean urgent) {
         return new Task(
                 null,
                 userId,
@@ -47,6 +58,8 @@ public class Task {
                 null,
                 title.trim(),
                 TaskStatus.TODO,
+                priority,
+                urgent,
                 orderIdx,
                 null,
                 null
@@ -60,6 +73,18 @@ public class Task {
             String title,
             int orderIdx
     ) {
+        return createFromNote(userId, projectId, sourceNoteId, title, orderIdx, false, false);
+    }
+
+    public static Task createFromNote(
+            Long userId,
+            Long projectId,
+            Long sourceNoteId,
+            String title,
+            int orderIdx,
+            boolean priority,
+            boolean urgent
+    ) {
         return new Task(
                 null,
                 userId,
@@ -67,6 +92,8 @@ public class Task {
                 sourceNoteId,
                 title.trim(),
                 TaskStatus.TODO,
+                priority,
+                urgent,
                 orderIdx,
                 null,
                 null
@@ -84,6 +111,14 @@ public class Task {
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
+        return restore(id, userId, projectId, sourceNoteId, title, status, false, false, orderIdx, createdAt, updatedAt);
+    }
+
+    public static Task restore(
+            Long id, Long userId, Long projectId, Long sourceNoteId, String title,
+            TaskStatus status, boolean priority, boolean urgent, int orderIdx,
+            LocalDateTime createdAt, LocalDateTime updatedAt
+    ) {
         return new Task(
                 id,
                 userId,
@@ -91,6 +126,8 @@ public class Task {
                 sourceNoteId,
                 title,
                 status,
+                priority,
+                urgent,
                 orderIdx,
                 createdAt,
                 updatedAt

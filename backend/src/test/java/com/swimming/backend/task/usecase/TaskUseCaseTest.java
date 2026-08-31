@@ -43,7 +43,8 @@ class TaskUseCaseTest {
     void createsTaskInOwnedProject() {
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L, "폴더", null));
-        when(taskService.create(1L, 10L, "Task")).thenReturn(task(1L, 10L, "Task", 0));
+        when(taskService.create(1L, 10L, "Task", false, false))
+                .thenReturn(task(1L, 10L, "Task", 0));
 
         TaskResponse response = taskUseCase.create(
                 1L,

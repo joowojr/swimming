@@ -32,7 +32,12 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task create(Long userId, Long projectId, String title) {
-        return create(userId, projectId, null, title);
+        return create(userId, projectId, null, title, false, false);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task create(Long userId, Long projectId, String title, boolean priority, boolean urgent) {
+        return create(userId, projectId, null, title, priority, urgent);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -42,14 +47,16 @@ public class TaskService {
             Long sourceNoteId,
             String title
     ) {
-        return create(userId, projectId, sourceNoteId, title);
+        return create(userId, projectId, sourceNoteId, title, false, false);
     }
 
     private Task create(
             Long userId,
             Long projectId,
             Long sourceNoteId,
-            String title
+            String title,
+            boolean priority,
+            boolean urgent
     ) {
         int nextOrder = (projectId == null
                 ? taskRepository.findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
@@ -58,8 +65,8 @@ public class TaskService {
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
         Task task = sourceNoteId == null
-                ? Task.create(userId, projectId, title, nextOrder)
-                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder);
+                ? Task.create(userId, projectId, title, nextOrder, priority, urgent)
+                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder, priority, urgent);
         User user = entityManager.getReference(User.class, userId);
         ProjectEntity project = projectId == null
                 ? null

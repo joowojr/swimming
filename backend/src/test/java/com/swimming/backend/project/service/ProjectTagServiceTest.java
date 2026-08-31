@@ -17,6 +17,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,6 +34,9 @@ class ProjectTagServiceTest {
         projectTagRepository = mock(ProjectTagRepository.class);
         projectRepository = mock(ProjectRepository.class);
         projectTagService = new ProjectTagService(projectTagRepository, projectRepository);
+        when(projectTagRepository.saveAndFlush(any(ProjectTagEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(projectTagRepository.deleteOwnedTag(any(), any())).thenReturn(1);
     }
 
     @Test
@@ -90,63 +94,54 @@ class ProjectTagServiceTest {
     @DisplayName("사용자가 소유한 태그 이름을 변경한다")
     void updatesOwnedProjectTagName() {
         ProjectTagEntity entity = tagEntity(3L, "취준");
-        when(projectTagRepository.findByIdAndUserId(3L, 1L))
-                .thenReturn(java.util.Optional.of(entity));
-        when(projectTagRepository.saveAndFlush(entity)).thenReturn(entity);
+        when(projectTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(java.util.Optional.of(entity));
 
-        ProjectTag tag = entity.toDomain();
-        tag.rename(" 이직 ");
-
-        ProjectTag updated = projectTagService.update(tag);
+        ProjectTag updated = projectTagService.updateName(1L, 3L, " 이직 ");
 
         assertThat(updated.getName()).isEqualTo("이직");
-        verify(projectTagRepository).saveAndFlush(entity);
+        verify(projectTagRepository).findByIdAndUserId(3L, 1L);
+        verify(projectTagRepository).flush();
     }
 
     @Test
     @DisplayName("다른 태그와 같은 이름으로 변경할 수 없다")
-    void rejectsDuplicateProjectTagNameOnUpdate() {
-        ProjectTag tag = ProjectTag.restore(3L, 1L, "취준", null, null);
-        tag.rename("이직");
+    void rejectsDuplicateProjectTagNameOnUpdateName() {
+        ProjectTagEntity entity = tagEntity(3L, "취준");
+        when(projectTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(java.util.Optional.of(entity));
         when(projectTagRepository.existsByUserIdAndNameAndIdNot(1L, "이직", 3L))
                 .thenReturn(true);
 
-        assertThatThrownBy(() -> projectTagService.update(tag))
+        assertThatThrownBy(() -> projectTagService.updateName(1L, 3L, "이직"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.PROJECT_TAG_ALREADY_EXISTS));
-        verify(projectTagRepository, never()).saveAndFlush(any(ProjectTagEntity.class));
+        verify(projectTagRepository, never()).flush();
     }
 
     @Test
     @DisplayName("태그를 연결 프로젝트에서 해제한 뒤 삭제한다")
     void clearsTagFromProjectsBeforeDeletingIt() {
-        ProjectTagEntity entity = tagEntity(3L, "취준");
-        when(projectTagRepository.findByIdAndUserId(3L, 1L))
-                .thenReturn(java.util.Optional.of(entity));
-
         projectTagService.delete(1L, 3L);
 
         var inOrder = org.mockito.Mockito.inOrder(projectRepository, projectTagRepository);
         inOrder.verify(projectRepository).clearTagFromOwnedProjects(1L, 3L);
-        inOrder.verify(projectTagRepository).delete(entity);
-        inOrder.verify(projectTagRepository).flush();
+        inOrder.verify(projectTagRepository).deleteOwnedTag(3L, 1L);
+        verify(projectTagRepository, never()).findByIdAndUserId(3L, 1L);
     }
 
     @Test
     @DisplayName("다른 사용자의 태그는 수정하거나 삭제할 수 없다")
     void rejectsUnownedProjectTagChanges() {
-        when(projectTagRepository.findByIdAndUserId(3L, 2L))
-                .thenReturn(java.util.Optional.empty());
+        when(projectTagRepository.findByIdAndUserId(3L, 2L)).thenReturn(java.util.Optional.empty());
+        when(projectTagRepository.deleteOwnedTag(3L, 2L)).thenReturn(0);
 
-        ProjectTag tag = ProjectTag.restore(3L, 2L, "취준", null, null);
-        assertThatThrownBy(() -> projectTagService.update(tag))
+        assertThatThrownBy(() -> projectTagService.updateName(2L, 3L, "취준"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
         assertThatThrownBy(() -> projectTagService.delete(2L, 3L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
-        verify(projectRepository, never()).clearTagFromOwnedProjects(any(), any());
+        verify(projectRepository).clearTagFromOwnedProjects(2L, 3L);
     }
 
     private ProjectTagEntity tagEntity(Long id, String name) {

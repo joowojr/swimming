@@ -56,6 +56,10 @@ class TaskServiceTest {
                 });
         when(taskRepository.saveAndFlush(any(TaskEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(taskRepository.deleteAllOwnedByIds(any(), any())).thenAnswer(invocation ->
+                ((List<?>) invocation.getArgument(1)).size());
+        when(taskRepository.updateOwnedStatuses(any(), any(), any())).thenAnswer(invocation ->
+                ((List<?>) invocation.getArgument(1)).size());
     }
 
     @Test
@@ -173,20 +177,53 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("Task 제목과 상태를 수정한다")
-    void updatesTaskFields() {
+    @DisplayName("제목 수정 API는 소유 Entity의 제목만 변경 감지로 저장한다")
+    void updatesOnlyTaskTitle() {
         TaskEntity entity = taskEntity(1L, 10L, "기존 Task", 0);
         when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.of(entity));
 
-        Task task = entity.toDomain();
-        task.changeTitle(" 수정 Task ");
-        task.changeStatus(TaskStatus.HOLD);
-
-        Task result = taskService.update(1L, task);
+        Task result = taskService.updateTitle(1L, 1L, " 수정 Task ");
 
         assertThat(result.getTitle()).isEqualTo("수정 Task");
+        assertThat(result.getStatus()).isEqualTo(TaskStatus.TODO);
+        verify(taskRepository).findByIdAndUser_Id(1L, 1L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    @DisplayName("상태 수정 API는 소유 Entity의 상태만 변경 감지로 저장한다")
+    void updatesOnlyTaskStatus() {
+        TaskEntity entity = taskEntity(1L, 10L, "기존 Task", 0);
+        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.of(entity));
+
+        Task result = taskService.updateStatus(1L, 1L, TaskStatus.HOLD);
+
+        assertThat(result.getTitle()).isEqualTo("기존 Task");
         assertThat(result.getStatus()).isEqualTo(TaskStatus.HOLD);
-        verify(taskRepository).saveAndFlush(entity);
+        verify(taskRepository).findByIdAndUser_Id(1L, 1L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    @DisplayName("제목 수정 대상이 없으면 찾을 수 없음으로 처리한다")
+    void rejectsMissingTaskWhenUpdatingTitle() {
+        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> taskService.updateTitle(1L, 1L, "수정 Task"))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskRepository, org.mockito.Mockito.never()).flush();
+    }
+
+    @Test
+    @DisplayName("상태 수정 대상이 없으면 찾을 수 없음으로 처리한다")
+    void rejectsMissingTaskWhenUpdatingStatus() {
+        when(taskRepository.findByIdAndUser_Id(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> taskService.updateStatus(1L, 1L, TaskStatus.DONE))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+        verify(taskRepository, org.mockito.Mockito.never()).flush();
     }
 
     @Test
@@ -254,64 +291,50 @@ class TaskServiceTest {
     @Test
     @DisplayName("여러 Task를 ID 기준으로 배치 삭제한다")
     void deletesTasksInBatch() {
-        List<TaskEntity> tasks = List.of(
-                taskEntity(1L, 10L, "첫째", 0),
-                taskEntity(2L, 10L, "둘째", 1)
-        );
-        when(taskRepository.findAllOwnedEntitiesByIds(1L, List.of(1L, 2L)))
-                .thenReturn(tasks);
-
         taskService.deleteAll(1L, List.of(1L, 2L));
 
-        verify(taskRepository).deleteAllInBatch(tasks);
+        verify(taskRepository).deleteAllOwnedByIds(1L, List.of(1L, 2L));
     }
 
     @Test
     @DisplayName("삭제 대상에 다른 사용자의 Task가 있으면 삭제하지 않는다")
     void rejectsDeletingTasksNotOwnedByUser() {
-        when(taskRepository.findAllOwnedEntitiesByIds(1L, List.of(1L, 2L)))
-                .thenReturn(List.of(taskEntity(1L, 10L, "내 Task", 0)));
+        when(taskRepository.deleteAllOwnedByIds(1L, List.of(1L, 2L))).thenReturn(1);
 
         assertThatThrownBy(() -> taskService.deleteAll(1L, List.of(1L, 2L)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
 
-        verify(taskRepository, org.mockito.Mockito.never()).deleteAllInBatch(any());
+        verify(taskRepository).deleteAllOwnedByIds(1L, List.of(1L, 2L));
     }
 
     @Test
     @DisplayName("사용자가 소유한 여러 Task의 상태를 한 번에 변경한다")
     void updatesStatusesOfOwnedTasks() {
-        TaskEntity first = taskEntity(1L, 10L, "첫째", 0);
-        TaskEntity second = taskEntity(2L, 10L, "둘째", 1);
         Map<Long, TaskStatus> statusByTaskId = Map.of(
                 1L, TaskStatus.DONE,
                 2L, TaskStatus.DOING
         );
-        when(taskRepository.findAllOwnedEntitiesByIds(any(), any()))
-                .thenReturn(List.of(first, second));
-
         taskService.updateStatuses(1L, statusByTaskId);
 
-        assertThat(first.getStatus()).isEqualTo(TaskStatus.DONE);
-        assertThat(second.getStatus()).isEqualTo(TaskStatus.DOING);
+        verify(taskRepository).updateOwnedStatuses(1L, List.of(1L), TaskStatus.DONE);
+        verify(taskRepository).updateOwnedStatuses(1L, List.of(2L), TaskStatus.DOING);
     }
 
     @Test
     @DisplayName("상태를 변경할 Task 중 소유하지 않은 Task가 있으면 아무것도 변경하지 않는다")
     void rejectsStatusUpdateWhenAnyTaskIsNotOwned() {
-        TaskEntity owned = taskEntity(1L, 10L, "내 Task", 0);
         Map<Long, TaskStatus> statusByTaskId = Map.of(
                 1L, TaskStatus.DONE,
                 2L, TaskStatus.DOING
         );
-        when(taskRepository.findAllOwnedEntitiesByIds(any(), any()))
-                .thenReturn(List.of(owned));
+        org.mockito.Mockito.doReturn(0)
+                .when(taskRepository)
+                .updateOwnedStatuses(1L, List.of(2L), TaskStatus.DOING);
 
         assertThatThrownBy(() -> taskService.updateStatuses(1L, statusByTaskId))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        assertThat(owned.getStatus()).isEqualTo(TaskStatus.TODO);
     }
 
     private TaskEntity taskEntity(Long id, Long projectId, String title, int orderIdx) {

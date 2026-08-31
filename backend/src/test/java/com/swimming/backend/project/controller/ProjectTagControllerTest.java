@@ -84,7 +84,7 @@ class ProjectTagControllerTest {
     @DisplayName("프로젝트 태그 이름을 수정한다")
     void updatesProjectTag() throws Exception {
         ProjectTagNameRequest request = new ProjectTagNameRequest("이직");
-        when(projectTagUseCase.update(1L, 3L, request))
+        when(projectTagUseCase.updateName(1L, 3L, request))
                 .thenReturn(new ProjectTagResponse(3L, "이직"));
 
         mockMvc.perform(patch("/api/project-tags/3")

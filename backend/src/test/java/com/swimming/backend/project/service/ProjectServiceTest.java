@@ -142,16 +142,17 @@ class ProjectServiceTest {
         ProjectEntity entity = projectEntity(1L, "기존 프로젝트", LocalDate.of(2026, 8, 31), null);
         when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
-        Project project = entity.toDomain();
-        project.update(" 수정 프로젝트 ", " 수정 설명 ", null, ProjectStatus.IN_PROGRESS, null);
-
-        Project result = projectService.update(project);
+        Project result = projectService.update(
+                1L, 10L, null, " 수정 프로젝트 ", " 수정 설명 ", null,
+                ProjectStatus.IN_PROGRESS
+        );
 
         assertThat(result.getName()).isEqualTo("수정 프로젝트");
         assertThat(result.getDescription()).isEqualTo("수정 설명");
         assertThat(result.getTargetDate()).isNull();
         assertThat(result.getStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
-        verify(projectRepository).saveAndFlush(entity);
+        verify(projectRepository).findByIdAndUser_IdAndDeletedFalse(10L, 1L);
+        verify(projectRepository).flush();
     }
 
     @Test
@@ -161,10 +162,10 @@ class ProjectServiceTest {
         ProjectEntity entity = projectEntity(1L, "프로젝트", null, tag);
         when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
-        Project project = entity.toDomain();
-        project.update("프로젝트", "설명", null, ProjectStatus.IN_PROGRESS, null);
-
-        Project result = projectService.update(project);
+        Project result = projectService.update(
+                1L, 10L, null, "프로젝트", "설명", null,
+                ProjectStatus.IN_PROGRESS
+        );
 
         assertThat(result.getTag()).isNull();
     }
@@ -175,10 +176,10 @@ class ProjectServiceTest {
         ProjectEntity entity = projectEntity(1L, "프로젝트", null, null);
         when(projectRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
-        Project project = entity.toDomain();
-        project.update("프로젝트", "설명", null, ProjectStatus.ARCHIVED, null);
-
-        Project result = projectService.update(project);
+        Project result = projectService.update(
+                1L, 10L, null, "프로젝트", "설명", null,
+                ProjectStatus.ARCHIVED
+        );
 
         assertThat(result.getStatus()).isEqualTo(ProjectStatus.ARCHIVED);
         verify(projectRepository, never()).delete(any(ProjectEntity.class));
@@ -203,7 +204,8 @@ class ProjectServiceTest {
         projectService.delete(1L, 10L);
 
         assertThat(entity.isDeleted()).isTrue();
-        verify(projectRepository).saveAndFlush(entity);
+        verify(projectRepository).findByIdAndUser_IdAndDeletedFalse(10L, 1L);
+        verify(projectRepository).flush();
         verify(projectRepository, never()).delete(entity);
     }
 

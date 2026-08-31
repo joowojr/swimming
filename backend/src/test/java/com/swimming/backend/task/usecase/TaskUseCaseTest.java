@@ -105,41 +105,43 @@ class TaskUseCaseTest {
     void updatesOnlyTitleAfterOwnershipCheck() {
         Task task = task(1L, 10L, "기존", 0);
         task.changeStatus(TaskStatus.DOING);
-        when(taskService.getOne(1L, 1L)).thenReturn(task);
-        when(taskService.update(1L, task)).thenReturn(task);
+        task.changeTitle("수정");
+        when(taskService.updateTitle(1L, 1L, "  수정  ")).thenReturn(task);
 
         TaskResponse response = taskUseCase.updateTitle(
                 1L, 1L, new UpdateTaskTitleRequest("  수정  "));
 
         assertThat(response.title()).isEqualTo("수정");
         assertThat(response.status()).isEqualTo(TaskStatus.DOING);
+        verify(taskService).updateTitle(1L, 1L, "  수정  ");
     }
 
     @Test
     @DisplayName("상태 수정은 제목을 건드리지 않는다")
     void updatesOnlyStatusAfterOwnershipCheck() {
         Task task = task(1L, 10L, "기존", 0);
-        when(taskService.getOne(1L, 1L)).thenReturn(task);
-        when(taskService.update(1L, task)).thenReturn(task);
+        task.changeStatus(TaskStatus.DONE);
+        when(taskService.updateStatus(1L, 1L, TaskStatus.DONE)).thenReturn(task);
 
         TaskResponse response = taskUseCase.updateStatus(
                 1L, 1L, new UpdateTaskStatusRequest(TaskStatus.DONE));
 
         assertThat(response.title()).isEqualTo("기존");
         assertThat(response.status()).isEqualTo(TaskStatus.DONE);
+        verify(taskService).updateStatus(1L, 1L, TaskStatus.DONE);
     }
 
     @Test
     @DisplayName("다른 사용자의 Task는 찾을 수 없음으로 처리한다")
     void hidesAnotherUsersTask() {
-        when(taskService.getOne(2L, 1L))
+        when(taskService.updateTitle(2L, 1L, "수정"))
                 .thenThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND));
 
         assertThatThrownBy(() -> taskUseCase.updateTitle(
                 2L, 1L, new UpdateTaskTitleRequest("수정")))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-        verify(taskService).getOne(2L, 1L);
+        verify(taskService).updateTitle(2L, 1L, "수정");
     }
 
     @Test

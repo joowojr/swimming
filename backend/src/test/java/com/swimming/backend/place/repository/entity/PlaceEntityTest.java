@@ -13,8 +13,10 @@ class PlaceEntityTest {
     @Test
     @DisplayName("공간 엔티티는 시간 공통 필드를 상속하고 도메인으로 변환된다")
     void convertsToDomain() {
+        CityEntity city = CityEntity.create("Lisbon", "PT", "Europe/Lisbon");
+        ReflectionTestUtils.setField(city, "id", 1L);
         PlaceEntity entity = PlaceEntity.create(
-                1L,
+                city,
                 "Alfama Cafe",
                 BackgroundAssetType.VIDEO,
                 "https://cdn.example.com/alfama.webm",
@@ -27,6 +29,7 @@ class PlaceEntityTest {
         assertThat(entity).isInstanceOf(BaseTimeEntity.class);
         assertThat(place.getId()).isEqualTo(11L);
         assertThat(place.getCityId()).isEqualTo(1L);
+        assertThat(place.getCity().getName()).isEqualTo("Lisbon");
         assertThat(place.getBackgroundAssetType()).isEqualTo(BackgroundAssetType.VIDEO);
     }
 }

@@ -37,18 +37,18 @@ function isApiError(error: unknown): error is ApiError {
   return typeof error === 'object' && error !== null
 }
 
-function getTaskMeta(status: TaskStatus, sessionCount: number) {
-  if (status === 'DOING') return `${sessionCount}회 세션을 진행했어요`
-  if (status === 'TODO') return '언제든 편할 때 시작해요'
-  if (status === 'DONE') return '완료했습니다'
-  if (status === 'HOLD') return '편할 때 다시 시작해요'
-  return '집중을 이어가고 있어요'
-}
+// function getTaskMeta(status: TaskStatus, sessionCount: number) {
+//   if (status === 'DOING') return `${sessionCount}회 세션을 진행했어요`
+//   if (status === 'TODO') return '언제든 편할 때 시작해요'
+//   if (status === 'DONE') return '완료했습니다'
+//   if (status === 'HOLD') return '편할 때 다시 시작해요'
+//   return '집중을 이어가고 있어요'
+// }
 
 export default function TaskList({
   tasks,
   emptyTitle = '등록된 할 일이 없어요.',
-  emptyDescription = 'task가 추가되면 진행 순서대로 이곳에 표시됩니다.',
+  emptyDescription = '할 일이 추가되면 진행 순서대로 이곳에 표시됩니다.',
   connected = false,
   isDeleteMode = false,
   selectedTaskIds = new Set<number>(),
@@ -224,9 +224,9 @@ export default function TaskList({
                     ))}
                   </select>
                 </div>
-                <p className={styles.meta}>
-                  {getMetaText?.(task) ?? getTaskMeta(task.status, MOCK_SESSION_COUNT)}
-                </p>
+                {/*<p className={styles.meta}>*/}
+                {/*  {getMetaText?.(task) ?? getTaskMeta(task.status, MOCK_SESSION_COUNT)}*/}
+                {/*</p>*/}
                 {updateError?.taskId === task.id && (
                     <p className={styles.error} role="alert">{updateError.message}</p>
                 )}

@@ -1,8 +1,8 @@
 import { client } from '../../api/client'
-import type { AuthResponse, LoginRequest, RefreshResponse } from './authTypes'
+import type { AuthResponse, GoogleLoginRequest, RefreshResponse } from './authTypes'
 
-export async function login(request: LoginRequest): Promise<AuthResponse> {
-  const response = await client.post<AuthResponse>('/auth/login', request)
+export async function loginWithGoogle(request: GoogleLoginRequest): Promise<AuthResponse> {
+  const response = await client.post<AuthResponse>('/auth/google', request)
   return response.data
 }
 

@@ -105,6 +105,11 @@ function App() {
     setIsCreateModalOpen(false)
   }
 
+  const handleLogout = async () => {
+    await authActions.logout()
+    setGuestView('login')
+  }
+
   if (auth.status === 'authenticated' && location.pathname.startsWith('/sessions/')) {
     return (
       <Routes>
@@ -124,7 +129,7 @@ function App() {
         <LoginPage />
       ) : auth.status === 'authenticated' ? (
         <Routes>
-          <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
+          <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
           <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
             path="/tasks"

@@ -183,7 +183,7 @@
 | DailyPlan | id, userId, planDate | 1-N DailyPlanItem |
 | DailyPlanItem | id, dailyPlanId, taskId, orderIdx | N-1 Task |
 | Session | id, userId, type(personal/group), taskId, cityId, plannedDuration, actualDuration, startAt, endAt, groupRoomId(nullable), status, summary | 1-N SessionTask |
-| SessionTask | sessionId, taskId, isCompleted(nullable), orderIdx | N-1 Session, N-1 Task |
+| SessionTask | sessionId, taskId, isCompleted(nullable), createdAt, updatedAt | N-1 Session, N-1 Task |
 | GroupRoom | id, cityId, startAt, durationMin, capacity, hostType(auto/host), status | 1-N GroupParticipant |
 | GroupParticipant | id, roomId, userId, taskId(nullable), adHocGoal(nullable), goalVisibility(public/private), joinedAt | N-1 GroupRoom |
 | City | id, name, backgroundAssetUrl, defaultMusicRef | 1-N Session |
@@ -191,7 +191,7 @@
 
 측정은 Session(actualDuration)과 SessionTask(isCompleted)에서 파생한다.
 
-- 세션 종료 시 전달된 Task 결과는 `SessionTask.isCompleted`에 보존하고 현재 `Task.status`에도 반영한다.
+- 세션 종료 시 완료한 Task는 `SessionTask.isCompleted=true`로 보존하고, 미완료 Task는 `null`을 유지한다. 현재 `Task.status`에는 완료 여부를 반영한다.
 - 실제 진행 시간이 계획 시간보다 짧으면 부분 기록인 `INTERRUPTED`, 계획 시간을 채우면 `COMPLETED`로 기록한다. 두 상태 모두 세션 이력과 Task 결과를 보존한다.
 
 ---

@@ -84,10 +84,10 @@ CREATE TABLE `sessions` (
 CREATE TABLE `session_tasks` (
   `session_id` bigint NOT NULL,
   `task_id` bigint NOT NULL,
-  `order_idx` int NOT NULL,
   `is_completed` boolean,
-  PRIMARY KEY (`session_id`, `order_idx`),
-  UNIQUE (`session_id`, `task_id`)
+  `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  PRIMARY KEY (`session_id`, `task_id`)
 );
 
 CREATE TABLE `notes` (
@@ -171,7 +171,9 @@ ALTER TABLE `tasks` ADD FOREIGN KEY (`source_note_id`) REFERENCES `notes` (`id`)
 
 ALTER TABLE `daily_plan_items` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
-ALTER TABLE `daily_plan_items` ADD FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
+ALTER TABLE `daily_plan_items`
+  ADD CONSTRAINT `daily_plan_items_task_fk`
+  FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `group_rooms` ADD FOREIGN KEY (`place_id`) REFERENCES `places` (`id`);
 

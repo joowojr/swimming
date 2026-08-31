@@ -7,6 +7,9 @@ import com.swimming.backend.session.domain.SessionStatus;
 import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
 import com.swimming.backend.session.repository.SessionRepository;
+import com.swimming.backend.session.repository.SessionTaskRepository;
+import com.swimming.backend.session.dto.projection.SessionListRow;
+import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.session.repository.entity.SessionEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,18 +33,23 @@ class SessionServiceTest {
     private static final Instant STARTED_AT = Instant.parse("2026-08-20T00:00:00Z");
 
     private SessionRepository sessionRepository;
+    private SessionTaskRepository sessionTaskRepository;
     private SessionService sessionService;
 
     @BeforeEach
     void setUp() {
         sessionRepository = mock(SessionRepository.class);
-        sessionService = new SessionService(sessionRepository);
+        sessionTaskRepository = mock(SessionTaskRepository.class);
+        sessionService = new SessionService(
+                sessionRepository,
+                sessionTaskRepository
+        );
     }
 
     @Test
     @DisplayName("진행 중인 세션이 없으면 도메인을 엔티티로 변환해 저장한다")
     void savesNewPersonalSession() {
-        Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
+        Session session = Session.createPersonal(1L, 20L, List.of(10L, 11L), 1500);
         when(sessionRepository.saveAndFlush(any(SessionEntity.class)))
                 .thenAnswer(invocation -> {
                     SessionEntity entity = invocation.getArgument(0);
@@ -62,7 +70,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("활성 사용자 제약이 충돌하면 진행 세션 오류로 변환한다")
     void translatesConcurrentStartConflict() {
-        Session session = Session.startPersonal(1L, 20L, List.of(10L, 11L), 1500);
+        Session session = Session.createPersonal(1L, 20L, List.of(10L, 11L), 1500);
         when(sessionRepository.saveAndFlush(any(SessionEntity.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate active user"));
 
@@ -100,30 +108,84 @@ class SessionServiceTest {
     @Test
     @DisplayName("사용자의 세션을 최신 시작 시각 순서로 조회한다")
     void getsOwnedSessionsInLatestOrder() {
-        SessionEntity entity = startedEntity();
-        when(sessionRepository.findAllByUserIdOrderByStartedAtDesc(1L))
-                .thenReturn(List.of(entity));
+        when(sessionRepository.findListRows(1L)).thenReturn(List.of(sessionListRow(10L)));
 
-        assertThat(sessionService.getOwnedSessions(1L))
-                .extracting(Session::getId)
+        assertThat(sessionService.getOwnedSessionsWithPlaces(1L))
+                .extracting(item -> item.session().getId())
                 .containsExactly(5L);
     }
 
     @Test
-    @DisplayName("수정된 도메인을 기존 엔티티에 적용해 저장한다")
-    void appliesAndSavesExistingSession() {
+    @DisplayName("소유 세션을 조회해 종료 상태는 변경 감지하고 Task 결과는 일괄 저장한다")
+    void savesEndedSessionStateAndTaskResults() {
         SessionEntity entity = startedEntity();
-        Session session = entity.toDomain();
-        session.end(STARTED_AT.plusSeconds(600), null, java.util.Map.of());
         when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
-        when(sessionRepository.saveAndFlush(entity)).thenReturn(entity);
+        when(sessionTaskRepository.completeAll(5L, List.of(10L))).thenReturn(1);
 
-        Session saved = sessionService.update(session);
+        Session saved = sessionService.end(
+                1L,
+                5L,
+                STARTED_AT.plusSeconds(600),
+                false,
+                null,
+                List.of(10L)
+        );
 
         assertThat(saved.getActualDurationSec()).isEqualTo(600);
         assertThat(saved.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
+        assertThat(entity.getStatus()).isEqualTo(SessionStatus.INTERRUPTED);
         assertThat(entity.getActiveUserId()).isNull();
-        verify(sessionRepository).saveAndFlush(entity);
+        verify(sessionRepository).findByIdAndUserId(5L, 1L);
+        verify(sessionTaskRepository).completeAll(5L, List.of(10L));
+    }
+
+    @Test
+    @DisplayName("완료한 Task가 없으면 완료 처리 JPQL을 실행하지 않는다")
+    void skipsCompletionUpdateWithoutCompletedTasks() {
+        SessionEntity entity = startedEntity();
+        when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
+
+        sessionService.end(
+                1L,
+                5L,
+                STARTED_AT.plusSeconds(600),
+                false,
+                null,
+                List.of()
+        );
+
+        verify(sessionTaskRepository, org.mockito.Mockito.never())
+                .completeAll(any(), any());
+    }
+
+    @Test
+    @DisplayName("음악 URL API는 소유 Entity의 음악 URL만 변경 감지로 저장한다")
+    void updatesOnlyMusicUrl() {
+        SessionEntity entity = startedEntity();
+        when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
+
+        sessionService.updateMusicUrl(1L, 5L, "https://youtu.be/example");
+
+        assertThat(entity.getMusicUrl()).isEqualTo("https://youtu.be/example");
+        assertThat(entity.getPlannedDurationSec()).isEqualTo(1500);
+        verify(sessionRepository).flush();
+        verify(sessionTaskRepository, org.mockito.Mockito.never())
+                .completeAll(any(), any());
+    }
+
+    @Test
+    @DisplayName("계획 시간 API는 소유 Entity의 계획 시간만 변경 감지로 저장한다")
+    void updatesOnlyPlannedDuration() {
+        SessionEntity entity = startedEntity();
+        when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
+
+        sessionService.updatePlannedDuration(1L, 5L, 1800);
+
+        assertThat(entity.getPlannedDurationSec()).isEqualTo(1800);
+        assertThat(entity.getMusicUrl()).isNull();
+        verify(sessionRepository).flush();
+        verify(sessionTaskRepository, org.mockito.Mockito.never())
+                .completeAll(any(), any());
     }
 
     @Test
@@ -155,5 +217,14 @@ class SessionServiceTest {
         SessionEntity entity = SessionEntity.from(session);
         ReflectionTestUtils.setField(entity, "id", 5L);
         return entity;
+    }
+
+    private SessionListRow sessionListRow(Long taskId) {
+        return new SessionListRow(
+                5L, 1L, SessionType.PERSONAL, 20L, taskId, null, null,
+                1500, null, STARTED_AT, null, SessionStatus.IN_PROGRESS, null,
+                3L, "Lisbon", "PT", "Europe/Lisbon", "Alfama Cafe", BackgroundAssetType.VIDEO,
+                "places/video/alfama.mp4", null
+        );
     }
 }

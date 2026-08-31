@@ -2,12 +2,13 @@ package com.swimming.backend.session.domain;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
 
 @Getter
 public class Session {
@@ -25,6 +26,7 @@ public class Session {
     private SessionStatus status;
     private String summary;
 
+    @Builder
     private Session(
             Long id,
             Long userId,
@@ -53,26 +55,20 @@ public class Session {
         this.summary = summary;
     }
 
-    public static Session startPersonal(
+    public static Session createPersonal(
             Long userId,
             Long placeId,
             List<Long> taskIds,
             int plannedDurationSec
     ) {
-        return new Session(
-                null,
-                userId,
-                SessionType.PERSONAL,
-                placeId,
-                taskIds.stream().map(SessionTask::of).toList(),
-                null,
-                plannedDurationSec,
-                null,
-                null,
-                null,
-                SessionStatus.IN_PROGRESS,
-                null
-        );
+        return Session.builder()
+                .userId(userId)
+                .type(SessionType.PERSONAL)
+                .placeId(placeId)
+                .tasks(taskIds.stream().map(SessionTask::of).toList())
+                .plannedDurationSec(plannedDurationSec)
+                .status(SessionStatus.IN_PROGRESS)
+                .build();
     }
 
     public static Session restore(
@@ -89,20 +85,20 @@ public class Session {
             SessionStatus status,
             String summary
     ) {
-        return new Session(
-                id,
-                userId,
-                type,
-                placeId,
-                tasks,
-                musicUrl,
-                plannedDurationSec,
-                actualDurationSec,
-                startedAt,
-                endedAt,
-                status,
-                summary
-        );
+        return Session.builder()
+                .id(id)
+                .userId(userId)
+                .type(type)
+                .placeId(placeId)
+                .tasks(tasks)
+                .musicUrl(musicUrl)
+                .plannedDurationSec(plannedDurationSec)
+                .actualDurationSec(actualDurationSec)
+                .startedAt(startedAt)
+                .endedAt(endedAt)
+                .status(status)
+                .summary(summary)
+                .build();
     }
 
     public List<Long> getTaskIds() {
@@ -112,7 +108,7 @@ public class Session {
     public void end(
             Instant endTime,
             String summary,
-            Map<Long, Boolean> completionByTaskId
+            List<Long> completedTaskIds
     ) {
         if (status != SessionStatus.IN_PROGRESS) {
             throw new BusinessException(ErrorCode.SESSION_ALREADY_ENDED);
@@ -125,9 +121,10 @@ public class Session {
         status = elapsedSeconds >= plannedDurationSec
                 ? SessionStatus.COMPLETED
                 : SessionStatus.INTERRUPTED;
+        var completedTaskIdSet = new HashSet<>(completedTaskIds);
         tasks = tasks.stream()
-                .map(task -> completionByTaskId.containsKey(task.taskId())
-                        ? task.recordCompletion(completionByTaskId.get(task.taskId()))
+                .map(task -> completedTaskIdSet.contains(task.taskId())
+                        ? task.recordCompletion(true)
                         : task)
                 .toList();
         this.summary = summary;

@@ -3,21 +3,8 @@ package com.swimming.backend.session.repository.entity;
 import com.swimming.backend.common.entity.BaseTimeEntity;
 import com.swimming.backend.session.domain.Session;
 import com.swimming.backend.session.domain.SessionStatus;
-import com.swimming.backend.session.domain.SessionTask;
 import com.swimming.backend.session.domain.SessionType;
-import jakarta.persistence.Column;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OrderColumn;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,13 +45,9 @@ public class SessionEntity extends BaseTimeEntity {
     @Column(name = "place_id", nullable = false)
     private Long placeId;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "session_tasks",
-            joinColumns = @JoinColumn(name = "session_id")
-    )
-    @OrderColumn(name = "order_idx")
-    private List<SessionTaskEmbeddable> tasks = new ArrayList<>();
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id.taskId ASC")
+    private List<SessionTaskEntity> tasks = new ArrayList<>();
 
     @Column(name = "music_url", length = 2048)
     private String musicUrl;
@@ -97,7 +80,7 @@ public class SessionEntity extends BaseTimeEntity {
                 : null;
         this.type = session.getType();
         this.placeId = session.getPlaceId();
-        session.getTasks().forEach(task -> this.tasks.add(SessionTaskEmbeddable.from(task)));
+        session.getTasks().forEach(task -> this.tasks.add(SessionTaskEntity.from(this, task)));
         this.musicUrl = session.getMusicUrl();
         this.plannedDurationSec = session.getPlannedDurationSec();
         this.actualDurationSec = session.getActualDurationSec();
@@ -111,24 +94,20 @@ public class SessionEntity extends BaseTimeEntity {
         return new SessionEntity(session);
     }
 
-    public void apply(Session session) {
-        synchronizeTasks(session.getTasks());
-        applySessionState(session);
+    public void end(Session session) {
+        this.activeUserId = null;
+        this.actualDurationSec = session.getActualDurationSec();
+        this.endedAt = session.getEndedAt();
+        this.status = session.getStatus();
+        this.summary = session.getSummary();
     }
 
-    private void synchronizeTasks(List<SessionTask> sessionTasks) {
-        tasks.clear();
-        sessionTasks.forEach(task -> tasks.add(SessionTaskEmbeddable.from(task)));
+    public void updateMusicUrl(String musicUrl) {
+        this.musicUrl = musicUrl;
     }
 
-    private void applySessionState(Session session) {
-        plannedDurationSec = session.getPlannedDurationSec();
-        actualDurationSec = session.getActualDurationSec();
-        endedAt = session.getEndedAt();
-        status = session.getStatus();
-        musicUrl = session.getMusicUrl();
-        activeUserId = status == SessionStatus.IN_PROGRESS ? userId : null;
-        summary = session.getSummary();
+    public void updatePlannedDuration(int plannedDurationSec) {
+        this.plannedDurationSec = plannedDurationSec;
     }
 
     public Session toDomain() {
@@ -137,7 +116,7 @@ public class SessionEntity extends BaseTimeEntity {
                 userId,
                 type,
                 placeId,
-                tasks.stream().map(SessionTaskEmbeddable::toDomain).toList(),
+                tasks.stream().map(SessionTaskEntity::toDomain).toList(),
                 musicUrl,
                 plannedDurationSec,
                 actualDurationSec,

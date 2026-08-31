@@ -68,7 +68,7 @@ erDiagram
         bigint id PK
         bigint user_id FK
         date plan_date
-        bigint task_id FK
+        bigint task_id FK "ON DELETE CASCADE"
         int order_idx
         timestamp created_at
         timestamp updated_at
@@ -94,9 +94,10 @@ erDiagram
 
     session_tasks {
         bigint session_id PK,FK
-        bigint task_id FK
-        int order_idx PK
+        bigint task_id PK,FK
         boolean is_completed "nullable; 종료 전 또는 미기록"
+        timestamp created_at
+        timestamp updated_at
     }
 
     notes {

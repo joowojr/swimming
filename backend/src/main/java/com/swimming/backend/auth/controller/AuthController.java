@@ -1,7 +1,7 @@
 package com.swimming.backend.auth.controller;
 
 import com.swimming.backend.auth.dto.AuthResponse;
-import com.swimming.backend.auth.dto.LoginRequest;
+import com.swimming.backend.auth.dto.GoogleLoginRequest;
 import com.swimming.backend.auth.dto.LoginResult;
 import com.swimming.backend.auth.dto.RefreshResponse;
 import com.swimming.backend.auth.dto.RefreshResult;
@@ -23,9 +23,9 @@ public class AuthController {
 
     private final AuthUseCase authUseCase;
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResult result = authUseCase.login(request);
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        LoginResult result = authUseCase.loginWithGoogle(request.credential());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.refreshCookie())
                 .body(result.response());

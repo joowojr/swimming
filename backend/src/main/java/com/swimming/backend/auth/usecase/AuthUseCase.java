@@ -3,18 +3,18 @@ package com.swimming.backend.auth.usecase;
 import com.swimming.backend.auth.config.AuthProperties;
 import com.swimming.backend.auth.config.JwtProperties;
 import com.swimming.backend.auth.dto.AuthResponse;
-import com.swimming.backend.auth.dto.LoginRequest;
 import com.swimming.backend.auth.dto.LoginResult;
 import com.swimming.backend.auth.dto.RefreshResponse;
 import com.swimming.backend.auth.dto.RefreshResult;
 import com.swimming.backend.auth.service.JwtTokenService;
+import com.swimming.backend.auth.service.GoogleIdTokenService;
+import com.swimming.backend.auth.service.GoogleIdentity;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.user.dto.UserAuthInfo;
 import com.swimming.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
@@ -27,19 +27,18 @@ public class AuthUseCase {
     public static final String REFRESH_COOKIE_NAME = "refreshToken";
 
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
+    private final GoogleIdTokenService googleIdTokenService;
     private final JwtTokenService jwtTokenService;
     private final AuthProperties authProperties;
     private final JwtProperties jwtProperties;
 
-    public LoginResult login(LoginRequest request) {
-        UserAuthInfo user = userService.getAuthInfoByEmail(request.email())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
-
-        if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
-            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-        }
-
+    public LoginResult loginWithGoogle(String credential) {
+        GoogleIdentity identity = googleIdTokenService.verify(credential);
+        UserAuthInfo user = userService.findOrCreateGoogleUser(
+                identity.subject(),
+                identity.email(),
+                identity.nickname()
+        );
         JwtTokenService.TokenPair tokenPair = jwtTokenService.issue(user.id(), user.email());
         AuthResponse.User responseUser = toResponseUser(user);
         return new LoginResult(

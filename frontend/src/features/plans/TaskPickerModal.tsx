@@ -315,7 +315,7 @@ export default function TaskPickerModal({
               ) : !taskProjectId ? (
                 <p className={styles.state}>폴더를 선택하면 할 일을 확인할 수 있습니다.</p>
               ) : !activeProject || activeProject.tasks.length === 0 ? (
-                <p className={styles.state}>이 폴더에는 선택할 Task가 없습니다.</p>
+                <p className={styles.state}>이 폴더에는 선택할 할 일이 없습니다.</p>
               ) : (
                 <div className={styles.group}>
                   <ul>

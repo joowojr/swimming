@@ -120,6 +120,7 @@
     --layout-margin-mobile: 1rem;
     --layout-margin-desktop: 5rem;
     --layout-container-max: 80rem;
+    --layout-page-padding-inline: var(--space-16);
 
     /* Shape */
     --radius-sm: 0.5rem;
@@ -161,6 +162,7 @@
 @media (max-width: 48rem) {
     :root {
         --text-display: var(--text-headline-xl-mobile-size);
+        --layout-page-padding-inline: var(--space-6);
     }
 }
 

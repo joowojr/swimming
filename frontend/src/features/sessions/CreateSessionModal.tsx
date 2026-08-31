@@ -203,7 +203,7 @@ export default function CreateSessionModal({
               <legend>무엇을 할까요</legend>
               <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
               {linkedTasks.length === 0 ? (
-                <p className={styles.empty}>오늘 계획에 담긴 Task가 없습니다.</p>
+                <p className={styles.empty}>오늘 계획에 포함된 할 일이 없습니다.</p>
               ) : (
                 <ul className={styles['task-list']}>
                   {linkedTasks.map((task) => (

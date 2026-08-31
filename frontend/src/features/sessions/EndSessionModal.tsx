@@ -173,7 +173,7 @@ export default function EndSessionModal({
                                 }))}
                                 selectedIds={completedTaskIds}
                                 name="completed-session-task"
-                                emptyMessage="이 세션에 연결된 Task가 없습니다."
+                                emptyMessage="이 세션에 연결된 할 일이 없습니다."
                                 disabled={isSubmitting}
                                 onToggle={toggleTask}
                             />

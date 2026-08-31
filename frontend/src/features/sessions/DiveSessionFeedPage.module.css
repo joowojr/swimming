@@ -2,9 +2,8 @@
  * pre-emit critique: P4 H5 E4 S5 R5 V4 · contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
  */
 .page {
-    width: min(100%, 80rem);
-    margin: 0 auto;
-    padding: var(--space-16) var(--layout-gutter);
+    min-height: calc(100svh - 3.5rem);
+    padding: var(--space-8) var(--layout-page-padding-inline);
     color: var(--color-primary);
 }
 
@@ -289,7 +288,7 @@
 
 @media (max-width: 48rem) {
     .page {
-        padding: var(--space-8) var(--layout-margin-mobile) var(--space-12);
+        padding: var(--space-8) var(--layout-page-padding-inline);
     }
 
     .header {

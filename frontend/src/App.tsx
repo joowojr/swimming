@@ -114,7 +114,7 @@ function App() {
     return (
       <Routes>
         <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
-        <Route path="*" element={<Navigate to="/tasks" replace />} />
+        <Route path="*" element={<Navigate to="/folders" replace />} />
       </Routes>
     )
   }
@@ -132,7 +132,7 @@ function App() {
           <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
           <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
-            path="/tasks"
+            path="/folders"
             element={(
               <>
                 <ProjectListPage
@@ -176,10 +176,10 @@ function App() {
             )}
           />
           <Route
-            path="/tasks/folders/:projectId"
+            path="/folders/:projectId"
             element={<ProjectDetailRoute onDeleted={removeProject} />}
           />
-          <Route path="*" element={<Navigate to="/tasks" replace />} />
+          <Route path="*" element={<Navigate to="/folders" replace />} />
         </Routes>
       ) : (
         <section className={styles['home-overview']} aria-live="polite">

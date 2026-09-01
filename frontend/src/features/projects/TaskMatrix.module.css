@@ -109,11 +109,12 @@
   overflow: hidden;
   border-radius: var(--radius-md);
   opacity: 0.7;
+  outline: none;
+  box-shadow: none;
 }
 
 .dropTarget {
-  outline: var(--focus-ring-width) solid var(--color-primary);
-  outline-offset: var(--space-1);
+  outline: none;
 }
 
 .check {

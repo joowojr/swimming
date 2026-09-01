@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
+import { IconCheck, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import AddItemButton from '../../components/AddItemButton'
@@ -12,7 +12,7 @@ import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskPickerModal from '../plans/TaskPickerModal'
 import type { Project } from './projectTypes'
 import { createTaskWithOptionalPlan } from '../tasks/taskApi'
-import { getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
+import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskMatrixItem, TaskMatrixSection, TaskResponse, TaskStatus } from '../tasks/taskTypes'
 import styles from './TaskMatrix.module.css'
@@ -57,8 +57,22 @@ const matrixSections: MatrixSection[] = [
 
 const initialSectionState = (): SectionState => ({ items: [], nextCursor: null, hasNext: true, status: 'loading' })
 
+function autoScrollDuringDrag(container: HTMLElement, clientY: number) {
+  const bounds = container.getBoundingClientRect()
+  const edgeSize = 56
+  if (clientY < bounds.top + edgeSize) {
+    container.scrollBy({ top: -16 })
+  } else if (clientY > bounds.bottom - edgeSize) {
+    container.scrollBy({ top: 16 })
+  }
+}
+
 export default function TaskMatrix({ projects }: { projects: Project[] }) {
   const navigate = useNavigate()
+  const folderNameById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project.name])),
+    [projects],
+  )
   const [sections, setSections] = useState<Record<string, SectionState>>(
     () => Object.fromEntries(matrixSections.map((section) => [section.id, initialSectionState()])),
   )
@@ -83,6 +97,7 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
     loadingSections.current.add(section.id)
     setSections((value) => ({ ...value, [section.id]: { ...value[section.id], status: 'loading' } }))
     try {
+      if (!reset) await new Promise((resolve) => window.setTimeout(resolve, 400))
       const page = await getTaskMatrixPage(section.apiSection, {
         cursor: reset ? null : current.nextCursor,
         signal,
@@ -140,6 +155,23 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
         taskId: task.id,
         message: apiMessage ?? 'Task 상태를 변경하지 못했습니다. 다시 시도해 주세요.',
       })
+    } finally {
+      setPendingTaskId(null)
+    }
+  }
+
+  const deleteTask = async (task: TaskResponse) => {
+    setPendingTaskId(task.id)
+    setUpdateError(null)
+    try {
+      await deleteTasks({ taskIds: [task.id] })
+      setSections((current) => Object.fromEntries(Object.entries(current).map(([key, section]) => [
+        key,
+        { ...section, items: section.items.filter((item) => item.id !== task.id) },
+      ])))
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+      setUpdateError({ taskId: task.id, message: apiMessage ?? 'Task를 삭제하지 못했습니다.' })
     } finally {
       setPendingTaskId(null)
     }
@@ -257,6 +289,7 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                 if (!dragState) return
                 event.preventDefault()
                 event.dataTransfer.dropEffect = 'move'
+                autoScrollDuringDrag(event.currentTarget, event.clientY)
                 setDropTarget((current) => current?.sectionId === section.id && current.taskId === null
                   ? current : { sectionId: section.id, taskId: null })
               }}
@@ -315,6 +348,8 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                           event.preventDefault()
                           event.stopPropagation()
                           event.dataTransfer.dropEffect = 'move'
+                          const container = event.currentTarget.closest(`.${styles.quadrant}`)
+                          if (container instanceof HTMLElement) autoScrollDuringDrag(container, event.clientY)
                           event.currentTarget.dataset.dropPosition = event.clientY < event.currentTarget.getBoundingClientRect().top + event.currentTarget.offsetHeight / 2 ? 'before' : 'after'
                           setDropTarget({ sectionId: section.id, taskId: task.id })
                         }}
@@ -353,6 +388,7 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                               )}
                             </div>
                           )}
+                          description={task.projectId === null ? undefined : folderNameById.get(task.projectId) ?? '폴더'}
                           actions={(
                             <>
                               <select
@@ -379,12 +415,11 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                                 </button>
                                 <button
                                   type="button"
-                                  disabled
-                                  title="폴더 이동 · 준비 중"
-                                  aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
+                                  disabled={isPending}
+                                  onClick={() => void deleteTask(task)}
                                 >
-                                  <IconFolder size={15} aria-hidden="true"/>
-                                  이동하기
+                                  <IconTrash size={15} aria-hidden="true"/>
+                                  삭제하기
                                 </button>
                               </TaskMenu>
                             </>
@@ -399,6 +434,11 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                 <button type="button" className={styles.loadMore} onClick={() => void loadSection(section)}>
                   더 불러오기
                 </button>
+              )}
+              {section.sectionState.status === 'loading' && section.tasks.length > 0 && (
+                <div className={styles.sectionLoading} role="status" aria-label="추가 목록을 불러오는 중">
+                  <IconLoader2 className={styles.spinner} size={16} aria-hidden="true" />
+                </div>
               )}
             </section>
           ))}

@@ -54,6 +54,7 @@ export default function TaskList({
   isDeleting = false,
   onTaskSelectionChange,
   onTaskUpdated,
+  getMetaText,
 }: TaskListProps) {
   const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
@@ -195,9 +196,10 @@ export default function TaskList({
                     {task.status === 'DOING' ? <span className={styles['check-core']}/> : null}
                   </span>
                 )}
-                title={(
-                  <div className={styles.content}>
-                    <h3>
+                description={task.projectId != null && getMetaText ? getMetaText(task) : undefined}
+                        title={(
+                          <div className={styles.content}>
+                            <h3>
                       <InlineEditableText
                         className={[
                           styles['task-title'],
@@ -211,7 +213,7 @@ export default function TaskList({
                         disabled={isPending || isDeleteMode}
                         onSave={(title) => changeTaskTitle(task, title)}
                         getErrorMessage={getTaskTitleError}
-                      />
+                  />
                     </h3>
                     {updateError?.taskId === task.id && (
                       <p className={styles.error} role="alert">{updateError.message}</p>

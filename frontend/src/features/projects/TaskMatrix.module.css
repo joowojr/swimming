@@ -41,7 +41,7 @@
   display: grid;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .quadrant {
@@ -49,20 +49,20 @@
   min-width: 0;
   min-height: 15rem;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-panel);
   background: var(--color-surface-container-lowest);
 }
 
 .quadrant-header {
-  padding-bottom: var(--space-3);
+  padding: 0 var(--space-1) var(--space-2);
 }
 
 .quadrant-header h3 {
   color: var(--color-primary);
-  font-size: var(--text-body-lg-size);
+  font-size: var(--text-body-md-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
   line-height: var(--text-body-lg-line-height);
@@ -72,10 +72,16 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.list > li {
+  min-width: 0;
+  container-name: checklist-card;
+  container-type: inline-size;
 }
 
 .check {
@@ -145,7 +151,7 @@
 
 .status {
   flex: 0 0 auto;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1);
   border: var(--border-width) solid var(--chip-todo-border);
   border-radius: var(--radius-full);
   color: var(--chip-todo-fg);
@@ -262,7 +268,7 @@
   to { transform: rotate(360deg); }
 }
 
-@media (min-width: 60rem) {
+@container planner-area (min-width: 40rem) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

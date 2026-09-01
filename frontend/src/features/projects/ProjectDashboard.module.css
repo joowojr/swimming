@@ -99,14 +99,14 @@
 .home-grid {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
-  gap: 16px;
+  gap: var(--space-4);
   align-items: stretch;
 }
 
 .home-main {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -119,6 +119,8 @@
   min-width: 0;
   flex-direction: column;
   gap: var(--space-3);
+  container-name: planner-area;
+  container-type: inline-size;
 }
 
 .planner-toggle {
@@ -303,10 +305,6 @@
   line-height: var(--text-body-sm-line-height);
 }
 
-@media (max-width:1080px){
-  .home-grid{grid-template-columns:1fr}
-}
-
 @media (max-width: 72rem) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -323,11 +321,11 @@
   }
 }
 
-  @media (max-width: 1280px) {
-    .home-grid {
-      grid-template-columns: 1fr;
-    }
+@media (max-width: 60rem) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
+}
 
 @media (max-width: 48rem) {
   .project-dashboard {

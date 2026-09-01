@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
+import AddItemButton from '../../components/AddItemButton'
 import ChecklistCard from '../../components/ChecklistCard'
 import InlineEditableText from '../../components/InlineEditableText'
 import TaskMenu from '../../components/TaskMenu'
@@ -172,15 +173,14 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                 <h3 id={`${section.id}-title`}>{section.title}</h3>
                 <div className={styles['quadrant-actions']}>
                   <span className={styles.count}>{section.tasks.length}개</span>
-                  <button
+                  <AddItemButton
                     type="button"
-                    className={styles['add-button']}
                     aria-label={`${section.title} 영역에 할 일 추가`}
                     onClick={() => setAddDraft({
                       priority: section.id === 'priority' || section.id === 'priority-urgent',
                       urgent: section.id === 'urgent' || section.id === 'priority-urgent',
                     })}
-                  >+</button>
+                  />
                 </div>
               </header>
               {section.tasks.length === 0 ? (

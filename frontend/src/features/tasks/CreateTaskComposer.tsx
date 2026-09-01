@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent, RefObject } from 'react'
-import { IconLoader2, IconPlus } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
+import AddItemButton from '../../components/AddItemButton'
 import { createTaskWithOptionalPlan } from './taskApi'
 import styles from './CreateTaskComposer.module.css'
 
@@ -111,13 +111,11 @@ export default function CreateTaskComposer({
             if (isTouched) setFieldError(validateTitle(value))
           }}
         />
-        <button className={styles.submit} type="submit" disabled={isSubmitting} aria-label="task 추가">
-          <span className={styles['submit-visual']} aria-hidden="true">
-            {isSubmitting
-              ? <IconLoader2 className={styles.spinner} size={16} />
-              : <IconPlus size={16} stroke={2} />}
-          </span>
-        </button>
+        <AddItemButton
+          type="submit"
+          aria-label="task 추가"
+          isLoading={isSubmitting}
+        />
       </div>
       {(fieldError || submitError) && (
         <p className={styles.message} id="task-composer-message" role="alert">

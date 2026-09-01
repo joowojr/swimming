@@ -1,0 +1,59 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+  flex: 0 0 auto;
+  padding: 0;
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: transparent;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+  cursor: pointer;
+  transition:
+    color var(--transition-short),
+    background-color var(--transition-short),
+    opacity var(--transition-short),
+    transform var(--dur-micro) var(--ease-out);
+}
+
+.button:focus-visible {
+  outline-color: var(--focus-ring-color);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.spinner {
+  animation: add-item-spin calc(var(--dur-modal) * 3) linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not(:disabled) {
+    background: var(--color-surface-container-high);
+  }
+}
+
+@keyframes add-item-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .spinner {
+    animation-duration: calc(var(--dur-modal) * 6);
+  }
+}

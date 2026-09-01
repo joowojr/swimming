@@ -16,7 +16,7 @@ interface ProjectDashboardProps {
 type PlannerView = 'daily' | 'matrix'
 
 const PLANNER_VIEW_OPTIONS = [
-  { value: 'daily', label: '오늘 할 일' },
+  { value: 'daily', label: '캘린더' },
   { value: 'matrix', label: '매트릭스' },
 ] as const
 

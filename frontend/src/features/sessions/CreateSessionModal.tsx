@@ -223,7 +223,7 @@ export default function CreateSessionModal({
               <p className={styles.hint}>
                 {mode === 'group'
                   ? `공간과 타이머는 Room 설정을 따릅니다. ${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} · ${GROUP_ROOM_MOCK.durationMin}분 · ${GROUP_ROOM_MOCK.participantCount}명`
-                  : '지금 바로 시작합니다.'}
+                  : ''}
               </p>
             </fieldset>
 

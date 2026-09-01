@@ -19,27 +19,6 @@
   gap: var(--space-2);
 }
 
-.add-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-full);
-  color: var(--color-mute);
-  background: var(--color-surface-container-high);
-  font-size: var(--text-body-lg-size);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.add-button:hover {
-  color: var(--color-primary);
-  background: var(--color-surface-container-highest);
-}
-
 .header h2,
 .quadrant-header h3,
 .state p {

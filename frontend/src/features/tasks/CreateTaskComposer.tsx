@@ -9,6 +9,7 @@ interface CreateTaskComposerProps {
   projectId: number
   inputRef: RefObject<HTMLInputElement | null>
   onCreated: () => void
+  variant?: 'default' | 'embedded'
 }
 
 function validateTitle(value: string) {
@@ -25,6 +26,7 @@ export default function CreateTaskComposer({
   projectId,
   inputRef,
   onCreated,
+  variant = 'default',
 }: CreateTaskComposerProps) {
   const [title, setTitle] = useState('')
   const [isTouched, setIsTouched] = useState(false)
@@ -75,7 +77,7 @@ export default function CreateTaskComposer({
 
   return (
     <form
-      className={styles.composer}
+      className={`${styles.composer} ${variant === 'embedded' ? styles.embedded : ''}`}
       aria-label="task 추가"
       aria-busy={isSubmitting}
       onSubmit={(event) => void handleSubmit(event)}

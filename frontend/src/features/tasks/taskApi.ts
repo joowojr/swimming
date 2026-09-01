@@ -21,6 +21,17 @@ export async function createTask(
   return response.data
 }
 
+export async function createTaskWithOptionalPlan(request: {
+  title: string
+  projectId?: number | null
+  priority?: boolean
+  urgent?: boolean
+  planDate?: string | null
+}): Promise<TaskResponse> {
+  const response = await client.post<TaskResponse>('/tasks', request)
+  return response.data
+}
+
 export async function getTasks(projectId: number): Promise<TaskResponse[]> {
   const response = await client.get<TaskResponse[]>(`/projects/${projectId}/tasks`)
   return response.data

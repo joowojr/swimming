@@ -191,7 +191,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             replaceTaskFlags(await updateTaskPriority(item.taskId, {priority: !item.priority}))
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-            setMessage(apiMessage ?? '우선 표시를 변경하지 못했습니다.')
+            setMessage(apiMessage ?? '중요 표시를 변경하지 못했습니다.')
         } finally {
             setPendingTaskId(null)
         }
@@ -204,7 +204,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             replaceTaskFlags(await updateTaskUrgent(item.taskId, {urgent: !item.urgent}))
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-            setMessage(apiMessage ?? '긴급 표시를 변경하지 못했습니다.')
+            setMessage(apiMessage ?? '즉시 표시를 변경하지 못했습니다.')
         } finally {
             setPendingTaskId(null)
         }
@@ -307,7 +307,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                         <strong>
                                                             <InlineEditableText
                                                                 value={item.title}
-                                                                ariaLabel={`${item.priority ? '우선 ' : ''}${item.urgent ? '긴급 ' : ''}Task 제목`}
+                                                                ariaLabel={`${item.urgent ? '즉시 ' : ''}${item.priority ? '중요 ' : ''}Task 제목`}
                                                                 maxLength={255}
                                                                 className={[
                                                                     styles['task-title-editor'],
@@ -339,10 +339,10 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                         <TaskMenu
                                                             label={`${item.title} 카드 메뉴`}>
                                                                 <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
-                                                                    {item.priority ? '우선 해제' : '우선 설정'}
+                                                                    {item.priority ? '중요 해제' : '중요 설정'}
                                                                 </button>
                                                                 <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
-                                                                    {item.urgent ? '긴급 해제' : '긴급 설정'}
+                                                                    {item.urgent ? '즉시 해제' : '즉시 설정'}
                                                                 </button>
                                                                 {plan.date === today && (
                                                                     <ModalTriggerButton
@@ -386,6 +386,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             )}
 
             {isPickerOpen && <TaskPickerModal projects={projects}
+                initialPlanDate={selectedDate}
                                               selectedTaskIds={new Set(draftItems.map((item) => item.taskId))}
                                               onAdd={addTasks} onAddTask={addTask}
                                               onClose={() => setIsPickerOpen(false)}/>}

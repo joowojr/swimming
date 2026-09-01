@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlus, IconX } from '@tabler/icons-react'
 import type { MouseEvent } from 'react'
+import ModeToggle from '../../components/ModeToggle'
 import { getProject } from '../projects/projectApi'
 import type { Project, ProjectDetail } from '../projects/projectTypes'
 import styles from './TaskPickerModal.module.css'
@@ -10,8 +11,11 @@ interface TaskPickerModalProps {
   projects: Project[]
   selectedTaskIds: ReadonlySet<number>
   onAdd: (tasks: ProjectDetail['tasks']) => Promise<void>
-  onAddTask: (title: string, projectId: number | null, priority: boolean, urgent: boolean) => Promise<void>
+  onAddTask: (title: string, projectId: number | null, priority: boolean, urgent: boolean, planDate: string | null) => Promise<void>
   onClose: () => void
+  initialPriority?: boolean
+  initialUrgent?: boolean
+  initialPlanDate?: string
 }
 
 type LoadState =
@@ -20,6 +24,21 @@ type LoadState =
   | { status: 'error' }
 
 type AddMode = 'direct' | 'folder'
+
+const ADD_MODE_OPTIONS = [
+  {
+    value: 'direct',
+    label: '직접 추가',
+    id: 'direct-add-tab',
+    controls: 'direct-add-panel',
+  },
+  {
+    value: 'folder',
+    label: '폴더에서 선택',
+    id: 'folder-add-tab',
+    controls: 'folder-add-panel',
+  },
+] as const
 
 // const TIME_PERIOD_CHIPS = [
 //   { label: '아침', emoji: '🌅' },
@@ -30,11 +49,11 @@ type AddMode = 'direct' | 'folder'
 // ]
 
 const PRIORITY_CHIPS = [
-  { label: '우선', emoji: '📌' },
+  { label: '중요', emoji: '📌' },
 ]
 
 const URGENCY_CHIPS = [
-  { label: '긴급', emoji: '⚡' },
+  { label: '즉시', emoji: '⚡' },
 ]
 
 export default function TaskPickerModal({
@@ -43,6 +62,9 @@ export default function TaskPickerModal({
   onAdd,
   onAddTask,
   onClose,
+  initialPriority = false,
+  initialUrgent = false,
+  initialPlanDate = '',
 }: TaskPickerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
@@ -53,8 +75,9 @@ export default function TaskPickerModal({
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null)
-  const [selectedPriority, setSelectedPriority] = useState<string | null>(null)
-  const [selectedUrgent, setSelectedUrgent] = useState(false)
+  const [selectedPriority, setSelectedPriority] = useState<string | null>(initialPriority ? '중요' : null)
+  const [selectedUrgent, setSelectedUrgent] = useState(initialUrgent)
+  const [planDate, setPlanDate] = useState(initialPlanDate)
 
   const activeProject = state.status === 'ready'
     ? state.details.find((detail) => detail.id === Number(taskProjectId))
@@ -120,8 +143,9 @@ export default function TaskPickerModal({
         await onAddTask(
           trimmedTitle,
           projectId ? Number(projectId) : null,
-          selectedPriority === '우선',
+          selectedPriority === '중요',
           selectedUrgent,
+          planDate || null,
         )
       } else {
         await onAdd(pendingTasks.map(({ task }) => task))
@@ -163,53 +187,21 @@ export default function TaskPickerModal({
         </header>
 
         <div className={styles.body}>
-          <div
-            className={styles['add-mode-tabs']}
-            role="tablist"
-            aria-label="할 일 추가 방식"
-            onKeyDown={(event) => {
-              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
-              event.preventDefault()
-              const nextMode = event.key === 'ArrowLeft' || event.key === 'Home'
-                ? 'direct'
-                : 'folder'
-              selectAddMode(nextMode)
-              window.requestAnimationFrame(() => {
-                document.getElementById(`${nextMode}-add-tab`)?.focus()
-              })
-            }}
-          >
-            <button
-              id="direct-add-tab"
-              type="button"
-              role="tab"
-              aria-selected={addMode === 'direct'}
-              aria-controls="direct-add-panel"
-              tabIndex={addMode === 'direct' ? 0 : -1}
-              disabled={isSubmitting}
-              onClick={() => selectAddMode('direct')}
-            >
-              직접 추가
-            </button>
-            <button
-              id="folder-add-tab"
-              type="button"
-              role="tab"
-              aria-selected={addMode === 'folder'}
-              aria-controls="folder-add-panel"
-              tabIndex={addMode === 'folder' ? 0 : -1}
-              disabled={isSubmitting}
-              onClick={() => selectAddMode('folder')}
-            >
-              폴더에서 선택
-            </button>
-          </div>
+          <ModeToggle
+            ariaLabel="할 일 추가 방식"
+            options={ADD_MODE_OPTIONS}
+            value={addMode}
+            disabled={isSubmitting}
+            fullWidth
+            semantics="tabs"
+            onChange={selectAddMode}
+          />
           <section className={styles['planning-option-field']} aria-label="할 일 계획 옵션">
+            <label className={styles['date-option']}>
+              <span>날짜</span>
+              <input type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} disabled={isSubmitting} />
+            </label>
             <div className={styles['planning-option-group']}>
-              <div className={styles['planning-option-heading']}>
-                <span className={styles['planning-option-label']}>우선순위</span>
-                <span className={styles['planning-option-help']}>선택</span>
-              </div>
               <div className={styles['planning-option-chips']} role="list">
                 {PRIORITY_CHIPS.map((option) => (
                   <span role="listitem" key={option.label}>
@@ -229,10 +221,6 @@ export default function TaskPickerModal({
               </div>
             </div>
             <div className={styles['planning-option-group']}>
-              <div className={styles['planning-option-heading']}>
-                <span className={styles['planning-option-label']}>긴급도</span>
-                <span className={styles['planning-option-help']}>선택</span>
-              </div>
               <div className={styles['planning-option-chips']} role="list">
                 {URGENCY_CHIPS.map((option) => (
                   <span role="listitem" key={option.label}>
@@ -326,8 +314,8 @@ export default function TaskPickerModal({
                         <li className={alreadyAdded || pending ? styles.selected : undefined} key={task.id}>
                           <span>
                             {(task.priority || task.urgent) && (
-                              <span aria-label={`${task.priority ? '우선 ' : ''}${task.urgent ? '긴급' : ''}`}>
-                                {task.priority ? '📌' : ''}{task.urgent ? '⚡' : ''}
+                              <span aria-label={`${task.urgent ? '즉시 ' : ''}${task.priority ? '중요' : ''}`}>
+                                {task.urgent ? '⚡' : ''}{task.priority ? '📌' : ''}
                               </span>
                             )} {task.title}
                           </span>

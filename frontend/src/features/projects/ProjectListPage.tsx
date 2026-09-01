@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
+import ModeToggle from '../../components/ModeToggle'
 import { deleteTasks, getTaskList } from '../tasks/taskApi'
 import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
 import ProjectCard from './ProjectCard'
@@ -30,7 +31,7 @@ interface TaskListState {
 
 const PROJECT_VIEWS: { value: ProjectView; label: string }[] = [
   { value: 'projects', label: '폴더' },
-  { value: 'all', label: '최신순' },
+  { value: 'all', label: '전체' },
   { value: 'unclassified', label: '미분류' },
 ]
 
@@ -151,19 +152,13 @@ export default function ProjectListPage({
       </header>
 
       <div className={styles['view-toolbar']}>
-        <nav className={styles['view-switcher']} aria-label="폴더 화면 전환">
-          {PROJECT_VIEWS.map((view) => (
-            <button
-              type="button"
-              className={activeView === view.value ? styles['view-button-active'] : styles['view-button']}
-              aria-pressed={activeView === view.value}
-              onClick={() => changeView(view.value)}
-              key={view.value}
-            >
-              {view.label}
-            </button>
-          ))}
-        </nav>
+        <ModeToggle
+          className={styles['view-switcher']}
+          ariaLabel="폴더 화면 전환"
+          options={PROJECT_VIEWS}
+          value={activeView}
+          onChange={changeView}
+        />
         <button
           type="button"
           className={`${styles.secondary} ${styles['filter-button']}`}

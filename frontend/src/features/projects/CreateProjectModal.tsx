@@ -59,6 +59,9 @@ export default function CreateProjectModal({
 }: CreateProjectModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null)
+  const targetDateInputRef = useRef<HTMLInputElement>(null)
+  const tagInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [targetDate, setTargetDate] = useState('')
@@ -143,6 +146,9 @@ export default function CreateProjectModal({
     setTagError(null)
     if (Object.values(nextErrors).some(Boolean)) {
       if (nextErrors.name) nameInputRef.current?.focus()
+      else if (nextErrors.description) descriptionInputRef.current?.focus()
+      else if (nextErrors.targetDate) targetDateInputRef.current?.focus()
+      else if (nextErrors.newTagName) tagInputRef.current?.focus()
       return
     }
 
@@ -159,15 +165,21 @@ export default function CreateProjectModal({
       onCreated(await createProject(request))
     } catch (error) {
       if (isApiError(error) && error.errors) {
-        setFieldErrors({
+        const apiErrors = {
           name: error.errors.name,
           description: error.errors.description,
           targetDate: error.errors.targetDate,
           newTagName: error.errors.newTagName,
-        })
+        }
+        setFieldErrors(apiErrors)
+        if (apiErrors.name) nameInputRef.current?.focus()
+        else if (apiErrors.description) descriptionInputRef.current?.focus()
+        else if (apiErrors.targetDate) targetDateInputRef.current?.focus()
+        else if (apiErrors.newTagName) tagInputRef.current?.focus()
       }
       if (isApiError(error) && error.code === 'PROJECT_TAG_ALREADY_EXISTS') {
         setTagError(error.message ?? '같은 이름의 태그가 이미 있습니다.')
+        tagInputRef.current?.focus()
       } else {
         setSubmitError(
           isApiError(error) && error.message
@@ -250,14 +262,17 @@ export default function CreateProjectModal({
                 }}
                 disabled={isSubmitting}
               />
-              <p className={styles['modal-field-message']} id="project-name-error" aria-live="polite">
-                {fieldErrors.name ?? '\u00a0'}
-              </p>
+              {fieldErrors.name && (
+                <p className={styles['modal-field-message']} id="project-name-error" aria-live="polite">
+                  {fieldErrors.name}
+                </p>
+              )}
             </div>
 
             <div className={styles['modal-field']}>
               <label htmlFor="project-description-input">설명</label>
               <textarea
+                ref={descriptionInputRef}
                 id="project-description-input"
                 value={description}
                 rows={3}
@@ -278,14 +293,17 @@ export default function CreateProjectModal({
                 }}
                 disabled={isSubmitting}
               />
-              <p className={styles['modal-field-message']} id="project-description-error" aria-live="polite">
-                {fieldErrors.description ?? '\u00a0'}
-              </p>
+              {fieldErrors.description && (
+                <p className={styles['modal-field-message']} id="project-description-error" aria-live="polite">
+                  {fieldErrors.description}
+                </p>
+              )}
             </div>
 
             <div className={styles['modal-field']}>
               <label htmlFor="project-target-date">목표일 <span>선택</span></label>
               <input
+                ref={targetDateInputRef}
                 id="project-target-date"
                 type="date"
                 value={targetDate}
@@ -313,50 +331,55 @@ export default function CreateProjectModal({
                 }}
                 disabled={isSubmitting}
               />
-              <p
-                className={styles['modal-field-message']}
-                id="project-target-date-error"
-                aria-live="polite"
-              >
-                {fieldErrors.targetDate ?? '\u00a0'}
-              </p>
+              {fieldErrors.targetDate && (
+                <p
+                  className={styles['modal-field-message']}
+                  id="project-target-date-error"
+                  aria-live="polite"
+                >
+                  {fieldErrors.targetDate}
+                </p>
+              )}
             </div>
 
             <fieldset className={styles['modal-field']}>
               <legend>태그 <span>선택</span></legend>
               <div className={styles['tag-input-wrap']}>
-                {!matchedTag && (
-                  <>
-                    <label className="sr-only" htmlFor="project-tag">태그 이름</label>
-                    <input
-                      id="project-tag"
-                      value={tagName}
-                      maxLength={30}
-                      placeholder="태그를 선택하거나 새 이름을 입력하세요"
-                      autoComplete="off"
-                      aria-invalid={Boolean(fieldErrors.newTagName || tagError)}
-                      aria-describedby="project-tag-error"
-                      onBlur={() => {
-                        setTouchedFields((fields) => ({ ...fields, newTagName: true }))
-                        setFieldErrors((errors) => ({
-                          ...errors,
-                          newTagName: validateNewTagName(tagName),
-                        }))
-                      }}
-                      onChange={(event) => {
-                        const value = event.target.value
-                        setTagName(value)
-                        setTagError(null)
-                        if (touchedFields.newTagName) {
-                          setFieldErrors((errors) => ({
-                            ...errors,
-                            newTagName: validateNewTagName(value),
-                          }))
-                        }
-                      }}
-                      disabled={isSubmitting}
-                    />
-                  </>
+                <label className="sr-only" htmlFor="project-tag">태그 이름</label>
+                <input
+                  ref={tagInputRef}
+                  id="project-tag"
+                  value={tagName}
+                  maxLength={30}
+                  placeholder="태그를 선택하거나 새 이름을 입력하세요"
+                  autoComplete="off"
+                  aria-invalid={Boolean(fieldErrors.newTagName || tagError)}
+                  aria-describedby={fieldErrors.newTagName || tagError ? 'project-tag-error' : undefined}
+                  onBlur={() => {
+                    setTouchedFields((fields) => ({ ...fields, newTagName: true }))
+                    setFieldErrors((errors) => ({
+                      ...errors,
+                      newTagName: validateNewTagName(tagName),
+                    }))
+                  }}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setTagName(value)
+                    setTagError(null)
+                    if (touchedFields.newTagName) {
+                      setFieldErrors((errors) => ({
+                        ...errors,
+                        newTagName: validateNewTagName(value),
+                      }))
+                    }
+                  }}
+                  disabled={isSubmitting}
+                />
+
+                {matchedTag && (
+                  <p className={styles['tag-selection-hint']} role="status">
+                    기존 태그 <strong>{matchedTag.name}</strong>를 연결합니다. 다른 이름을 입력하면 새 태그로 바뀝니다.
+                  </p>
                 )}
 
                 {tagsStatus === 'loading' ? (
@@ -387,15 +410,21 @@ export default function CreateProjectModal({
                       </button>
                     ))}
                   </div>
+                ) : normalizedTagName ? (
+                  <p className={styles['tag-status']} role="status">
+                    입력한 이름으로 새 태그를 만듭니다.
+                  </p>
                 ) : null}
 
-                <p
-                  className={styles['modal-field-message']}
-                  id="project-tag-error"
-                  aria-live="polite"
-                >
-                  {fieldErrors.newTagName ?? tagError ?? '\u00a0'}
-                </p>
+                {(fieldErrors.newTagName || tagError) && (
+                  <p
+                    className={styles['modal-field-message']}
+                    id="project-tag-error"
+                    aria-live="polite"
+                  >
+                    {fieldErrors.newTagName ?? tagError}
+                  </p>
+                )}
               </div>
             </fieldset>
 
@@ -411,7 +440,7 @@ export default function CreateProjectModal({
               isLoading={isSubmitting}
               loadingLabel="만드는 중…"
             >
-              만들기
+              폴더 만들기
             </ActionButton>
           </footer>
         </form>

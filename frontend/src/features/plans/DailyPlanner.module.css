@@ -355,5 +355,5 @@ span.task-title-editor.is-urgent button::before {
 }
 
 span.task-title-editor.is-priority.is-urgent button::before {
-    content: '📌 ⚡';
+  content: '⚡ 📌';
 }

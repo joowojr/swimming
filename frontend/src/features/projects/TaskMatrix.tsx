@@ -8,6 +8,9 @@ import TaskMenu from '../../components/TaskMenu'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
+import TaskPickerModal from '../plans/TaskPickerModal'
+import type { Project } from './projectTypes'
+import { createTaskWithOptionalPlan } from '../tasks/taskApi'
 import { getTaskList, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskResponse, TaskStatus } from '../tasks/taskTypes'
@@ -24,17 +27,17 @@ interface MatrixSection {
 const matrixSections: MatrixSection[] = [
   {
     id: 'priority-urgent',
-    title: '긴급 · 우선',
+    title: '⚡️ 즉시 · 📌 중요',
     matches: (task) => task.priority && task.urgent,
   },
   {
     id: 'urgent',
-    title: '긴급',
+    title: '⚡️ 즉시',
     matches: (task) => !task.priority && task.urgent,
   },
   {
     id: 'priority',
-    title: '우선',
+    title: '📌 중요',
     matches: (task) => task.priority && !task.urgent,
   },
   {
@@ -44,13 +47,14 @@ const matrixSections: MatrixSection[] = [
   },
 ]
 
-export default function TaskMatrix() {
+export default function TaskMatrix({ projects }: { projects: Project[] }) {
   const navigate = useNavigate()
   const [tasks, setTasks] = useState<TaskResponse[]>([])
   const [status, setStatus] = useState<MatrixStatus>('loading')
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
+  const [addDraft, setAddDraft] = useState<{ priority: boolean; urgent: boolean } | null>(null)
 
   const loadTasks = async () => {
     try {
@@ -166,7 +170,18 @@ export default function TaskMatrix() {
             <section className={styles.quadrant} aria-labelledby={`${section.id}-title`} key={section.id}>
               <header className={styles['quadrant-header']}>
                 <h3 id={`${section.id}-title`}>{section.title}</h3>
-                <span className={styles.count}>{section.tasks.length}개</span>
+                <div className={styles['quadrant-actions']}>
+                  <span className={styles.count}>{section.tasks.length}개</span>
+                  <button
+                    type="button"
+                    className={styles['add-button']}
+                    aria-label={`${section.title} 영역에 할 일 추가`}
+                    onClick={() => setAddDraft({
+                      priority: section.id === 'priority' || section.id === 'priority-urgent',
+                      urgent: section.id === 'urgent' || section.id === 'priority-urgent',
+                    })}
+                  >+</button>
+                </div>
               </header>
               {section.tasks.length === 0 ? (
                 <p className={styles.empty}>이 영역에는 Task가 없습니다.</p>
@@ -194,7 +209,7 @@ export default function TaskMatrix() {
                                 <InlineEditableText
                                   className={styles['task-title']}
                                   value={task.title}
-                                  ariaLabel={`${task.priority ? '우선 ' : ''}${task.urgent ? '긴급 ' : ''}Task 제목`}
+                                  ariaLabel={`${task.urgent ? '즉시 ' : ''}${task.priority ? '중요 ' : ''}Task 제목`}
                                   maxLength={255}
                                   requiredMessage="Task 제목을 입력해 주세요."
                                   disabled={isPending}
@@ -262,6 +277,26 @@ export default function TaskMatrix() {
             setSessionDraft(null)
             navigate(`/sessions/${session.id}`)
           }}
+        />
+      )}
+      {addDraft && (
+        <TaskPickerModal
+          projects={projects}
+          selectedTaskIds={new Set()}
+          initialPriority={addDraft.priority}
+          initialUrgent={addDraft.urgent}
+          onAdd={async () => undefined}
+          onAddTask={async (title, projectId, priority, urgent, planDate) => {
+            await createTaskWithOptionalPlan({
+              title,
+              priority,
+              urgent,
+              projectId,
+              planDate,
+            })
+            await loadTasks()
+          }}
+          onClose={() => setAddDraft(null)}
         />
       )}
     </section>

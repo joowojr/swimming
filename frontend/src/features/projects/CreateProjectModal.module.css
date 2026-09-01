@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  width: min(calc(100% - var(--space-8)), 36.4rem);
+  width: min(calc(100% - var(--space-8)), 35rem);
   max-width: none;
   height: fit-content;
   max-height: calc(100svh - var(--space-8));
@@ -89,7 +89,7 @@
 .modal-body {
   display: grid;
   min-height: 0;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: var(--space-6);
   overflow-y: auto;
 }
@@ -167,7 +167,7 @@
 }
 
 .modal-field-message {
-  min-height: var(--text-body-sm-line-height);
+  min-height: 0;
 }
 
 .modal-submit-error {
@@ -179,6 +179,18 @@
 
 .tag-status {
   color: var(--color-mute);
+}
+
+.tag-selection-hint {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.tag-selection-hint strong {
+  color: var(--color-primary);
+  font-weight: var(--text-button-weight);
 }
 
 .tag-options {
@@ -243,15 +255,15 @@
   justify-content: center;
   flex: 0 0 auto;
   gap: var(--space-2);
-  min-height: unset;
+  min-height: var(--button-height);
   width: 100%;
   margin: 0;
-  padding: var(--space-4);
+  padding: 0 var(--button-padding-inline);
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-lg);
   color: var(--color-on-primary);
   background: var(--color-primary);
-  font-size: var(--text-headline-md-size);
+  font-size: var(--text-body-sm-size);
   transition: background-color var(--transition-short), transform var(--dur-micro) var(--ease-out);
   cursor: pointer;
 }
@@ -267,7 +279,7 @@
 .modal-close:disabled,
 .modal-field input:disabled,
 .modal-field textarea:disabled,
-  .tag-options button:disabled,
+.tag-options button:disabled,
 .modal-submit:disabled {
   cursor: wait;
   opacity: 0.55;

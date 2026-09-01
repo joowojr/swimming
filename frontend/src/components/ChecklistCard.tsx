@@ -5,6 +5,7 @@ interface ChecklistCardBaseProps {
   title: ReactNode
   description?: ReactNode
   actions?: ReactNode
+  variant?: 'default' | 'flat'
 }
 
 interface ChecklistCardSelectionProps extends ChecklistCardBaseProps {
@@ -34,10 +35,10 @@ function hasLeadingControl(props: ChecklistCardProps): props is ChecklistCardDis
 }
 
 export default function ChecklistCard(props: ChecklistCardProps) {
-  const { title, description, actions } = props
+  const { title, description, actions, variant = 'default' } = props
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} ${variant === 'flat' ? styles.flat : ''}`}>
       <div className={styles.identity}>
         {hasLeadingControl(props) ? props.leadingControl : (
           <input

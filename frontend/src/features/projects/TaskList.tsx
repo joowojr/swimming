@@ -133,7 +133,7 @@ export default function TaskList({
     } catch (error: unknown) {
       const message = isApiError(error) && error.message
         ? error.message
-        : '우선 표시를 변경하지 못했습니다.'
+        : '중요 표시를 변경하지 못했습니다.'
       setUpdateError({ taskId: task.id, message })
     } finally {
       setPendingTaskId(null)
@@ -148,7 +148,7 @@ export default function TaskList({
     } catch (error: unknown) {
       const message = isApiError(error) && error.message
         ? error.message
-        : '긴급 표시를 변경하지 못했습니다.'
+        : '즉시 표시를 변경하지 못했습니다.'
       setUpdateError({ taskId: task.id, message })
     } finally {
       setPendingTaskId(null)
@@ -205,7 +205,7 @@ export default function TaskList({
                           task.urgent && styles['is-urgent'],
                         ].filter(Boolean).join(' ')}
                         value={task.title}
-                        ariaLabel={`${task.priority ? '우선 ' : ''}${task.urgent ? '긴급 ' : ''}Task 제목`}
+                        ariaLabel={`${task.urgent ? '즉시 ' : ''}${task.priority ? '중요 ' : ''}Task 제목`}
                         maxLength={255}
                         requiredMessage="할 일 제목을 입력해 주세요."
                         disabled={isPending || isDeleteMode}
@@ -261,14 +261,14 @@ export default function TaskList({
                         disabled={isPending}
                         onClick={() => void changeTaskPriority(task)}
                       >
-                        {task.priority ? '우선 해제' : '우선 설정'}
+                        {task.priority ? '중요 해제' : '중요 설정'}
                       </button>
                       <button
                         type="button"
                         disabled={isPending}
                         onClick={() => void changeTaskUrgent(task)}
                       >
-                          {task.urgent ? '긴급 해제' : '긴급 설정'}
+                          {task.urgent ? '즉시 해제' : '즉시 설정'}
                         </button>
                       </>
                         <button
@@ -294,6 +294,7 @@ export default function TaskList({
                     )}
                   </>
                 )}
+                variant={connected ? 'flat' : 'default'}
               />
             </li>
         )

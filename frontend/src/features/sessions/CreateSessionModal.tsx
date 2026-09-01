@@ -1,8 +1,9 @@
 import type {FormEvent, MouseEvent} from 'react'
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {IconUser, IconUsers, IconX,} from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
 import ChecklistCard from '../../components/ChecklistCard'
+import ModeToggle from '../../components/ModeToggle'
 import type {DailyPlanItem} from '../plans/dailyPlanTypes'
 import {TASK_STATUS_LABEL} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
@@ -34,6 +35,11 @@ const TASK_STATUS_ORDER: Record<TaskStatus, number> = {
   DONE: 3,
 }
 
+const SESSION_MODE_OPTIONS = [
+  { value: 'personal', label: '개인', icon: <IconUser aria-hidden="true" /> },
+  { value: 'group', label: '그룹', icon: <IconUsers aria-hidden="true" />, disabled: true },
+] as const
+
 interface PlaceOption {
   city: City
   place: Place
@@ -58,6 +64,8 @@ export default function CreateSessionModal({
   onStarted,
 }: CreateSessionModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const firstTaskRef = useRef<HTMLUListElement>(null)
+  const customMinutesRef = useRef<HTMLInputElement>(null)
   // 같은 상태끼리는 계획에 담은 순서를 유지한다(Array.prototype.sort는 안정 정렬).
   const linkedTasks = useMemo(
     () => [...todayTasks].sort(
@@ -88,21 +96,22 @@ export default function CreateSessionModal({
     return () => { document.body.style.overflow = previousOverflow }
   }, [])
 
-  useEffect(() => {
-    let active = true
+  const loadPlaces = useCallback(() => {
     void getPlaces()
       .then((response) => {
-        if (!active) return
         const firstPlace = response.flatMap((city) => city.places)[0]
         setCities(response)
         setPlaceId((current) => current ?? firstPlace?.id ?? null)
         setPlacesStatus('ready')
       })
       .catch(() => {
-        if (active) setPlacesStatus('error')
+        setPlacesStatus('error')
       })
-    return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    loadPlaces()
+  }, [loadPlaces])
 
   const durationMinutes = durationPreset === 'custom' ? Number(customMinutes) : durationPreset
   const validDuration = Number.isInteger(durationMinutes) && durationMinutes >= 1 && durationMinutes <= 1440
@@ -140,6 +149,7 @@ export default function CreateSessionModal({
 
     if (selectedTaskIds.length === 0) {
       setSubmitError('세션에서 진행할 작업을 하나 이상 선택해 주세요.')
+      firstTaskRef.current?.focus()
       return
     }
     if (mode === 'group') {
@@ -152,6 +162,7 @@ export default function CreateSessionModal({
     }
     if (!validDuration) {
       setSubmitError('집중 시간은 1분 이상 1,440분 이하로 입력해 주세요.')
+      customMinutesRef.current?.focus()
       return
     }
 
@@ -200,23 +211,40 @@ export default function CreateSessionModal({
         <form onSubmit={(event) => void handleSubmit(event)} noValidate>
           <div className={styles.body}>
             <fieldset className={styles.fieldset}>
+              <legend>어떻게 할까요</legend>
+              <ModeToggle
+                ariaLabel="세션 모드"
+                options={SESSION_MODE_OPTIONS}
+                value={mode}
+                disabled={isSubmitting}
+                fullWidth
+                onChange={setMode}
+              />
+              <p className={styles.hint}>
+                {mode === 'group'
+                  ? `공간과 타이머는 Room 설정을 따릅니다. ${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} · ${GROUP_ROOM_MOCK.durationMin}분 · ${GROUP_ROOM_MOCK.participantCount}명`
+                  : '지금 바로 시작합니다.'}
+              </p>
+            </fieldset>
+
+            <fieldset className={styles.fieldset}>
               <legend>무엇을 할까요</legend>
               <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
               {linkedTasks.length === 0 ? (
                 <p className={styles.empty}>오늘 계획에 포함된 할 일이 없습니다.</p>
               ) : (
-                <ul className={styles['task-list']}>
+                <ul className={styles['task-list']} ref={firstTaskRef} tabIndex={-1}>
                   {linkedTasks.map((task) => (
                     <li key={task.taskId}>
-                      <ChecklistCard
-                        id={task.taskId}
+                  <ChecklistCard
+                    id={task.taskId}
                         title={task.title}
                         checked={selectedTaskIds.includes(task.taskId)}
                         ariaLabel={`${task.title} 선택`}
                         name="session-task"
                         disabled={isSubmitting}
                         onToggle={() => toggleTask(task.taskId)}
-                        actions={(
+                    actions={(
                           <span className={styles['task-status-chip']} data-status={task.status}>
                             {TASK_STATUS_LABEL[task.status]}
                           </span>
@@ -228,34 +256,27 @@ export default function CreateSessionModal({
               )}
             </fieldset>
 
-            <fieldset className={styles.fieldset}>
-              <legend>어떻게 할까요 </legend>
-              <div className={styles['mode-grid']}>
-                <label className={styles['mode-choice']}>
-                  <input type="radio" name="session-mode" checked={mode === 'personal'} onChange={() => setMode('personal')} disabled={isSubmitting} />
-                  <IconUser size={19} aria-hidden="true" />
-                  <span>개인</span>
-                </label>
-                <label className={styles['mode-choice']}>
-                  <input type="radio" name="session-mode" checked={mode === 'group'} onChange={() => setMode('group')} disabled={isSubmitting || mode === 'group'} />
-                  <IconUsers size={19} aria-hidden="true" />
-                  <span>그룹</span>
-                </label>
-              </div>
-              <p className={styles.hint}>
-                {mode === 'group'
-                  ? `공간과 타이머는 Room 설정을 따릅니다. ${GROUP_ROOM_MOCK.startsAtLabel} ${GROUP_ROOM_MOCK.city} · ${GROUP_ROOM_MOCK.durationMin}분 · ${GROUP_ROOM_MOCK.participantCount}명`
-                  : '지금 바로 시작합니다.'}
-              </p>
-            </fieldset>
-
             {mode === 'personal' && (
               <>
                 <fieldset className={styles.fieldset}>
                   <legend>어디서 할까요 <span>(공간 선택)</span></legend>
 
                   {placesStatus === 'loading' && <p className={styles.empty} role="status">공간을 불러오는 중…</p>}
-                  {placesStatus === 'error' && <p className={styles.empty} role="alert">공간을 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요.</p>}
+                  {placesStatus === 'error' && (
+                    <div className={styles['load-error']} role="alert">
+                      <p className={styles.empty}>공간을 불러오지 못했습니다.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlacesStatus('loading')
+                          loadPlaces()
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        다시 시도
+                      </button>
+                    </div>
+                  )}
                   {placesStatus === 'ready' && placeOptions.length === 0 && <p className={styles.empty}>현재 선택할 수 있는 공간이 없습니다.</p>}
                   {placeOptions.length > 0 && (
                     <div className={styles['place-grid']}>
@@ -280,6 +301,7 @@ export default function CreateSessionModal({
                         <label className={styles['custom-value']}>
                           <span className="sr-only">집중 시간</span>
                           <input
+                            ref={customMinutesRef}
                             type="number"
                             min={1}
                             max={1440}
@@ -290,9 +312,12 @@ export default function CreateSessionModal({
                             disabled={isSubmitting}
                           />
                           <span aria-hidden="true">분</span>
-                        </label>
-                      ) : <><strong>{validDuration ? durationMinutes : '—'}</strong>분</>}
+                          </label>
+                        ) : <><strong>{validDuration ? durationMinutes : '—'}</strong>분</>}
                     </p>
+                    {durationPreset === 'custom' && customMinutes.length > 0 && !validDuration && (
+                      <p className={styles['field-error']} role="alert">1분에서 1,440분 사이로 입력해 주세요.</p>
+                    )}
                     <div className={styles.durations}>
                       {([25, 45, 60] as const).map((minutes) => (
                         <label key={minutes}>
@@ -340,10 +365,7 @@ export default function CreateSessionModal({
               isLoading={isSubmitting}
               loadingLabel="시작 중…"
               disabled={
-                  isSubmitting ||
-                  selectedTaskIds.length === 0 ||
-                  mode === 'group' ||
-                  (mode === 'personal' && (!validDuration || !selectedPlace))
+                  isSubmitting || mode === 'group'
               }
           >
             {mode === 'group' ? '준비 중' : '시작하기'}

@@ -484,7 +484,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
       <section className={styles.tasks} aria-labelledby="project-tasks-title">
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
-            <h2 id="project-tasks-title">해야 할 일</h2>
+            <h2 id="project-tasks-title">할 일</h2>
             <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
@@ -536,6 +536,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           <CreateTaskComposer
               projectId={project.id}
               inputRef={taskInputRef}
+              variant="embedded"
               onCreated={() => {
                 setStatusFilter('ALL')
                 setRequestKey((key) => key + 1)

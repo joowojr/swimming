@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ModeToggle from '../../components/ModeToggle'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
@@ -11,6 +12,13 @@ interface ProjectDashboardProps {
   status: ProjectLoadStatus
   onRetry: () => void
 }
+
+type PlannerView = 'daily' | 'matrix'
+
+const PLANNER_VIEW_OPTIONS = [
+  { value: 'daily', label: '오늘 할 일' },
+  { value: 'matrix', label: '매트릭스' },
+] as const
 
 /*
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
@@ -25,7 +33,7 @@ export default function ProjectDashboard({
   status,
   onRetry,
 }: ProjectDashboardProps) {
-  const [plannerView, setPlannerView] = useState<'daily' | 'matrix'>('daily')
+  const [plannerView, setPlannerView] = useState<PlannerView>('daily')
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -84,25 +92,16 @@ export default function ProjectDashboard({
                 <div className={styles['home-main']}>
                   <ContinueSessionWidget/>
                   <div className={styles['planner-area']}>
-                    <div className={styles['planner-toggle']} role="group" aria-label="Task 보기 방식">
-                      <button
-                        type="button"
-                        aria-pressed={plannerView === 'daily'}
-                        onClick={() => setPlannerView('daily')}
-                      >
-                        오늘 할 일
-                      </button>
-                      <button
-                        type="button"
-                        aria-pressed={plannerView === 'matrix'}
-                        onClick={() => setPlannerView('matrix')}
-                      >
-                        매트릭스
-                      </button>
-                    </div>
+                    <ModeToggle
+                      className={styles['planner-toggle']}
+                      ariaLabel="Task 보기 방식"
+                      options={PLANNER_VIEW_OPTIONS}
+                      value={plannerView}
+                      onChange={setPlannerView}
+                    />
                     {plannerView === 'daily'
                       ? <DailyPlanner projects={projects}/>
-                      : <TaskMatrix/>}
+                      : <TaskMatrix projects={projects}/>}
                   </div>
                 </div>
 

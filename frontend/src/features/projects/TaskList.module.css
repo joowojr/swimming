@@ -101,7 +101,7 @@
 }
 
 .task-title.is-priority.is-urgent button::before {
-  content: '📌 ⚡';
+  content: '⚡ 📌';
 }
 
 .is-done .task-title {

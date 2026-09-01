@@ -425,9 +425,9 @@
 .task-list-stack {
   display: grid;
   overflow: clip;
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface-container-lowest);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .task-list-toolbar {

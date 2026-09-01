@@ -34,6 +34,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
             left join task.project project
             where item.userId = :userId
               and task.user.id = :userId
+              and task.deleted = false
               and item.planDate between :fromDate and :toDate
             order by item.planDate asc, item.orderIdx asc
             """)

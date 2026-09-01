@@ -107,6 +107,9 @@ public class ProjectService {
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long projectId) {
         ProjectEntity entity = getOwnedProjectEntity(userId, projectId);
+        if (projectRepository.countActiveTasks(userId, projectId) > 0) {
+            throw new BusinessException(ErrorCode.PROJECT_HAS_TASKS);
+        }
         entity.delete();
         projectRepository.flush();
     }

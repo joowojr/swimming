@@ -15,6 +15,7 @@ import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskUrgentRequest;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,6 +28,7 @@ import java.util.List;
 public class TaskUseCase {
 
     private final TaskService taskService;
+    private final TaskOrderingService taskOrderingService;
     private final ProjectService projectService;
     private final DailyPlanService dailyPlanService;
 
@@ -35,7 +37,9 @@ public class TaskUseCase {
         Long projectId = request.projectId() == null
                 ? null
                 : projectService.getReference(userId, request.projectId()).id();
-        Task task = taskService.create(userId, projectId, request.title().trim(), request.priority(), request.urgent());
+        long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
+        Task task = taskService.create(
+                userId, projectId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
         if (request.planDate() != null) {
             int orderIdx = dailyPlanService.getItems(userId, request.planDate()).size();
             dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
@@ -51,8 +55,9 @@ public class TaskUseCase {
             CreateTaskRequest request
     ) {
         ProjectReference project = projectService.getReference(userId, projectId);
+        long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
         return TaskResponse.from(taskService.create(
-                userId, project.id(), request.title(), request.priority(), request.urgent()));
+                userId, project.id(), request.title(), request.priority(), request.urgent(), matrixRank));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -95,12 +100,12 @@ public class TaskUseCase {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public TaskResponse updatePriority(Long userId, Long taskId, UpdateTaskPriorityRequest request) {
-        return TaskResponse.from(taskService.updatePriority(userId, taskId, request.priority()));
+        return TaskResponse.from(taskOrderingService.updatePriority(userId, taskId, request.priority()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public TaskResponse updateUrgent(Long userId, Long taskId, UpdateTaskUrgentRequest request) {
-        return TaskResponse.from(taskService.updateUrgent(userId, taskId, request.urgent()));
+        return TaskResponse.from(taskOrderingService.updateUrgent(userId, taskId, request.urgent()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

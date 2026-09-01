@@ -49,6 +49,9 @@ public class TaskEntity extends BaseTimeEntity {
     @Column(name = "order_idx", nullable = false)
     private int orderIdx;
 
+    @Column(name = "matrix_rank", nullable = false)
+    private long matrixRank;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
@@ -66,6 +69,7 @@ public class TaskEntity extends BaseTimeEntity {
         this.priority = task.isPriority();
         this.urgent = task.isUrgent();
         this.orderIdx = task.getOrderIdx();
+        this.matrixRank = task.getMatrixRank();
         this.deleted = false;
     }
 
@@ -94,6 +98,16 @@ public class TaskEntity extends BaseTimeEntity {
         this.urgent = urgent;
     }
 
+    public void updateMatrixRank(long matrixRank) {
+        this.matrixRank = matrixRank;
+    }
+
+    public void applyPlacement(Task task) {
+        this.priority = task.isPriority();
+        this.urgent = task.isUrgent();
+        this.matrixRank = task.getMatrixRank();
+    }
+
     public void delete() {
         this.deleted = true;
     }
@@ -109,6 +123,7 @@ public class TaskEntity extends BaseTimeEntity {
                 priority,
                 urgent,
                 orderIdx,
+                matrixRank,
                 getCreatedAt(),
                 getUpdatedAt()
         );

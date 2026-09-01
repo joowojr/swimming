@@ -39,6 +39,7 @@ CREATE TABLE `tasks` (
   `is_priority` boolean NOT NULL DEFAULT false,
   `is_urgent` boolean NOT NULL DEFAULT false,
   `order_idx` int NOT NULL DEFAULT 0,
+  `matrix_rank` bigint NOT NULL,
   `is_deleted` boolean NOT NULL DEFAULT false,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
@@ -146,6 +147,9 @@ CREATE UNIQUE INDEX `daily_plan_items_user_date_task_index`
 
 CREATE INDEX `idx_tasks_user_deleted_created_at`
   ON `tasks` (`user_id`, `is_deleted`, `created_at`);
+
+CREATE INDEX `idx_tasks_matrix_page`
+  ON `tasks` (`user_id`, `is_deleted`, `is_priority`, `is_urgent`, `matrix_rank`, `id`);
 
 CREATE INDEX `sessions_index_2` ON `sessions` (`user_id`, `started_at`);
 

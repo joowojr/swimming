@@ -14,6 +14,7 @@ import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 class TaskUseCaseTest {
 
     private TaskService taskService;
+    private TaskOrderingService taskOrderingService;
     private ProjectService projectService;
     private DailyPlanService dailyPlanService;
     private TaskUseCase taskUseCase;
@@ -36,9 +38,10 @@ class TaskUseCaseTest {
     @BeforeEach
     void setUp() {
         taskService = mock(TaskService.class);
+        taskOrderingService = mock(TaskOrderingService.class);
         projectService = mock(ProjectService.class);
         dailyPlanService = mock(DailyPlanService.class);
-        taskUseCase = new TaskUseCase(taskService, projectService, dailyPlanService);
+        taskUseCase = new TaskUseCase(taskService, taskOrderingService, projectService, dailyPlanService);
     }
 
     @Test
@@ -46,7 +49,8 @@ class TaskUseCaseTest {
     void createsTaskInOwnedProject() {
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L, "폴더", null));
-        when(taskService.create(1L, 10L, "Task", false, false))
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.create(1L, 10L, "Task", false, false, 1024L))
                 .thenReturn(task(1L, 10L, "Task", 0));
 
         TaskResponse response = taskUseCase.create(
@@ -187,4 +191,5 @@ class TaskUseCaseTest {
                 null
         );
     }
+
 }

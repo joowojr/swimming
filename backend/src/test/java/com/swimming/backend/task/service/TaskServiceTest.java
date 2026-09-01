@@ -80,6 +80,7 @@ class TaskServiceTest {
         assertThat(task.getTitle()).isEqualTo("API 명세 작성");
         assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(task.getOrderIdx()).isZero();
+        assertThat(task.getMatrixRank()).isZero();
     }
 
     @Test
@@ -164,6 +165,25 @@ class TaskServiceTest {
         assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
         assertThat(tasks).allMatch(task -> task.getProjectId() == null);
         verify(taskRepository).findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(1L);
+    }
+
+    @Test
+    @DisplayName("같은 Matrix 영역의 기존 최상단 다음 rank로 Task를 생성한다")
+    void createsTaskAtTopOfMatrixSection() {
+        TaskEntity currentTop = taskEntity(3L, null, "기존 중요 Task", 0);
+        ReflectionTestUtils.setField(currentTop, "priority", true);
+        ReflectionTestUtils.setField(currentTop, "matrixRank", 4096L);
+        when(taskRepository.findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
+                1L,
+                true,
+                false
+        )).thenReturn(Optional.of(currentTop));
+
+        Task task = taskService.create(1L, null, "새 중요 Task", true, false);
+
+        assertThat(task.isPriority()).isTrue();
+        assertThat(task.isUrgent()).isFalse();
+        assertThat(task.getMatrixRank()).isEqualTo(5120L);
     }
 
     @Test

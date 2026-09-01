@@ -57,13 +57,13 @@ public class DailyPlanService {
         dailyPlanItemRepository.saveAll(items);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void delete(Long userId, LocalDate planDate, Long itemId) {
-        dailyPlanItemRepository.findByIdAndUserIdAndPlanDate(itemId, userId, planDate)
-                .ifPresentOrElse(dailyPlanItemRepository::delete, () -> {
-                    throw new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND);
-                });
-    }
+//    @Transactional(propagation = Propagation.REQUIRED)
+//    public void delete(Long userId, LocalDate planDate, Long itemId) {
+//        dailyPlanItemRepository.findByIdAndUserIdAndPlanDate(itemId, userId, planDate)
+//                .ifPresentOrElse(dailyPlanItemRepository::delete, () -> {
+//                    throw new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND);
+//                });
+//    }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public boolean containsAnyTasks(Long userId, LocalDate planDate, List<Long> taskIds) {

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,5 +124,55 @@ class TaskRepositoryJoinTest {
             assertThat(reference.id()).isEqualTo(task.getId());
             assertThat(reference.title()).isEqualTo("세션에 기록된 Task");
         });
+    }
+
+    @Test
+    @DisplayName("Matrix 영역을 rank와 ID 커서 기준으로 페이지 조회한다")
+    void pagesMatrixSectionByRankAndId() {
+        User user = userRepository.saveAndFlush(User.builder()
+                .email("matrix-page@example.com")
+                .googleSubject("task-repository-google-subject-matrix")
+                .nickname("matrix-user")
+                .timezone("Asia/Seoul")
+                .build());
+        TaskEntity first = saveMatrixTask(user, "첫째", false, true, 3072L);
+        TaskEntity second = saveMatrixTask(user, "둘째", false, true, 2048L);
+        TaskEntity third = saveMatrixTask(user, "셋째", false, true, 1024L);
+        saveMatrixTask(user, "다른 영역", false, false, 4096L);
+
+        List<TaskEntity> firstPage = taskRepository.findMatrixFirstPage(
+                user.getId(),
+                false,
+                true,
+                PageRequest.of(0, 2)
+        );
+        List<TaskEntity> nextPage = taskRepository.findMatrixNextPage(
+                user.getId(),
+                false,
+                true,
+                second.getMatrixRank(),
+                second.getId(),
+                PageRequest.of(0, 2)
+        );
+
+        assertThat(firstPage).extracting(TaskEntity::getId)
+                .containsExactly(first.getId(), second.getId());
+        assertThat(nextPage).extracting(TaskEntity::getId)
+                .containsExactly(third.getId());
+    }
+
+    private TaskEntity saveMatrixTask(
+            User user,
+            String title,
+            boolean priority,
+            boolean urgent,
+            long matrixRank
+    ) {
+        return taskRepository.saveAndFlush(TaskEntity.from(
+                Task.create(user.getId(), null, title, 0, priority, urgent, matrixRank),
+                user,
+                null,
+                null
+        ));
     }
 }

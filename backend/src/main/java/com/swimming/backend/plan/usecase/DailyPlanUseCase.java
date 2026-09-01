@@ -12,6 +12,7 @@ import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 public class DailyPlanUseCase {
     private final DailyPlanService dailyPlanService;
     private final TaskService taskService;
+    private final TaskOrderingService taskOrderingService;
     private final ProjectService projectService;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -78,7 +80,9 @@ public class DailyPlanUseCase {
             Long projectId = request.projectId() == null
                     ? null
                     : projectService.getReference(userId, request.projectId()).id();
-            Long createdTaskId = taskService.create(userId, projectId, title).getId();
+            long matrixRank = taskOrderingService.nextRank(userId, false, false);
+            Long createdTaskId = taskService.create(
+                    userId, projectId, title, false, false, matrixRank).getId();
             dailyPlanService.save(userId, date, DailyPlanItem.restore(null, createdTaskId, nextOrderIdx, null, null));
         }
         return loadPlanResponse(userId, date);
@@ -103,10 +107,10 @@ public class DailyPlanUseCase {
         return loadPlanResponse(userId, date);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void deleteItem(Long userId, LocalDate date, Long itemId) {
-        dailyPlanService.delete(userId, date, itemId);
-    }
+//    @Transactional(propagation = Propagation.REQUIRED)
+//    public void deleteItem(Long userId, LocalDate date, Long itemId) {
+//        dailyPlanService.delete(userId, date, itemId);
+//    }
 
     private DailyPlanResponse loadPlanResponse(Long userId, LocalDate date) {
         List<DailyPlanItemResponse> items = dailyPlanService.getRows(userId, date, date)

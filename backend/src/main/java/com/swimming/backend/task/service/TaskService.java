@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,12 +33,24 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task create(Long userId, Long projectId, String title) {
-        return create(userId, projectId, null, title, false, false);
+        return create(userId, projectId, null, title, false, false, 0L);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task create(Long userId, Long projectId, String title, boolean priority, boolean urgent) {
-        return create(userId, projectId, null, title, priority, urgent);
+        return create(userId, projectId, null, title, priority, urgent, 0L);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task create(
+            Long userId,
+            Long projectId,
+            String title,
+            boolean priority,
+            boolean urgent,
+            long matrixRank
+    ) {
+        return create(userId, projectId, null, title, priority, urgent, matrixRank);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -47,7 +60,20 @@ public class TaskService {
             Long sourceNoteId,
             String title
     ) {
-        return create(userId, projectId, sourceNoteId, title, false, false);
+        return create(userId, projectId, sourceNoteId, title, false, false, 0L);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task createFromNote(
+            Long userId,
+            Long projectId,
+            Long sourceNoteId,
+            String title,
+            boolean priority,
+            boolean urgent,
+            long matrixRank
+    ) {
+        return create(userId, projectId, sourceNoteId, title, priority, urgent, matrixRank);
     }
 
     private Task create(
@@ -56,7 +82,8 @@ public class TaskService {
             Long sourceNoteId,
             String title,
             boolean priority,
-            boolean urgent
+            boolean urgent,
+            long matrixRank
     ) {
         int nextOrder = (projectId == null
                 ? taskRepository.findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
@@ -65,8 +92,8 @@ public class TaskService {
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
         Task task = sourceNoteId == null
-                ? Task.create(userId, projectId, title, nextOrder, priority, urgent)
-                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder, priority, urgent);
+                ? Task.create(userId, projectId, title, nextOrder, priority, urgent, matrixRank)
+                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder, priority, urgent, matrixRank);
         User user = entityManager.getReference(User.class, userId);
         ProjectEntity project = projectId == null
                 ? null
@@ -151,22 +178,6 @@ public class TaskService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Task updatePriority(Long userId, Long taskId, boolean priority) {
-        TaskEntity entity = getOwnedEntity(userId, taskId);
-        entity.updatePriority(priority);
-        taskRepository.flush();
-        return entity.toDomain();
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
-    public Task updateUrgent(Long userId, Long taskId, boolean urgent) {
-        TaskEntity entity = getOwnedEntity(userId, taskId);
-        entity.updateUrgent(urgent);
-        taskRepository.flush();
-        return entity.toDomain();
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
     public void deleteAll(Long userId, List<Long> taskIds) {
         if (taskIds.isEmpty()) {
             return;
@@ -203,4 +214,5 @@ public class TaskService {
         return taskRepository.findByIdAndUser_IdAndDeletedFalse(taskId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
     }
+
 }

@@ -59,8 +59,6 @@ class TaskOrganizerUseCaseTest {
                 noteService,
                 projectService
         );
-        when(noteService.update(any(Note.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -213,7 +211,6 @@ class TaskOrganizerUseCaseTest {
         assertThat(note.isDeleted()).isFalse();
         verify(projectService).validateOwnership(1L, 10L);
         verify(taskService).createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트", false, false, 1024L);
-        verify(noteService, never()).update(any());
     }
 
     @Test
@@ -357,7 +354,6 @@ class TaskOrganizerUseCaseTest {
 
         assertThat(note.getContent()).isEqualTo("장소조회 캐시 테스트 아직 못함");
         assertThat(note.isDeleted()).isFalse();
-        verify(noteService, never()).update(any());
     }
 
     @Test

@@ -73,6 +73,17 @@ public class Session {
             int breakDurationSec,
             int repeatCount
     ) {
+        long calculatedPlannedDurationSec = (long) focusDurationSec * repeatCount
+                + (long) breakDurationSec * Math.max(0, repeatCount - 1);
+        if (focusDurationSec < 60
+                || breakDurationSec < 0
+                || breakDurationSec > 3600
+                || repeatCount < 1
+                || repeatCount > 8
+                || calculatedPlannedDurationSec > 86400
+                || plannedDurationSec != calculatedPlannedDurationSec) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
+        }
         return Session.builder()
                 .userId(userId)
                 .type(SessionType.PERSONAL)
@@ -180,14 +191,18 @@ public class Session {
             throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
         }
 
-        long calculatedPlannedDurationSec = (long) focusDurationSec * repeatCount
-                + (long) breakDurationSec * Math.max(0, repeatCount - 1);
+        long calculatedPlannedDurationSec = calculatePlannedDuration(focusDurationSec);
         if (focusDurationSec < 60 || calculatedPlannedDurationSec > 86400) {
             throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
         }
 
         this.focusDurationSec = focusDurationSec;
         this.plannedDurationSec = Math.toIntExact(calculatedPlannedDurationSec);
+    }
+
+    private long calculatePlannedDuration(int focusDurationSec) {
+        return (long) focusDurationSec * repeatCount
+                + (long) breakDurationSec * Math.max(0, repeatCount - 1);
     }
 
 }

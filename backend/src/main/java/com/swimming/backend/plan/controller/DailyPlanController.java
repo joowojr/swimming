@@ -59,13 +59,13 @@ public class DailyPlanController {
         return ResponseEntity.created(URI.create("/api/daily-plans/" + date)).body(response);
     }
 
-//    @DeleteMapping("/{date}/items/{itemId}")
-//    public ResponseEntity<Void> deleteItem(
-//            @AuthenticationPrincipal AuthUser authUser,
-//            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-//            @PathVariable Long itemId
-//    ) {
-//        dailyPlanUseCase.deleteItem(authUser.id(), date, itemId);
-//        return ResponseEntity.noContent().build();
-//    }
+    @DeleteMapping("/{date}/items/{itemId}")
+    public ResponseEntity<Void> deleteItem(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @PathVariable Long itemId
+    ) {
+        dailyPlanUseCase.deleteItem(authUser.id(), date, itemId);
+        return ResponseEntity.noContent().build();
+    }
 }

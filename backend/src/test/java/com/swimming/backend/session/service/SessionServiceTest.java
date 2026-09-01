@@ -175,13 +175,16 @@ class SessionServiceTest {
     }
 
     @Test
-    @DisplayName("계획 시간 API는 소유 Entity의 계획 시간만 변경 감지로 저장한다")
-    void updatesOnlyPlannedDuration() {
+    @DisplayName("집중 시간 API는 도메인이 계산한 집중 시간과 계획 시간만 변경 감지로 저장한다")
+    void updatesOnlyFocusAndPlannedDuration() {
         SessionEntity entity = startedEntity();
+        Session session = entity.toDomain();
+        session.updateFocusDuration(1800);
         when(sessionRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(entity));
 
-        sessionService.updatePlannedDuration(1L, 5L, 1800);
+        sessionService.updateFocusDuration(session);
 
+        assertThat(entity.getFocusDurationSec()).isEqualTo(1800);
         assertThat(entity.getPlannedDurationSec()).isEqualTo(1800);
         assertThat(entity.getMusicUrl()).isNull();
         verify(sessionRepository).flush();
@@ -223,7 +226,7 @@ class SessionServiceTest {
     private SessionWithPlaceRow sessionWithPlaceRow(Long taskId) {
         return new SessionWithPlaceRow(
                 5L, 1L, SessionType.PERSONAL, 20L, taskId, null, null,
-                1500, null, STARTED_AT, null, SessionStatus.IN_PROGRESS, null,
+                1500, 1500, 0, 1, null, STARTED_AT, null, SessionStatus.IN_PROGRESS, null,
                 3L, "Lisbon", "PT", "Europe/Lisbon", "Alfama Cafe", BackgroundAssetType.VIDEO,
                 "places/video/alfama.mp4", null
         );

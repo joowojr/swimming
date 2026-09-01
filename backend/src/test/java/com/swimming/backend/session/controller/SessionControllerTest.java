@@ -13,7 +13,7 @@ import com.swimming.backend.session.dto.web.SessionDetailPlaceResponse;
 import com.swimming.backend.session.dto.web.SessionPlaceResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
-import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionFocusDurationRequest;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.place.dto.BackgroundAssetResponse;
 import com.swimming.backend.session.usecase.SessionUseCase;
@@ -70,7 +70,7 @@ class SessionControllerTest {
     @DisplayName("개인 세션을 생성하면 Location과 진행 상태를 반환한다")
     void startsPersonalSession() throws Exception {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
-                List.of(10L, 11L), 20L, 1500
+                List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         when(sessionUseCase.startPersonal(1L, request)).thenReturn(new SessionResponse(
                 5L,
@@ -79,6 +79,9 @@ class SessionControllerTest {
                 sessionPlace(),
                 null,
                 1500,
+                1500,
+                0,
+                1,
                 null,
                 STARTED_AT,
                 null,
@@ -91,7 +94,10 @@ class SessionControllerTest {
                                 {
                                   "taskIds":[10,11],
                                   "placeId":20,
-                                  "plannedDurationSec":1500
+                                  "plannedDurationSec":1500,
+                                  "focusDurationSec":1500,
+                                  "breakDurationSec":0,
+                                  "repeatCount":1
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -113,6 +119,9 @@ class SessionControllerTest {
                 SessionType.PERSONAL,
                 SessionStatus.COMPLETED,
                 1500,
+                1500,
+                0,
+                1,
                 1200,
                 STARTED_AT,
                 STARTED_AT.plusSeconds(1200),
@@ -138,13 +147,17 @@ class SessionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "taskId":10,
-                                  "plannedDurationSec":59
+                                  "taskIds":[10],
+                                  "placeId":20,
+                                  "plannedDurationSec":59,
+                                  "focusDurationSec":59,
+                                  "breakDurationSec":0,
+                                  "repeatCount":1
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.errors.plannedDurationSec").exists());
+                .andExpect(jsonPath("$.errors.focusDurationSec").exists());
     }
 
     @Test
@@ -156,6 +169,9 @@ class SessionControllerTest {
                         SessionType.PERSONAL,
                         SessionStatus.IN_PROGRESS,
                         1500,
+                        1500,
+                        0,
+                        1,
                         null,
                         STARTED_AT,
                         null,
@@ -196,6 +212,9 @@ class SessionControllerTest {
                 sessionPlace(),
                 null,
                 1500,
+                1500,
+                0,
+                1,
                 600,
                 STARTED_AT,
                 STARTED_AT.plusSeconds(600),
@@ -213,7 +232,7 @@ class SessionControllerTest {
     @DisplayName("진행 중인 세션이 있으면 ProblemDetail 충돌 응답을 반환한다")
     void returnsConflictForExistingActiveSession() throws Exception {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
-                List.of(10L, 11L), 20L, 1500
+                List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         doThrow(new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS))
                 .when(sessionUseCase).startPersonal(1L, request);
@@ -224,7 +243,10 @@ class SessionControllerTest {
                                 {
                                   "taskIds":[10,11],
                                   "placeId":20,
-                                  "plannedDurationSec":1500
+                                  "plannedDurationSec":1500,
+                                  "focusDurationSec":1500,
+                                  "breakDurationSec":0,
+                                  "repeatCount":1
                                 }
                                 """))
                 .andExpect(status().isConflict())
@@ -240,6 +262,9 @@ class SessionControllerTest {
                 SessionType.PERSONAL,
                 SessionStatus.IN_PROGRESS,
                 1500,
+                1500,
+                0,
+                1,
                 null,
                 STARTED_AT,
                 null,
@@ -289,35 +314,35 @@ class SessionControllerTest {
 
     @Test
     @DisplayName("진행 중인 세션의 집중 시간을 변경하면 본문 없이 응답한다")
-    void updatesPlannedDuration() throws Exception {
-        UpdateSessionPlannedDurationRequest request =
-                new UpdateSessionPlannedDurationRequest(1800);
+    void updatesFocusDuration() throws Exception {
+        UpdateSessionFocusDurationRequest request =
+                new UpdateSessionFocusDurationRequest(1800);
 
-        mockMvc.perform(put("/api/sessions/5/planned-duration")
+        mockMvc.perform(put("/api/sessions/5/focus-duration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "plannedDurationSec":1800
+                                  "focusDurationSec":1800
                                 }
                                 """))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        verify(sessionUseCase).updatePlannedDuration(1L, 5L, request);
+        verify(sessionUseCase).updateFocusDuration(1L, 5L, request);
     }
 
     @Test
     @DisplayName("허용 범위를 벗어난 세션 집중 시간 변경은 필드 오류를 반환한다")
-    void rejectsInvalidPlannedDurationUpdate() throws Exception {
-        mockMvc.perform(put("/api/sessions/5/planned-duration")
+    void rejectsInvalidFocusDurationUpdate() throws Exception {
+        mockMvc.perform(put("/api/sessions/5/focus-duration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "plannedDurationSec":59
+                                  "focusDurationSec":59
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.plannedDurationSec").exists());
+                .andExpect(jsonPath("$.errors.focusDurationSec").exists());
     }
 
     private SessionPlaceResponse sessionPlace() {

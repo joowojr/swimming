@@ -168,18 +168,9 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("같은 Matrix 영역의 기존 최상단 다음 rank로 Task를 생성한다")
-    void createsTaskAtTopOfMatrixSection() {
-        TaskEntity currentTop = taskEntity(3L, null, "기존 중요 Task", 0);
-        ReflectionTestUtils.setField(currentTop, "priority", true);
-        ReflectionTestUtils.setField(currentTop, "matrixRank", 4096L);
-        when(taskRepository.findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
-                1L,
-                true,
-                false
-        )).thenReturn(Optional.of(currentTop));
-
-        Task task = taskService.create(1L, null, "새 중요 Task", true, false);
+    @DisplayName("UseCase가 계산한 Matrix rank로 Task를 생성한다")
+    void createsTaskWithSuppliedMatrixRank() {
+        Task task = taskService.create(1L, null, "새 중요 Task", true, false, 5120L);
 
         assertThat(task.isPriority()).isTrue();
         assertThat(task.isUrgent()).isFalse();

@@ -94,7 +94,7 @@ class ProjectChangeDetectionIntegrationTest {
         statistics.clear();
         projectService.delete(user.getId(), entity.getId());
 
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(3);
         assertThat(projectRepository.findByIdAndUser_IdAndDeletedFalse(entity.getId(), user.getId()))
                 .isEmpty();
     }

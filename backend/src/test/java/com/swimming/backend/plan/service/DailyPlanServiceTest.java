@@ -3,6 +3,7 @@ package com.swimming.backend.plan.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.plan.repository.DailyPlanItemBatchRepository;
 import com.swimming.backend.plan.repository.DailyPlanItemRepository;
 import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,14 @@ class DailyPlanServiceTest {
     private static final LocalDate DATE = LocalDate.of(2026, 8, 21);
 
     private DailyPlanItemRepository repository;
+    private DailyPlanItemBatchRepository batchRepository;
     private DailyPlanService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(DailyPlanItemRepository.class);
-        service = new DailyPlanService(repository);
+        batchRepository = mock(DailyPlanItemBatchRepository.class);
+        service = new DailyPlanService(repository, batchRepository);
     }
 
     @Test

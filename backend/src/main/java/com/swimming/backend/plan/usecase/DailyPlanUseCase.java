@@ -107,10 +107,10 @@ public class DailyPlanUseCase {
         return loadPlanResponse(userId, date);
     }
 
-//    @Transactional(propagation = Propagation.REQUIRED)
-//    public void deleteItem(Long userId, LocalDate date, Long itemId) {
-//        dailyPlanService.delete(userId, date, itemId);
-//    }
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void deleteItem(Long userId, LocalDate date, Long itemId) {
+        dailyPlanService.delete(userId, date, itemId);
+    }
 
     private DailyPlanResponse loadPlanResponse(Long userId, LocalDate date) {
         List<DailyPlanItemResponse> items = dailyPlanService.getRows(userId, date, date)

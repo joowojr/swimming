@@ -116,8 +116,7 @@ class DailyPlanUseCaseTest {
     void addsOwnedTasksAfterExistingItems() {
         when(dailyPlanService.getItems(1L, DATE))
                 .thenReturn(List.of(DailyPlanItem.restore(1L, 30L, 0, null, null)));
-        when(dailyPlanService.containsTask(1L, DATE, 10L)).thenReturn(false);
-        when(dailyPlanService.containsTask(1L, DATE, 20L)).thenReturn(false);
+        when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(false);
         when(taskService.getReferences(1L, List.of(10L, 20L)))
                 .thenReturn(List.of(taskReference(10L), taskReference(20L)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
@@ -129,10 +128,11 @@ class DailyPlanUseCaseTest {
         assertThat(response.items()).extracting(DailyPlanItemResponse::taskId)
                 .containsExactly(30L, 10L, 20L);
 
-        ArgumentCaptor<DailyPlanItem> captor = ArgumentCaptor.forClass(DailyPlanItem.class);
-        verify(dailyPlanService, org.mockito.Mockito.times(2)).save(eq(1L), eq(DATE), captor.capture());
-        assertThat(captor.getAllValues()).extracting(DailyPlanItem::getTaskId).containsExactly(10L, 20L);
-        assertThat(captor.getAllValues()).extracting(DailyPlanItem::getOrderIdx).containsExactly(1, 2);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<DailyPlanItem>> captor = ArgumentCaptor.forClass(List.class);
+        verify(dailyPlanService).saveAll(eq(1L), eq(DATE), captor.capture());
+        assertThat(captor.getValue()).extracting(DailyPlanItem::getTaskId).containsExactly(10L, 20L);
+        assertThat(captor.getValue()).extracting(DailyPlanItem::getOrderIdx).containsExactly(1, 2);
     }
 
     @Test
@@ -153,7 +153,7 @@ class DailyPlanUseCaseTest {
     void rejectsAlreadyPlannedTaskInBatch() {
         when(dailyPlanService.getItems(1L, DATE))
                 .thenReturn(List.of(DailyPlanItem.restore(1L, 10L, 0, null, null)));
-        when(dailyPlanService.containsTask(1L, DATE, 10L)).thenReturn(true);
+        when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(true);
 
         assertThatThrownBy(() -> useCase.addItems(
                 1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null)))
@@ -178,7 +178,7 @@ class DailyPlanUseCaseTest {
     @DisplayName("다른 사용자의 Task는 계획에 추가하지 않는다")
     void rejectsAnotherUsersTask() {
         when(dailyPlanService.getItems(2L, DATE)).thenReturn(List.of());
-        when(dailyPlanService.containsTask(2L, DATE, 10L)).thenReturn(false);
+        when(dailyPlanService.containsAnyTasks(2L, DATE, List.of(10L))).thenReturn(false);
         when(taskService.getReferences(2L, List.of(10L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> useCase.addItems(

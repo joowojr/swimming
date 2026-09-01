@@ -175,4 +175,19 @@ public class Session {
         this.musicUrl = musicUrl;
     }
 
+    public void updateFocusDuration(int focusDurationSec) {
+        if (status != SessionStatus.IN_PROGRESS) {
+            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
+        }
+
+        long calculatedPlannedDurationSec = (long) focusDurationSec * repeatCount
+                + (long) breakDurationSec * Math.max(0, repeatCount - 1);
+        if (focusDurationSec < 60 || calculatedPlannedDurationSec > 86400) {
+            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
+        }
+
+        this.focusDurationSec = focusDurationSec;
+        this.plannedDurationSec = Math.toIntExact(calculatedPlannedDurationSec);
+    }
+
 }

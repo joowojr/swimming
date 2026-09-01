@@ -212,11 +212,9 @@ public class SessionUseCase {
             Long sessionId,
             UpdateSessionFocusDurationRequest request
     ) {
-        sessionService.updateFocusDuration(
-                userId,
-                sessionId,
-                request.focusDurationSec()
-        );
+        Session session = sessionService.getOwned(userId, sessionId);
+        session.updateFocusDuration(request.focusDurationSec());
+        sessionService.updateFocusDuration(session);
     }
 
     private SessionDetailResponse toDetailResponse(

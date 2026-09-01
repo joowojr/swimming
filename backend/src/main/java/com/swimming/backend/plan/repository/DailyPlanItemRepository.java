@@ -25,6 +25,8 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                 project.deleted,
                 task.title,
                 task.status,
+                task.priority,
+                task.urgent,
                 item.orderIdx
             )
             from DailyPlanItemEntity item

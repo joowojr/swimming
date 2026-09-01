@@ -129,6 +129,8 @@ public class DailyPlanUseCase {
                 row.projectName(),
                 row.title(),
                 row.status(),
+                row.priority(),
+                row.urgent(),
                 row.orderIdx()
         );
     }

@@ -4,6 +4,9 @@ import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
+import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskListMode;
@@ -25,8 +28,23 @@ public class TaskUseCase {
 
     private final TaskService taskService;
     private final ProjectService projectService;
+    private final DailyPlanService dailyPlanService;
 
     @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse createWithOptionalPlan(Long userId, CreateTaskWithPlanRequest request) {
+        Long projectId = request.projectId() == null
+                ? null
+                : projectService.getReference(userId, request.projectId()).id();
+        Task task = taskService.create(userId, projectId, request.title().trim(), request.priority(), request.urgent());
+        if (request.planDate() != null) {
+            int orderIdx = dailyPlanService.getItems(userId, request.planDate()).size();
+            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
+        }
+        return TaskResponse.from(task);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Deprecated(since = "2026-09-01", forRemoval = true)
     public TaskResponse create(
             Long userId,
             Long projectId,

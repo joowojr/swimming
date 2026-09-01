@@ -4,6 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
@@ -29,13 +30,15 @@ class TaskUseCaseTest {
 
     private TaskService taskService;
     private ProjectService projectService;
+    private DailyPlanService dailyPlanService;
     private TaskUseCase taskUseCase;
 
     @BeforeEach
     void setUp() {
         taskService = mock(TaskService.class);
         projectService = mock(ProjectService.class);
-        taskUseCase = new TaskUseCase(taskService, projectService);
+        dailyPlanService = mock(DailyPlanService.class);
+        taskUseCase = new TaskUseCase(taskService, projectService, dailyPlanService);
     }
 
     @Test

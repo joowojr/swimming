@@ -2,6 +2,7 @@ package com.swimming.backend.task.controller;
 
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskListMode;
@@ -35,7 +36,21 @@ public class TaskController {
 
     private final TaskUseCase taskUseCase;
 
+    @PostMapping("/tasks")
+    public ResponseEntity<TaskResponse> createWithOptionalPlan(
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody CreateTaskWithPlanRequest request
+    ) {
+        TaskResponse response = taskUseCase.createWithOptionalPlan(authUser.id(), request);
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/tasks/{id}")
+                .buildAndExpand(response.id())
+                .toUri();
+        return ResponseEntity.created(location).body(response);
+    }
+
     @PostMapping("/projects/{projectId}/tasks")
+    @Deprecated(since = "2026-09-01", forRemoval = true)
     public ResponseEntity<TaskResponse> create(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long projectId,

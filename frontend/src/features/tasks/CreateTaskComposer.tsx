@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent, RefObject } from 'react'
 import { IconLoader2, IconPlus } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
-import { createTask } from './taskApi'
+import { createTaskWithOptionalPlan } from './taskApi'
 import styles from './CreateTaskComposer.module.css'
 
 interface CreateTaskComposerProps {
@@ -50,7 +50,10 @@ export default function CreateTaskComposer({
     setIsSubmitting(true)
     let created = false
     try {
-      await createTask(projectId, { title: title.trim() })
+      await createTaskWithOptionalPlan({
+        title: title.trim(),
+        projectId,
+      })
       setTitle('')
       setIsTouched(false)
       setFieldError(undefined)

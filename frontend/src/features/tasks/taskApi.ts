@@ -10,6 +10,7 @@ import type {
   UpdateTaskUrgentRequest,
 } from './taskTypes'
 
+/** @deprecated 새 Task 생성에는 createTaskWithOptionalPlan을 사용합니다. */
 export async function createTask(
   projectId: number,
   request: CreateTaskRequest,

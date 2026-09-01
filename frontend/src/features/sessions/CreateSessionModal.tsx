@@ -339,7 +339,10 @@ export default function CreateSessionModal({
                       <strong>{repeat}</strong>
                       <button type="button" aria-label="반복 늘리기" onClick={() => setRepeat((value) => Math.min(8, value + 1))} disabled={isSubmitting || repeat === 8}>+</button>
                     </div>
-                    <p className={styles.hint}>총 {formatTotalTime(totalMinutes)} · 사이에 5분 휴식</p>
+                    <p className={styles.hint}>
+                      총 {formatTotalTime(totalMinutes)}
+                      {repeat > 1 && ' · 사이에 5분 휴식'}
+                    </p>
                   </fieldset>
                 </div>
               </>

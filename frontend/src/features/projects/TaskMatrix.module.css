@@ -98,6 +98,22 @@
   min-width: 0;
   container-name: checklist-card;
   container-type: inline-size;
+  cursor: grab;
+}
+
+.list > li:active {
+  cursor: grabbing;
+}
+
+.list > li.dragging {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  opacity: 0.7;
+}
+
+.dropTarget {
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--space-1);
 }
 
 .check {

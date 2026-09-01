@@ -50,6 +50,21 @@ export interface TaskMatrixPageResponse {
   hasNext: boolean
 }
 
+export interface TaskPlacementRequest {
+  scope: 'MATRIX'
+  targetSection: TaskMatrixSection
+  previousTaskId: number | null
+  nextTaskId: number | null
+}
+
+export interface TaskPlacementResponse {
+  scope: 'MATRIX'
+  task: TaskMatrixItem
+  sourceSection: TaskMatrixSection
+  targetSection: TaskMatrixSection
+  rebalancedSections: TaskMatrixSection[]
+}
+
 export interface TaskSummaryResponse {
   id: number
   title: string

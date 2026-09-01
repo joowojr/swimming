@@ -12,7 +12,7 @@ import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskPickerModal from '../plans/TaskPickerModal'
 import type { Project } from './projectTypes'
 import { createTaskWithOptionalPlan } from '../tasks/taskApi'
-import { getTaskMatrixPage, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
+import { getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
 import type { TaskMatrixItem, TaskMatrixSection, TaskResponse, TaskStatus } from '../tasks/taskTypes'
 import styles from './TaskMatrix.module.css'
@@ -67,10 +67,15 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
   const [addDraft, setAddDraft] = useState<{ priority: boolean; urgent: boolean } | null>(null)
+  const [dragState, setDragState] = useState<{ taskId: number; sourceSection: string } | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ sectionId: string; taskId: number | null } | null>(null)
 
   const loadingSections = useRef(new Set<string>())
   const sectionsRef = useRef(sections)
-  sectionsRef.current = sections
+
+  useEffect(() => {
+    sectionsRef.current = sections
+  }, [sections])
 
   const loadSection = useCallback(async (section: MatrixSection, reset = false, signal?: AbortSignal) => {
     const current = sectionsRef.current[section.id] ?? initialSectionState()
@@ -167,6 +172,41 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
       ?? 'Task 제목을 저장하지 못했습니다.'
   }
 
+  const dropTask = async (targetSection: MatrixSection, targetTaskId: number | null, insertBefore: boolean) => {
+    if (!dragState || dragState.taskId === targetTaskId) return
+    const sourceItems = sectionsRef.current[dragState.sourceSection]?.items ?? []
+    const targetItems = (sectionsRef.current[targetSection.id]?.items ?? [])
+      .filter((task) => task.id !== dragState.taskId)
+    const targetIndex = targetTaskId === null
+      ? targetItems.length
+      : targetItems.findIndex((task) => task.id === targetTaskId) + (insertBefore ? 0 : 1)
+    if (targetIndex < 0) return
+    const sourceIndex = sourceItems.findIndex((task) => task.id === dragState.taskId)
+    if (dragState.sourceSection === targetSection.id && sourceIndex >= 0 && targetIndex === sourceIndex) return
+    setPendingTaskId(dragState.taskId)
+    setUpdateError(null)
+    try {
+      await moveTask(dragState.taskId, {
+        scope: 'MATRIX',
+        targetSection: targetSection.apiSection,
+        previousTaskId: targetItems[targetIndex - 1]?.id ?? null,
+        nextTaskId: targetItems[targetIndex]?.id ?? null,
+      })
+      const sourceSection = matrixSections.find((section) => section.id === dragState.sourceSection)
+      await Promise.all([
+        sourceSection ? loadSection(sourceSection, true) : Promise.resolve(),
+        loadSection(targetSection, true),
+      ])
+    } catch (error: unknown) {
+      const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+      setUpdateError({ taskId: dragState.taskId, message: apiMessage ?? 'Task 위치를 변경하지 못했습니다.' })
+    } finally {
+      setPendingTaskId(null)
+      setDragState(null)
+      setDropTarget(null)
+    }
+  }
+
   useEffect(() => {
     const controller = new AbortController()
     const task = window.setTimeout(() => {
@@ -213,11 +253,21 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                 const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 48
                 if (isNearBottom) void loadSection(section)
               }}
+              onDragOver={(event) => {
+                if (!dragState) return
+                event.preventDefault()
+                event.dataTransfer.dropEffect = 'move'
+                setDropTarget((current) => current?.sectionId === section.id && current.taskId === null
+                  ? current : { sectionId: section.id, taskId: null })
+              }}
+              onDrop={(event) => {
+                event.preventDefault()
+                void dropTask(section, null, false)
+              }}
             >
               <header className={styles['quadrant-header']}>
                 <h3 id={`${section.id}-title`}>{section.title}</h3>
                 <div className={styles['quadrant-actions']}>
-                  {/*<span className={styles.count}>{section.tasks.length}개</span>*/}
                   <AddItemButton
                     type="button"
                     aria-label={`${section.title} 영역에 할 일 추가`}
@@ -246,9 +296,35 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                     const isPending = pendingTaskId === task.id
                     return (
                       <li
-                        className={styles[`is-${task.status.toLowerCase()}`]}
+                        className={`${styles[`is-${task.status.toLowerCase()}`]} ${dropTarget?.sectionId === section.id && dropTarget.taskId === task.id ? styles.dropTarget : ''} ${dragState?.taskId === task.id ? styles.dragging : ''}`}
                         aria-busy={isPending}
                         key={task.id}
+                        draggable={!isPending}
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = 'move'
+                          event.dataTransfer.setData('text/plain', String(task.id))
+                          event.dataTransfer.setDragImage(event.currentTarget, event.currentTarget.offsetWidth / 2, event.currentTarget.offsetHeight / 2)
+                          setDragState({ taskId: task.id, sourceSection: section.id })
+                        }}
+                        onDragEnd={() => {
+                          setDragState(null)
+                          setDropTarget(null)
+                        }}
+                        onDragOver={(event) => {
+                          if (!dragState || dragState.taskId === task.id) return
+                          event.preventDefault()
+                          event.stopPropagation()
+                          event.dataTransfer.dropEffect = 'move'
+                          event.currentTarget.dataset.dropPosition = event.clientY < event.currentTarget.getBoundingClientRect().top + event.currentTarget.offsetHeight / 2 ? 'before' : 'after'
+                          setDropTarget({ sectionId: section.id, taskId: task.id })
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          const insertBefore = event.currentTarget.dataset.dropPosition !== 'after'
+                          delete event.currentTarget.dataset.dropPosition
+                          void dropTask(section, task.id, insertBefore)
+                        }}
                       >
                         <ChecklistCard
                           leadingControl={(

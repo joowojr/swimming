@@ -10,6 +10,8 @@ import type {
   UpdateTaskUrgentRequest,
   TaskMatrixPageResponse,
   TaskMatrixSection,
+  TaskPlacementRequest,
+  TaskPlacementResponse,
 } from './taskTypes'
 
 /** @deprecated 새 Task 생성에는 createTaskWithOptionalPlan을 사용합니다. */
@@ -63,6 +65,14 @@ export async function getTaskMatrixPage(
     },
     signal: options.signal,
   })
+  return response.data
+}
+
+export async function moveTask(
+  taskId: number,
+  request: TaskPlacementRequest,
+): Promise<TaskPlacementResponse> {
+  const response = await client.patch<TaskPlacementResponse>(`/tasks/${taskId}/placement`, request)
   return response.data
 }
 

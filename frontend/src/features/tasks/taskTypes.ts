@@ -1,5 +1,6 @@
 export type TaskStatus = 'TODO' | 'DOING' | 'DONE' | 'HOLD'
 export type TaskListMode = 'all' | 'unclassified'
+export type TaskMatrixSection = 'PRIORITY_URGENT' | 'URGENT' | 'PRIORITY' | 'STANDARD'
 
 export interface CreateTaskRequest {
   title: string
@@ -36,6 +37,17 @@ export interface TaskResponse {
   urgent: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface TaskMatrixItem extends TaskResponse {
+  positionCursor: string
+}
+
+export interface TaskMatrixPageResponse {
+  section: TaskMatrixSection
+  items: TaskMatrixItem[]
+  nextCursor: string | null
+  hasNext: boolean
 }
 
 export interface TaskSummaryResponse {

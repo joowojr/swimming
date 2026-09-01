@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
@@ -12,9 +12,9 @@ import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskPickerModal from '../plans/TaskPickerModal'
 import type { Project } from './projectTypes'
 import { createTaskWithOptionalPlan } from '../tasks/taskApi'
-import { getTaskList, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
+import { getTaskMatrixPage, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
-import type { TaskResponse, TaskStatus } from '../tasks/taskTypes'
+import type { TaskMatrixItem, TaskMatrixSection, TaskResponse, TaskStatus } from '../tasks/taskTypes'
 import styles from './TaskMatrix.module.css'
 
 type MatrixStatus = 'loading' | 'ready' | 'error'
@@ -22,57 +22,94 @@ type MatrixStatus = 'loading' | 'ready' | 'error'
 interface MatrixSection {
   id: string
   title: string
-  matches: (task: TaskResponse) => boolean
+  apiSection: TaskMatrixSection
+}
+
+interface SectionState {
+  items: TaskMatrixItem[]
+  nextCursor: string | null
+  hasNext: boolean
+  status: MatrixStatus
 }
 
 const matrixSections: MatrixSection[] = [
   {
     id: 'priority-urgent',
     title: '⚡️ 즉시 · 📌 중요',
-    matches: (task) => task.priority && task.urgent,
+    apiSection: 'PRIORITY_URGENT',
   },
   {
     id: 'urgent',
     title: '⚡️ 즉시',
-    matches: (task) => !task.priority && task.urgent,
+    apiSection: 'URGENT',
   },
   {
     id: 'priority',
     title: '📌 중요',
-    matches: (task) => task.priority && !task.urgent,
+    apiSection: 'PRIORITY',
   },
   {
     id: 'standard',
     title: '일반',
-    matches: (task) => !task.priority && !task.urgent,
+    apiSection: 'STANDARD',
   },
 ]
 
+const initialSectionState = (): SectionState => ({ items: [], nextCursor: null, hasNext: true, status: 'loading' })
+
 export default function TaskMatrix({ projects }: { projects: Project[] }) {
   const navigate = useNavigate()
-  const [tasks, setTasks] = useState<TaskResponse[]>([])
+  const [sections, setSections] = useState<Record<string, SectionState>>(
+    () => Object.fromEntries(matrixSections.map((section) => [section.id, initialSectionState()])),
+  )
   const [status, setStatus] = useState<MatrixStatus>('loading')
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
   const [addDraft, setAddDraft] = useState<{ priority: boolean; urgent: boolean } | null>(null)
 
-  const loadTasks = async () => {
+  const loadingSections = useRef(new Set<string>())
+  const sectionsRef = useRef(sections)
+  sectionsRef.current = sections
+
+  const loadSection = useCallback(async (section: MatrixSection, reset = false, signal?: AbortSignal) => {
+    const current = sectionsRef.current[section.id] ?? initialSectionState()
+    if (!reset && (!current.hasNext || loadingSections.current.has(section.id))) return
+    loadingSections.current.add(section.id)
+    setSections((value) => ({ ...value, [section.id]: { ...value[section.id], status: 'loading' } }))
     try {
-      setTasks(await getTaskList('all'))
-      setStatus('ready')
+      const page = await getTaskMatrixPage(section.apiSection, {
+        cursor: reset ? null : current.nextCursor,
+        signal,
+      })
+      setSections((value) => {
+        const previous = reset ? [] : (value[section.id]?.items ?? [])
+        const seen = new Set(previous.map((task) => task.id))
+        const items = [...previous, ...page.items.filter((task) => !seen.has(task.id))]
+        return { ...value, [section.id]: { items, nextCursor: page.nextCursor, hasNext: page.hasNext, status: 'ready' } }
+      })
     } catch {
-      setStatus('error')
+      if (!signal?.aborted) setSections((value) => ({ ...value, [section.id]: { ...value[section.id], status: 'error' } }))
+    } finally {
+      loadingSections.current.delete(section.id)
     }
-  }
+  }, [])
+
+  const loadTasks = useCallback(async (signal?: AbortSignal) => {
+    setStatus('loading')
+    await Promise.all(matrixSections.map((section) => loadSection(section, true, signal)))
+    if (!signal?.aborted) setStatus('ready')
+  }, [loadSection])
 
   const retryLoad = () => {
-    setStatus('loading')
     void loadTasks()
   }
 
   const replaceTask = (updatedTask: TaskResponse) => {
-    setTasks((current) => current.map((task) => task.id === updatedTask.id ? updatedTask : task))
+    setSections((current) => Object.fromEntries(Object.entries(current).map(([key, section]) => [
+      key,
+      { ...section, items: section.items.map((task) => task.id === updatedTask.id ? { ...task, ...updatedTask } : task) },
+    ])))
   }
 
   const changeTaskTitle = async (task: TaskResponse, title: string) => {
@@ -132,25 +169,24 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
 
   useEffect(() => {
     const controller = new AbortController()
-    void getTaskList('all', controller.signal)
-      .then((nextTasks) => {
-        setTasks(nextTasks)
-        setStatus('ready')
+    const task = window.setTimeout(() => {
+      void loadTasks(controller.signal).catch(() => {
+        if (!controller.signal.aborted) setStatus('error')
       })
-      .catch(() => {
-        if (controller.signal.aborted) return
-        setStatus('error')
-      })
-    return () => controller.abort()
+    }, 0)
+    return () => {
+      window.clearTimeout(task)
+      controller.abort()
+    }
+  // Initial matrix load only; pagination uses the latest section state through the observer effect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const groupedTasks = useMemo(
-    () => matrixSections.map((section) => ({
-      ...section,
-      tasks: tasks.filter(section.matches),
-    })),
-    [tasks],
-  )
+  const groupedTasks = useMemo(() => matrixSections.map((section) => ({
+    ...section,
+    tasks: sections[section.id]?.items ?? [],
+    sectionState: sections[section.id] ?? initialSectionState(),
+  })), [sections])
 
   return (
     <section className={styles.matrix} aria-labelledby="task-matrix-title">
@@ -168,11 +204,20 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
       ) : (
         <div className={styles.grid}>
           {groupedTasks.map((section) => (
-            <section className={styles.quadrant} aria-labelledby={`${section.id}-title`} key={section.id}>
+            <section
+              className={styles.quadrant}
+              aria-labelledby={`${section.id}-title`}
+              key={section.id}
+              onScroll={(event) => {
+                const element = event.currentTarget
+                const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 48
+                if (isNearBottom) void loadSection(section)
+              }}
+            >
               <header className={styles['quadrant-header']}>
                 <h3 id={`${section.id}-title`}>{section.title}</h3>
                 <div className={styles['quadrant-actions']}>
-                  <span className={styles.count}>{section.tasks.length}개</span>
+                  {/*<span className={styles.count}>{section.tasks.length}개</span>*/}
                   <AddItemButton
                     type="button"
                     aria-label={`${section.title} 영역에 할 일 추가`}
@@ -183,7 +228,17 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                   />
                 </div>
               </header>
-              {section.tasks.length === 0 ? (
+              {section.tasks.length === 0 && section.sectionState.status === 'loading' ? (
+                <div className={styles.sectionLoading} role="status">
+                  <IconLoader2 className={styles.spinner} size={16} aria-hidden="true" />
+                  불러오는 중…
+                </div>
+              ) : section.tasks.length === 0 && section.sectionState.status === 'error' ? (
+                <div className={styles.empty}>
+                  <p>이 영역을 불러오지 못했습니다.</p>
+                  <button type="button" className={styles.loadMore} onClick={() => void loadSection(section)}>다시 시도</button>
+                </div>
+              ) : section.tasks.length === 0 ? (
                 <p className={styles.empty}>이 영역에는 Task가 없습니다.</p>
               ) : (
                 <ol className={styles.list}>
@@ -263,6 +318,11 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                     )
                   })}
                 </ol>
+              )}
+              {section.sectionState.status === 'error' && section.tasks.length > 0 && (
+                <button type="button" className={styles.loadMore} onClick={() => void loadSection(section)}>
+                  더 불러오기
+                </button>
               )}
             </section>
           ))}

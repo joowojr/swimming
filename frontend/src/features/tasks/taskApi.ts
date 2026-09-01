@@ -8,6 +8,8 @@ import type {
   UpdateTaskTitleRequest,
   UpdateTaskPriorityRequest,
   UpdateTaskUrgentRequest,
+  TaskMatrixPageResponse,
+  TaskMatrixSection,
 } from './taskTypes'
 
 /** @deprecated 새 Task 생성에는 createTaskWithOptionalPlan을 사용합니다. */
@@ -45,6 +47,21 @@ export async function getTaskList(
   const response = await client.get<TaskResponse[]>('/tasks', {
     params: { mode },
     signal,
+  })
+  return response.data
+}
+
+export async function getTaskMatrixPage(
+  section: TaskMatrixSection,
+  options: { cursor?: string | null; size?: number; signal?: AbortSignal } = {},
+): Promise<TaskMatrixPageResponse> {
+  const response = await client.get<TaskMatrixPageResponse>('/tasks/matrix', {
+    params: {
+      section,
+      size: options.size ?? 6,
+      ...(options.cursor ? { cursor: options.cursor } : {}),
+    },
+    signal: options.signal,
   })
   return response.data
 }

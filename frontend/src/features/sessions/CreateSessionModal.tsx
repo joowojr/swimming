@@ -25,6 +25,7 @@ interface CreateSessionModalProps {
 
 type SessionMode = 'personal' | 'group'
 type DurationPreset = 25 | 45 | 60 | 'custom'
+type BreakPreset = 5 | 10 | 15 | 'custom'
 type PlacesStatus = 'loading' | 'ready' | 'error'
 
 // 지금 하는 일을 먼저, 끝난 일을 마지막에 둔다.
@@ -66,6 +67,7 @@ export default function CreateSessionModal({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const firstTaskRef = useRef<HTMLUListElement>(null)
   const customMinutesRef = useRef<HTMLInputElement>(null)
+  const customBreakMinutesRef = useRef<HTMLInputElement>(null)
   // 같은 상태끼리는 계획에 담은 순서를 유지한다(Array.prototype.sort는 안정 정렬).
   const linkedTasks = useMemo(
     () => [...todayTasks].sort(
@@ -83,6 +85,8 @@ export default function CreateSessionModal({
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(45)
   const [customMinutes, setCustomMinutes] = useState('')
   const [repeat, setRepeat] = useState(2)
+  const [breakPreset, setBreakPreset] = useState<BreakPreset>(5)
+  const [customBreakMinutes, setCustomBreakMinutes] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [mockNotice, setMockNotice] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -114,8 +118,11 @@ export default function CreateSessionModal({
   }, [loadPlaces])
 
   const durationMinutes = durationPreset === 'custom' ? Number(customMinutes) : durationPreset
+  const breakMinutes = breakPreset === 'custom' ? Number(customBreakMinutes) : breakPreset
   const validDuration = Number.isInteger(durationMinutes) && durationMinutes >= 1 && durationMinutes <= 1440
-  const totalMinutes = validDuration ? durationMinutes * repeat + Math.max(0, repeat - 1) * 5 : 0
+  const validBreak = Number.isInteger(breakMinutes) && breakMinutes >= 1 && breakMinutes <= 60
+  const totalMinutes = validDuration ? durationMinutes * repeat + Math.max(0, repeat - 1) * breakMinutes : 0
+  const validTotal = totalMinutes >= 1 && totalMinutes <= 1440
   const placeOptions = useMemo<PlaceOption[]>(
     () => cities.flatMap((city) => city.places.map((place) => ({ city, place }))),
     [cities],
@@ -160,9 +167,14 @@ export default function CreateSessionModal({
       setSubmitError('집중할 공간을 선택해 주세요.')
       return
     }
-    if (!validDuration) {
+    if (!validDuration || !validTotal) {
       setSubmitError('집중 시간은 1분 이상 1,440분 이하로 입력해 주세요.')
       customMinutesRef.current?.focus()
+      return
+    }
+    if (repeat > 1 && !validBreak) {
+      setSubmitError('휴식 시간은 1분에서 60분 사이로 입력해 주세요.')
+      customBreakMinutesRef.current?.focus()
       return
     }
 
@@ -172,6 +184,9 @@ export default function CreateSessionModal({
         taskIds: selectedTaskIds,
         placeId: selectedPlace.place.id,
         plannedDurationSec: durationMinutes * 60,
+        focusDurationSec: durationMinutes * 60,
+        breakDurationSec: repeat > 1 ? breakMinutes * 60 : 0,
+        repeatCount: repeat,
       }))
     } catch (error) {
       setSubmitError(
@@ -332,6 +347,25 @@ export default function CreateSessionModal({
                     </div>
                   </fieldset>
 
+        <fieldset className={styles.fieldset}>
+                    <legend>휴식 시간</legend>
+                    <p className={styles['value-box']}>
+                      {breakPreset === 'custom' ? (
+                        <label className={styles['custom-value']}>
+                          <span className="sr-only">휴식 시간</span>
+                          <input ref={customBreakMinutesRef} type="number" min={1} max={60} value={customBreakMinutes} placeholder="—" onChange={(event) => setCustomBreakMinutes(event.target.value)} aria-invalid={Boolean(customBreakMinutes) && !validBreak} disabled={isSubmitting} />
+                          <span aria-hidden="true">분</span>
+                        </label>
+                      ) : <><strong>{breakMinutes}</strong>분</>}
+                    </p>
+                    <div className={styles.durations}>
+                      {([5, 10, 15] as const).map((minutes) => (
+                        <label key={minutes}><input type="radio" name="break-duration" checked={breakPreset === minutes} onChange={() => setBreakPreset(minutes)} disabled={isSubmitting} /><span>{minutes}분</span></label>
+                      ))}
+                      <label><input type="radio" name="break-duration" checked={breakPreset === 'custom'} onChange={() => setBreakPreset('custom')} disabled={isSubmitting} /><span>직접 입력</span></label>
+                    </div>
+                  </fieldset>
+
                   <fieldset className={styles.fieldset}>
                     <legend>반복</legend>
                     <div className={styles.repeat}>
@@ -341,7 +375,7 @@ export default function CreateSessionModal({
                     </div>
                     <p className={styles.hint}>
                       총 {formatTotalTime(totalMinutes)}
-                      {repeat > 1 && ' · 사이에 5분 휴식'}
+                      {repeat > 1 && ` · 사이에 ${breakMinutes}분 휴식`}
                     </p>
                   </fieldset>
                 </div>

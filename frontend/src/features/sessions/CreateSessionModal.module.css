@@ -84,8 +84,8 @@
     display: grid;
     min-height: 0;
     flex: 1;
-    gap: var(--space-4);
-    padding: var(--space-4) var(--space-6);
+    gap: var(--space-6);
+    padding: var(--space-5) var(--space-6);
     overflow-y: auto;
 }
 
@@ -98,7 +98,7 @@
 }
 
 .fieldset > * + * {
-    margin-top: var(--space-2);
+    margin-top: var(--space-3);
 }
 
 .fieldset legend {
@@ -107,7 +107,7 @@
     margin-bottom: var(--space-2);
     padding: 0;
     color: var(--color-primary);
-    font-size: var(--text-body-lg-size);
+    font-size: var(--text-body-md-size);
     font-weight: var(--text-label-strong-weight);
     line-height: var(--text-body-lg-line-height);
 }
@@ -154,8 +154,8 @@
 
 .task-list {
     display: grid;
-    max-height: min(18rem, 30vh);
-    gap: var(--space-2);
+    max-height: min(16rem, 28vh);
+    gap: var(--space-3);
     margin: 0;
     padding: 0 var(--space-1) var(--space-1) 0;
     overflow-y: auto;
@@ -196,12 +196,21 @@
     background: var(--chip-hold-bg);
 }
 
-/* 두 섹션을 나란히 (얼마나 집중할까요 / 반복) */
+/* 세션 페이즈 설정을 한 흐름으로 배치 */
 .split {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
-    gap: var(--space-4);
+    gap: var(--space-7);
+    padding: var(--space-3) 0;
+}
+
+.split .fieldset {
+    padding-top: var(--space-1);
+}
+
+.split .fieldset legend {
+    margin-bottom: var(--space-3);
 }
 
 /* ── 선택 컨트롤 공통 ── */
@@ -222,7 +231,7 @@
     justify-content: center;
     min-width: 0;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-2);
     border: 0;
     border-radius: var(--radius-full);
     color: var(--color-primary);
@@ -234,8 +243,10 @@
 }
 
 .durations label:has(input:checked) > span {
-    color: var(--color-on-primary);
-    background: var(--color-primary);
+    color: var(--color-primary);
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--border-width) var(--color-primary);
+    font-weight: var(--text-label-strong-weight);
 }
 
 .place-choice:has(input:focus-visible),
@@ -306,11 +317,11 @@
     justify-content: center;
     gap: var(--space-1);
     margin: 0;
-    min-height: 4.5rem;
-    padding: var(--space-3);
+    min-height: 3.75rem;
+    padding: var(--space-3) var(--space-2);
     border-radius: var(--radius-lg);
     color: var(--color-primary);
-    background: var(--color-surface-container-lowest);
+    background: transparent;
     font-size: var(--text-body-md-size);
 }
 
@@ -325,7 +336,7 @@
 .durations {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
 }
 
@@ -368,26 +379,28 @@
 .repeat {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2);
-    padding: var(--space-3);
+    justify-content: center;
+    width: min(100%, 14rem);
+    gap: var(--space-7);
+    margin-inline: auto;
+    padding: var(--space-4) 0;
     border-radius: var(--radius-lg);
-    background: var(--color-surface-container-lowest);
+    background: transparent;
 }
 
 .repeat button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 1.875rem;
+    height: 1.875rem;
     flex: 0 0 auto;
     padding: 0;
     border: 0;
     border-radius: var(--radius-full);
     color: var(--color-primary);
-    background: var(--color-surface-container-high);
-    font-size: var(--text-body-md-size);
+    background: var(--color-surface-container-lowest);
+    font-size: var(--text-body-sm-size);
     line-height: 1;
     cursor: pointer;
 }
@@ -479,7 +492,7 @@
     }
 
     .repeat button:hover:not(:disabled) {
-        background: var(--color-surface-container-highest);
+        background: var(--color-surface-container-low);
     }
 
     .close:hover:not(:disabled) {

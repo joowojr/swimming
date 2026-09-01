@@ -20,6 +20,9 @@ public class Session {
     private List<SessionTask> tasks;
     private String musicUrl;
     private int plannedDurationSec;
+    private int focusDurationSec;
+    private int breakDurationSec;
+    private int repeatCount;
     private Integer actualDurationSec;
     private final Instant startedAt;
     private Instant endedAt;
@@ -35,6 +38,9 @@ public class Session {
             List<SessionTask> tasks,
             String musicUrl,
             int plannedDurationSec,
+            int focusDurationSec,
+            int breakDurationSec,
+            int repeatCount,
             Integer actualDurationSec,
             Instant startedAt,
             Instant endedAt,
@@ -48,6 +54,9 @@ public class Session {
         this.tasks = List.copyOf(tasks);
         this.musicUrl = musicUrl;
         this.plannedDurationSec = plannedDurationSec;
+        this.focusDurationSec = focusDurationSec;
+        this.breakDurationSec = breakDurationSec;
+        this.repeatCount = repeatCount;
         this.actualDurationSec = actualDurationSec;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
@@ -59,7 +68,10 @@ public class Session {
             Long userId,
             Long placeId,
             List<Long> taskIds,
-            int plannedDurationSec
+            int plannedDurationSec,
+            int focusDurationSec,
+            int breakDurationSec,
+            int repeatCount
     ) {
         return Session.builder()
                 .userId(userId)
@@ -67,8 +79,15 @@ public class Session {
                 .placeId(placeId)
                 .tasks(taskIds.stream().map(SessionTask::of).toList())
                 .plannedDurationSec(plannedDurationSec)
+                .focusDurationSec(focusDurationSec)
+                .breakDurationSec(breakDurationSec)
+                .repeatCount(repeatCount)
                 .status(SessionStatus.IN_PROGRESS)
                 .build();
+    }
+
+    public static Session createPersonal(Long userId, Long placeId, List<Long> taskIds, int plannedDurationSec) {
+        return createPersonal(userId, placeId, taskIds, plannedDurationSec, plannedDurationSec, 0, 1);
     }
 
     public static Session restore(
@@ -79,6 +98,9 @@ public class Session {
             List<SessionTask> tasks,
             String musicUrl,
             int plannedDurationSec,
+            int focusDurationSec,
+            int breakDurationSec,
+            int repeatCount,
             Integer actualDurationSec,
             Instant startedAt,
             Instant endedAt,
@@ -93,12 +115,23 @@ public class Session {
                 .tasks(tasks)
                 .musicUrl(musicUrl)
                 .plannedDurationSec(plannedDurationSec)
+                .focusDurationSec(focusDurationSec)
+                .breakDurationSec(breakDurationSec)
+                .repeatCount(repeatCount)
                 .actualDurationSec(actualDurationSec)
                 .startedAt(startedAt)
                 .endedAt(endedAt)
                 .status(status)
                 .summary(summary)
                 .build();
+    }
+
+    public static Session restore(Long id, Long userId, SessionType type, Long placeId,
+                                  List<SessionTask> tasks, String musicUrl, int plannedDurationSec,
+                                  Integer actualDurationSec, Instant startedAt, Instant endedAt,
+                                  SessionStatus status, String summary) {
+        return restore(id, userId, type, placeId, tasks, musicUrl, plannedDurationSec,
+                plannedDurationSec, 0, 1, actualDurationSec, startedAt, endedAt, status, summary);
     }
 
     public List<Long> getTaskIds() {
@@ -142,13 +175,4 @@ public class Session {
         this.musicUrl = musicUrl;
     }
 
-    public void updatePlannedDuration(int plannedDurationSec) {
-        if (status != SessionStatus.IN_PROGRESS) {
-            throw new BusinessException(ErrorCode.SESSION_NOT_FOUND);
-        }
-        if (plannedDurationSec < 60 || plannedDurationSec > 86400) {
-            throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
-        }
-        this.plannedDurationSec = plannedDurationSec;
-    }
 }

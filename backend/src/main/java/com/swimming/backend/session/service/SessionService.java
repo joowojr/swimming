@@ -86,13 +86,15 @@ public class SessionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void updatePlannedDuration(Long userId, Long sessionId, int plannedDurationSec) {
+    public void updateFocusDuration(Long userId, Long sessionId, int focusDurationSec) {
         SessionEntity entity = getOwnedEntity(userId, sessionId);
         validateInProgress(entity);
-        if (plannedDurationSec < 60 || plannedDurationSec > 86400) {
+        long plannedDurationSec = (long) focusDurationSec * entity.getRepeatCount()
+                + (long) entity.getBreakDurationSec() * Math.max(0, entity.getRepeatCount() - 1);
+        if (focusDurationSec < 60 || plannedDurationSec > 86400) {
             throw new BusinessException(ErrorCode.INVALID_SESSION_DURATION);
         }
-        entity.updatePlannedDuration(plannedDurationSec);
+        entity.updateFocusDuration(focusDurationSec, Math.toIntExact(plannedDurationSec));
         sessionRepository.flush();
     }
 

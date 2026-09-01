@@ -8,6 +8,9 @@ export interface StartPersonalSessionRequest {
   taskIds: number[]
   placeId: number
   plannedDurationSec: number
+  focusDurationSec: number
+  breakDurationSec: number
+  repeatCount: number
 }
 
 export interface SessionResponse {
@@ -17,6 +20,9 @@ export interface SessionResponse {
   place: SessionPlace
   musicUrl: string | null
   plannedDurationSec: number
+  focusDurationSec: number
+  breakDurationSec: number
+  repeatCount: number
   actualDurationSec: number | null
   startedAt: string
   endedAt: string | null
@@ -35,6 +41,9 @@ export interface SessionDetailResponse {
   type: SessionType
   status: SessionStatus
   plannedDurationSec: number
+  focusDurationSec: number
+  breakDurationSec: number
+  repeatCount: number
   actualDurationSec: number | null
   startedAt: string
   endedAt: string | null
@@ -58,6 +67,6 @@ export interface UpdateSessionMusicUrlRequest {
   musicUrl: string | null
 }
 
-export interface UpdateSessionPlannedDurationRequest {
-  plannedDurationSec: number
+export interface UpdateSessionFocusDurationRequest {
+  focusDurationSec: number
 }

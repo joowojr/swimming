@@ -55,6 +55,15 @@ public class SessionEntity extends BaseTimeEntity {
     @Column(name = "planned_duration_sec", nullable = false)
     private int plannedDurationSec;
 
+    @Column(name = "focus_duration_sec", nullable = false)
+    private int focusDurationSec;
+
+    @Column(name = "break_duration_sec", nullable = false)
+    private int breakDurationSec;
+
+    @Column(name = "repeat_count", nullable = false)
+    private int repeatCount;
+
     @Column(name = "actual_duration_sec")
     private Integer actualDurationSec;
 
@@ -83,6 +92,9 @@ public class SessionEntity extends BaseTimeEntity {
         session.getTasks().forEach(task -> this.tasks.add(SessionTaskEntity.from(this, task)));
         this.musicUrl = session.getMusicUrl();
         this.plannedDurationSec = session.getPlannedDurationSec();
+        this.focusDurationSec = session.getFocusDurationSec();
+        this.breakDurationSec = session.getBreakDurationSec();
+        this.repeatCount = session.getRepeatCount();
         this.actualDurationSec = session.getActualDurationSec();
         this.startedAt = session.getStartedAt();
         this.endedAt = session.getEndedAt();
@@ -106,7 +118,8 @@ public class SessionEntity extends BaseTimeEntity {
         this.musicUrl = musicUrl;
     }
 
-    public void updatePlannedDuration(int plannedDurationSec) {
+    public void updateFocusDuration(int focusDurationSec, int plannedDurationSec) {
+        this.focusDurationSec = focusDurationSec;
         this.plannedDurationSec = plannedDurationSec;
     }
 
@@ -119,6 +132,9 @@ public class SessionEntity extends BaseTimeEntity {
                 tasks.stream().map(SessionTaskEntity::toDomain).toList(),
                 musicUrl,
                 plannedDurationSec,
+                focusDurationSec,
+                breakDurationSec,
+                repeatCount,
                 actualDurationSec,
                 startedAt,
                 endedAt,

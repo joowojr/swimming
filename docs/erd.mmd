@@ -87,6 +87,9 @@ erDiagram
         bigint group_room_id FK "nullable"
         varchar music_url "nullable; latest URL for this session"
         int planned_duration_sec
+        int focus_duration_sec "집중 페이즈 초"
+        int break_duration_sec "휴식 페이즈 초"
+        int repeat_count "반복 횟수"
         int actual_duration_sec "nullable"
         timestamp started_at
         timestamp end_at "nullable"

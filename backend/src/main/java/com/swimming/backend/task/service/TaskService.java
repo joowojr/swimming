@@ -3,8 +3,8 @@ package com.swimming.backend.task.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.note.repository.entity.NoteEntity;
-import com.swimming.backend.project.domain.ProjectStatus;
-import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,83 +31,83 @@ public class TaskService {
     private final EntityManager entityManager;
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Task create(Long userId, Long projectId, String title) {
-        return create(userId, projectId, null, title, false, false, 0L);
+    public Task create(Long userId, Long folderId, String title) {
+        return create(userId, folderId, null, title, false, false, 0L);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public Task create(Long userId, Long projectId, String title, boolean priority, boolean urgent) {
-        return create(userId, projectId, null, title, priority, urgent, 0L);
+    public Task create(Long userId, Long folderId, String title, boolean priority, boolean urgent) {
+        return create(userId, folderId, null, title, priority, urgent, 0L);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task create(
             Long userId,
-            Long projectId,
+            Long folderId,
             String title,
             boolean priority,
             boolean urgent,
             long matrixRank
     ) {
-        return create(userId, projectId, null, title, priority, urgent, matrixRank);
+        return create(userId, folderId, null, title, priority, urgent, matrixRank);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task createFromNote(
             Long userId,
-            Long projectId,
+            Long folderId,
             Long sourceNoteId,
             String title
     ) {
-        return create(userId, projectId, sourceNoteId, title, false, false, 0L);
+        return create(userId, folderId, sourceNoteId, title, false, false, 0L);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task createFromNote(
             Long userId,
-            Long projectId,
+            Long folderId,
             Long sourceNoteId,
             String title,
             boolean priority,
             boolean urgent,
             long matrixRank
     ) {
-        return create(userId, projectId, sourceNoteId, title, priority, urgent, matrixRank);
+        return create(userId, folderId, sourceNoteId, title, priority, urgent, matrixRank);
     }
 
     private Task create(
             Long userId,
-            Long projectId,
+            Long folderId,
             Long sourceNoteId,
             String title,
             boolean priority,
             boolean urgent,
             long matrixRank
     ) {
-        int nextOrder = (projectId == null
-                ? taskRepository.findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
-                : taskRepository.findTopByProject_IdAndDeletedFalseOrderByIdDesc(projectId))
+        int nextOrder = (folderId == null
+                ? taskRepository.findTopByUser_IdAndFolderIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
+                : taskRepository.findTopByFolder_IdAndDeletedFalseOrderByIdDesc(folderId))
                 .map(TaskEntity::getOrderIdx)
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
         Task task = sourceNoteId == null
-                ? Task.create(userId, projectId, title, nextOrder, priority, urgent, matrixRank)
-                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder, priority, urgent, matrixRank);
+                ? Task.create(userId, folderId, title, nextOrder, priority, urgent, matrixRank)
+                : Task.createFromNote(userId, folderId, sourceNoteId, title, nextOrder, priority, urgent, matrixRank);
         User user = entityManager.getReference(User.class, userId);
-        ProjectEntity project = projectId == null
+        FolderEntity folder = folderId == null
                 ? null
-                : entityManager.getReference(ProjectEntity.class, projectId);
+                : entityManager.getReference(FolderEntity.class, folderId);
         NoteEntity sourceNote = sourceNoteId == null
                 ? null
                 : entityManager.getReference(NoteEntity.class, sourceNoteId);
         return taskRepository.saveAndFlush(
-                TaskEntity.from(task, user, project, sourceNote)
+                TaskEntity.from(task, user, folder, sourceNote)
         ).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Task> getByProject(Long projectId) {
-        return taskRepository.findAllByProjectIdWithProject(projectId)
+    public List<Task> getByFolder(Long folderId) {
+        return taskRepository.findAllByFolderIdWithFolder(folderId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -124,7 +123,7 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Task> getUnclassified(Long userId) {
-        return taskRepository.findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(userId)
+        return taskRepository.findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -144,13 +143,13 @@ public class TaskService {
     public List<TaskOrganizerContextRow> getTaskOrganizerContext(Long userId) {
         return taskRepository.findTaskOrganizerContext(
                 userId,
-                ProjectStatus.ARCHIVED
+                FolderStatus.ARCHIVED
         );
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<TaskSummaryResponse> getSummaries(Long projectId) {
-        return getByProject(projectId)
+    public List<TaskSummaryResponse> getSummaries(Long folderId) {
+        return getByFolder(folderId)
                 .stream()
                 .map(TaskSummaryResponse::from)
                 .toList();

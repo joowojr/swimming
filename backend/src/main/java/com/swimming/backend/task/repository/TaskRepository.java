@@ -1,7 +1,7 @@
 package com.swimming.backend.task.repository;
 
 import com.swimming.backend.task.repository.entity.TaskEntity;
-import com.swimming.backend.project.domain.ProjectStatus;
+import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
@@ -19,16 +19,16 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     @Query("""
             SELECT task
             FROM TaskEntity task
-            JOIN FETCH task.project project
-            WHERE project.id = :projectId
+            JOIN FETCH task.folder folder
+            WHERE folder.id = :folderId
               AND task.deleted = false
             ORDER BY task.createdAt DESC
             """)
-    List<TaskEntity> findAllByProjectIdWithProject(@Param("projectId") Long projectId);
+    List<TaskEntity> findAllByFolderIdWithFolder(@Param("folderId") Long folderId);
 
     List<TaskEntity> findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
-    List<TaskEntity> findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
+    List<TaskEntity> findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
     Optional<TaskEntity> findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
             Long userId,
@@ -82,22 +82,22 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     List<TaskEntity> findAllByUser_IdAndDeletedFalseAndIdIn(Long userId, List<Long> taskIds);
 
-    Optional<TaskEntity> findTopByProject_IdAndDeletedFalseOrderByIdDesc(Long projectId);
+    Optional<TaskEntity> findTopByFolder_IdAndDeletedFalseOrderByIdDesc(Long folderId);
 
-    Optional<TaskEntity> findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(Long userId);
+    Optional<TaskEntity> findTopByUser_IdAndFolderIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(Long userId);
 
     Optional<TaskEntity> findByIdAndUser_IdAndDeletedFalse(Long taskId, Long userId);
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskReference(
                 task.id,
-                project.id,
-                project.name,
+                folder.id,
+                folder.name,
                 task.title,
                 task.status
             )
             FROM TaskEntity task
-            LEFT JOIN task.project project
+            LEFT JOIN task.folder folder
             WHERE task.user.id = :userId
               AND task.id IN :taskIds
             """)
@@ -109,13 +109,13 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskReference(
                 task.id,
-                project.id,
-                project.name,
+                folder.id,
+                folder.name,
                 task.title,
                 task.status
             )
             FROM TaskEntity task
-            LEFT JOIN task.project project
+            LEFT JOIN task.folder folder
             WHERE task.user.id = :userId
               AND task.id IN :taskIds
               AND task.deleted = false
@@ -127,23 +127,23 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskOrganizerContextRow(
-                project.id,
-                project.name,
-                project.description,
+                folder.id,
+                folder.name,
+                folder.description,
                 task.id,
                 task.title,
                 task.status
             )
-            FROM ProjectEntity project
-            LEFT JOIN TaskEntity task ON task.project = project AND task.deleted = false
-            WHERE project.user.id = :userId
-              AND project.status <> :excludedStatus
-              AND project.deleted = false
-            ORDER BY project.createdAt DESC, task.orderIdx ASC, task.id ASC
+            FROM FolderEntity folder
+            LEFT JOIN TaskEntity task ON task.folder = folder AND task.deleted = false
+            WHERE folder.user.id = :userId
+              AND folder.status <> :excludedStatus
+              AND folder.deleted = false
+            ORDER BY folder.createdAt DESC, task.orderIdx ASC, task.id ASC
             """)
     List<TaskOrganizerContextRow> findTaskOrganizerContext(
             @Param("userId") Long userId,
-            @Param("excludedStatus") ProjectStatus excludedStatus
+            @Param("excludedStatus") FolderStatus excludedStatus
     );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

@@ -10,7 +10,7 @@ import com.swimming.backend.note.dto.in.NoteCreateResponse;
 import com.swimming.backend.note.dto.in.NoteResponse;
 import com.swimming.backend.note.dto.in.NoteUpdateRequest;
 import com.swimming.backend.note.service.NoteService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.session.service.SessionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,16 +30,16 @@ import static org.mockito.Mockito.when;
 class NoteUseCaseTest {
 
     private NoteService noteService;
-    private ProjectService projectService;
+    private FolderService folderService;
     private SessionService sessionService;
     private NoteUseCase noteUseCase;
 
     @BeforeEach
     void setUp() {
         noteService = mock(NoteService.class);
-        projectService = mock(ProjectService.class);
+        folderService = mock(FolderService.class);
         sessionService = mock(SessionService.class);
-        noteUseCase = new NoteUseCase(noteService, projectService, sessionService);
+        noteUseCase = new NoteUseCase(noteService, folderService, sessionService);
     }
 
     @Test
@@ -58,16 +58,16 @@ class NoteUseCaseTest {
 
     @Test
     @DisplayName("소유한 폴더에 Note를 생성한다")
-    void createsProjectNoteAfterOwnershipCheck() {
-        Note saved = note(2L, "폴더 메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null);
+    void createsFolderNoteAfterOwnershipCheck() {
+        Note saved = note(2L, "폴더 메모", NoteStatus.ACTIVE, NoteContextType.FOLDER, 10L, null);
         when(noteService.create(any(Note.class))).thenReturn(saved);
 
         NoteCreateResponse response = noteUseCase.create(
                 1L,
-                new NoteCreateRequest("폴더 메모", NoteContextType.PROJECT, 10L, null)
+                new NoteCreateRequest("폴더 메모", NoteContextType.FOLDER, 10L, null)
         );
 
-        verify(projectService).getReference(1L, 10L);
+        verify(folderService).getReference(1L, 10L);
         assertThat(response.id()).isEqualTo(2L);
     }
 
@@ -90,7 +90,7 @@ class NoteUseCaseTest {
     void rejectsInvalidCreateContext() {
         NoteCreateRequest request = new NoteCreateRequest(
                 "잘못된 메모",
-                NoteContextType.PROJECT,
+                NoteContextType.FOLDER,
                 null,
                 20L
         );
@@ -103,9 +103,9 @@ class NoteUseCaseTest {
 
     @Test
     @DisplayName("폴더 소유권을 확인한 뒤 폴더 Note를 조회한다")
-    void returnsProjectNotesAfterOwnershipCheck() {
-        when(noteService.getByProject(1L, 10L, NoteStatus.ACTIVE)).thenReturn(List.of(
-                note(1L, "메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null)
+    void returnsFolderNotesAfterOwnershipCheck() {
+        when(noteService.getByFolder(1L, 10L, NoteStatus.ACTIVE)).thenReturn(List.of(
+                note(1L, "메모", NoteStatus.ACTIVE, NoteContextType.FOLDER, 10L, null)
         ));
 
         List<NoteResponse> responses = noteUseCase.getAll(
@@ -116,7 +116,7 @@ class NoteUseCaseTest {
                 null
         );
 
-        verify(projectService).getReference(1L, 10L);
+        verify(folderService).getReference(1L, 10L);
         assertThat(responses).extracting(NoteResponse::id).containsExactly(1L);
     }
 
@@ -126,13 +126,13 @@ class NoteUseCaseTest {
         assertThatThrownBy(() -> noteUseCase.getAll(
                 1L,
                 NoteStatus.ACTIVE,
-                NoteContextType.PROJECT,
+                NoteContextType.FOLDER,
                 10L,
                 null
         )).isInstanceOfSatisfying(BusinessException.class, exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_NOTE_CONTEXT));
 
-        verify(noteService, never()).getByProject(1L, 10L, NoteStatus.ACTIVE);
+        verify(noteService, never()).getByFolder(1L, 10L, NoteStatus.ACTIVE);
     }
 
     @Test
@@ -193,7 +193,7 @@ class NoteUseCaseTest {
             String content,
             NoteStatus status,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId
     ) {
         return Note.restore(
@@ -203,7 +203,7 @@ class NoteUseCaseTest {
                 status,
                 false,
                 contextType,
-                projectId,
+                folderId,
                 sessionId,
                 LocalDateTime.of(2026, 8, 24, 10, 0),
                 LocalDateTime.of(2026, 8, 24, 10, 0)

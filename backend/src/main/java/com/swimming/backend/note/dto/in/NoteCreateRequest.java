@@ -14,7 +14,7 @@ public record NoteCreateRequest(
         @NotNull
         NoteContextType contextType,
 
-        Long projectId,
+        Long folderId,
 
         Long sessionId
 ) {

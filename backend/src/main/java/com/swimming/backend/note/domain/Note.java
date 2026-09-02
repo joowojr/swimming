@@ -16,7 +16,7 @@ public class Note {
     private boolean deleted;
 
     private final NoteContextType contextType;
-    private final Long projectId;
+    private final Long folderId;
     private final Long sessionId;
 
     private final LocalDateTime createdAt;
@@ -30,7 +30,7 @@ public class Note {
             NoteStatus status,
             boolean deleted,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -41,7 +41,7 @@ public class Note {
         this.status = status;
         this.deleted = deleted;
         this.contextType = contextType;
-        this.projectId = projectId;
+        this.folderId = folderId;
         this.sessionId = sessionId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -65,9 +65,9 @@ public class Note {
         );
     }
 
-    public static Note createProject(
+    public static Note createFolder(
             Long userId,
-            Long projectId,
+            Long folderId,
             String content
     ) {
         return new Note(
@@ -76,8 +76,8 @@ public class Note {
                 content,
                 NoteStatus.ACTIVE,
                 false,
-                NoteContextType.PROJECT,
-                projectId,
+                NoteContextType.FOLDER,
+                folderId,
                 null,
                 null,
                 null
@@ -110,7 +110,7 @@ public class Note {
             NoteStatus status,
             boolean deleted,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
@@ -122,7 +122,7 @@ public class Note {
                 status,
                 deleted,
                 contextType,
-                projectId,
+                folderId,
                 sessionId,
                 createdAt,
                 updatedAt

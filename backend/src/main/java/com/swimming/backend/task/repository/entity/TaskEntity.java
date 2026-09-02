@@ -2,7 +2,7 @@ package com.swimming.backend.task.repository.entity;
 
 import com.swimming.backend.common.entity.BaseTimeEntity;
 import com.swimming.backend.note.repository.entity.NoteEntity;
-import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.user.domain.User;
@@ -26,8 +26,8 @@ public class TaskEntity extends BaseTimeEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
-    private ProjectEntity project;
+    @JoinColumn(name = "folder_id")
+    private FolderEntity folder;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_note_id")
@@ -58,11 +58,11 @@ public class TaskEntity extends BaseTimeEntity {
     private TaskEntity(
             Task task,
             User user,
-            ProjectEntity project,
+            FolderEntity folder,
             NoteEntity sourceNote
     ) {
         this.user = user;
-        this.project = project;
+        this.folder = folder;
         this.sourceNote = sourceNote;
         this.title = task.getTitle();
         this.status = task.getStatus();
@@ -76,10 +76,10 @@ public class TaskEntity extends BaseTimeEntity {
     public static TaskEntity from(
             Task task,
             User user,
-            ProjectEntity project,
+            FolderEntity folder,
             NoteEntity sourceNote
     ) {
-        return new TaskEntity(task, user, project, sourceNote);
+        return new TaskEntity(task, user, folder, sourceNote);
     }
 
     public void updateTitle(String title) {
@@ -116,7 +116,7 @@ public class TaskEntity extends BaseTimeEntity {
         return Task.restore(
                 id,
                 user.getId(),
-                project == null ? null : project.getId(),
+                folder == null ? null : folder.getId(),
                 sourceNote == null ? null : sourceNote.getId(),
                 title,
                 status,

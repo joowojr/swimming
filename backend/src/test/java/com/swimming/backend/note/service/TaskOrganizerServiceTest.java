@@ -1,7 +1,7 @@
 package com.swimming.backend.note.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.swimming.backend.note.dto.out.ProjectContext;
+import com.swimming.backend.note.dto.out.FolderContext;
 import com.swimming.backend.note.dto.out.TaskContext;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
@@ -52,19 +52,19 @@ class TaskOrganizerServiceTest {
             .ofPattern("yyyyMMdd-HHmmss-SSS")
             .withZone(ZoneId.systemDefault());
 
-    private static final ProjectContext SWIMMING = project(
-            1L, "Swimming", "Project, Task, 집중 세션을 관리하는 생산성 서비스 개발"
+    private static final FolderContext SWIMMING = folder(
+            1L, "Swimming", "Folder, Task, 집중 세션을 관리하는 생산성 서비스 개발"
     );
-    private static final ProjectContext PORTFOLIO = project(
+    private static final FolderContext PORTFOLIO = folder(
             2L, "포트폴리오", "취업용 개발 포트폴리오와 AWS 배포 구조 정리"
     );
-    private static final ProjectContext MOVING = project(
+    private static final FolderContext MOVING = folder(
             3L, "이사 준비", "새집 계약, 행정 처리, 짐 정리와 각종 이전 신청"
     );
-    private static final ProjectContext ENGLISH = project(
+    private static final FolderContext ENGLISH = folder(
             4L, "영공", "영어 공부, 단어 복습과 영어 발표 준비"
     );
-    private static final ProjectContext HEALTH = project(
+    private static final FolderContext HEALTH = folder(
             5L, "건강 루틴", "운동 기록, 러닝과 PT 일정 관리"
     );
 
@@ -98,7 +98,7 @@ class TaskOrganizerServiceTest {
     void generatesTaskOrganizerEvaluationReport() throws Exception {
         generateReport(
                 "task-organizer-results",
-                "복수의 개발·학습·생활 Project를 관리하는 사용자",
+                "복수의 개발·학습·생활 Folder를 관리하는 사용자",
                 scenarios()
         );
     }
@@ -108,7 +108,7 @@ class TaskOrganizerServiceTest {
     void generatesDigitalMarketingFreelancerEvaluationReport() throws Exception {
         generateReport(
                 "task-organizer-digital-marketer-results",
-                "원격으로 세 클라이언트의 일을 병행하며 집중력은 좋지만 Project 전환 비용 때문에 하루가 파편화되는 30대 여성 디지털 마케팅 프리랜서",
+                "원격으로 세 클라이언트의 일을 병행하며 집중력은 좋지만 Folder 전환 비용 때문에 하루가 파편화되는 30대 여성 디지털 마케팅 프리랜서",
                 DigitalMarketerTestData.scenarios()
         );
     }
@@ -198,15 +198,15 @@ class TaskOrganizerServiceTest {
     }
 
     private void assertStructurallyValid(TaskOrganizerInput input, TaskOrganizeResult output) {
-        Set<Long> projectIds = input.projects().stream()
-                .map(ProjectContext::id)
+        Set<Long> folderIds = input.folders().stream()
+                .map(FolderContext::id)
                 .collect(Collectors.toSet());
 
-        assertThat(input.projects()).hasSizeLessThanOrEqualTo(5);
+        assertThat(input.folders()).hasSizeLessThanOrEqualTo(5);
         assertThat(output).isNotNull();
         assertThat(output.suggestions()).isNotNull().allSatisfy(suggestion -> {
             assertThat(suggestion.type()).isEqualTo("CREATE_TASK");
-            assertThat(suggestion.projectId()).isIn(projectIds);
+            assertThat(suggestion.folderId()).isIn(folderIds);
             assertThat(suggestion.title()).isNotBlank();
             assertThat(suggestion.sourceText()).isNotBlank();
             suggestion.sourceText().lines().forEach(sourcePart ->
@@ -223,10 +223,10 @@ class TaskOrganizerServiceTest {
     }
 
     private List<TaskOrganizerTestScenario> scenarios() {
-        ProjectContext milestone = project(
+        FolderContext milestone = folder(
                 1L, "M2", "Task Organizer 노트 정리와 Preview 기능 개발 마일스톤"
         );
-        ProjectContext operations = project(
+        FolderContext operations = folder(
                 2L, "운영 개선", "배포 서버와 운영 로그 관리"
         );
 
@@ -234,7 +234,7 @@ class TaskOrganizerServiceTest {
                 scenario(
                         "mixed-work-personal",
                         "개발·포트폴리오 작업과 개인 구매 메모 혼합",
-                        "개발 메모는 해당 Project로, 운동화 구매 메모는 미분류로 남기는지 평가",
+                        "개발 메모는 해당 Folder로, 운동화 구매 메모는 미분류로 남기는지 평가",
                         """
                                 아 맞다 로그인 그거 refresh 만료됐을때 다시 발급되는지 봐야함
                                 장소 검색 캐시 붙인거 테스트 아직 안했고 redis 껐다 켰을때도 확인?
@@ -250,8 +250,8 @@ class TaskOrganizerServiceTest {
                 ),
                 scenario(
                         "split-one-sentence",
-                        "한 문장에 섞인 세 Project 작업 분리",
-                        "서로 다른 실행 결과 세 개를 각각 올바른 Project Task로 나누는지 평가",
+                        "한 문장에 섞인 세 Folder 작업 분리",
+                        "서로 다른 실행 결과 세 개를 각각 올바른 Folder Task로 나누는지 평가",
                         "수영앱 상세 api 응답에 task도 넣고 포폴 README엔 배포주소랑 화면 캡처 추가, 아 맞다 이사 전입신고 서류도 찾아놔야됨",
                         List.of(SWIMMING, PORTFOLIO, MOVING),
                         List.of(
@@ -273,20 +273,20 @@ class TaskOrganizerServiceTest {
                         List.of(task(12L, SWIMMING, "장소 검색 기능 구현"))
                 ),
                 scenario(
-                        "ambiguous-project",
-                        "두 Project 사이에서 모호한 로그인 UI 작업",
-                        "구별 근거가 없는 작업을 목록 첫 Project에 억지 배정하지 않고 미분류하는지 평가",
+                        "ambiguous-folder",
+                        "두 Folder 사이에서 모호한 로그인 UI 작업",
+                        "구별 근거가 없는 작업을 목록 첫 Folder에 억지 배정하지 않고 미분류하는지 평가",
                         "둘 다 로그인 있어서 어느 프로젝트인지 모르겠는데 모바일에서 페이지가 자꾸 옆으로 튀어나옴 그거 고쳐야댐",
                         List.of(
-                                project(1L, "업무 서비스", "로그인 페이지가 있는 웹 서비스"),
-                                project(2L, "개인 서비스", "로그인 페이지가 있는 웹 서비스")
+                                folder(1L, "업무 서비스", "로그인 페이지가 있는 웹 서비스"),
+                                folder(2L, "개인 서비스", "로그인 페이지가 있는 웹 서비스")
                         ),
                         List.of()
                 ),
                 scenario(
-                        "abbreviated-project-names",
-                        "축약 Project 이름으로 분류",
-                        "스위밍과 영공이라는 러프한 명칭을 각각 올바른 Project로 연결하는지 평가",
+                        "abbreviated-folder-names",
+                        "축약 Folder 이름으로 분류",
+                        "스위밍과 영공이라는 러프한 명칭을 각각 올바른 Folder로 연결하는지 평가",
                         "스위밍 태스크 순서바꾸기 api 이상한거 다시 봐야함 / 영공은 오늘 외운 단어 복습 알림 붙이기",
                         List.of(SWIMMING, ENGLISH, PORTFOLIO),
                         List.of(
@@ -295,17 +295,17 @@ class TaskOrganizerServiceTest {
                         )
                 ),
                 scenario(
-                        "unrelated-only-project",
-                        "유일한 Project와 무관한 개인 용무",
-                        "Project가 하나뿐이어도 생신 케이크 용무를 포트폴리오에 배정하지 않는지 평가",
+                        "unrelated-only-folder",
+                        "유일한 Folder와 무관한 개인 용무",
+                        "Folder가 하나뿐이어도 생신 케이크 용무를 포트폴리오에 배정하지 않는지 평가",
                         "엄마 생신 케이크 예약해야 하는데 날짜 카톡에서 먼저 찾아봐야겠다",
                         List.of(PORTFOLIO),
                         List.of(task(21L, PORTFOLIO, "프로젝트 소개 작성"))
                 ),
                 scenario(
-                        "no-projects",
-                        "Project가 없는 러프 메모",
-                        "Project가 없을 때 모든 의미 있는 원문을 미분류로 보존하는지 평가",
+                        "no-folders",
+                        "Folder가 없는 러프 메모",
+                        "Folder가 없을 때 모든 의미 있는 원문을 미분류로 보존하는지 평가",
                         "로그인 refresh 쪽 다시 확인\n이사 인터넷 이전 신청 전화",
                         List.of(),
                         List.of()
@@ -321,7 +321,7 @@ class TaskOrganizerServiceTest {
                 new TaskOrganizerTestScenario(
                         "existing-task-context",
                         "기존 Task의 고유 용어를 분류 맥락으로 사용",
-                        "Project 이름을 직접 말하지 않아도 Organizer Preview 맥락을 M2로 연결하고 운영 개선에는 배정하지 않는지 평가",
+                        "Folder 이름을 직접 말하지 않아도 Organizer Preview 맥락을 M2로 연결하고 운영 개선에는 배정하지 않는지 평가",
                         input(
                                 "Task Organizer Preview API 결과에서 미분류 체크 풀면 노트에 그대로 남는지도 확인해야함",
                                 List.of(milestone, operations),
@@ -383,26 +383,26 @@ class TaskOrganizerServiceTest {
             String name,
             String evaluationCriteria,
             String memo,
-            List<ProjectContext> projects,
+            List<FolderContext> folders,
             List<TaskContext> tasks
     ) {
-        return new TaskOrganizerTestScenario(id, name, evaluationCriteria, input(memo, projects, tasks));
+        return new TaskOrganizerTestScenario(id, name, evaluationCriteria, input(memo, folders, tasks));
     }
 
     private static TaskOrganizerInput input(
             String memo,
-            List<ProjectContext> projects,
+            List<FolderContext> folders,
             List<TaskContext> tasks
     ) {
-        return new TaskOrganizerInput(memo.strip(), projects, tasks);
+        return new TaskOrganizerInput(memo.strip(), folders, tasks);
     }
 
-    private static ProjectContext project(Long id, String name, String description) {
-        return new ProjectContext(id, name, description);
+    private static FolderContext folder(Long id, String name, String description) {
+        return new FolderContext(id, name, description);
     }
 
-    private static TaskContext task(Long id, ProjectContext project, String title) {
-        return new TaskContext(id, project.id(), title, TaskStatus.TODO);
+    private static TaskContext task(Long id, FolderContext folder, String title) {
+        return new TaskContext(id, folder.id(), title, TaskStatus.TODO);
     }
 
     private record ScenarioResult(

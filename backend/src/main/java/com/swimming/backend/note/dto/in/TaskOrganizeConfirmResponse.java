@@ -8,7 +8,7 @@ public record TaskOrganizeConfirmResponse(
 
     public record CreatedTaskResponse(
             Long id,
-            Long projectId,
+            Long folderId,
             String title
     ) {
     }

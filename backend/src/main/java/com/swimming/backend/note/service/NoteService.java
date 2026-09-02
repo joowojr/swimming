@@ -30,7 +30,7 @@ public class NoteService {
                                 .status(NoteStatus.ACTIVE)
                                 .deleted(false)
                                 .contextType(note.getContextType())
-                                .projectId(note.getProjectId())
+                                .folderId(note.getFolderId())
                                 .sessionId(note.getSessionId())
                                 .build()
                 )
@@ -79,15 +79,15 @@ public class NoteService {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
-    public List<Note> getByProject(
+    public List<Note> getByFolder(
             Long userId,
-            Long projectId,
+            Long folderId,
             NoteStatus status
     ) {
         return noteRepository
-                .findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
+                .findAllByUserIdAndFolderIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                         userId,
-                        projectId,
+                        folderId,
                         status
                 )
                 .stream()
@@ -205,7 +205,7 @@ public class NoteService {
                 .content(entity.getContent())
                 .status(entity.getStatus())
                 .deleted(entity.isDeleted())
-                .projectId(entity.getProjectId())
+                .folderId(entity.getFolderId())
                 .sessionId(entity.getSessionId())
                 .contextType(entity.getContextType())
                 .createdAt(entity.getCreatedAt())

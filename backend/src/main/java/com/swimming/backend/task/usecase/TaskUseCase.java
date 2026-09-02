@@ -1,7 +1,7 @@
 package com.swimming.backend.task.usecase;
 
-import com.swimming.backend.project.dto.ProjectReference;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.dto.FolderReference;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
@@ -29,17 +29,17 @@ public class TaskUseCase {
 
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
-    private final ProjectService projectService;
+    private final FolderService folderService;
     private final DailyPlanService dailyPlanService;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public TaskResponse createWithOptionalPlan(Long userId, CreateTaskWithPlanRequest request) {
-        Long projectId = request.projectId() == null
+        Long folderId = request.folderId() == null
                 ? null
-                : projectService.getReference(userId, request.projectId()).id();
+                : folderService.getReference(userId, request.folderId()).id();
         long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
         Task task = taskService.create(
-                userId, projectId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
+                userId, folderId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
         if (request.planDate() != null) {
             int orderIdx = dailyPlanService.getItems(userId, request.planDate()).size();
             dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
@@ -51,19 +51,19 @@ public class TaskUseCase {
     @Deprecated(since = "2026-09-01", forRemoval = true)
     public TaskResponse create(
             Long userId,
-            Long projectId,
+            Long folderId,
             CreateTaskRequest request
     ) {
-        ProjectReference project = projectService.getReference(userId, projectId);
+        FolderReference folder = folderService.getReference(userId, folderId);
         long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
         return TaskResponse.from(taskService.create(
-                userId, project.id(), request.title(), request.priority(), request.urgent(), matrixRank));
+                userId, folder.id(), request.title(), request.priority(), request.urgent(), matrixRank));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<TaskResponse> getByProject(Long userId, Long projectId) {
-        ProjectReference project = projectService.getReference(userId, projectId);
-        return taskService.getByProject(project.id())
+    public List<TaskResponse> getByFolder(Long userId, Long folderId) {
+        FolderReference folder = folderService.getReference(userId, folderId);
+        return taskService.getByFolder(folder.id())
                 .stream()
                 .map(TaskResponse::from)
                 .toList();

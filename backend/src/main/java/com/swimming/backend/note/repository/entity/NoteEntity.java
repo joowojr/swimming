@@ -19,8 +19,8 @@ import lombok.NoArgsConstructor;
                         columnList = "user_id, status, is_deleted, created_at"
                 ),
                 @Index(
-                        name = "idx_notes_user_project_status_created_at",
-                        columnList = "user_id, project_id, status, is_deleted, created_at"
+                        name = "idx_notes_user_folder_status_created_at",
+                        columnList = "user_id, folder_id, status, is_deleted, created_at"
                 ),
                 @Index(
                         name = "idx_notes_user_session_status_created_at",
@@ -48,8 +48,8 @@ public class NoteEntity extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
-    @Column(name = "project_id")
-    private Long projectId;
+    @Column(name = "folder_id")
+    private Long folderId;
 
     @Column(name = "session_id")
     private Long sessionId;
@@ -64,7 +64,7 @@ public class NoteEntity extends BaseTimeEntity {
             String content,
             NoteStatus status,
             boolean deleted,
-            Long projectId,
+            Long folderId,
             Long sessionId,
             NoteContextType contextType
     ) {
@@ -72,7 +72,7 @@ public class NoteEntity extends BaseTimeEntity {
         this.content = content;
         this.status = status;
         this.deleted = deleted;
-        this.projectId = projectId;
+        this.folderId = folderId;
         this.sessionId = sessionId;
         this.contextType = contextType;
     }

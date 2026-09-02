@@ -31,8 +31,8 @@ export interface SessionResponse {
 
 export interface SessionTask {
   id: number
-  projectId: number | null
-  projectName: string | null
+  folderId: number | null
+  folderName: string | null
   title: string
 }
 

@@ -11,7 +11,7 @@ import InlineEditableText from '../../components/InlineEditableText'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
-import type {Project, ProjectDetail} from '../projects/projectTypes'
+import type {Folder, FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
@@ -26,7 +26,7 @@ import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
 
 interface DailyPlanSectionProps {
-    projects: Project[]
+    folders: Folder[]
 }
 
 function formatLocalDate(date: Date) {
@@ -46,7 +46,7 @@ const dayFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'short', day: 'num
 const weekdayFormatter = new Intl.DateTimeFormat('ko-KR', {weekday: 'short'})
 const rangeFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'short', day: 'numeric'})
 
-export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
+export default function DailyPlanBoard({folders}: DailyPlanSectionProps) {
     const navigate = useNavigate()
     const today = useMemo(() => formatLocalDate(new Date()), [])
     const [fromDate, setFromDate] = useState(today)
@@ -112,17 +112,17 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         setDrafts((current) => ({...current, [savedPlan.date]: savedPlan.items}))
     }
 
-    const addTasks = async (tasks: ProjectDetail['tasks']) => {
+    const addTasks = async (tasks: FolderDetail['tasks']) => {
         if (tasks.length === 0) return
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
-    const addTask = async (title: string, projectId: number | null, priority: boolean, urgent: boolean) => {
+    const addTask = async (title: string, folderId: number | null, priority: boolean, urgent: boolean) => {
         replacePlan(await addDailyPlanItems(selectedDate, {
             title,
             priority,
             urgent,
-            ...(projectId === null ? {} : {projectId}),
+            ...(folderId === null ? {} : {folderId}),
         }))
     }
 
@@ -293,15 +293,15 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                         </button>
                                         <ol className={styles.list}>
                                             {items.map((item) => (
-                                                <li className={`${styles.card} ${item.itemType === 'AD_HOC' ? styles['ad-hoc-card'] : styles[`project-tone-${item.projectId % 4}`]}`}
+                                                <li className={`${styles.card} ${item.itemType === 'AD_HOC' ? styles['ad-hoc-card'] : styles[`project-tone-${item.folderId % 4}`]}`}
                                                     key={item.id}>
                                                     <div className={styles['card-select']}
                                                          onClick={() => setSelectedDate(plan.date)}>
-                                                        {item.projectName !== null && (
+                                                        {item.folderName !== null && (
                                                             <button type="button" className={styles['project-label']}
                                                                     aria-label={`${item.title}이 있는 ${dayFormatter.format(date)} 선택`}>
                                                                 <span className={styles['project-mark']}
-                                                                      aria-hidden="true"/>{item.projectName}
+                                                                      aria-hidden="true"/>{item.folderName}
                                                             </button>
                                                         )}
                                                         <strong>
@@ -385,7 +385,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                 </>
             )}
 
-            {isPickerOpen && <TaskPickerModal projects={projects}
+            {isPickerOpen && <TaskPickerModal folders={folders}
                 initialPlanDate={selectedDate}
                                               selectedTaskIds={new Set(draftItems.map((item) => item.taskId))}
                                               onAdd={addTasks} onAddTask={addTask}

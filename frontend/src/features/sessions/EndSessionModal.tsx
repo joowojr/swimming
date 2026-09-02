@@ -160,7 +160,7 @@ export default function EndSessionModal({
                                     onChange={(event) => setUsePlannedDuration(event.target.checked)}
                                     disabled={isSubmitting}
                                 />
-                                <span>계획한 시간으로 마칩니다.</span>
+                                <span>설정한 시간으로 종료합니다.</span>
                             </label>
                         </fieldset>
                         <fieldset className={styles['modal-field']}>
@@ -169,7 +169,7 @@ export default function EndSessionModal({
                                 items={tasks.map((task) => ({
                                     id: task.id,
                                     title: task.title,
-                                    description: task.projectName ?? undefined,
+                                    description: task.folderName ?? undefined,
                                 }))}
                                 selectedIds={completedTaskIds}
                                 name="completed-session-task"

@@ -30,7 +30,7 @@ export interface DeleteTasksRequest {
 
 export interface TaskResponse {
   id: number
-  projectId: number | null
+  folderId: number | null
   title: string
   status: TaskStatus
   priority: boolean

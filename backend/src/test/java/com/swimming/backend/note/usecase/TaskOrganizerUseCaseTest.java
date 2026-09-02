@@ -13,7 +13,7 @@ import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.service.TaskOrganizerService;
 import com.swimming.backend.note.service.NoteService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
@@ -42,7 +42,7 @@ class TaskOrganizerUseCaseTest {
     private TaskOrderingService taskOrderingService;
     private TaskOrganizerService taskOrganizerService;
     private NoteService noteService;
-    private ProjectService projectService;
+    private FolderService folderService;
     private TaskOrganizerUseCase taskOrganizerUseCase;
 
     @BeforeEach
@@ -51,19 +51,19 @@ class TaskOrganizerUseCaseTest {
         taskOrderingService = mock(TaskOrderingService.class);
         taskOrganizerService = mock(TaskOrganizerService.class);
         noteService = mock(NoteService.class);
-        projectService = mock(ProjectService.class);
+        folderService = mock(FolderService.class);
         taskOrganizerUseCase = new TaskOrganizerUseCase(
                 taskService,
                 taskOrderingService,
                 taskOrganizerService,
                 noteService,
-                projectService
+                folderService
         );
     }
 
     @Test
     @DisplayName("프로젝트와 Task를 한 번에 조회해 Preview 응답으로 변환한다")
-    void previewsTasksFromJoinedProjectContext() {
+    void previewsTasksFromJoinedFolderContext() {
         when(taskService.getTaskOrganizerContext(1L)).thenReturn(List.of(
                 row(10L, "Swimming", 1L, "Note API 연결", TaskStatus.DOING),
                 row(10L, "Swimming", 2L, "Preview 화면", TaskStatus.TODO),
@@ -93,7 +93,7 @@ class TaskOrganizerUseCaseTest {
         verify(taskOrganizerService).organize(inputCaptor.capture());
         TaskOrganizerInput input = inputCaptor.getValue();
 
-        assertThat(input.projects()).extracting(project -> project.id())
+        assertThat(input.folders()).extracting(folder -> folder.id())
                 .containsExactly(10L, 20L);
         assertThat(input.tasks()).extracting(task -> task.id())
                 .containsExactly(1L, 2L);
@@ -115,8 +115,8 @@ class TaskOrganizerUseCaseTest {
     }
 
     @Test
-    @DisplayName("LLM이 반환한 Project ID가 사용자 Project와 일치하는 suggestion만 Preview에 포함한다")
-    void filtersSuggestionsWithUnknownProjectIds() {
+    @DisplayName("LLM이 반환한 Folder ID가 사용자 Folder와 일치하는 suggestion만 Preview에 포함한다")
+    void filtersSuggestionsWithUnknownFolderIds() {
         when(taskService.getTaskOrganizerContext(1L)).thenReturn(List.of(
                 row(10L, "Swimming", null, null, null)
         ));
@@ -209,13 +209,13 @@ class TaskOrganizerUseCaseTest {
         );
         assertThat(note.getContent()).isEqualTo("장소조회 캐시 테스트 아직 못함\n운동화 주문");
         assertThat(note.isDeleted()).isFalse();
-        verify(projectService).validateOwnership(1L, 10L);
+        verify(folderService).validateOwnership(1L, 10L);
         verify(taskService).createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트", false, false, 1024L);
     }
 
     @Test
     @DisplayName("미분류 항목은 프로젝트 소유권 검증 없이 사용자 소유 Task로 생성한다")
-    void confirmsUnclassifiedTaskWithoutProject() {
+    void confirmsUnclassifiedTaskWithoutFolder() {
         Note note = note("운동화 주문");
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
         when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
@@ -251,13 +251,13 @@ class TaskOrganizerUseCaseTest {
                         "운동화 주문"
                 )
         );
-        verify(projectService, never()).validateOwnership(any(), any());
+        verify(folderService, never()).validateOwnership(any(), any());
         verify(taskService).createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L);
     }
 
     @Test
     @DisplayName("분류·미분류 항목이 섞이면 값이 있는 프로젝트만 소유권을 확인한다")
-    void validatesOnlyPresentProjectIds() {
+    void validatesOnlyPresentFolderIds() {
         Note note = note("캐시 테스트\n운동화 주문");
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
         when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
@@ -288,18 +288,18 @@ class TaskOrganizerUseCaseTest {
                 )
         );
 
-        verify(projectService).validateOwnership(1L, 10L);
+        verify(folderService).validateOwnership(1L, 10L);
         verify(taskService).createFromNote(1L, 10L, 7L, "캐시 테스트", false, false, 1024L);
         verify(taskService).createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L);
     }
 
     @Test
-    @DisplayName("다른 사용자의 Project가 포함되면 미분류 Task도 생성하기 전에 요청 전체를 거부한다")
-    void rejectsAnotherUsersProjectBeforeCreatingAnyTask() {
+    @DisplayName("다른 사용자의 Folder가 포함되면 미분류 Task도 생성하기 전에 요청 전체를 거부한다")
+    void rejectsAnotherUsersFolderBeforeCreatingAnyTask() {
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE))
                 .thenReturn(note("다른 프로젝트 Task\n운동화 주문"));
-        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND))
-                .when(projectService).validateOwnership(1L, 99L);
+        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.FOLDER_NOT_FOUND))
+                .when(folderService).validateOwnership(1L, 99L);
 
         assertThatThrownBy(() -> taskOrganizerUseCase.confirm(
                 1L,
@@ -315,7 +315,7 @@ class TaskOrganizerUseCaseTest {
                         )
                 )
         )).isInstanceOfSatisfying(BusinessException.class, exception ->
-                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_NOT_FOUND));
 
         verify(taskService, never()).createFromNote(
                 any(), any(), any(), any(), anyBoolean(), anyBoolean(), anyLong());
@@ -382,15 +382,15 @@ class TaskOrganizerUseCaseTest {
     }
 
     private TaskOrganizerContextRow row(
-            Long projectId,
-            String projectName,
+            Long folderId,
+            String folderName,
             Long taskId,
             String taskTitle,
             TaskStatus taskStatus
     ) {
         return new TaskOrganizerContextRow(
-                projectId,
-                projectName,
+                folderId,
+                folderName,
                 "설명",
                 taskId,
                 taskTitle,

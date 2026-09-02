@@ -142,15 +142,15 @@ class NoteControllerTest {
 
     @Test
     @DisplayName("프로젝트 컨텍스트의 활성 Note 목록을 반환한다")
-    void returnsProjectNotes() throws Exception {
+    void returnsFolderNotes() throws Exception {
         when(noteUseCase.getAll(1L, NoteStatus.ACTIVE, null, 10L, null))
-                .thenReturn(List.of(response(1L, "프로젝트 메모", NoteContextType.PROJECT, 10L, null)));
+                .thenReturn(List.of(response(1L, "프로젝트 메모", NoteContextType.FOLDER, 10L, null)));
 
-        mockMvc.perform(get("/api/notes").param("projectId", "10"))
+        mockMvc.perform(get("/api/notes").param("folderId", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].content").value("프로젝트 메모"))
-                .andExpect(jsonPath("$[0].contextType").value("PROJECT"));
+                .andExpect(jsonPath("$[0].contextType").value("FOLDER"));
     }
 
     @Test
@@ -278,7 +278,7 @@ class NoteControllerTest {
             String content,
             NoteStatus status,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId
     ) {
         return new NoteResponse(
@@ -286,7 +286,7 @@ class NoteControllerTest {
                 content,
                 status,
                 contextType,
-                projectId,
+                folderId,
                 sessionId,
                 LocalDateTime.of(2026, 8, 24, 10, 0),
                 LocalDateTime.of(2026, 8, 24, 10, 0)
@@ -297,7 +297,7 @@ class NoteControllerTest {
             Long id,
             String content,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId
     ) {
         return response(
@@ -305,7 +305,7 @@ class NoteControllerTest {
                 content,
                 NoteStatus.ACTIVE,
                 contextType,
-                projectId,
+                folderId,
                 sessionId
         );
     }

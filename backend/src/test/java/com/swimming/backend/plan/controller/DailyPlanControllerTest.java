@@ -101,14 +101,14 @@ class DailyPlanControllerTest {
 
     @Test
     @DisplayName("날짜와 폴더를 받아 새 Task 항목을 생성한다")
-    void createsProjectTaskItem() throws Exception {
+    void createsFolderTaskItem() throws Exception {
         CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
                 null, 100L, "API 문서 작성");
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"projectId\":100,\"title\":\"API 문서 작성\"}"))
+                        .content("{\"folderId\":100,\"title\":\"API 문서 작성\"}"))
                 .andExpect(status().isCreated());
 
         verify(useCase).addItems(1L, DATE, request);
@@ -116,7 +116,7 @@ class DailyPlanControllerTest {
 
     @Test
     @DisplayName("폴더 없이 새 Task 항목을 생성한다")
-    void createsProjectlessTaskItem() throws Exception {
+    void createsFolderlessTaskItem() throws Exception {
         CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
                 null, null, "자격증 접수");
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());

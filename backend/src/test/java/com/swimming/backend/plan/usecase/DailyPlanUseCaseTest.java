@@ -10,8 +10,8 @@ import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.plan.service.DailyPlanService;
-import com.swimming.backend.project.dto.ProjectReference;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.dto.FolderReference;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.projection.TaskReference;
@@ -43,7 +43,7 @@ class DailyPlanUseCaseTest {
     private DailyPlanService dailyPlanService;
     private TaskService taskService;
     private TaskOrderingService taskOrderingService;
-    private ProjectService projectService;
+    private FolderService folderService;
     private DailyPlanUseCase useCase;
 
     @BeforeEach
@@ -51,15 +51,15 @@ class DailyPlanUseCaseTest {
         dailyPlanService = mock(DailyPlanService.class);
         taskService = mock(TaskService.class);
         taskOrderingService = mock(TaskOrderingService.class);
-        projectService = mock(ProjectService.class);
-        useCase = new DailyPlanUseCase(dailyPlanService, taskService, taskOrderingService, projectService);
+        folderService = mock(FolderService.class);
+        useCase = new DailyPlanUseCase(dailyPlanService, taskService, taskOrderingService, folderService);
     }
 
     @Test
     @DisplayName("조회 기간에 폴더 Task와 폴더 없는 Task의 UI 타입을 함께 반환한다")
     void returnsMixedItemsAndEmptyDates() {
         when(dailyPlanService.getRows(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(
-                projectRow(1L, 10L, 0),
+                folderRow(1L, 10L, 0),
                 adHocRow(2L, 20L, "장보기", 1)
         ));
 
@@ -107,7 +107,7 @@ class DailyPlanUseCaseTest {
             assertThat(item.title()).isEqualTo("장보기");
             assertThat(item.status()).isEqualTo(TaskStatus.TODO);
         });
-        verify(projectService, never()).getReference(any(), any());
+        verify(folderService, never()).getReference(any(), any());
         verify(dailyPlanService).save(eq(1L), eq(DATE), any(DailyPlanItem.class));
     }
 
@@ -120,7 +120,7 @@ class DailyPlanUseCaseTest {
         when(taskService.getReferences(1L, List.of(10L, 20L)))
                 .thenReturn(List.of(taskReference(10L), taskReference(20L)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
-                adHocRow(1L, 30L, "기존", 0), projectRow(2L, 10L, 1), projectRow(3L, 20L, 2)));
+                adHocRow(1L, 30L, "기존", 0), folderRow(2L, 10L, 1), folderRow(3L, 20L, 2)));
 
         DailyPlanResponse response = useCase.addItems(
                 1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null));
@@ -191,10 +191,10 @@ class DailyPlanUseCaseTest {
 
     @Test
     @DisplayName("폴더를 선택해 새 Task를 만들고 계획에 연결한다")
-    void createsProjectTaskAndAddsIt() {
+    void createsFolderTaskAndAddsIt() {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
-        when(projectService.getReference(1L, 100L))
-                .thenReturn(new ProjectReference(100L, "폴더", null));
+        when(folderService.getReference(1L, 100L))
+                .thenReturn(new FolderReference(100L, "폴더", null));
         when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
         when(taskService.create(1L, 100L, "API 문서 작성", false, false, 1024L))
                 .thenReturn(Task.restore(20L, 1L, 100L, null, "API 문서 작성", TaskStatus.TODO,
@@ -208,7 +208,7 @@ class DailyPlanUseCaseTest {
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.taskId()).isEqualTo(20L);
             assertThat(item.itemType()).isEqualTo(DailyPlanItemType.TASK);
-            assertThat(item.projectId()).isEqualTo(100L);
+            assertThat(item.folderId()).isEqualTo(100L);
             assertThat(item.title()).isEqualTo("API 문서 작성");
         });
         verify(taskService).create(1L, 100L, "API 문서 작성", false, false, 1024L);
@@ -221,7 +221,7 @@ class DailyPlanUseCaseTest {
                 DailyPlanItem.restore(1L, 10L, 0, null, null),
                 DailyPlanItem.restore(2L, 20L, 1, null, null)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
-                adHocRow(2L, 20L, "장보기", 0), projectRow(1L, 10L, 1)));
+                adHocRow(2L, 20L, "장보기", 0), folderRow(1L, 10L, 1)));
 
         DailyPlanResponse response = useCase.reorder(
                 1L, DATE, new ReorderDailyPlanItemsRequest(List.of(2L, 1L)));
@@ -253,7 +253,7 @@ class DailyPlanUseCaseTest {
         verify(dailyPlanService).delete(1L, DATE, 2L);
     }
 
-    private DailyPlanItemQueryRow projectRow(Long id, Long taskId, int orderIdx) {
+    private DailyPlanItemQueryRow folderRow(Long id, Long taskId, int orderIdx) {
         return new DailyPlanItemQueryRow(id, DATE, taskId, 100L, "폴더", false, "API 구현", TaskStatus.DOING, orderIdx);
     }
 

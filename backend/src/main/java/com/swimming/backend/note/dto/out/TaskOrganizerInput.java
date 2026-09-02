@@ -4,7 +4,7 @@ import java.util.List;
 
 public record TaskOrganizerInput(
         String memo,
-        List<ProjectContext> projects,
+        List<FolderContext> folders,
         List<TaskContext> tasks
 ) {
 }

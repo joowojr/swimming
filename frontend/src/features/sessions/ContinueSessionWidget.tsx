@@ -102,7 +102,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
           ) : session ? (
               <>
                 <strong className={styles.task}>{currentTask?.title ?? '개인 집중 세션'}</strong>
-                <p>{currentTask?.projectName ?? session.place.name}</p>
+                <p>{currentTask?.folderName ?? session.place.name}</p>
                 <div className={styles.meta}>
                   <span>{session.place.cityName} · {session.place.name}</span>
                   <span><IconClock aria-hidden="true" />{formatDuration(session.plannedDurationSec)}</span>

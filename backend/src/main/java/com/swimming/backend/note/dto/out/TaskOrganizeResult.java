@@ -6,12 +6,12 @@ import java.util.List;
 
 public record TaskOrganizeResult(
         @JsonPropertyDescription(
-                "Task candidates that have clear evidence for exactly one supplied project. Never include unrelated or ambiguous items."
+                "Task candidates that have clear evidence for exactly one supplied folder. Never include unrelated or ambiguous items."
         )
         List<TaskSuggestion> suggestions,
 
         @JsonPropertyDescription(
-                "Polished preview items that cannot be assigned confidently to exactly one supplied project or are not safely actionable."
+                "Polished preview items that cannot be assigned confidently to exactly one supplied folder or are not safely actionable."
         )
         List<UnclassifiedItem> unclassified
 ) {
@@ -29,9 +29,9 @@ public record TaskOrganizeResult(
             String sourceText,
 
             @JsonPropertyDescription(
-                    "Id of an existing project supplied in the input."
+                    "Id of an existing folder supplied in the input."
             )
-            Long projectId,
+            Long folderId,
 
             @JsonPropertyDescription(
                     "Short actionable task title."

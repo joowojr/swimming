@@ -2,8 +2,8 @@ package com.swimming.backend.task.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.project.dto.ProjectReference;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.dto.FolderReference;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
@@ -31,7 +31,7 @@ class TaskUseCaseTest {
 
     private TaskService taskService;
     private TaskOrderingService taskOrderingService;
-    private ProjectService projectService;
+    private FolderService folderService;
     private DailyPlanService dailyPlanService;
     private TaskUseCase taskUseCase;
 
@@ -39,16 +39,16 @@ class TaskUseCaseTest {
     void setUp() {
         taskService = mock(TaskService.class);
         taskOrderingService = mock(TaskOrderingService.class);
-        projectService = mock(ProjectService.class);
+        folderService = mock(FolderService.class);
         dailyPlanService = mock(DailyPlanService.class);
-        taskUseCase = new TaskUseCase(taskService, taskOrderingService, projectService, dailyPlanService);
+        taskUseCase = new TaskUseCase(taskService, taskOrderingService, folderService, dailyPlanService);
     }
 
     @Test
     @DisplayName("소유한 폴더에 Task를 생성한다")
-    void createsTaskInOwnedProject() {
-        when(projectService.getReference(1L, 10L))
-                .thenReturn(new ProjectReference(10L, "폴더", null));
+    void createsTaskInOwnedFolder() {
+        when(folderService.getReference(1L, 10L))
+                .thenReturn(new FolderReference(10L, "폴더", null));
         when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
         when(taskService.create(1L, 10L, "Task", false, false, 1024L))
                 .thenReturn(task(1L, 10L, "Task", 0));
@@ -60,20 +60,20 @@ class TaskUseCaseTest {
         );
 
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.projectId()).isEqualTo(10L);
+        assertThat(response.folderId()).isEqualTo(10L);
     }
 
     @Test
     @DisplayName("소유한 폴더의 Task를 저장된 순서대로 반환한다")
-    void returnsTasksFromOwnedProject() {
-        when(projectService.getReference(1L, 10L))
-                .thenReturn(new ProjectReference(10L, "폴더", null));
-        when(taskService.getByProject(10L)).thenReturn(List.of(
+    void returnsTasksFromOwnedFolder() {
+        when(folderService.getReference(1L, 10L))
+                .thenReturn(new FolderReference(10L, "폴더", null));
+        when(taskService.getByFolder(10L)).thenReturn(List.of(
                 task(1L, 10L, "첫째", 0),
                 task(2L, 10L, "둘째", 1)
         ));
 
-        List<TaskResponse> responses = taskUseCase.getByProject(1L, 10L);
+        List<TaskResponse> responses = taskUseCase.getByFolder(1L, 10L);
 
         assertThat(responses).extracting(TaskResponse::title)
                 .containsExactly("첫째", "둘째");
@@ -104,7 +104,7 @@ class TaskUseCaseTest {
         List<TaskResponse> responses = taskUseCase.getList(1L, TaskListMode.UNCLASSIFIED);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.getFirst().projectId()).isNull();
+        assertThat(responses.getFirst().folderId()).isNull();
         verify(taskService).getUnclassified(1L);
     }
 
@@ -178,11 +178,11 @@ class TaskUseCaseTest {
         verify(taskService).deleteAll(1L, List.of(1L, 2L));
     }
 
-    private Task task(Long id, Long projectId, String title, int orderIdx) {
+    private Task task(Long id, Long folderId, String title, int orderIdx) {
         return Task.restore(
                 id,
                 1L,
-                projectId,
+                folderId,
                 null,
                 title,
                 TaskStatus.TODO,

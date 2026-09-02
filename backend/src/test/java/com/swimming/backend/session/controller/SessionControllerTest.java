@@ -188,7 +188,7 @@ class SessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.tasks[0].id").value(10))
-                .andExpect(jsonPath("$.tasks[0].projectName").value("폴더"))
+                .andExpect(jsonPath("$.tasks[0].folderName").value("폴더"))
                 .andExpect(jsonPath("$.tasks[1].id").value(11));
     }
 

@@ -4,16 +4,16 @@ import com.swimming.backend.task.dto.projection.TaskReference;
 
 public record SessionTaskResponse(
         Long id,
-        Long projectId,
-        String projectName,
+        Long folderId,
+        String folderName,
         String title,
         Boolean isCompleted
 ) {
     public static SessionTaskResponse from(TaskReference task, Boolean isCompleted) {
         return new SessionTaskResponse(
                 task.id(),
-                task.projectId(),
-                task.projectName(),
+                task.folderId(),
+                task.folderName(),
                 task.title(),
                 isCompleted
         );

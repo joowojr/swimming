@@ -1,8 +1,8 @@
 package com.swimming.backend.task.repository;
 
-import com.swimming.backend.project.domain.Project;
-import com.swimming.backend.project.repository.ProjectRepository;
-import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.repository.FolderRepository;
+import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.repository.entity.TaskEntity;
 import com.swimming.backend.user.domain.User;
@@ -40,7 +40,7 @@ class TaskRepositoryJoinTest {
     private TaskRepository taskRepository;
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private FolderRepository folderRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -50,22 +50,22 @@ class TaskRepositoryJoinTest {
 
     @Test
     @DisplayName("Task와 폴더 정보를 한 번의 조인 쿼리로 조회한다")
-    void findsTasksWithProjectsInSingleQuery() {
+    void findsTasksWithFoldersInSingleQuery() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("task-list@example.com")
                 .googleSubject("task-repository-google-subject-1")
                 .nickname("task-list-user")
                 .timezone("Asia/Seoul")
                 .build());
-        ProjectEntity project = projectRepository.saveAndFlush(ProjectEntity.from(
-                Project.create(user.getId(), null, "폴더", "설명", null),
+        FolderEntity folder = folderRepository.saveAndFlush(FolderEntity.from(
+                Folder.create(user.getId(), null, "폴더", "설명", null),
                 user,
                 null
         ));
         TaskEntity savedTask = taskRepository.saveAndFlush(TaskEntity.from(
-                Task.create(user.getId(), project.getId(), "폴더 Task", 0),
+                Task.create(user.getId(), folder.getId(), "폴더 Task", 0),
                 user,
-                project,
+                folder,
                 null
         ));
 
@@ -74,11 +74,11 @@ class TaskRepositoryJoinTest {
                 .getStatistics();
         statistics.clear();
 
-        List<TaskEntity> tasks = taskRepository.findAllByProjectIdWithProject(project.getId());
+        List<TaskEntity> tasks = taskRepository.findAllByFolderIdWithFolder(folder.getId());
 
         assertThat(tasks).extracting(TaskEntity::getId)
                 .containsExactly(savedTask.getId());
-        assertThat(tasks.getFirst().getProject().getName()).isEqualTo("폴더");
+        assertThat(tasks.getFirst().getFolder().getName()).isEqualTo("폴더");
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
     }
 
@@ -92,15 +92,15 @@ class TaskRepositoryJoinTest {
                 .nickname("soft-delete-task-user")
                 .timezone("Asia/Seoul")
                 .build());
-        ProjectEntity project = projectRepository.saveAndFlush(ProjectEntity.from(
-                Project.create(user.getId(), null, "폴더", "설명", null),
+        FolderEntity folder = folderRepository.saveAndFlush(FolderEntity.from(
+                Folder.create(user.getId(), null, "폴더", "설명", null),
                 user,
                 null
         ));
         TaskEntity task = taskRepository.saveAndFlush(TaskEntity.from(
-                Task.create(user.getId(), project.getId(), "세션에 기록된 Task", 0),
+                Task.create(user.getId(), folder.getId(), "세션에 기록된 Task", 0),
                 user,
-                project,
+                folder,
                 null
         ));
 
@@ -109,7 +109,7 @@ class TaskRepositoryJoinTest {
                 List.of(task.getId())
         )).isEqualTo(1);
 
-        assertThat(taskRepository.findAllByProjectIdWithProject(project.getId())).isEmpty();
+        assertThat(taskRepository.findAllByFolderIdWithFolder(folder.getId())).isEmpty();
         assertThat(taskRepository.findByIdAndUser_IdAndDeletedFalse(
                 task.getId(),
                 user.getId()

@@ -49,14 +49,14 @@ public class TaskController {
         return ResponseEntity.created(location).body(response);
     }
 
-    @PostMapping("/projects/{projectId}/tasks")
+    @PostMapping("/folders/{folderId}/tasks")
     @Deprecated(since = "2026-09-01", forRemoval = true)
     public ResponseEntity<TaskResponse> create(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long projectId,
+            @PathVariable("folderId") Long folderId,
             @Valid @RequestBody CreateTaskRequest request
     ) {
-        TaskResponse response = taskUseCase.create(authUser.id(), projectId, request);
+        TaskResponse response = taskUseCase.create(authUser.id(), folderId, request);
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/tasks/{id}")
                 .buildAndExpand(response.id())
@@ -64,12 +64,12 @@ public class TaskController {
         return ResponseEntity.created(location).body(response);
     }
 
-    @GetMapping("/projects/{projectId}/tasks")
-    public ResponseEntity<List<TaskResponse>> getByProject(
+    @GetMapping("/folders/{folderId}/tasks")
+    public ResponseEntity<List<TaskResponse>> getByFolder(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long projectId
+            @PathVariable("folderId") Long folderId
     ) {
-        return ResponseEntity.ok(taskUseCase.getByProject(authUser.id(), projectId));
+        return ResponseEntity.ok(taskUseCase.getByFolder(authUser.id(), folderId));
     }
 
     @GetMapping("/tasks")

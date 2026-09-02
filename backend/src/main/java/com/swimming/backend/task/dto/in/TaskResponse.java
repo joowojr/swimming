@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 public record TaskResponse(
         Long id,
-        Long projectId,
+        Long folderId,
         String title,
         TaskStatus status,
         boolean priority,
@@ -18,20 +18,20 @@ public record TaskResponse(
 ) {
     public TaskResponse(
             Long id,
-            Long projectId,
+            Long folderId,
             String title,
             TaskStatus status,
             int orderIdx,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
-        this(id, projectId, title, status, false, false, orderIdx, createdAt, updatedAt);
+        this(id, folderId, title, status, false, false, orderIdx, createdAt, updatedAt);
     }
 
     public static TaskResponse from(Task task) {
         return new TaskResponse(
                 task.getId(),
-                task.getProjectId(),
+                task.getFolderId(),
                 task.getTitle(),
                 task.getStatus(),
                 task.isPriority(),

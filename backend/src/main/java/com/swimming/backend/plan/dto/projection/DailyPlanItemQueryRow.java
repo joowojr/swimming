@@ -8,18 +8,18 @@ public record DailyPlanItemQueryRow(
         Long id,
         LocalDate planDate,
         Long taskId,
-        Long projectId,
-        String projectName,
-        Boolean projectIsDeleted,
+        Long folderId,
+        String folderName,
+        Boolean folderIsDeleted,
         String title,
         TaskStatus status,
         boolean priority,
         boolean urgent,
         int orderIdx
 ) {
-    public DailyPlanItemQueryRow(Long id, LocalDate planDate, Long taskId, Long projectId,
-                                 String projectName, Boolean projectIsDeleted, String title,
+    public DailyPlanItemQueryRow(Long id, LocalDate planDate, Long taskId, Long folderId,
+                                 String folderName, Boolean folderIsDeleted, String title,
                                  TaskStatus status, int orderIdx) {
-        this(id, planDate, taskId, projectId, projectName, projectIsDeleted, title, status, false, false, orderIdx);
+        this(id, planDate, taskId, folderId, folderName, folderIsDeleted, title, status, false, false, orderIdx);
     }
 }

@@ -13,7 +13,7 @@ import DeleteIconButton from '../../components/DeleteIconButton'
 import ChecklistCard from '../../components/ChecklistCard'
 import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
-import type {Project, ProjectDetail} from '../projects/projectTypes'
+import type {Folder, FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
@@ -24,7 +24,7 @@ import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanner.module.css'
 
 interface DailyPlannerProps {
-    projects: Project[]
+    folders: Folder[]
 }
 
 type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status' | 'priority' | 'urgent'>>
@@ -64,7 +64,7 @@ function monthDays(month: Date) {
     })
 }
 
-export default function DailyPlanner({projects}: DailyPlannerProps) {
+export default function DailyPlanner({folders}: DailyPlannerProps) {
     const navigate = useNavigate()
     const today = useMemo(() => formatDate(new Date()), [])
     const [selectedDate, setSelectedDate] = useState(today)
@@ -153,17 +153,17 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         void refreshMonth(savedPlan.date)
     }
 
-    const addTasks = async (tasks: ProjectDetail['tasks']) => {
+    const addTasks = async (tasks: FolderDetail['tasks']) => {
         if (tasks.length === 0) return
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
-    const addTask = async (title: string, projectId: number | null, priority: boolean, urgent: boolean) => {
+    const addTask = async (title: string, folderId: number | null, priority: boolean, urgent: boolean) => {
         replacePlan(await addDailyPlanItems(selectedDate, {
             title,
             priority,
             urgent,
-            ...(projectId === null ? {} : {projectId}),
+            ...(folderId === null ? {} : {folderId}),
         }))
     }
 
@@ -334,7 +334,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                                 getErrorMessage={getTaskTitleError}
                                             />
                                         }
-                                        description={item.itemType === 'TASK' ? item.projectName : undefined}
+                                        description={item.itemType === 'TASK' ? item.folderName : undefined}
                                         checked={item.status === 'DONE'}
                                         ariaLabel={`${item.title} ${item.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
                                         disabled={pendingTaskId === item.taskId}
@@ -376,7 +376,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 )}
             </div>
 
-            {isPickerOpen && <TaskPickerModal projects={projects} selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
+            {isPickerOpen && <TaskPickerModal folders={folders} selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
             {sessionTaskId !== null && <CreateSessionModal todayTasks={todayTasks} initialTaskId={sessionTaskId} onClose={() => setSessionTaskId(null)} onStarted={(session) => { setSessionTaskId(null); navigate(`/sessions/${session.id}`) }} />}
         </section>
     )

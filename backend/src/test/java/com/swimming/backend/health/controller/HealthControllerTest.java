@@ -25,7 +25,7 @@ class HealthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.status").value("UP"))
-                .andExpect(jsonPath("$.detail.mysql").value("UP"));
+                .andExpect(jsonPath("$.detail.postgres").value("UP"));
 
         verify(healthService).verifyDatabaseConnection();
     }

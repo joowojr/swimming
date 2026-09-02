@@ -23,8 +23,8 @@ import styles from './NoteCard.module.css'
  * AI 정리와 계획 연결의 세부 상태는 TaskOrganizerPanel이 소유한다.
  */
 interface NoteCardProps {
-  projects: ProjectOption[]
-  projectId?: number
+  folders: ProjectOption[]
+  folderId?: number
   sessionId?: number
   className?: string
 }
@@ -36,11 +36,11 @@ interface OrganizerSource {
 
 const AUTO_SAVE_DELAY_MS = 700
 
-export default function NoteCard({ projects, projectId, sessionId, className }: NoteCardProps) {
+export default function NoteCard({ folders, folderId, sessionId, className }: NoteCardProps) {
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
   const [noteFilter, setNoteFilter] = useState<NoteListFilter>(
-    sessionId !== undefined ? 'SESSION' : projectId !== undefined ? 'PROJECT' : 'DEFAULT',
+    sessionId !== undefined ? 'SESSION' : folderId !== undefined ? 'PROJECT' : 'DEFAULT',
   )
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
@@ -74,16 +74,16 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
     if (filter === 'ALL') return getNotes()
     if (filter === 'ARCHIVED') return getNotes({ status: 'ARCHIVED' })
     if (filter === 'SESSION' && sessionId !== undefined) return getNotes({ sessionId })
-    if (filter === 'PROJECT' && projectId !== undefined) return getNotes({ projectId })
+    if (filter === 'PROJECT' && folderId !== undefined) return getNotes({ folderId })
     return getNotes({ contextType: filter })
-  }, [projectId, sessionId])
+  }, [folderId, sessionId])
 
   useEffect(() => {
     isMountedRef.current = true
     initialNotesLoadedRef.current = false
     const defaultFilter: NoteListFilter = sessionId !== undefined
       ? 'SESSION'
-      : projectId !== undefined ? 'PROJECT' : 'DEFAULT'
+      : folderId !== undefined ? 'PROJECT' : 'DEFAULT'
     let cancelled = false
 
     async function loadLatestNote() {
@@ -114,7 +114,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
       isMountedRef.current = false
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [getNotesForFilter, projectId, resetEditorStore, sessionId])
+  }, [getNotesForFilter, folderId, resetEditorStore, sessionId])
 
   useEffect(() => {
     if (!initialNotesLoadedRef.current) return
@@ -152,10 +152,10 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
       try {
         const savedNote = noteIdRef.current === null
           ? await createNote(sessionId !== undefined
-            ? { content, contextType: 'SESSION', projectId: null, sessionId }
-            : projectId === undefined
-              ? { content, contextType: 'DEFAULT', projectId: null, sessionId: null }
-              : { content, contextType: 'PROJECT', projectId, sessionId: null })
+            ? { content, contextType: 'SESSION', folderId: null, sessionId }
+            : folderId === undefined
+              ? { content, contextType: 'DEFAULT', folderId: null, sessionId: null }
+              : { content, contextType: 'PROJECT', folderId, sessionId: null })
               .then((createdNote) => getNote(createdNote.id))
           : await updateNote(noteIdRef.current, { content })
 
@@ -362,7 +362,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
   return (
     <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
       {organizerSource ? (
-        <TaskOrganizerPanel source={organizerSource} projects={projects} onCancel={closeOrganizer} onFinish={finishOrganizer} />
+        <TaskOrganizerPanel source={organizerSource} folders={folders} onCancel={closeOrganizer} onFinish={finishOrganizer} />
       ) : (
         <>
           <NoteEditor
@@ -395,7 +395,7 @@ export default function NoteCard({ projects, projectId, sessionId, className }: 
             notes={notes}
             selectedNoteId={selectedNoteId}
             disabled={isEditorDisabled}
-            projectId={projectId}
+            folderId={folderId}
             sessionId={sessionId}
             filter={noteFilter}
             onFilterChange={setNoteFilter}

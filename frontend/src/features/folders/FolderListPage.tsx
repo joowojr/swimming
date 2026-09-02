@@ -7,36 +7,36 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
 import { deleteTasks, getTaskList } from '../tasks/taskApi'
 import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
-import ProjectCard from './ProjectCard'
+import FolderCard from './FolderCard.tsx'
 import TaskList from './TaskList'
-import type { Project } from './projectTypes'
-import type { ProjectLoadStatus } from './projectTypes'
-import styles from './ProjectListPage.module.css'
+import type { Folder } from './folderTypes.ts'
+import type { FolderLoadStatus } from './folderTypes.ts'
+import styles from './FolderListPage.module.css'
 
 interface ProjectListPageProps {
-  projects: Project[]
-  status: ProjectLoadStatus
+  folders: Folder[]
+  status: FolderLoadStatus
   onRetry: () => void
   onOpenCreate: () => void
   onOpenTagManage: () => void
 }
 
-type ProjectView = 'projects' | 'all' | 'unclassified'
+type ProjectView = 'folders' | 'all' | 'unclassified'
 
 interface TaskListState {
   mode: TaskListMode | null
-  status: ProjectLoadStatus
+  status: FolderLoadStatus
   tasks: TaskResponse[]
 }
 
 const PROJECT_VIEWS: { value: ProjectView; label: string }[] = [
-  { value: 'projects', label: '폴더' },
+  { value: 'folders', label: '폴더' },
   { value: 'all', label: '전체' },
   { value: 'unclassified', label: '미분류' },
 ]
 
-export default function ProjectListPage({
-  projects,
+export default function FolderListPage({
+  folders,
   status,
   onRetry,
   onOpenCreate,
@@ -46,8 +46,8 @@ export default function ProjectListPage({
   const viewParam = searchParams.get('view')
   const activeView: ProjectView = viewParam === 'all' || viewParam === 'unclassified'
     ? viewParam
-    : 'projects'
-  const taskMode: TaskListMode | null = activeView === 'projects' ? null : activeView
+    : 'folders'
+  const taskMode: TaskListMode | null = activeView === 'folders' ? null : activeView
   const [taskListState, setTaskListState] = useState<TaskListState>({
     mode: null,
     status: 'idle',
@@ -59,8 +59,8 @@ export default function ProjectListPage({
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const folderNameById = useMemo(
-    () => new Map(projects.map((project) => [project.id, project.name])),
-    [projects],
+    () => new Map(folders.map((folder) => [folder.id, folder.name])),
+    [folders],
   )
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function ProjectListPage({
     setIsDeleteMode(false)
     setSelectedTaskIds(new Set())
     setDeleteError(null)
-    setSearchParams(view === 'projects' ? {} : { view })
+    setSearchParams(view === 'folders' ? {} : { view })
   }
 
   const leaveDeleteMode = () => {
@@ -130,10 +130,10 @@ export default function ProjectListPage({
   }
 
   return (
-    <section className={styles.page} aria-labelledby="projects-page-title">
+    <section className={styles.page} aria-labelledby="folders-page-title">
       <header className={styles.heading}>
         <div>
-          <h1 id="projects-page-title">할 일</h1>
+          <h1 id="folders-page-title">할 일</h1>
           <p>진행 중인 할 일을 확인하고 관리합니다.</p>
         </div>
         <div className={styles.actions}>
@@ -142,7 +142,7 @@ export default function ProjectListPage({
             태그 관리
           </button>
           <ModalTriggerButton
-            dialogId="create-project-dialog"
+            dialogId="create-folder-dialog"
             icon={<IconPlus size={18} aria-hidden="true" />}
             onClick={onOpenCreate}
           >
@@ -221,9 +221,9 @@ export default function ProjectListPage({
                 emptyDescription={taskMode === 'all'
                   ? '할 일을 만들면 최신순으로 이곳에 표시됩니다.'
                   : '폴더에 연결되지 않은 할 일이 이곳에 표시됩니다.'}
-                getMetaText={(task) => task.projectId === null
+                getMetaText={(task) => task.folderId === null
                   ? '미분류'
-                  : folderNameById.get(task.projectId ?? -1) ?? '폴더'}
+                  : folderNameById.get(task.folderId ?? -1) ?? '폴더'}
                 isDeleteMode={isDeleteMode}
                 selectedTaskIds={selectedTaskIds}
                 isDeleting={isDeletingTasks}
@@ -247,9 +247,9 @@ export default function ProjectListPage({
         <>
           <div className={styles['section-heading']}>
             <h2>전체 폴더</h2>
-            <span>{projects.length}개</span>
+            <span>{folders.length}개</span>
           </div>
-          {projects.length === 0 ? (
+          {folders.length === 0 ? (
             <div className={styles.empty}>
               <IconFolders size={28} stroke={1.5} aria-hidden="true" />
               <h3>폴더를 시작할 준비가 되었습니다.</h3>
@@ -257,8 +257,8 @@ export default function ProjectListPage({
             </div>
           ) : (
             <div className={styles.grid}>
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
+              {folders.map((folder) => (
+                <FolderCard key={folder.id} folder={folder} />
               ))}
             </div>
           )}

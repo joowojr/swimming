@@ -25,7 +25,7 @@ const navigationItems: NavigationItem[] = [
   { label: '캘린더', icon: IconCalendar, disabled: true },
 ]
 
-export default function SideNavigation({ projectCount }: { projectCount: number | null }) {
+export default function SideNavigation({ folderCount }: { folderCount: number | null }) {
   return (
     <aside className={styles['side-navigation']}>
 
@@ -34,8 +34,8 @@ export default function SideNavigation({ projectCount }: { projectCount: number 
         <ul className={styles['navigation-list']}>
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const badge = item.label === '폴더' && projectCount !== null
-              ? String(projectCount)
+            const badge = item.label === '폴더' && folderCount !== null
+              ? String(folderCount)
               : item.badge
 
             return (

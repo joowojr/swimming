@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { client } from './api/client'
-import CreateProjectModal from './features/projects/CreateProjectModal'
-import ProjectTagModal from './features/projects/ProjectTagModal'
-import ProjectDashboard from './features/projects/ProjectDashboard'
-import ProjectDetail from './features/projects/ProjectDetail'
-import ProjectListPage from './features/projects/ProjectListPage'
+import CreateFolderModal from './features/folders/CreateFolderModal.tsx'
+import FolderTagModal from './features/folders/FolderTagModal.tsx'
+import PinBoard from './features/folders/PinBoard.tsx'
+import FolderDetail from './features/folders/FolderDetail.tsx'
+import FolderListPage from './features/folders/FolderListPage.tsx'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
-import type { Project } from './features/projects/projectTypes'
+import type { Folder } from './features/folders/folderTypes.ts'
 import AppShell from './layout/AppShell'
 import LoginPage from './pages/LoginPage'
 import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
-import { useProjectStore } from './store/projectStore'
+import { useFolderStore } from './store/folderStore.ts'
 import styles from './App.module.css'
 
 interface HealthResponse {
@@ -24,14 +24,14 @@ interface HealthResponse {
 type ResourceStatus = 'checking' | 'up' | 'unavailable'
 type GuestView = 'home' | 'login'
 
-function ProjectDetailRoute({ onDeleted }: { onDeleted: (projectId: number) => void }) {
-  const { projectId } = useParams()
-  const parsedProjectId = Number(projectId)
+function ProjectDetailRoute({ onDeleted }: { onDeleted: (folderId: number) => void }) {
+  const { folderId: folderId } = useParams()
+  const parsedProjectId = Number(folderId)
   const validProjectId = Number.isSafeInteger(parsedProjectId) && parsedProjectId > 0
     ? parsedProjectId
     : null
 
-  return <ProjectDetail key={projectId ?? 'invalid'} projectId={validProjectId} onDeleted={onDeleted} />
+  return <FolderDetail key={folderId ?? 'invalid'} folderId={validProjectId} onDeleted={onDeleted} />
 }
 
 function App() {
@@ -39,12 +39,12 @@ function App() {
   const auth = useAuthStore()
   const [mysqlStatus, setMysqlStatus] = useState<ResourceStatus>('checking')
   const [guestView, setGuestView] = useState<GuestView>('home')
-  const projects = useProjectStore((state) => state.projects)
-  const projectStatus = useProjectStore((state) => state.status)
-  const loadProjects = useProjectStore((state) => state.load)
-  const addProject = useProjectStore((state) => state.add)
-  const removeProject = useProjectStore((state) => state.remove)
-  const resetProjects = useProjectStore((state) => state.reset)
+  const folders = useFolderStore((state) => state.folders)
+  const folderStatus = useFolderStore((state) => state.status)
+  const loadFolders = useFolderStore((state) => state.load)
+  const addFolder = useFolderStore((state) => state.add)
+  const removeFolder = useFolderStore((state) => state.remove)
+  const resetFolders = useFolderStore((state) => state.reset)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
@@ -71,15 +71,15 @@ function App() {
 
   useEffect(() => {
     if (auth.status === 'unauthenticated') {
-      resetProjects()
+      resetFolders()
       return
     }
 
     const userId = auth.user?.id
     if (auth.status !== 'authenticated' || userId === undefined) return
 
-    void loadProjects(userId)
-  }, [auth.status, auth.user?.id, loadProjects, resetProjects])
+    void loadFolders(userId)
+  }, [auth.status, auth.user?.id, loadFolders, resetFolders])
 
   if (auth.status === 'checking') {
     return (
@@ -97,11 +97,11 @@ function App() {
 
   const retryLoadProjects = () => {
     const userId = auth.user?.id
-    if (userId !== undefined) void loadProjects(userId)
+    if (userId !== undefined) void loadFolders(userId)
   }
 
-  const handleProjectCreated = (project: Project) => {
-    addProject(project)
+  const handleProjectCreated = (folder: Folder) => {
+    addFolder(folder)
     setIsCreateModalOpen(false)
   }
 
@@ -122,7 +122,7 @@ function App() {
   return (
     <AppShell
       userEmail={auth.user?.email ?? null}
-      projectCount={auth.status === 'authenticated' ? projects.length : null}
+      folderCount={auth.status === 'authenticated' ? folders.length : null}
       onLogin={() => setGuestView('login')}
     >
       {auth.status === 'unauthenticated' && guestView === 'login' ? (
@@ -135,21 +135,21 @@ function App() {
             path="/folders"
             element={(
               <>
-                <ProjectListPage
-                  projects={projects}
-                  status={projectStatus}
+                <FolderListPage
+                  folders={folders}
+                  status={folderStatus}
                   onOpenCreate={() => setIsCreateModalOpen(true)}
                   onOpenTagManage={() => setIsTagModalOpen(true)}
                   onRetry={retryLoadProjects}
                 />
                 {isCreateModalOpen && (
-                  <CreateProjectModal
+                  <CreateFolderModal
                     onClose={() => setIsCreateModalOpen(false)}
                     onCreated={handleProjectCreated}
                   />
                 )}
                 {isTagModalOpen && (
-                  <ProjectTagModal
+                  <FolderTagModal
                     onClose={() => setIsTagModalOpen(false)}
                     onChanged={retryLoadProjects}
                   />
@@ -161,13 +161,13 @@ function App() {
             path="/pinboard"
             element={(
               <>
-                <ProjectDashboard
-                  projects={projects}
-                  status={projectStatus}
+                <PinBoard
+                  folders={folders}
+                  status={folderStatus}
                   onRetry={retryLoadProjects}
                 />
                 {isTagModalOpen && (
-                  <ProjectTagModal
+                  <FolderTagModal
                     onClose={() => setIsTagModalOpen(false)}
                     onChanged={retryLoadProjects}
                   />
@@ -176,8 +176,8 @@ function App() {
             )}
           />
           <Route
-            path="/folders/:projectId"
-            element={<ProjectDetailRoute onDeleted={removeProject} />}
+            path="/folders/:folderId"
+            element={<ProjectDetailRoute onDeleted={removeFolder} />}
           />
           <Route path="*" element={<Navigate to="/folders" replace />} />
         </Routes>

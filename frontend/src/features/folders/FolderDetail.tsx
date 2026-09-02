@@ -10,25 +10,25 @@ import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
-import {deleteProject, getProject, updateProject} from './projectApi'
-import {useProjectStore} from '../../store/projectStore'
-import type {ProjectDetail as ProjectDetailData, ProjectStatus} from './projectTypes'
+import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
+import {useFolderStore} from '../../store/folderStore.ts'
+import type {FolderDetail as FolderDetailData, FolderStatus} from './folderTypes.ts'
 import TaskList from './TaskList'
 import NoteCard from '../note/NoteCard'
-import styles from './ProjectDetail.module.css'
+import styles from './FolderDetail.module.css'
 
-interface ProjectDetailProps {
-  projectId: number | null
-  onDeleted: (projectId: number) => void
+interface FolderDetailProps {
+  folderId: number | null
+  onDeleted: (folderId: number) => void
 }
 
 type DetailState =
   | { status: 'loading' }
-  | { status: 'ready'; project: ProjectDetailData }
+  | { status: 'ready'; folder: FolderDetailData }
   | { status: 'error'; notFound: boolean }
 
 type TaskFilter = 'ALL' | TaskStatus
-type EditableProjectTextField = 'name' | 'description'
+type EditableFolderTextField = 'name' | 'description'
 
 // const taskFilters: Array<{ value: TaskFilter; label: string }> = [
 //   { value: 'ALL', label: '전체' },
@@ -38,7 +38,7 @@ type EditableProjectTextField = 'name' | 'description'
 //   })),
 // ]
 
-const projectStatusLabel: Record<ProjectStatus, string> = {
+const folderStatusLabel: Record<FolderStatus, string> = {
   IN_PROGRESS: '진행 중',
   ARCHIVED: '보관됨',
 }
@@ -69,12 +69,12 @@ function openSelectPicker(select: HTMLSelectElement | null | undefined) {
   }
 }
 
-export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailProps) {
+export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
-  const applyProjectToStore = useProjectStore((state) => state.apply)
+  const applyFolderToStore = useFolderStore((state) => state.apply)
   const [requestKey, setRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
-    projectId === null ? { status: 'error', notFound: true } : { status: 'loading' },
+    folderId === null ? { status: 'error', notFound: true } : { status: 'loading' },
   )
   const [statusFilter, setStatusFilter] = useState<TaskFilter>('ALL')
   const filterSelectRef = useRef<HTMLSelectElement>(null)
@@ -82,13 +82,13 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [isConfirmingProjectDelete, setIsConfirmingProjectDelete] = useState(false)
-  const [isDeletingProject, setIsDeletingProject] = useState(false)
-  const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null)
+  const [isConfirmingFolderDelete, setIsConfirmingFolderDelete] = useState(false)
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false)
+  const [folderDeleteError, setFolderDeleteError] = useState<string | null>(null)
   const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
   const [editValue, setEditValue] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
-  const [isSavingProject, setIsSavingProject] = useState(false)
+  const [isSavingFolder, setIsSavingFolder] = useState(false)
   const taskInputRef = useRef<HTMLInputElement>(null)
   const leaveDeleteMode = () => {
     setIsDeleteMode(false)
@@ -117,14 +117,14 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
       setState((current) => {
         if (current.status !== 'ready') return current
 
-        const tasks = current.project.tasks.filter((task) => !taskIdsToDelete.has(task.id))
+        const tasks = current.folder.tasks.filter((task) => !taskIdsToDelete.has(task.id))
         const completedTaskCount = tasks.filter((task) => task.status === 'DONE').length
         const totalTaskCount = tasks.length
 
         return {
           status: 'ready',
-          project: {
-            ...current.project,
+          folder: {
+            ...current.folder,
             tasks,
             progress: {
               totalTaskCount,
@@ -147,44 +147,44 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     }
   }
 
-  const removeProject = async (project: ProjectDetailData) => {
-    if (isDeletingProject) return
-    setIsDeletingProject(true)
-    setProjectDeleteError(null)
+  const removeFolder = async (folder: FolderDetailData) => {
+    if (isDeletingFolder) return
+    setIsDeletingFolder(true)
+    setFolderDeleteError(null)
     try {
-      await deleteProject(project.id)
-      onDeleted(project.id)
+      await deleteFolder(folder.id)
+      onDeleted(folder.id)
       navigate('/folders', { replace: true })
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
         : undefined
-      setProjectDeleteError(apiMessage ?? '폴더를 삭제하지 못했습니다. 다시 시도해 주세요.')
+      setFolderDeleteError(apiMessage ?? '폴더를 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
-      setIsDeletingProject(false)
+      setIsDeletingFolder(false)
     }
   }
 
   const startEditingTargetDate = (value: string | null) => {
-    if (isSavingProject) return
+    if (isSavingFolder) return
     setIsEditingTargetDate(true)
     setEditValue(value ?? '')
     setEditError(null)
   }
 
   const cancelEditingTargetDate = () => {
-    if (isSavingProject) return
+    if (isSavingFolder) return
     setIsEditingTargetDate(false)
     setEditValue('')
     setEditError(null)
   }
 
-  const applyUpdatedProject = (project: ProjectDetailData, updated: Awaited<ReturnType<typeof updateProject>>) => {
-    applyProjectToStore(updated)
+  const applyUpdatedFolder = (folder: FolderDetailData, updated: Awaited<ReturnType<typeof updateFolder>>) => {
+    applyFolderToStore(updated)
     setState({
       status: 'ready',
-      project: {
-        ...project,
+      folder: {
+        ...folder,
         name: updated.name,
         description: updated.description,
         targetDate: updated.targetDate,
@@ -194,66 +194,66 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     })
   }
 
-  const saveProjectTextField = async (
-    project: ProjectDetailData,
-    field: EditableProjectTextField,
+  const saveFolderTextField = async (
+    folder: FolderDetailData,
+    field: EditableFolderTextField,
     value: string,
   ) => {
-    setIsSavingProject(true)
+    setIsSavingFolder(true)
     try {
-      const updated = await updateProject(project.id, {
-        name: field === 'name' ? value : project.name,
-        description: field === 'description' ? value : project.description,
-        targetDate: project.targetDate,
-        status: project.status,
-        tagId: project.tag?.id ?? null,
+      const updated = await updateFolder(folder.id, {
+        name: field === 'name' ? value : folder.name,
+        description: field === 'description' ? value : folder.description,
+        targetDate: folder.targetDate,
+        status: folder.status,
+        tagId: folder.tag?.id ?? null,
       })
-      applyUpdatedProject(project, updated)
+      applyUpdatedFolder(folder, updated)
     } finally {
-      setIsSavingProject(false)
+      setIsSavingFolder(false)
     }
   }
 
-  const getProjectFieldError = (error: unknown, field: EditableProjectTextField) => {
+  const getFolderFieldError = (error: unknown, field: EditableFolderTextField) => {
     const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
     return apiError?.errors?.[field]
       ?? apiError?.message
       ?? '폴더 정보를 저장하지 못했습니다.'
   }
 
-  const saveTargetDate = async (project: ProjectDetailData) => {
-    if (!isEditingTargetDate || isSavingProject) return
+  const saveTargetDate = async (folder: FolderDetailData) => {
+    if (!isEditingTargetDate || isSavingFolder) return
     const targetDate = editValue || null
-    if (targetDate === project.targetDate) {
+    if (targetDate === folder.targetDate) {
       cancelEditingTargetDate()
       return
     }
 
-    setIsSavingProject(true)
+    setIsSavingFolder(true)
     setEditError(null)
     try {
-      const updated = await updateProject(project.id, {
-        name: project.name,
-        description: project.description,
+      const updated = await updateFolder(folder.id, {
+        name: folder.name,
+        description: folder.description,
         targetDate,
-        status: project.status,
-        tagId: project.tag?.id ?? null,
+        status: folder.status,
+        tagId: folder.tag?.id ?? null,
       })
-      applyUpdatedProject(project, updated)
+      applyUpdatedFolder(folder, updated)
       setIsEditingTargetDate(false)
       setEditValue('')
     } catch (error: unknown) {
       const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
       setEditError(apiError?.errors?.targetDate ?? apiError?.message ?? '목표일을 저장하지 못했습니다.')
     } finally {
-      setIsSavingProject(false)
+      setIsSavingFolder(false)
     }
   }
 
   const handleTargetDateDisplayKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Enter' && event.key !== 'F2') return
     event.preventDefault()
-    startEditingTargetDate(state.status === 'ready' ? state.project.targetDate : null)
+    startEditingTargetDate(state.status === 'ready' ? state.folder.targetDate : null)
   }
 
   const handleTargetDateEditorKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -274,25 +274,25 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   }, [])
 
   useEffect(() => {
-    if (projectId === null) return
+    if (folderId === null) return
 
     let active = true
 
-    void getProject(projectId)
-      .then((project) => {
-        if (active) setState({ status: 'ready', project })
+    void getFolder(folderId)
+      .then((folder) => {
+        if (active) setState({ status: 'ready', folder })
       })
       .catch((error: unknown) => {
         if (active) setState({ status: 'error', notFound: isNotFound(error) })
       })
 
     return () => { active = false }
-  }, [projectId, requestKey])
+  }, [folderId, requestKey])
 
   if (state.status === 'loading') {
     return (
-      <section className={styles.page} aria-busy="true" aria-labelledby="project-loading-title">
-        <p className="sr-only" id="project-loading-title" role="status">폴더 상세를 불러오고 있습니다.</p>
+      <section className={styles.page} aria-busy="true" aria-labelledby="folder-loading-title">
+        <p className="sr-only" id="folder-loading-title" role="status">폴더 상세를 불러오고 있습니다.</p>
         <div className={styles['skeleton-breadcrumb']} aria-hidden="true" />
         <div className={styles['skeleton-heading']} aria-hidden="true" />
         <div className={styles['skeleton-copy']} aria-hidden="true" />
@@ -304,9 +304,9 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
 
   if (state.status === 'error') {
     return (
-      <section className={`${styles.page} ${styles['state-page']}`} aria-labelledby="project-error-title">
-        <p className={styles.eyebrow}>Project detail</p>
-        <h1 id="project-error-title">
+      <section className={`${styles.page} ${styles['state-page']}`} aria-labelledby="folder-error-title">
+        <p className={styles.eyebrow}>Folder detail</p>
+        <h1 id="folder-error-title">
           {state.notFound ? '폴더를 찾을 수 없습니다.' : '폴더 상세를 불러오지 못했습니다.'}
         </h1>
         <p>
@@ -322,14 +322,14 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     )
   }
 
-  const { project } = state
-  const completionPct = Math.min(100, Math.max(0, project.progress.completionPct))
+  const { folder } = state
+  const completionPct = Math.min(100, Math.max(0, folder.progress.completionPct))
   const progressStyle = {
-    '--project-progress-scale': completionPct / 100,
+    '--folder-progress-scale': completionPct / 100,
   } as CSSProperties
   const visibleTasks = statusFilter === 'ALL'
-    ? project.tasks
-    : project.tasks.filter((task) => task.status === statusFilter)
+    ? folder.tasks
+    : folder.tasks.filter((task) => task.status === statusFilter)
   const emptyCopy = {
     ALL: {
       title: '등록된 할 일이 없어요.',
@@ -354,139 +354,140 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   }[statusFilter]
 
   return (
-    <article className={styles.page} aria-labelledby="project-detail-title">
+    <article className={styles.page} aria-labelledby="folder-detail-title">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
         <Link to="/folders">폴더</Link>
-        {project.tag && (
+        {folder.tag && (
             <>
               <IconChevronRight size={14} aria-hidden="true" />
-              <span aria-current="page">{project.tag.name}</span>
+              <span aria-current="page">{folder.tag.name}</span>
             </>
         )}
         <IconChevronRight size={14} aria-hidden="true"/>
-        <span aria-current="page">{project.name}</span>
+        <span aria-current="page">{folder.name}</span>
       </nav>
 
       <div className={styles['detail-layout']}>
         <div className={styles['detail-main']}>
 
       <header className={styles.header}>
-      <div className={styles.badges} data-tone={project.id % 4}>
-          {project.tag && <span className={styles.tag}>{project.tag.name}</span>}
-          <span className={styles['project-status']} data-status={project.status}>{projectStatusLabel[project.status]}</span>
+      <div className={styles.badges} data-tone={folder.id % 4}>
+          {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
+          <span className={styles['folder-status']} data-status={folder.status}>{folderStatusLabel[folder.status]}</span>
         </div>
         <div className={styles['editable-group']}>
-          <h1 id="project-detail-title">
+          <h1 id="folder-detail-title">
             <InlineEditableText
-              value={project.name}
+              value={folder.name}
               ariaLabel="폴더 제목"
               maxLength={255}
               requiredMessage="폴더 이름을 입력해 주세요."
-              disabled={isSavingProject}
-              onSave={(value) => saveProjectTextField(project, 'name', value)}
-              getErrorMessage={(error) => getProjectFieldError(error, 'name')}
+              disabled={isSavingFolder}
+              onSave={(value) => saveFolderTextField(folder, 'name', value)}
+              getErrorMessage={(error) => getFolderFieldError(error, 'name')}
             />
           </h1>
         </div>
         <div className={styles['editable-group']}>
           <p>
             <InlineEditableText
-              value={project.description}
+              value={folder.description}
               emptyText="폴더 설명이 아직 없습니다."
               ariaLabel="폴더 설명"
               requiredMessage="폴더 설명을 입력해 주세요."
-              disabled={isSavingProject}
-              onSave={(value) => saveProjectTextField(project, 'description', value)}
-              getErrorMessage={(error) => getProjectFieldError(error, 'description')}
+              disabled={isSavingFolder}
+              onSave={(value) => saveFolderTextField(folder, 'description', value)}
+              getErrorMessage={(error) => getFolderFieldError(error, 'description')}
             />
           </p>
         </div>
       </header>
 
-      <div className={styles['project-delete-actions']}>
+      <div className={styles['folder-delete-actions']}>
         <DeleteIconButton
           label="폴더 삭제"
-          active={isConfirmingProjectDelete}
-          disabled={isDeletingProject}
+          active={isConfirmingFolderDelete}
+          disabled={isDeletingFolder}
           onClick={() => {
-            setIsConfirmingProjectDelete((current) => !current)
-            setProjectDeleteError(null)
+            setIsConfirmingFolderDelete((current) => !current)
+            setFolderDeleteError(null)
           }}
         >
-          <span>{isConfirmingProjectDelete ? '취소' : '폴더 삭제'}</span>
+          <span>{isConfirmingFolderDelete ? '취소' : '폴더 삭제'}</span>
         </DeleteIconButton>
       </div>
-      {isConfirmingProjectDelete && (
+      {isConfirmingFolderDelete && (
         <DeleteConfirmation
           message="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 메모는 유지됩니다."
           ariaLabel="폴더 삭제 확인"
-          isDeleting={isDeletingProject}
-          onCancel={() => setIsConfirmingProjectDelete(false)}
-          onConfirm={() => void removeProject(project)}
+          isDeleting={isDeletingFolder}
+          onCancel={() => setIsConfirmingFolderDelete(false)}
+          onConfirm={() => void removeFolder(folder)}
         />
       )}
-      {projectDeleteError && <p className={styles['delete-error']} role="alert">{projectDeleteError}</p>}
+      {folderDeleteError && <p className={styles['delete-error']} role="alert">{folderDeleteError}</p>}
 
-      <section className={styles.summary} aria-labelledby="project-progress-title">
-        <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />
-        <div className={styles['progress-content']}>
-          <div className={styles['progress-heading']}>
-            <h2 id="project-progress-title">여정 진행</h2>
-            <strong>{completionPct}<span>%</span></strong>
-          </div>
-          <div
-            className={styles['progress-track']}
-            role="progressbar"
-            aria-label="폴더 진행률"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={completionPct}
-          >
-            <span className={styles['progress-fill']} style={progressStyle} />
-          </div>
-          <p>
-            task {project.progress.completedTaskCount} / {project.progress.totalTaskCount} 완료
-            <span> · 지금까지 잘 오고 있어요</span>
-          </p>
-        </div>
-        <dl className={styles['target-date']}>
-          <div>
-            <dt>목표일</dt>
-            <dd>
-              {isEditingTargetDate ? (
-                <div className={styles['date-editor']}>
-                  <input
-                    type="date"
-                    value={editValue}
-                    aria-label="폴더 목표일"
-                    aria-invalid={Boolean(editError)}
-                    disabled={isSavingProject}
-                    autoFocus
-                    onChange={(event) => { setEditValue(event.target.value); setEditError(null) }}
-                    onBlur={() => void saveTargetDate(project)}
-                    onKeyDown={handleTargetDateEditorKeyDown}
-                  />
-                  {editError && <p role="alert">{editError}</p>}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={styles['editable-display']}
-                  title="더블 클릭하여 목표일 수정"
-                  onDoubleClick={() => startEditingTargetDate(project.targetDate)}
-                  onKeyDown={handleTargetDateDisplayKeyDown}
-                >
-                  {formatTargetDate(project.targetDate)}
-                </button>
-              )}
-            </dd>
-          </div>
-        </dl>
-      </section>
-      <section className={styles.tasks} aria-labelledby="project-tasks-title">
+      {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
+      {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}
+      {/*  <div className={styles['progress-content']}>*/}
+      {/*    <div className={styles['progress-heading']}>*/}
+      {/*      <h2 id="folder-progress-title">여정 진행</h2>*/}
+      {/*      <strong>{completionPct}<span>%</span></strong>*/}
+      {/*    </div>*/}
+      {/*    <div*/}
+      {/*      className={styles['progress-track']}*/}
+      {/*      role="progressbar"*/}
+      {/*      aria-label="폴더 진행률"*/}
+      {/*      aria-valuemin={0}*/}
+      {/*      aria-valuemax={100}*/}
+      {/*      aria-valuenow={completionPct}*/}
+      {/*    >*/}
+      {/*      <span className={styles['progress-fill']} style={progressStyle} />*/}
+      {/*    </div>*/}
+      {/*    <p>*/}
+      {/*      task {folder.progress.completedTaskCount} / {folder.progress.totalTaskCount} 완료*/}
+      {/*      <span> · 지금까지 잘 오고 있어요</span>*/}
+      {/*    </p>*/}
+      {/*  </div>*/}
+      {/*  <dl className={styles['target-date']}>*/}
+      {/*    <div>*/}
+      {/*      <dt>목표일</dt>*/}
+      {/*      <dd>*/}
+      {/*        {isEditingTargetDate ? (*/}
+      {/*          <div className={styles['date-editor']}>*/}
+      {/*            <input*/}
+      {/*              type="date"*/}
+      {/*              value={editValue}*/}
+      {/*              aria-label="폴더 목표일"*/}
+      {/*              aria-invalid={Boolean(editError)}*/}
+      {/*              disabled={isSavingFolder}*/}
+      {/*              autoFocus*/}
+      {/*              onChange={(event) => { setEditValue(event.target.value); setEditError(null) }}*/}
+      {/*              onBlur={() => void saveTargetDate(folder)}*/}
+      {/*              onKeyDown={handleTargetDateEditorKeyDown}*/}
+      {/*            />*/}
+      {/*            {editError && <p role="alert">{editError}</p>}*/}
+      {/*          </div>*/}
+      {/*        ) : (*/}
+      {/*          <button*/}
+      {/*            type="button"*/}
+      {/*            className={styles['editable-display']}*/}
+      {/*            title="더블 클릭하여 목표일 수정"*/}
+      {/*            onDoubleClick={() => startEditingTargetDate(folder.targetDate)}*/}
+      {/*            onKeyDown={handleTargetDateDisplayKeyDown}*/}
+      {/*          >*/}
+      {/*            {formatTargetDate(folder.targetDate)}*/}
+      {/*          </button>*/}
+      {/*        )}*/}
+      {/*      </dd>*/}
+      {/*    </div>*/}
+      {/*  </dl>*/}
+      {/*</section>*/}
+
+          <section className={styles.tasks} aria-labelledby="folder-tasks-title">
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
-            <h2 id="project-tasks-title">할 일</h2>
+            <h2 id="folder-tasks-title">할 일</h2>
             <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
@@ -536,7 +537,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         {deleteError && <p className={styles['delete-error']} role="alert">{deleteError}</p>}
         <div className={styles['task-list-stack']}>
           <CreateTaskComposer
-              projectId={project.id}
+              folderId={folder.id}
               inputRef={taskInputRef}
               variant="embedded"
               onCreated={() => {
@@ -560,7 +561,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         </div>
 
         <aside className={styles['detail-aside']} aria-label="폴더 메모">
-          <NoteCard key={project.id} projects={[project]} projectId={project.id} />
+          <NoteCard key={folder.id} folders={[folder]} folderId={folder.id} />
         </aside>
       </div>
     </article>

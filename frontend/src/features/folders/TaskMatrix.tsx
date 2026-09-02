@@ -10,7 +10,7 @@ import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskPickerModal from '../plans/TaskPickerModal'
-import type { Project } from './projectTypes'
+import type { Folder } from './folderTypes.ts'
 import { createTaskWithOptionalPlan } from '../tasks/taskApi'
 import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
@@ -67,11 +67,11 @@ function autoScrollDuringDrag(container: HTMLElement, clientY: number) {
   }
 }
 
-export default function TaskMatrix({ projects }: { projects: Project[] }) {
+export default function TaskMatrix({ folders }: { folders: Folder[] }) {
   const navigate = useNavigate()
   const folderNameById = useMemo(
-    () => new Map(projects.map((project) => [project.id, project.name])),
-    [projects],
+    () => new Map(folders.map((folder) => [folder.id, folder.name])),
+    [folders],
   )
   const [sections, setSections] = useState<Record<string, SectionState>>(
     () => Object.fromEntries(matrixSections.map((section) => [section.id, initialSectionState()])),
@@ -388,7 +388,7 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
                               )}
                             </div>
                           )}
-                          description={task.projectId === null ? undefined : folderNameById.get(task.projectId) ?? '폴더'}
+                          description={task.folderId === null ? undefined : folderNameById.get(task.folderId) ?? '폴더'}
                           actions={(
                             <>
                               <select
@@ -457,17 +457,17 @@ export default function TaskMatrix({ projects }: { projects: Project[] }) {
       )}
       {addDraft && (
         <TaskPickerModal
-          projects={projects}
+          folders={folders}
           selectedTaskIds={new Set()}
           initialPriority={addDraft.priority}
           initialUrgent={addDraft.urgent}
           onAdd={async () => undefined}
-          onAddTask={async (title, projectId, priority, urgent, planDate) => {
+          onAddTask={async (title, folderId, priority, urgent, planDate) => {
             await createTaskWithOptionalPlan({
               title,
               priority,
               urgent,
-              projectId,
+              folderId,
               planDate,
             })
             await loadTasks()

@@ -1,47 +1,47 @@
 import type { TaskSummaryResponse } from '../tasks/taskTypes'
 
-export type ProjectStatus = 'IN_PROGRESS' | 'ARCHIVED'
+export type FolderStatus = 'IN_PROGRESS' | 'ARCHIVED'
 
-export type ProjectLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
+export type FolderLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
-export interface ProjectTag {
+export interface FolderTag {
   id: number
   name: string
 }
 
-export interface ProjectTagNameRequest {
+export interface FolderTagNameRequest {
   name: string
 }
 
-export interface Project {
+export interface Folder {
   id: number
   name: string
   description: string
   targetDate: string | null
-  status: ProjectStatus
-  tag: ProjectTag | null
+  status: FolderStatus
+  tag: FolderTag | null
   createdAt: string
   updatedAt: string
 }
 
-export interface ProjectProgress {
+export interface FolderProgress {
   totalTaskCount: number
   completedTaskCount: number
   completionPct: number
 }
 
-export interface ProjectDetail {
+export interface FolderDetail {
   id: number
   name: string
   description: string
   targetDate: string | null
-  status: ProjectStatus
-  tag: ProjectTag | null
-  progress: ProjectProgress
+  status: FolderStatus
+  tag: FolderTag | null
+  progress: FolderProgress
   tasks: TaskSummaryResponse[]
 }
 
-export interface CreateProjectRequest {
+export interface CreateFolderRequest {
   name: string
   description: string
   targetDate: string | null
@@ -49,14 +49,14 @@ export interface CreateProjectRequest {
   newTagName: string | null
 }
 
-export interface UpdateProjectRequest {
+export interface UpdateFolderRequest {
   name: string
   description: string
   targetDate: string | null
-  status: ProjectStatus
+  status: FolderStatus
   tagId: number | null
 }
 
-export type ProjectFieldErrors = Partial<
-  Record<keyof CreateProjectRequest | 'status', string>
+export type FolderFieldErrors = Partial<
+  Record<keyof CreateFolderRequest | 'status', string>
 >

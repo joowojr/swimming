@@ -9,7 +9,7 @@ interface NoteListProps {
   notes: NoteResponse[]
   selectedNoteId: number | null
   disabled: boolean
-  projectId?: number
+  folderId?: number
   sessionId?: number
   filter: NoteListFilter
   onFilterChange: (filter: NoteListFilter) => void
@@ -34,13 +34,13 @@ export default function NoteList({
   notes,
   selectedNoteId,
   disabled,
-  projectId,
+  folderId,
   sessionId,
   filter,
   onFilterChange,
   onSelect,
 }: NoteListProps) {
-  const isPinboardScreen = projectId === undefined && sessionId === undefined
+  const isPinboardScreen = folderId === undefined && sessionId === undefined
 
   return (
     <section className={styles['memo-list']} aria-labelledby="saved-memos-title">
@@ -73,7 +73,7 @@ export default function NoteList({
                 aria-pressed={selectedNoteId === note.id}
               >
                 {filter === 'ALL' && (
-                  (projectId !== undefined && note.projectId === projectId)
+                  (folderId !== undefined && note.folderId === folderId)
                   || (sessionId !== undefined && note.sessionId === sessionId)
                   || (isPinboardScreen && note.contextType === 'DEFAULT')
                 ) && (

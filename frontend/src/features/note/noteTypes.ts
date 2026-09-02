@@ -7,7 +7,7 @@ export interface NoteResponse {
   content: string
   status: NoteStatus
   contextType: NoteContextType
-  projectId: number | null
+  folderId: number | null
   sessionId: number | null
   createdAt: string
   updatedAt: string
@@ -21,19 +21,19 @@ export type CreateNoteRequest =
   | {
       content: string
       contextType: 'DEFAULT'
-      projectId: null
+      folderId: null
       sessionId: null
     }
   | {
       content: string
       contextType: 'PROJECT'
-      projectId: number
+      folderId: number
       sessionId: null
     }
   | {
       content: string
       contextType: 'SESSION'
-      projectId: null
+      folderId: null
       sessionId: number
     }
 
@@ -45,24 +45,24 @@ export type GetNotesParams =
   | {
       status?: NoteStatus
       contextType?: never
-      projectId?: never
+      folderId?: never
       sessionId?: never
     }
   | {
       status?: NoteStatus
       contextType: NoteContextType
-      projectId?: never
+      folderId?: never
       sessionId?: never
     }
   | {
       status?: NoteStatus
       contextType?: never
-      projectId: number
+      folderId: number
       sessionId?: never
     }
   | {
       status?: NoteStatus
       contextType?: never
-      projectId?: never
+      folderId?: never
       sessionId: number
     }

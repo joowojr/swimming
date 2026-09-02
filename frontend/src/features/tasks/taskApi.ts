@@ -16,11 +16,11 @@ import type {
 
 /** @deprecated 새 Task 생성에는 createTaskWithOptionalPlan을 사용합니다. */
 export async function createTask(
-  projectId: number,
+  folderId: number,
   request: CreateTaskRequest,
 ): Promise<TaskResponse> {
   const response = await client.post<TaskResponse>(
-    `/projects/${projectId}/tasks`,
+    `/folders/${folderId}/tasks`,
     request,
   )
   return response.data
@@ -28,7 +28,7 @@ export async function createTask(
 
 export async function createTaskWithOptionalPlan(request: {
   title: string
-  projectId?: number | null
+  folderId?: number | null
   priority?: boolean
   urgent?: boolean
   planDate?: string | null
@@ -37,8 +37,8 @@ export async function createTaskWithOptionalPlan(request: {
   return response.data
 }
 
-export async function getTasks(projectId: number): Promise<TaskResponse[]> {
-  const response = await client.get<TaskResponse[]>(`/projects/${projectId}/tasks`)
+export async function getTasks(folderId: number): Promise<TaskResponse[]> {
+  const response = await client.get<TaskResponse[]>(`/folders/${folderId}/tasks`)
   return response.data
 }
 

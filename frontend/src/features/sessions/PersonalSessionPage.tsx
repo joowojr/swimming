@@ -18,7 +18,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import { useAuthStore } from '../../store/authStore'
-import { useProjectStore } from '../../store/projectStore'
+import { useFolderStore } from '../../store/folderStore.ts'
 import { getPlaces } from '../places/placeApi'
 import { getSession, updateSessionFocusDuration, updateSessionMusicUrl } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
@@ -93,7 +93,7 @@ function errorMessage(error: unknown) {
 export default function PersonalSessionPage() {
   const navigate = useNavigate()
   const auth = useAuthStore()
-  const projects = useProjectStore((state) => state.projects)
+  const folders = useFolderStore((state) => state.folders)
   const { sessionId } = useParams()
   const parsedSessionId = Number(sessionId)
   const validSessionId = Number.isSafeInteger(parsedSessionId) && parsedSessionId > 0
@@ -358,7 +358,7 @@ export default function PersonalSessionPage() {
               <span aria-hidden="true" />
               <div>
                 <h1 id={index === 0 ? 'current-task-title' : undefined}>{task.title}</h1>
-                <p>{task.projectName}</p>
+                <p>{task.folderName}</p>
               </div>
             </div>
           ))}
@@ -368,7 +368,7 @@ export default function PersonalSessionPage() {
       {widgets.tasks && !focusMode && (
         <NoteCard
           className={`${styles.widget} ${styles['session-note']}`}
-          projects={projects}
+          folders={folders}
           sessionId={state.session.id}
         />
       )}

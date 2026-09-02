@@ -3,13 +3,13 @@ import ModeToggle from '../../components/ModeToggle'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
-import type { Project, ProjectLoadStatus } from './projectTypes'
+import type { Folder, FolderLoadStatus } from './folderTypes.ts'
 import TaskMatrix from './TaskMatrix'
-import styles from './ProjectDashboard.module.css'
+import styles from './PinBoard.module.css'
 
-interface ProjectDashboardProps {
-  projects: Project[]
-  status: ProjectLoadStatus
+interface PinBoardProps {
+  folders: Folder[]
+  status: FolderLoadStatus
   onRetry: () => void
 }
 
@@ -28,29 +28,29 @@ function formatTargetDate(targetDate: string) {
 }
 */
 
-export default function ProjectDashboard({
-  projects,
+export default function PinBoard({
+  folders,
   status,
   onRetry,
-}: ProjectDashboardProps) {
+}: PinBoardProps) {
   const [plannerView, setPlannerView] = useState<PlannerView>('daily')
   /*
   const upcomingProjects = useMemo(
     () =>
-      projects
-        .filter((project): project is Project & { targetDate: string } => Boolean(project.targetDate))
+      folders
+        .filter((folder): folder is Project & { targetDate: string } => Boolean(folder.targetDate))
         .sort((a, b) => a.targetDate.localeCompare(b.targetDate))
         .slice(0, 3),
-    [projects],
+    [folders],
   )
   */
 
   return (
     <div className={styles['dashboard-layout']}>
-      <section className={styles['project-dashboard']} aria-labelledby="project-dashboard-title">
+      <section className={styles['folder-dashboard']} aria-labelledby="folder-dashboard-title">
         <header className={styles['dashboard-heading']}>
           <div>
-            <h2 id="project-dashboard-title">안녕하세요</h2>
+            <h2 id="folder-dashboard-title">안녕하세요</h2>
             <p>현재 진행 중인 폴더 현황입니다.</p>
           </div>
           <div className={styles['dashboard-actions']}>
@@ -74,7 +74,7 @@ export default function ProjectDashboard({
         ) : (
             <>
               {/*폴더 정리 표*/}
-            {/*<section className={styles['project-metrics']} aria-label="폴더 요약">*/}
+            {/*<section className={styles['folder-metrics']} aria-label="폴더 요약">*/}
             {/*  {metrics.map(({ label, value, icon: Icon, tone }) => (*/}
             {/*    <article className={styles['metric-card']} key={label}>*/}
             {/*      <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">*/}
@@ -100,12 +100,12 @@ export default function ProjectDashboard({
                       onChange={setPlannerView}
                     />
                     {plannerView === 'daily'
-                      ? <DailyPlanner projects={projects}/>
-                      : <TaskMatrix projects={projects}/>}
+                      ? <DailyPlanner folders={folders}/>
+                      : <TaskMatrix folders={folders}/>}
                   </div>
                 </div>
 
-                <NoteCard projects={projects} />
+                <NoteCard folders={folders} />
               </div>
             </>
         )}
@@ -116,19 +116,19 @@ export default function ProjectDashboard({
         <h2 id="upcoming-targets-title">다가오는 목표일</h2>
         {status === 'ready' && upcomingProjects.length > 0 ? (
             <ul className={styles['upcoming-list']}>
-              {upcomingProjects.map((project) => (
-                  <li key={project.id}>
+              {upcomingProjects.map((folder) => (
+                  <li key={folder.id}>
                 <span className={styles['upcoming-date']} aria-hidden="true">
-                  <strong>{new Date(`${project.targetDate}T00:00:00`).getDate()}</strong>
+                  <strong>{new Date(`${folder.targetDate}T00:00:00`).getDate()}</strong>
                   <span>
                     {new Intl.DateTimeFormat('ko-KR', { month: 'short' }).format(
-                      new Date(`${project.targetDate}T00:00:00`),
+                      new Date(`${folder.targetDate}T00:00:00`),
                     )}
                   </span>
                 </span>
                 <div>
-                  <strong>{project.name}</strong>
-                  <span>목표일 {formatTargetDate(project.targetDate)}</span>
+                  <strong>{folder.name}</strong>
+                  <span>목표일 {formatTargetDate(folder.targetDate)}</span>
                 </div>
               </li>
             ))}

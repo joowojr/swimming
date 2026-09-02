@@ -6,7 +6,7 @@ import { createTaskWithOptionalPlan } from './taskApi'
 import styles from './CreateTaskComposer.module.css'
 
 interface CreateTaskComposerProps {
-  projectId: number
+  folderId: number
   inputRef: RefObject<HTMLInputElement | null>
   onCreated: () => void
   variant?: 'default' | 'embedded'
@@ -23,7 +23,7 @@ function isApiError(error: unknown): error is ApiError {
 }
 
 export default function CreateTaskComposer({
-  projectId,
+  folderId,
   inputRef,
   onCreated,
   variant = 'default',
@@ -52,7 +52,7 @@ export default function CreateTaskComposer({
     try {
       await createTaskWithOptionalPlan({
         title: title.trim(),
-        projectId,
+        folderId,
       })
       setTitle('')
       setIsTouched(false)

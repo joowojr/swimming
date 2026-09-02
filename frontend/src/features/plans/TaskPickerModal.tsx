@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlus, IconX } from '@tabler/icons-react'
 import type { MouseEvent } from 'react'
 import ModeToggle from '../../components/ModeToggle'
-import { getProject } from '../projects/projectApi'
-import type { Project, ProjectDetail } from '../projects/projectTypes'
+import { getFolder } from '../folders/folderApi.ts'
+import type { Folder, FolderDetail } from '../folders/folderTypes.ts'
 import styles from './TaskPickerModal.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
 
 interface TaskPickerModalProps {
-  projects: Project[]
+  folders: Folder[]
   selectedTaskIds: ReadonlySet<number>
-  onAdd: (tasks: ProjectDetail['tasks']) => Promise<void>
-  onAddTask: (title: string, projectId: number | null, priority: boolean, urgent: boolean, planDate: string | null) => Promise<void>
+  onAdd: (tasks: FolderDetail['tasks']) => Promise<void>
+  onAddTask: (title: string, folderId: number | null, priority: boolean, urgent: boolean, planDate: string | null) => Promise<void>
   onClose: () => void
   initialPriority?: boolean
   initialUrgent?: boolean
@@ -20,7 +20,7 @@ interface TaskPickerModalProps {
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'ready'; details: ProjectDetail[] }
+  | { status: 'ready'; details: FolderDetail[] }
   | { status: 'error' }
 
 type AddMode = 'direct' | 'folder'
@@ -57,7 +57,7 @@ const URGENCY_CHIPS = [
 ]
 
 export default function TaskPickerModal({
-  projects,
+  folders,
   selectedTaskIds,
   onAdd,
   onAddTask,
@@ -70,7 +70,7 @@ export default function TaskPickerModal({
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [addMode, setAddMode] = useState<AddMode>('direct')
   const [title, setTitle] = useState('')
-  const [projectId, setProjectId] = useState('')
+  const [folderId, setProjectId] = useState('')
   const [taskProjectId, setTaskProjectId] = useState('')
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -85,7 +85,7 @@ export default function TaskPickerModal({
   const pendingTasks = state.status === 'ready'
     ? state.details.flatMap((detail) => detail.tasks
       .filter((task) => pendingTaskIds.has(task.id))
-      .map((task) => ({ task, projectName: detail.name })))
+      .map((task) => ({ task, folderName: detail.name })))
     : []
   const totalTaskCount = addMode === 'direct'
     ? (title.trim() ? 1 : 0)
@@ -102,11 +102,11 @@ export default function TaskPickerModal({
 
   useEffect(() => {
     let active = true
-    void Promise.all(projects.map((project) => getProject(project.id)))
+    void Promise.all(folders.map((folder) => getFolder(folder.id)))
       .then((details) => { if (active) setState({ status: 'ready', details }) })
       .catch(() => { if (active) setState({ status: 'error' }) })
     return () => { active = false }
-  }, [projects])
+  }, [folders])
 
   const requestClose = () => {
     if (!isSubmitting) dialogRef.current?.close()
@@ -142,7 +142,7 @@ export default function TaskPickerModal({
       if (addMode === 'direct') {
         await onAddTask(
           trimmedTitle,
-          projectId ? Number(projectId) : null,
+          folderId ? Number(folderId) : null,
           selectedPriority === '중요',
           selectedUrgent,
           planDate || null,
@@ -247,7 +247,7 @@ export default function TaskPickerModal({
             <label htmlFor="daily-plan-ad-hoc-title">새 할 일</label>
             <select
               aria-label="할 일을 추가할 폴더"
-              value={projectId}
+              value={folderId}
               disabled={isSubmitting}
               onChange={(event) => {
                 setProjectId(event.target.value)
@@ -255,8 +255,8 @@ export default function TaskPickerModal({
               }}
             >
               <option value="">미분류</option>
-              {projects.map((project) => (
-                <option value={project.id} key={project.id}>{project.name}</option>
+              {folders.map((folder) => (
+                <option value={folder.id} key={folder.id}>{folder.name}</option>
               ))}
             </select>
             <input
@@ -279,9 +279,9 @@ export default function TaskPickerModal({
             hidden={addMode !== 'folder'}
           >
             <section className={styles['task-select']} aria-labelledby="task-select-label">
-              <label id="task-select-label" htmlFor="daily-plan-task-project">폴더</label>
+              <label id="task-select-label" htmlFor="daily-plan-task-folder">폴더</label>
               <select
-                id="daily-plan-task-project"
+                id="daily-plan-task-folder"
                 value={taskProjectId}
                 disabled={isSubmitting || state.status !== 'ready'}
                 onChange={(event) => setTaskProjectId(event.target.value)}
@@ -343,15 +343,15 @@ export default function TaskPickerModal({
                   <span>{pendingTasks.length}개</span>
                 </div>
                 <ul>
-                  {pendingTasks.map(({ task, projectName }) => (
+                  {pendingTasks.map(({ task, folderName }) => (
                     <li key={task.id}>
                       <span>
-                        <small>{projectName}</small>
+                        <small>{folderName}</small>
                         <strong>{task.title}</strong>
                       </span>
                       <button
                         type="button"
-                        aria-label={`${projectName}의 ${task.title} 선택 해제`}
+                        aria-label={`${folderName}의 ${task.title} 선택 해제`}
                         disabled={isSubmitting}
                         onClick={() => toggleTask(task.id)}
                       >

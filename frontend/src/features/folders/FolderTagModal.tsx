@@ -5,13 +5,13 @@ import type { ApiError } from '../../api/client'
 import ActionButton from '../../components/ActionButton'
 import modalStyles from '../../components/ModalShell.module.css'
 import {
-  createProjectTag,
-  deleteProjectTag,
-  getProjectTags,
-  updateProjectTag,
-} from './projectApi'
-import type { ProjectTag } from './projectTypes'
-import styles from './ProjectTagModal.module.css'
+  createFolderTag,
+  deleteFolderTag,
+  getTags,
+  updateFolderTag,
+} from './folderApi.ts'
+import type { FolderTag } from './folderTypes.ts'
+import styles from './FolderTagModal.module.css'
 
 interface ProjectTagModalProps {
   onClose: () => void
@@ -20,7 +20,7 @@ interface ProjectTagModalProps {
 
 type PendingAction = 'create' | `update-${number}` | `delete-${number}` | null
 
-function sortTags(tags: ProjectTag[]) {
+function sortTags(tags: FolderTag[]) {
   return [...tags].sort((left, right) => left.name.localeCompare(right.name, 'ko'))
 }
 
@@ -29,9 +29,9 @@ function requestErrorMessage(error: unknown, fallback: string) {
   return apiError.errors?.name ?? apiError.message ?? fallback
 }
 
-export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalProps) {
+export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const [tags, setTags] = useState<ProjectTag[]>([])
+  const [tags, setTags] = useState<FolderTag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -48,7 +48,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
 
   useEffect(() => {
     let active = true
-    void getProjectTags()
+    void getTags()
       .then((loadedTags) => {
         if (!active) return
         setTags(sortTags(loadedTags))
@@ -78,7 +78,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
     setPendingAction('create')
     setMessage(null)
     try {
-      const created = await createProjectTag({ name })
+      const created = await createFolderTag({ name })
       setTags((current) => sortTags([...current, created]))
       setNewName('')
       onChanged()
@@ -89,7 +89,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
     }
   }
 
-  const startEdit = (tag: ProjectTag) => {
+  const startEdit = (tag: FolderTag) => {
     setEditingId(tag.id)
     setEditingName(tag.name)
     setMessage(null)
@@ -105,7 +105,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
     setPendingAction(`update-${tagId}`)
     setMessage(null)
     try {
-      const updated = await updateProjectTag(tagId, { name })
+      const updated = await updateFolderTag(tagId, { name })
       setTags((current) => sortTags(
         current.map((tag) => tag.id === tagId ? updated : tag),
       ))
@@ -119,7 +119,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
     }
   }
 
-  const removeTag = async (tag: ProjectTag) => {
+  const removeTag = async (tag: FolderTag) => {
     const confirmed = window.confirm(
       `'${tag.name}' 태그를 삭제하면 연결된 폴더에서 태그가 해제됩니다. 삭제할까요?`,
     )
@@ -128,7 +128,7 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
     setPendingAction(`delete-${tag.id}`)
     setMessage(null)
     try {
-      await deleteProjectTag(tag.id)
+      await deleteFolderTag(tag.id)
       setTags((current) => current.filter((item) => item.id !== tag.id))
       if (editingId === tag.id) {
         setEditingId(null)
@@ -145,10 +145,10 @@ export default function ProjectTagModal({ onClose, onChanged }: ProjectTagModalP
   return (
     <dialog ref={dialogRef} className={`${styles.dialog} ${modalStyles.dialog}`} onClose={onClose} onMouseDown={handleBackdrop}
       onCancel={(event) => { if (pendingAction !== null) event.preventDefault() }}>
-      <section className={`${styles.modal} ${modalStyles.surface}`} aria-labelledby="project-tag-title">
+      <section className={`${styles.modal} ${modalStyles.surface}`} aria-labelledby="folder-tag-title">
         <header className={`${styles.header} ${modalStyles.header}`}>
           <div>
-            <h2 id="project-tag-title">폴더 태그 관리</h2>
+            <h2 id="folder-tag-title">폴더 태그 관리</h2>
             <p>폴더를 분류할 태그를 추가하고 정리하세요.</p>
           </div>
           <button type="button" className={styles.close} aria-label="태그 관리 닫기" onClick={requestClose} disabled={pendingAction !== null}>

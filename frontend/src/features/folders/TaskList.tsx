@@ -14,7 +14,7 @@ import type { TaskResponse, TaskStatus, TaskSummaryResponse } from '../tasks/tas
 import styles from './TaskList.module.css'
 
 interface TaskListItem extends TaskSummaryResponse {
-  projectId?: number | null
+  folderId?: number | null
 }
 
 type TaskFlagOverride = Pick<TaskResponse, 'status' | 'priority' | 'urgent'>
@@ -196,7 +196,7 @@ export default function TaskList({
                     {task.status === 'DOING' ? <span className={styles['check-core']}/> : null}
                   </span>
                 )}
-                description={task.projectId != null && getMetaText ? getMetaText(task) : undefined}
+                description={task.folderId != null && getMetaText ? getMetaText(task) : undefined}
                         title={(
                           <div className={styles.content}>
                             <h3>

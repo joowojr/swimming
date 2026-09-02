@@ -4,8 +4,8 @@ export interface TaskOrganizeRequest {
 
 export interface TaskSuggestionResponse {
   sourceText: string
-  projectId: number
-  projectName: string
+  folderId: number
+  folderName: string
   title: string
 }
 
@@ -21,7 +21,7 @@ export interface TaskOrganizeResponse {
 
 export interface ApprovedTaskRequest {
   sourceText: string
-  projectId: number | null
+  folderId: number | null
   title: string
 }
 
@@ -32,7 +32,7 @@ export interface TaskOrganizeConfirmRequest {
 
 export interface CreatedTaskResponse {
   id: number
-  projectId: number | null
+  folderId: number | null
   title: string
 }
 

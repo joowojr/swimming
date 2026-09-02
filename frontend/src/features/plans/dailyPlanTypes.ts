@@ -10,8 +10,8 @@ interface DailyPlanItemBase {
 }
 
 export type DailyPlanItem = DailyPlanItemBase & (
-  | { itemType: 'TASK'; projectId: number; projectName: string }
-  | { itemType: 'AD_HOC'; projectId: null; projectName: null }
+  | { itemType: 'TASK'; folderId: number; folderName: string }
+  | { itemType: 'AD_HOC'; folderId: null; folderName: null }
 )
 
 export interface DailyPlan {
@@ -20,5 +20,5 @@ export interface DailyPlan {
 }
 
 export type CreateDailyPlanItemsRequest =
-  | { taskIds: number[]; projectId?: never; title?: never; priority?: never; urgent?: never }
-  | { taskIds?: never; projectId?: number; title: string; priority?: boolean; urgent?: boolean }
+  | { taskIds: number[]; folderId?: never; title?: never; priority?: never; urgent?: never }
+  | { taskIds?: never; folderId?: number; title: string; priority?: boolean; urgent?: boolean }

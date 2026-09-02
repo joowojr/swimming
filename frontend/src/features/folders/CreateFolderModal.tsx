@@ -3,18 +3,18 @@ import type { FormEvent, MouseEvent } from 'react'
 import { IconX } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import ActionButton from '../../components/ActionButton'
-import { createProject, getProjectTags } from './projectApi'
+import { createFolder, getTags } from './folderApi.ts'
 import type {
-  CreateProjectRequest,
-  Project,
-  ProjectTag,
-} from './projectTypes'
-import styles from './CreateProjectModal.module.css'
+  CreateFolderRequest,
+  Folder,
+  FolderTag,
+} from './folderTypes.ts'
+import styles from './CreateFolder.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
 
 interface CreateProjectModalProps {
   onClose: () => void
-  onCreated: (project: Project) => void
+  onCreated: (folder: Folder) => void
 }
 
 type TagsStatus = 'loading' | 'ready' | 'error'
@@ -53,7 +53,7 @@ function validateNewTagName(value: string) {
 function isApiError(error: unknown): error is ApiError {
   return typeof error === 'object' && error !== null
 }
-export default function CreateProjectModal({
+export default function CreateFolderModal({
   onClose,
   onCreated,
 }: CreateProjectModalProps) {
@@ -67,7 +67,7 @@ export default function CreateProjectModal({
   const [targetDate, setTargetDate] = useState('')
 
   const [tagName, setTagName] = useState('')
-  const [tags, setTags] = useState<ProjectTag[]>([])
+  const [tags, setTags] = useState<FolderTag[]>([])
   const [tagsStatus, setTagsStatus] = useState<TagsStatus>('loading')
   const [touchedFields, setTouchedFields] = useState<TouchedFields>({})
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -94,7 +94,7 @@ export default function CreateProjectModal({
   useEffect(() => {
     let active = true
 
-    void getProjectTags()
+    void getTags()
       .then((response) => {
         if (!active) return
         setTags(response)
@@ -152,7 +152,7 @@ export default function CreateProjectModal({
       return
     }
 
-    const request: CreateProjectRequest = {
+    const request: CreateFolderRequest = {
       name: name.trim(),
       description: description.trim(),
       targetDate: targetDate || null,
@@ -162,7 +162,7 @@ export default function CreateProjectModal({
 
     setIsSubmitting(true)
     try {
-      onCreated(await createProject(request))
+      onCreated(await createFolder(request))
     } catch (error) {
       if (isApiError(error) && error.errors) {
         const apiErrors = {
@@ -177,7 +177,7 @@ export default function CreateProjectModal({
         else if (apiErrors.targetDate) targetDateInputRef.current?.focus()
         else if (apiErrors.newTagName) tagInputRef.current?.focus()
       }
-      if (isApiError(error) && error.code === 'PROJECT_TAG_ALREADY_EXISTS') {
+      if (isApiError(error) && error.code === 'FOLDER_TAG_ALREADY_EXISTS') {
         setTagError(error.message ?? '같은 이름의 태그가 이미 있습니다.')
         tagInputRef.current?.focus()
       } else {
@@ -207,11 +207,11 @@ export default function CreateProjectModal({
 
   return (
     <dialog
-      id="create-project-dialog"
+      id="create-folder-dialog"
       ref={dialogRef}
-      className={`${styles['create-project-dialog']} ${modalStyles.dialog}`}
-      aria-labelledby="create-project-title"
-      aria-describedby="create-project-description"
+      className={`${styles['create-folder-dialog']} ${modalStyles.dialog}`}
+      aria-labelledby="create-folder-title"
+      aria-describedby="create-folder-description"
       aria-busy={isSubmitting}
       onCancel={(event) => {
         if (isSubmitting) event.preventDefault()
@@ -219,11 +219,11 @@ export default function CreateProjectModal({
       onClose={onClose}
       onMouseDown={handleBackdropMouseDown}
     >
-      <section className={`${styles['create-project-modal']} ${modalStyles.surface}`}>
+      <section className={`${styles['create-folder-modal']} ${modalStyles.surface}`}>
         <header className={`${styles['modal-header']} ${modalStyles.header}`}>
           <div>
-            <h2 id="create-project-title">새 폴더</h2>
-            <p id="create-project-description">새 폴더 정보를 입력해 주세요.</p>
+            <h2 id="create-folder-title">새 폴더</h2>
+            <p id="create-folder-description">새 폴더 정보를 입력해 주세요.</p>
           </div>
           <button
             type="button"
@@ -239,16 +239,16 @@ export default function CreateProjectModal({
         <form onSubmit={(event) => void handleSubmit(event)} noValidate>
           <div className={styles['modal-body']}>
             <div className={styles['modal-field']}>
-              <label htmlFor="project-name">폴더 이름</label>
+              <label htmlFor="folder-name">폴더 이름</label>
               <input
                 ref={nameInputRef}
-                id="project-name"
+                id="folder-name"
                 value={name}
                 maxLength={255}
                 placeholder="예: 포트폴리오 리뉴얼"
                 aria-required="true"
                 aria-invalid={Boolean(fieldErrors.name)}
-                aria-describedby={fieldErrors.name ? 'project-name-error' : undefined}
+                aria-describedby={fieldErrors.name ? 'folder-name-error' : undefined}
                 onBlur={() => {
                   setTouchedFields((fields) => ({ ...fields, name: true }))
                   setFieldErrors((errors) => ({ ...errors, name: validateName(name) }))
@@ -263,23 +263,23 @@ export default function CreateProjectModal({
                 disabled={isSubmitting}
               />
               {fieldErrors.name && (
-                <p className={styles['modal-field-message']} id="project-name-error" aria-live="polite">
+                <p className={styles['modal-field-message']} id="folder-name-error" aria-live="polite">
                   {fieldErrors.name}
                 </p>
               )}
             </div>
 
             <div className={styles['modal-field']}>
-              <label htmlFor="project-description-input">설명</label>
+              <label htmlFor="folder-description-input">설명</label>
               <textarea
                 ref={descriptionInputRef}
-                id="project-description-input"
+                id="folder-description-input"
                 value={description}
                 rows={3}
                 placeholder="예: 폴더에서 다루고 싶은 주제를 적어주세요."
                 aria-required="true"
                 aria-invalid={Boolean(fieldErrors.description)}
-                aria-describedby={fieldErrors.description ? 'project-description-error' : undefined}
+                aria-describedby={fieldErrors.description ? 'folder-description-error' : undefined}
                 onBlur={() => {
                   setTouchedFields((fields) => ({ ...fields, description: true }))
                   setFieldErrors((errors) => ({ ...errors, description: validateDescription(description) }))
@@ -294,23 +294,23 @@ export default function CreateProjectModal({
                 disabled={isSubmitting}
               />
               {fieldErrors.description && (
-                <p className={styles['modal-field-message']} id="project-description-error" aria-live="polite">
+                <p className={styles['modal-field-message']} id="folder-description-error" aria-live="polite">
                   {fieldErrors.description}
                 </p>
               )}
             </div>
 
             <div className={styles['modal-field']}>
-              <label htmlFor="project-target-date">목표일 <span>선택</span></label>
+              <label htmlFor="folder-target-date">목표일 <span>선택</span></label>
               <input
                 ref={targetDateInputRef}
-                id="project-target-date"
+                id="folder-target-date"
                 type="date"
                 value={targetDate}
                 min={minimumTargetDate}
                 aria-invalid={Boolean(fieldErrors.targetDate)}
                 aria-describedby={
-                  fieldErrors.targetDate ? 'project-target-date-error' : undefined
+                  fieldErrors.targetDate ? 'folder-target-date-error' : undefined
                 }
                 onBlur={() => {
                   setTouchedFields((fields) => ({ ...fields, targetDate: true }))
@@ -334,7 +334,7 @@ export default function CreateProjectModal({
               {fieldErrors.targetDate && (
                 <p
                   className={styles['modal-field-message']}
-                  id="project-target-date-error"
+                  id="folder-target-date-error"
                   aria-live="polite"
                 >
                   {fieldErrors.targetDate}
@@ -345,16 +345,16 @@ export default function CreateProjectModal({
             <fieldset className={styles['modal-field']}>
               <legend>태그 <span>선택</span></legend>
               <div className={styles['tag-input-wrap']}>
-                <label className="sr-only" htmlFor="project-tag">태그 이름</label>
+                <label className="sr-only" htmlFor="folder-tag">태그 이름</label>
                 <input
                   ref={tagInputRef}
-                  id="project-tag"
+                  id="folder-tag"
                   value={tagName}
                   maxLength={30}
                   placeholder="태그를 선택하거나 새 이름을 입력하세요"
                   autoComplete="off"
                   aria-invalid={Boolean(fieldErrors.newTagName || tagError)}
-                  aria-describedby={fieldErrors.newTagName || tagError ? 'project-tag-error' : undefined}
+                  aria-describedby={fieldErrors.newTagName || tagError ? 'folder-tag-error' : undefined}
                   onBlur={() => {
                     setTouchedFields((fields) => ({ ...fields, newTagName: true }))
                     setFieldErrors((errors) => ({
@@ -419,7 +419,7 @@ export default function CreateProjectModal({
                 {(fieldErrors.newTagName || tagError) && (
                   <p
                     className={styles['modal-field-message']}
-                    id="project-tag-error"
+                    id="folder-tag-error"
                     aria-live="polite"
                   >
                     {fieldErrors.newTagName ?? tagError}

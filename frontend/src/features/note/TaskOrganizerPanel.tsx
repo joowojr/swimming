@@ -14,7 +14,7 @@ interface TaskOrganizerPanelProps {
     noteId: number
     memo: string
   }
-  projects: ProjectOption[]
+  folders: ProjectOption[]
   onCancel: () => void
   onFinish: (message: string, options?: { suggestArchiveNoteId?: number }) => void
 }
@@ -23,16 +23,16 @@ interface PreviewTaskItem {
   id: string
   sourceText: string
   title: string
-  projectId: number | null
-  projectName: string | null
+  folderId: number | null
+  folderName: string | null
   selected: boolean
 }
 
 interface PlanLinkItem {
   id: number
   title: string
-  projectId: number | null
-  projectName: string | null
+  folderId: number | null
+  folderName: string | null
   planDate: string
   selected: boolean
 }
@@ -68,16 +68,16 @@ function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
       id: `suggestion-${index}`,
       sourceText: suggestion.sourceText,
       title: suggestion.title,
-      projectId: suggestion.projectId,
-      projectName: suggestion.projectName,
+      folderId: suggestion.folderId,
+      folderName: suggestion.folderName,
       selected: true,
     })),
     ...preview.unclassified.map((item, index) => ({
       id: `unclassified-${index}`,
       sourceText: item.sourceText,
       title: item.title,
-      projectId: null,
-      projectName: null,
+      folderId: null,
+      folderName: null,
       selected: true,
     })),
   ]
@@ -97,7 +97,7 @@ function formatPlanDate(planDate: string) {
 
 export default function TaskOrganizerPanel({
   source,
-  projects,
+  folders,
   onCancel,
   onFinish,
 }: TaskOrganizerPanelProps) {
@@ -179,12 +179,12 @@ export default function TaskOrganizerPanel({
   }
 
   const handlePreviewProjectChange = (itemId: string, value: string) => {
-    const projectId = value ? Number(value) : null
-    const projectName = projectId === null
+    const folderId = value ? Number(value) : null
+    const folderName = folderId === null
       ? null
-      : projects.find((project) => project.id === projectId)?.name ?? null
+      : folders.find((folder) => folder.id === folderId)?.name ?? null
 
-    updatePreviewItem(itemId, (item) => ({ ...item, projectId, projectName }))
+    updatePreviewItem(itemId, (item) => ({ ...item, folderId, folderName }))
     setState((current) => current.kind === 'preview'
       ? { ...current, editingProjectItemId: null }
       : current)
@@ -203,7 +203,7 @@ export default function TaskOrganizerPanel({
         noteId: source.noteId,
         tasks: selectedItems.map((item) => ({
           sourceText: item.sourceText,
-          projectId: item.projectId,
+          folderId: item.folderId,
           title: item.title.trim(),
         })),
       })
@@ -213,10 +213,10 @@ export default function TaskOrganizerPanel({
         items: response.createdTasks.map((task) => ({
           id: task.id,
           title: task.title,
-          projectId: task.projectId,
-          projectName: task.projectId === null
+          folderId: task.folderId,
+          folderName: task.folderId === null
             ? null
-            : projects.find((project) => project.id === task.projectId)?.name ?? '폴더',
+            : folders.find((folder) => folder.id === task.folderId)?.name ?? '폴더',
           planDate: today,
           selected: true,
         })),
@@ -291,7 +291,7 @@ export default function TaskOrganizerPanel({
           {[0, 1, 2].map((index) => (
             <li className={styles['organize-loading-row']} key={index}>
               <span className={styles['organize-loading-title']} />
-              <span className={styles['organize-loading-project']} />
+              <span className={styles['organize-loading-folder']} />
             </li>
           ))}
         </ul>
@@ -341,7 +341,7 @@ export default function TaskOrganizerPanel({
                       </button>
                     )}
                   </div>
-                  <span className={styles['plan-link-project-name']}>{item.projectName ?? '미분류'}</span>
+                  <span className={styles['plan-link-folder-name']}>{item.folderName ?? '미분류'}</span>
                 </div>
                 <button type="button" className={styles['organize-exclude-action']} disabled={state.isLinking}
                   onClick={() => updatePlanLinkItem(item.id, (current) => ({ ...current, selected: !current.selected }))}
@@ -378,13 +378,13 @@ export default function TaskOrganizerPanel({
         {state.items.length > 0 ? (
           <ul className={styles['organize-task-list']}>
             {state.items.map((item) => {
-              const projectName = item.projectId === null
+              const folderName = item.folderId === null
                 ? '미분류'
-                : projects.find((project) => project.id === item.projectId)?.name ?? item.projectName ?? '폴더'
+                : folders.find((folder) => folder.id === item.folderId)?.name ?? item.folderName ?? '폴더'
               return (
                 <li className={!item.selected
                   ? styles['organize-task-row-excluded']
-                  : item.projectId === null ? styles['organize-task-row-unclassified'] : styles['organize-task-row']} key={item.id}>
+                  : item.folderId === null ? styles['organize-task-row-unclassified'] : styles['organize-task-row']} key={item.id}>
                   <div className={styles['organize-task-fields']}>
                     <InlineEditableText className={styles['organize-title-edit']} errorClassName={styles['organize-title-error']}
                       value={item.title} ariaLabel="할 일 제목" maxLength={255} disabled={state.isConfirming}
@@ -394,16 +394,16 @@ export default function TaskOrganizerPanel({
                         return Promise.resolve()
                       }} />
                     {state.editingProjectItemId === item.id ? (
-                      <select className={styles['organize-project-select']} value={item.projectId ?? ''} disabled={state.isConfirming}
+                      <select className={styles['organize-folder-select']} value={item.folderId ?? ''} disabled={state.isConfirming}
                         autoFocus onBlur={() => setState((current) => current.kind === 'preview' ? { ...current, editingProjectItemId: null } : current)}
                         onChange={(event) => handlePreviewProjectChange(item.id, event.target.value)} aria-label={`${item.title} Project 선택`}>
                         <option value="">미분류</option>
-                        {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                        {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                       </select>
                     ) : (
-                      <button type="button" className={styles['organize-project-action']} disabled={state.isConfirming}
+                      <button type="button" className={styles['organize-folder-action']} disabled={state.isConfirming}
                         onClick={() => setState((current) => current.kind === 'preview' ? { ...current, editingProjectItemId: item.id } : current)}
-                        aria-label={`${item.title} Project 변경`}>{projectName}</button>
+                        aria-label={`${item.title} Project 변경`}>{folderName}</button>
                     )}
                   </div>
                   <button type="button" className={styles['organize-exclude-action']} disabled={state.isConfirming}

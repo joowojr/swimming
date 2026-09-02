@@ -52,7 +52,7 @@ public class SessionUseCase {
     private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public SessionResponse startPersonal(
+    public SessionDetailResponse startPersonal(
             Long userId,
             StartPersonalSessionRequest request
     ) {
@@ -79,7 +79,9 @@ public class SessionUseCase {
                 request.plannedDurationSec(), request.focusDurationSec(),
                 request.breakDurationSec(), request.repeatCount()
         );
-        return SessionResponse.from(sessionService.create(session), place);
+        // 생성 직후 화면이 그대로 그릴 수 있게, 조회와 같은 상세 응답으로 돌려준다.
+        Session created = sessionService.create(session);
+        return toDetailResponse(userId, sessionService.getOwnedRows(userId, created.getId()));
     }
 
     @Transactional(

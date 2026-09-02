@@ -15,6 +15,8 @@ import com.swimming.backend.session.domain.SessionType;
 import com.swimming.backend.session.dto.projection.SessionWithPlaceRow;
 import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
+import com.swimming.backend.session.dto.web.SessionDetailResponse;
+import com.swimming.backend.session.dto.web.SessionTaskResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionFocusDurationRequest;
@@ -86,14 +88,29 @@ class SessionUseCaseTest {
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
         )).thenReturn(true);
-        when(placeService.getOne(20L)).thenReturn(place());
+        Place place = place();
+        when(placeService.getOne(20L)).thenReturn(place);
         when(sessionService.create(any(Session.class))).thenReturn(session);
+        when(sessionService.getOwnedRows(1L, 5L)).thenReturn(List.of(
+                sessionWithPlaceRow(session, place, 10L, false),
+                sessionWithPlaceRow(session, place, 11L, false)
+        ));
+        when(placeVideoService.resolveBackgroundUrl("places/video/alfama.mp4"))
+                .thenReturn("https://cdn.example.com/alfama.mp4");
+        when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
+                new TaskReference(10L, 2L, "폴더", "첫 Task", null),
+                new TaskReference(11L, 2L, "폴더", "다음 Task", null)
+        ));
 
-        SessionResponse response = sessionUseCase.startPersonal(1L, request);
+        SessionDetailResponse response = sessionUseCase.startPersonal(1L, request);
 
-        assertThat(response.taskIds()).containsExactly(10L, 11L);
+        assertThat(response.tasks()).extracting(SessionTaskResponse::id)
+                .containsExactly(10L, 11L);
+        assertThat(response.tasks().getFirst().title()).isEqualTo("첫 Task");
         assertThat(response.startedAt()).isEqualTo(NOW);
         assertThat(response.place().id()).isEqualTo(20L);
+        assertThat(response.place().backgroundAsset().url())
+                .isEqualTo("https://cdn.example.com/alfama.mp4");
         assertThat(response.status()).isEqualTo(SessionStatus.IN_PROGRESS);
         verify(dailyPlanService).containsAllTasks(
                 1L,
@@ -114,8 +131,18 @@ class SessionUseCaseTest {
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
         )).thenReturn(true);
-        when(placeService.getOne(20L)).thenReturn(place());
-        when(sessionService.create(any(Session.class))).thenReturn(startedSession(NOW));
+        Session session = startedSession(NOW);
+        Place place = place();
+        when(placeService.getOne(20L)).thenReturn(place);
+        when(sessionService.create(any(Session.class))).thenReturn(session);
+        when(sessionService.getOwnedRows(1L, 5L)).thenReturn(List.of(
+                sessionWithPlaceRow(session, place, 10L, false),
+                sessionWithPlaceRow(session, place, 11L, false)
+        ));
+        when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
+                new TaskReference(10L, 2L, "폴더", "첫 Task", null),
+                new TaskReference(11L, 2L, "폴더", "다음 Task", null)
+        ));
 
         sessionUseCase.startPersonal(1L, request);
 

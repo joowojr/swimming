@@ -14,6 +14,7 @@ import LoginPage from './pages/LoginPage'
 import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
 import { useFolderStore } from './store/folderStore.ts'
+import { useActiveSessionStore } from './store/activeSessionStore'
 import styles from './App.module.css'
 
 interface HealthResponse {
@@ -45,6 +46,7 @@ function App() {
   const addFolder = useFolderStore((state) => state.add)
   const removeFolder = useFolderStore((state) => state.remove)
   const resetFolders = useFolderStore((state) => state.reset)
+  const clearActiveSession = useActiveSessionStore((state) => state.clear)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
@@ -72,6 +74,7 @@ function App() {
   useEffect(() => {
     if (auth.status === 'unauthenticated') {
       resetFolders()
+      clearActiveSession()
       return
     }
 
@@ -79,7 +82,7 @@ function App() {
     if (auth.status !== 'authenticated' || userId === undefined) return
 
     void loadFolders(userId)
-  }, [auth.status, auth.user?.id, loadFolders, resetFolders])
+  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetFolders])
 
   if (auth.status === 'checking') {
     return (

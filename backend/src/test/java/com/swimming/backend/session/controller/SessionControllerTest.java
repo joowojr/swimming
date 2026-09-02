@@ -72,12 +72,10 @@ class SessionControllerTest {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
                 List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
-        when(sessionUseCase.startPersonal(1L, request)).thenReturn(new SessionResponse(
+        when(sessionUseCase.startPersonal(1L, request)).thenReturn(new SessionDetailResponse(
                 5L,
                 SessionType.PERSONAL,
-                List.of(10L, 11L),
-                sessionPlace(),
-                null,
+                SessionStatus.IN_PROGRESS,
                 1500,
                 1500,
                 0,
@@ -85,7 +83,12 @@ class SessionControllerTest {
                 null,
                 STARTED_AT,
                 null,
-                SessionStatus.IN_PROGRESS
+                sessionDetailPlace(),
+                null,
+                List.of(
+                        new SessionTaskResponse(10L, 2L, "폴더", "첫 Task", null),
+                        new SessionTaskResponse(11L, 2L, "폴더", "다음 Task", null)
+                )
         ));
 
         mockMvc.perform(post("/api/sessions")
@@ -104,8 +107,10 @@ class SessionControllerTest {
                 .andExpect(header().string("Location", "http://localhost/api/sessions/5"))
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.type").value("PERSONAL"))
-                .andExpect(jsonPath("$.taskIds[0]").value(10))
-                .andExpect(jsonPath("$.taskIds[1]").value(11))
+                .andExpect(jsonPath("$.tasks[0].id").value(10))
+                .andExpect(jsonPath("$.tasks[0].title").value("첫 Task"))
+                .andExpect(jsonPath("$.tasks[1].id").value(11))
+                .andExpect(jsonPath("$.place.backgroundAsset.type").value("VIDEO"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
         verify(sessionUseCase).startPersonal(1L, request);

@@ -11,7 +11,7 @@ import {getPlaces} from '../places/placeApi'
 import type {City, Place} from '../places/placeTypes'
 import {startPersonalSession} from './sessionApi'
 import {GROUP_ROOM_MOCK} from './sessionMocks'
-import type {SessionResponse} from './sessionTypes'
+import type {SessionDetailResponse} from './sessionTypes'
 import styles from './CreateSessionModal.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
 import ActionButton from "../../components/ActionButton.tsx";
@@ -20,7 +20,7 @@ interface CreateSessionModalProps {
   todayTasks: DailyPlanItem[]
   initialTaskId?: number
   onClose: () => void
-  onStarted: (session: SessionResponse) => void
+  onStarted: (session: SessionDetailResponse) => void
 }
 
 type SessionMode = 'personal' | 'group'

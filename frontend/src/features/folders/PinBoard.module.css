@@ -4,7 +4,7 @@
   min-height: calc(100svh - 3.5rem);
 }
 
-.project-dashboard {
+.folder-dashboard {
   min-width: 0;
   padding: var(--space-8) var(--layout-page-padding-inline);
 }
@@ -285,7 +285,7 @@
 }
 
 @media (max-width: 48rem) {
-  .project-dashboard {
+  .folder-dashboard {
     padding: var(--space-6) var(--layout-page-padding-inline);
   }
 

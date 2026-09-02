@@ -13,7 +13,7 @@ class TaskTest {
         Task task = Task.create(1L, 10L, " API 명세 작성 ", 3);
 
         assertThat(task.getUserId()).isEqualTo(1L);
-        assertThat(task.getProjectId()).isEqualTo(10L);
+        assertThat(task.getFolderId()).isEqualTo(10L);
         assertThat(task.getSourceNoteId()).isNull();
         assertThat(task.getTitle()).isEqualTo("API 명세 작성");
         assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);

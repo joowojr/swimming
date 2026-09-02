@@ -12,12 +12,12 @@ public enum ErrorCode {
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "인증을 갱신할 수 없습니다"),
     INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "Google 인증 토큰이 올바르지 않습니다"),
 
-    // PRJOECT DOMAIN
-    PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다"),
-    PROJECT_HAS_TASKS(HttpStatus.CONFLICT, "폴더의 할 일을 모두 삭제한 후 폴더를 삭제할 수 있습니다"),
-    PROJECT_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "프로젝트 태그를 찾을 수 없습니다"),
-    PROJECT_TAG_SELECTION_CONFLICT(HttpStatus.BAD_REQUEST, "기존 태그와 새 태그를 동시에 선택할 수 없습니다"),
-    PROJECT_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 프로젝트 태그가 이미 있습니다"),
+    // FOLDER DOMAIN
+    FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "폴더를 찾을 수 없습니다"),
+    FOLDER_HAS_TASKS(HttpStatus.CONFLICT, "폴더의 할 일을 모두 삭제한 후 폴더를 삭제할 수 있습니다"),
+    FOLDER_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "폴더 태그를 찾을 수 없습니다"),
+    FOLDER_TAG_SELECTION_CONFLICT(HttpStatus.BAD_REQUEST, "기존 태그와 새 태그를 동시에 선택할 수 없습니다"),
+    FOLDER_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 폴더 태그가 이미 있습니다"),
 
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task를 찾을 수 없습니다"),
     INVALID_TASK_LIST_MODE(HttpStatus.BAD_REQUEST, "Task 목록 조회 모드가 올바르지 않습니다"),

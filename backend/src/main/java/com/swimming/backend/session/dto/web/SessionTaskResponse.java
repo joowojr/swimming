@@ -5,7 +5,7 @@ import com.swimming.backend.task.dto.projection.TaskReference;
 public record SessionTaskResponse(
         Long id,
         Long folderId,
-        String projectName,
+        String folderName,
         String title,
         Boolean isCompleted
 ) {
@@ -13,7 +13,7 @@ public record SessionTaskResponse(
         return new SessionTaskResponse(
                 task.id(),
                 task.folderId(),
-                task.projectName(),
+                task.folderName(),
                 task.title(),
                 isCompleted
         );

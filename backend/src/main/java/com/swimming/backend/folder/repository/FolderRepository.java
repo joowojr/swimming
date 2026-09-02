@@ -56,7 +56,7 @@ public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
             WHERE folder.user.id = :userId
               AND folder.tag.id = :tagId
             """)
-    int clearTagFromOwnedProjects(
+    int clearTagFromOwnedFolders(
             @Param("userId") Long userId,
             @Param("tagId") Long tagId
     );

@@ -58,13 +58,13 @@ class NoteUseCaseTest {
 
     @Test
     @DisplayName("소유한 폴더에 Note를 생성한다")
-    void createsProjectNoteAfterOwnershipCheck() {
-        Note saved = note(2L, "폴더 메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null);
+    void createsFolderNoteAfterOwnershipCheck() {
+        Note saved = note(2L, "폴더 메모", NoteStatus.ACTIVE, NoteContextType.FOLDER, 10L, null);
         when(noteService.create(any(Note.class))).thenReturn(saved);
 
         NoteCreateResponse response = noteUseCase.create(
                 1L,
-                new NoteCreateRequest("폴더 메모", NoteContextType.PROJECT, 10L, null)
+                new NoteCreateRequest("폴더 메모", NoteContextType.FOLDER, 10L, null)
         );
 
         verify(folderService).getReference(1L, 10L);
@@ -90,7 +90,7 @@ class NoteUseCaseTest {
     void rejectsInvalidCreateContext() {
         NoteCreateRequest request = new NoteCreateRequest(
                 "잘못된 메모",
-                NoteContextType.PROJECT,
+                NoteContextType.FOLDER,
                 null,
                 20L
         );
@@ -103,9 +103,9 @@ class NoteUseCaseTest {
 
     @Test
     @DisplayName("폴더 소유권을 확인한 뒤 폴더 Note를 조회한다")
-    void returnsProjectNotesAfterOwnershipCheck() {
-        when(noteService.getByProject(1L, 10L, NoteStatus.ACTIVE)).thenReturn(List.of(
-                note(1L, "메모", NoteStatus.ACTIVE, NoteContextType.PROJECT, 10L, null)
+    void returnsFolderNotesAfterOwnershipCheck() {
+        when(noteService.getByFolder(1L, 10L, NoteStatus.ACTIVE)).thenReturn(List.of(
+                note(1L, "메모", NoteStatus.ACTIVE, NoteContextType.FOLDER, 10L, null)
         ));
 
         List<NoteResponse> responses = noteUseCase.getAll(
@@ -126,13 +126,13 @@ class NoteUseCaseTest {
         assertThatThrownBy(() -> noteUseCase.getAll(
                 1L,
                 NoteStatus.ACTIVE,
-                NoteContextType.PROJECT,
+                NoteContextType.FOLDER,
                 10L,
                 null
         )).isInstanceOfSatisfying(BusinessException.class, exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_NOTE_CONTEXT));
 
-        verify(noteService, never()).getByProject(1L, 10L, NoteStatus.ACTIVE);
+        verify(noteService, never()).getByFolder(1L, 10L, NoteStatus.ACTIVE);
     }
 
     @Test

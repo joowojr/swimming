@@ -55,7 +55,7 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("인증된 사용자의 프로젝트를 생성해 순수 도메인으로 반환한다")
-    void createsProjectForAuthenticatedUser() {
+    void createsFolderForAuthenticatedUser() {
         when(folderRepository.saveAndFlush(any(FolderEntity.class))).thenAnswer(invocation -> {
             FolderEntity entity = invocation.getArgument(0);
             ReflectionTestUtils.setField(entity, "id", 10L);
@@ -79,7 +79,7 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("사용자가 소유한 태그를 프로젝트에 하나 연결한다")
-    void createsProjectWithOwnedTag() {
+    void createsFolderWithOwnedTag() {
         FolderTagEntity tag = tagEntity(3L, 1L, "취준");
         when(folderTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(tag));
 
@@ -106,15 +106,15 @@ class FolderServiceTest {
 
         assertThatThrownBy(() -> folderService.create(folder))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_TAG_NOT_FOUND));
         verify(folderRepository, never()).saveAndFlush(any(FolderEntity.class));
     }
 
     @Test
     @DisplayName("사용자의 보관되지 않은 프로젝트만 조회한다")
-    void returnsOnlyNonArchivedProjectsForUser() {
-        FolderEntity newest = projectEntity(1L, "두 번째 프로젝트", null, null);
-        FolderEntity oldest = projectEntity(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1), null);
+    void returnsOnlyNonArchivedFoldersForUser() {
+        FolderEntity newest = folderEntity(1L, "두 번째 프로젝트", null, null);
+        FolderEntity oldest = folderEntity(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1), null);
         when(folderRepository.findAllByUser_IdAndStatusNotAndDeletedFalseOrderByCreatedAtDesc(
                 1L, FolderStatus.ARCHIVED
         )).thenReturn(List.of(newest, oldest));
@@ -127,8 +127,8 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("사용자가 소유한 프로젝트 상세를 순수 도메인으로 조회한다")
-    void returnsOwnedProjectDetail() {
-        FolderEntity entity = projectEntity(1L, "프로젝트", null, null);
+    void returnsOwnedFolderDetail() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.getOne(1L, 10L);
@@ -139,8 +139,8 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("프로젝트를 수정하면서 목표일을 제거할 수 있다")
-    void updatesProjectAndCanRemoveTargetDate() {
-        FolderEntity entity = projectEntity(1L, "기존 프로젝트", LocalDate.of(2026, 8, 31), null);
+    void updatesFolderAndCanRemoveTargetDate() {
+        FolderEntity entity = folderEntity(1L, "기존 프로젝트", LocalDate.of(2026, 8, 31), null);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
@@ -158,9 +158,9 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("프로젝트에서 선택한 태그를 해제할 수 있다")
-    void removesTagFromProject() {
+    void removesTagFromFolder() {
         FolderTagEntity tag = tagEntity(3L, 1L, "취준");
-        FolderEntity entity = projectEntity(1L, "프로젝트", null, tag);
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, tag);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
@@ -173,8 +173,8 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("프로젝트를 삭제하지 않고 보관 상태로 변경한다")
-    void archivesProjectWithoutDeletingIt() {
-        FolderEntity entity = projectEntity(1L, "프로젝트", null, null);
+    void archivesFolderWithoutDeletingIt() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
@@ -188,18 +188,18 @@ class FolderServiceTest {
 
     @Test
     @DisplayName("다른 사용자의 프로젝트 존재 여부를 노출하지 않는다")
-    void hidesWhetherAnotherUsersProjectExists() {
+    void hidesWhetherAnotherUsersFolderExists() {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> folderService.getOne(2L, 10L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_NOT_FOUND));
     }
 
     @Test
     @DisplayName("프로젝트를 soft delete하고 연결된 데이터를 보존한다")
-    void softDeletesOwnedProject() {
-        FolderEntity entity = projectEntity(1L, "프로젝트", null, null);
+    void softDeletesOwnedFolder() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         folderService.delete(1L, 10L);
@@ -210,7 +210,7 @@ class FolderServiceTest {
         verify(folderRepository, never()).delete(entity);
     }
 
-    private FolderEntity projectEntity(
+    private FolderEntity folderEntity(
             Long userId,
             String name,
             LocalDate targetDate,

@@ -59,7 +59,7 @@ class DailyPlanUseCaseTest {
     @DisplayName("조회 기간에 폴더 Task와 폴더 없는 Task의 UI 타입을 함께 반환한다")
     void returnsMixedItemsAndEmptyDates() {
         when(dailyPlanService.getRows(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(
-                projectRow(1L, 10L, 0),
+                folderRow(1L, 10L, 0),
                 adHocRow(2L, 20L, "장보기", 1)
         ));
 
@@ -120,7 +120,7 @@ class DailyPlanUseCaseTest {
         when(taskService.getReferences(1L, List.of(10L, 20L)))
                 .thenReturn(List.of(taskReference(10L), taskReference(20L)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
-                adHocRow(1L, 30L, "기존", 0), projectRow(2L, 10L, 1), projectRow(3L, 20L, 2)));
+                adHocRow(1L, 30L, "기존", 0), folderRow(2L, 10L, 1), folderRow(3L, 20L, 2)));
 
         DailyPlanResponse response = useCase.addItems(
                 1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null));
@@ -191,7 +191,7 @@ class DailyPlanUseCaseTest {
 
     @Test
     @DisplayName("폴더를 선택해 새 Task를 만들고 계획에 연결한다")
-    void createsProjectTaskAndAddsIt() {
+    void createsFolderTaskAndAddsIt() {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
         when(folderService.getReference(1L, 100L))
                 .thenReturn(new FolderReference(100L, "폴더", null));
@@ -221,7 +221,7 @@ class DailyPlanUseCaseTest {
                 DailyPlanItem.restore(1L, 10L, 0, null, null),
                 DailyPlanItem.restore(2L, 20L, 1, null, null)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
-                adHocRow(2L, 20L, "장보기", 0), projectRow(1L, 10L, 1)));
+                adHocRow(2L, 20L, "장보기", 0), folderRow(1L, 10L, 1)));
 
         DailyPlanResponse response = useCase.reorder(
                 1L, DATE, new ReorderDailyPlanItemsRequest(List.of(2L, 1L)));
@@ -253,7 +253,7 @@ class DailyPlanUseCaseTest {
         verify(dailyPlanService).delete(1L, DATE, 2L);
     }
 
-    private DailyPlanItemQueryRow projectRow(Long id, Long taskId, int orderIdx) {
+    private DailyPlanItemQueryRow folderRow(Long id, Long taskId, int orderIdx) {
         return new DailyPlanItemQueryRow(id, DATE, taskId, 100L, "폴더", false, "API 구현", TaskStatus.DOING, orderIdx);
     }
 

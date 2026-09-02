@@ -63,7 +63,7 @@ class FolderControllerTest {
 
     @Test
     @DisplayName("프로젝트 생성 시 Location 헤더와 생성 결과를 반환한다")
-    void createsProjectWithLocationHeader() throws Exception {
+    void createsFolderWithLocationHeader() throws Exception {
         CreateFolderRequest request = new CreateFolderRequest(
                 "프로젝트",
                 "설명",
@@ -102,7 +102,7 @@ class FolderControllerTest {
 
     @Test
     @DisplayName("프로젝트 생성 요청에서 새 태그 이름을 함께 전달할 수 있다")
-    void createsProjectWithNewTagName() throws Exception {
+    void createsFolderWithNewTagName() throws Exception {
         CreateFolderRequest request = new CreateFolderRequest(
                 "프로젝트",
                 "설명",
@@ -181,7 +181,7 @@ class FolderControllerTest {
 
     @Test
     @DisplayName("인증 사용자의 진행 중 프로젝트 목록을 반환한다")
-    void returnsCurrentUsersActiveProjects() throws Exception {
+    void returnsCurrentUsersActiveFolders() throws Exception {
         when(folderUseCase.getAll(1L)).thenReturn(List.of(response(
                 10L,
                 "프로젝트",
@@ -198,7 +198,7 @@ class FolderControllerTest {
 
     @Test
     @DisplayName("인증 사용자가 소유한 프로젝트 상세를 반환한다")
-    void returnsOwnedProjectDetail() throws Exception {
+    void returnsOwnedFolderDetail() throws Exception {
         when(folderUseCase.getOne(1L, 10L)).thenReturn(new FolderDetailResponse(
                 10L,
                 "프로젝트",
@@ -237,7 +237,7 @@ class FolderControllerTest {
 
     @Test
     @DisplayName("프로젝트 상태를 보관됨으로 수정한다")
-    void updatesProjectStatus() throws Exception {
+    void updatesFolderStatus() throws Exception {
         UpdateFolderRequest request = new UpdateFolderRequest(
                 "프로젝트",
                 "설명",
@@ -271,17 +271,17 @@ class FolderControllerTest {
     @DisplayName("소유하지 않은 프로젝트는 찾을 수 없음으로 반환한다")
     void returnsNotFoundWithoutRevealingOwnership() throws Exception {
         when(folderUseCase.getOne(1L, 10L))
-                .thenThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+                .thenThrow(new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
 
         mockMvc.perform(get("/api/folders/10"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.code").value("PROJECT_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("FOLDER_NOT_FOUND"));
     }
 
     @Test
     @DisplayName("프로젝트 삭제는 본문 없이 성공한다")
-    void deletesProject() throws Exception {
+    void deletesFolder() throws Exception {
         mockMvc.perform(delete("/api/folders/10"))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));

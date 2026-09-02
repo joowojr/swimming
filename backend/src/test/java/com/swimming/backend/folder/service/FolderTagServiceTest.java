@@ -41,7 +41,7 @@ class FolderTagServiceTest {
 
     @Test
     @DisplayName("태그 이름의 앞뒤 공백을 제거해 순수 도메인으로 반환한다")
-    void createsTrimmedProjectTag() {
+    void createsTrimmedFolderTag() {
         when(folderTagRepository.saveAndFlush(any(FolderTagEntity.class)))
                 .thenAnswer(invocation -> {
                     FolderTagEntity entity = invocation.getArgument(0);
@@ -58,12 +58,12 @@ class FolderTagServiceTest {
 
     @Test
     @DisplayName("같은 사용자는 같은 이름의 태그를 중복 생성할 수 없다")
-    void rejectsDuplicateProjectTagName() {
+    void rejectsDuplicateFolderTagName() {
         when(folderTagRepository.existsByUserIdAndName(1L, "취준")).thenReturn(true);
 
         assertThatThrownBy(() -> folderTagService.create(FolderTag.create(1L, "취준")))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_ALREADY_EXISTS));
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_TAG_ALREADY_EXISTS));
         verify(folderTagRepository, never()).saveAndFlush(any(FolderTagEntity.class));
     }
 
@@ -75,12 +75,12 @@ class FolderTagServiceTest {
 
         assertThatThrownBy(() -> folderTagService.create(FolderTag.create(1L, "취준")))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_ALREADY_EXISTS));
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_TAG_ALREADY_EXISTS));
     }
 
     @Test
     @DisplayName("사용자의 태그 선택지를 이름순 순수 도메인 목록으로 조회한다")
-    void returnsUsersProjectTags() {
+    void returnsUsersFolderTags() {
         when(folderTagRepository.findAllByUserIdOrderByNameAsc(1L))
                 .thenReturn(List.of(tagEntity(1L, "사이드 프로젝트"), tagEntity(2L, "취준")));
 
@@ -92,7 +92,7 @@ class FolderTagServiceTest {
 
     @Test
     @DisplayName("사용자가 소유한 태그 이름을 변경한다")
-    void updatesOwnedProjectTagName() {
+    void updatesOwnedFolderTagName() {
         FolderTagEntity entity = tagEntity(3L, "취준");
         when(folderTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(java.util.Optional.of(entity));
 
@@ -105,7 +105,7 @@ class FolderTagServiceTest {
 
     @Test
     @DisplayName("다른 태그와 같은 이름으로 변경할 수 없다")
-    void rejectsDuplicateProjectTagNameOnUpdateName() {
+    void rejectsDuplicateFolderTagNameOnUpdateName() {
         FolderTagEntity entity = tagEntity(3L, "취준");
         when(folderTagRepository.findByIdAndUserId(3L, 1L)).thenReturn(java.util.Optional.of(entity));
         when(folderTagRepository.existsByUserIdAndNameAndIdNot(1L, "이직", 3L))
@@ -114,34 +114,34 @@ class FolderTagServiceTest {
         assertThatThrownBy(() -> folderTagService.updateName(1L, 3L, "이직"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
-                                .isEqualTo(ErrorCode.PROJECT_TAG_ALREADY_EXISTS));
+                                .isEqualTo(ErrorCode.FOLDER_TAG_ALREADY_EXISTS));
         verify(folderTagRepository, never()).flush();
     }
 
     @Test
     @DisplayName("태그를 연결 프로젝트에서 해제한 뒤 삭제한다")
-    void clearsTagFromProjectsBeforeDeletingIt() {
+    void clearsTagFromFoldersBeforeDeletingIt() {
         folderTagService.delete(1L, 3L);
 
         var inOrder = org.mockito.Mockito.inOrder(folderRepository, folderTagRepository);
-        inOrder.verify(folderRepository).clearTagFromOwnedProjects(1L, 3L);
+        inOrder.verify(folderRepository).clearTagFromOwnedFolders(1L, 3L);
         inOrder.verify(folderTagRepository).deleteOwnedTag(3L, 1L);
         verify(folderTagRepository, never()).findByIdAndUserId(3L, 1L);
     }
 
     @Test
     @DisplayName("다른 사용자의 태그는 수정하거나 삭제할 수 없다")
-    void rejectsUnownedProjectTagChanges() {
+    void rejectsUnownedFolderTagChanges() {
         when(folderTagRepository.findByIdAndUserId(3L, 2L)).thenReturn(java.util.Optional.empty());
         when(folderTagRepository.deleteOwnedTag(3L, 2L)).thenReturn(0);
 
         assertThatThrownBy(() -> folderTagService.updateName(2L, 3L, "취준"))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_TAG_NOT_FOUND));
         assertThatThrownBy(() -> folderTagService.delete(2L, 3L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_TAG_NOT_FOUND));
-        verify(folderRepository).clearTagFromOwnedProjects(2L, 3L);
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_TAG_NOT_FOUND));
+        verify(folderRepository).clearTagFromOwnedFolders(2L, 3L);
     }
 
     private FolderTagEntity tagEntity(Long id, String name) {

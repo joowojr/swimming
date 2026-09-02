@@ -79,13 +79,13 @@ public class NoteService {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
-    public List<Note> getByProject(
+    public List<Note> getByFolder(
             Long userId,
             Long folderId,
             NoteStatus status
     ) {
         return noteRepository
-                .findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
+                .findAllByUserIdAndFolderIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
                         userId,
                         folderId,
                         status

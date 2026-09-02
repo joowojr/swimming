@@ -52,17 +52,17 @@ public class FolderService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Folder getOne(Long userId, Long folderId) {
-        return getOwnedProjectEntity(userId, folderId).toDomain();
+        return getOwnedFolderEntity(userId, folderId).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public FolderReference getReference(Long userId, Long folderId) {
-        return FolderReference.from(getOwnedProjectEntity(userId, folderId).toDomain());
+        return FolderReference.from(getOwnedFolderEntity(userId, folderId).toDomain());
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public void validateOwnership(Long userId, Long folderId) {
-        getOwnedProjectEntity(userId, folderId);
+        getOwnedFolderEntity(userId, folderId);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -73,7 +73,7 @@ public class FolderService {
         }
         if (folderRepository.countOwnedActiveByIds(userId, uniquefolderIds)
                 != uniquefolderIds.size()) {
-            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
+            throw new BusinessException(ErrorCode.FOLDER_NOT_FOUND);
         }
     }
 
@@ -87,7 +87,7 @@ public class FolderService {
             LocalDate targetDate,
             FolderStatus status
     ) {
-        FolderEntity entity = getOwnedProjectEntity(userId, folderId);
+        FolderEntity entity = getOwnedFolderEntity(userId, folderId);
         FolderTagEntity tagEntity = tagId == null
                 ? null
                 : getOwnedTagEntity(userId, tagId);
@@ -106,17 +106,17 @@ public class FolderService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long folderId) {
-        FolderEntity entity = getOwnedProjectEntity(userId, folderId);
+        FolderEntity entity = getOwnedFolderEntity(userId, folderId);
         if (folderRepository.countActiveTasks(userId, folderId) > 0) {
-            throw new BusinessException(ErrorCode.PROJECT_HAS_TASKS);
+            throw new BusinessException(ErrorCode.FOLDER_HAS_TASKS);
         }
         entity.delete();
         folderRepository.flush();
     }
 
-    private FolderEntity getOwnedProjectEntity(Long userId, Long folderId) {
+    private FolderEntity getOwnedFolderEntity(Long userId, Long folderId) {
         return folderRepository.findByIdAndUser_IdAndDeletedFalse(folderId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
     }
 
     private FolderTagEntity getOwnedTagEntity(Long userId, FolderTag tag) {
@@ -124,11 +124,11 @@ public class FolderService {
             return null;
         }
         return folderTagRepository.findByIdAndUserId(tag.getId(), userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND));
     }
 
     private FolderTagEntity getOwnedTagEntity(Long userId, Long tagId) {
         return folderTagRepository.findByIdAndUserId(tagId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND));
     }
 }

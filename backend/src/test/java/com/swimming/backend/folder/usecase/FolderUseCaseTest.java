@@ -57,7 +57,7 @@ class FolderUseCaseTest {
 
     @Test
     @DisplayName("프로젝트를 생성하고 응답 DTO로 변환한다")
-    void createsProjectAndMapsResponse() {
+    void createsFolderAndMapsResponse() {
         LocalDate targetDate = LocalDate.of(2026, 9, 30);
         FolderTag tag = FolderTag.restore(3L, 1L, "취준", null, null);
         CreateFolderRequest request = new CreateFolderRequest(
@@ -91,7 +91,7 @@ class FolderUseCaseTest {
 
     @Test
     @DisplayName("새 태그를 생성한 뒤 같은 트랜잭션에서 프로젝트에 연결한다")
-    void createsNewTagAndConnectsItToProject() {
+    void createsNewTagAndConnectsItToFolder() {
         FolderTag tag = FolderTag.restore(4L, 1L, "포트폴리오", null, null);
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", null,
@@ -132,17 +132,17 @@ class FolderUseCaseTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(
                         ((BusinessException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.PROJECT_TAG_SELECTION_CONFLICT));
+                ).isEqualTo(ErrorCode.FOLDER_TAG_SELECTION_CONFLICT));
         verify(folderTagService, never()).create(any(FolderTag.class));
         verify(folderService, never()).create(any(Folder.class));
     }
 
     @Test
     @DisplayName("프로젝트 목록을 응답 DTO 목록으로 변환한다")
-    void returnsProjectListAsResponses() {
+    void returnsFolderListAsResponses() {
         when(folderService.getAll(1L)).thenReturn(List.of(
-                project(10L, "첫 번째", "설명 1", null),
-                project(11L, "두 번째", "설명 2", null)
+                folder(10L, "첫 번째", "설명 1", null),
+                folder(11L, "두 번째", "설명 2", null)
         ));
 
         List<FolderResponse> responses = folderUseCase.getAll(1L);
@@ -153,9 +153,9 @@ class FolderUseCaseTest {
 
     @Test
     @DisplayName("프로젝트 상세에 Task 목록과 완료 Task 비율을 포함한다")
-    void returnsProjectDetailAsResponse() {
+    void returnsFolderDetailAsResponse() {
         when(folderService.getOne(1L, 10L))
-                .thenReturn(project(10L, "프로젝트", "설명", null));
+                .thenReturn(folder(10L, "프로젝트", "설명", null));
         when(taskService.getSummaries(10L)).thenReturn(List.of(
                 new TaskSummaryResponse(1L, "첫째", TaskStatus.DONE, 0),
                 new TaskSummaryResponse(2L, "둘째", TaskStatus.DOING, 1)
@@ -174,9 +174,9 @@ class FolderUseCaseTest {
 
     @Test
     @DisplayName("Task가 없는 프로젝트의 완료 비율은 0이다")
-    void returnsZeroProgressWhenProjectHasNoTasks() {
+    void returnsZeroProgressWhenFolderHasNoTasks() {
         when(folderService.getOne(1L, 10L))
-                .thenReturn(project(10L, "프로젝트", "설명", null));
+                .thenReturn(folder(10L, "프로젝트", "설명", null));
         when(taskService.getSummaries(10L)).thenReturn(List.of());
 
         FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
@@ -189,7 +189,7 @@ class FolderUseCaseTest {
 
     @Test
     @DisplayName("프로젝트를 수정하고 응답 DTO로 변환한다")
-    void updatesProjectAndMapsResponse() {
+    void updatesFolderAndMapsResponse() {
         UpdateFolderRequest request = new UpdateFolderRequest(
                 "수정 프로젝트",
                 "수정 설명",
@@ -197,7 +197,7 @@ class FolderUseCaseTest {
                 FolderStatus.ARCHIVED,
                 null
         );
-        Folder folder = project(10L, "수정 프로젝트", "수정 설명", null);
+        Folder folder = folder(10L, "수정 프로젝트", "수정 설명", null);
         folder.update("수정 프로젝트", "수정 설명", null, FolderStatus.ARCHIVED, null);
         when(folderService.update(
                 1L, 10L, null, "수정 프로젝트", "수정 설명", null,
@@ -215,13 +215,13 @@ class FolderUseCaseTest {
 
     @Test
     @DisplayName("프로젝트 삭제는 서비스에 soft delete를 위임한다")
-    void deletesProject() {
+    void deletesFolder() {
         folderUseCase.delete(1L, 10L);
 
         verify(folderService).delete(1L, 10L);
     }
 
-    private Folder project(
+    private Folder folder(
             Long id,
             String name,
             String description,

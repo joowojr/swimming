@@ -81,8 +81,8 @@ class TaskControllerTest {
 
     @Test
     @DisplayName("폴더 Task 목록을 저장된 순서대로 반환한다")
-    void returnsProjectTasks() throws Exception {
-        when(taskUseCase.getByProject(1L, 10L)).thenReturn(List.of(
+    void returnsFolderTasks() throws Exception {
+        when(taskUseCase.getByFolder(1L, 10L)).thenReturn(List.of(
                 response(2L, "첫째", TaskStatus.DOING, 0),
                 response(1L, "둘째", TaskStatus.TODO, 1)
         ));
@@ -137,7 +137,7 @@ class TaskControllerTest {
     @Test
     @DisplayName("지원하지 않는 Task 목록 모드는 ProblemDetail로 거부한다")
     void rejectsUnsupportedTaskListMode() throws Exception {
-        mockMvc.perform(get("/api/tasks").queryParam("mode", "project"))
+        mockMvc.perform(get("/api/tasks").queryParam("mode", "folder"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("INVALID_TASK_LIST_MODE"));

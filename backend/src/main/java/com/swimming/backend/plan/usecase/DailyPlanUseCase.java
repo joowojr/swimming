@@ -124,9 +124,9 @@ public class DailyPlanUseCase {
         return new DailyPlanItemResponse(
                 row.id(),
                 row.taskId(),
-                (row.folderId() == null || row.projectIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
+                (row.folderId() == null || row.folderIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
                 row.folderId(),
-                row.projectName(),
+                row.folderName(),
                 row.title(),
                 row.status(),
                 row.priority(),

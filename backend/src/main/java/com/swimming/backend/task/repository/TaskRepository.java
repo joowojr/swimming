@@ -24,11 +24,11 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
               AND task.deleted = false
             ORDER BY task.createdAt DESC
             """)
-    List<TaskEntity> findAllByProjectIdWithProject(@Param("folderId") Long folderId);
+    List<TaskEntity> findAllByFolderIdWithFolder(@Param("folderId") Long folderId);
 
     List<TaskEntity> findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
-    List<TaskEntity> findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
+    List<TaskEntity> findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
     Optional<TaskEntity> findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
             Long userId,
@@ -82,9 +82,9 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     List<TaskEntity> findAllByUser_IdAndDeletedFalseAndIdIn(Long userId, List<Long> taskIds);
 
-    Optional<TaskEntity> findTopByProject_IdAndDeletedFalseOrderByIdDesc(Long folderId);
+    Optional<TaskEntity> findTopByFolder_IdAndDeletedFalseOrderByIdDesc(Long folderId);
 
-    Optional<TaskEntity> findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(Long userId);
+    Optional<TaskEntity> findTopByUser_IdAndFolderIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(Long userId);
 
     Optional<TaskEntity> findByIdAndUser_IdAndDeletedFalse(Long taskId, Long userId);
 
@@ -134,7 +134,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
                 task.title,
                 task.status
             )
-            FROM ProjectEntity folder
+            FROM FolderEntity folder
             LEFT JOIN TaskEntity task ON task.folder = folder AND task.deleted = false
             WHERE folder.user.id = :userId
               AND folder.status <> :excludedStatus

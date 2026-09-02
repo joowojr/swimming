@@ -36,7 +36,7 @@ public class NoteUseCase {
                     request
             );
 
-            case PROJECT -> createProject(
+            case FOLDER -> createFolder(
                     userId,
                     request
             );
@@ -68,7 +68,7 @@ public class NoteUseCase {
                     folderId
             );
 
-            notes = noteService.getByProject(
+            notes = noteService.getByFolder(
                     userId,
                     folderId,
                     status
@@ -194,7 +194,7 @@ public class NoteUseCase {
         );
     }
 
-    private Note createProject(
+    private Note createFolder(
             Long userId,
             NoteCreateRequest request
     ) {
@@ -210,7 +210,7 @@ public class NoteUseCase {
                 request.folderId()
         );
 
-        return Note.createProject(
+        return Note.createFolder(
                 userId,
                 request.folderId(),
                 request.content()

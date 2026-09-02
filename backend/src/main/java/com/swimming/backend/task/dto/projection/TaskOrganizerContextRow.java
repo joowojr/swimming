@@ -4,8 +4,8 @@ import com.swimming.backend.task.domain.TaskStatus;
 
 public record TaskOrganizerContextRow(
         Long folderId,
-        String projectName,
-        String projectDescription,
+        String folderName,
+        String folderDescription,
         Long taskId,
         String taskTitle,
         TaskStatus taskStatus

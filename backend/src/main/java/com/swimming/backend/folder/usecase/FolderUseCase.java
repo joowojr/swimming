@@ -32,7 +32,7 @@ public class FolderUseCase {
     @Transactional(propagation = Propagation.REQUIRED)
     public FolderResponse create(Long userId, CreateFolderRequest request) {
         if (request.tagId() != null && request.newTagName() != null) {
-            throw new BusinessException(ErrorCode.PROJECT_TAG_SELECTION_CONFLICT);
+            throw new BusinessException(ErrorCode.FOLDER_TAG_SELECTION_CONFLICT);
         }
 
         FolderTag tag = null;
@@ -60,8 +60,8 @@ public class FolderUseCase {
     }
 
     public FolderDetailResponse getOne(Long userId, Long folderId) {
-        var project = folderService.getOne(userId, folderId);
-        List<TaskSummaryResponse> tasks = taskService.getSummaries(project.getId());
+        var folder = folderService.getOne(userId, folderId);
+        List<TaskSummaryResponse> tasks = taskService.getSummaries(folder.getId());
         int totalTaskCount = tasks.size();
         int completedTaskCount = (int) tasks.stream()
                 .filter(task -> task.status() == TaskStatus.DONE)
@@ -74,7 +74,7 @@ public class FolderUseCase {
                 completedTaskCount,
                 completionPct
         );
-        return FolderDetailResponse.from(project, progress, tasks);
+        return FolderDetailResponse.from(folder, progress, tasks);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

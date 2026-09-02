@@ -26,7 +26,7 @@ class FolderTagUseCaseTest {
 
     @Test
     @DisplayName("인증 사용자의 태그를 생성한다")
-    void createsProjectTag() {
+    void createsFolderTag() {
         when(folderTagService.create(org.mockito.ArgumentMatchers.any(FolderTag.class)))
                 .thenReturn(FolderTag.restore(3L, 1L, "취준", null, null));
 
@@ -40,7 +40,7 @@ class FolderTagUseCaseTest {
 
     @Test
     @DisplayName("소유한 태그 이름을 변경한다")
-    void updatesProjectTag() {
+    void updatesFolderTag() {
         FolderTag tag = FolderTag.restore(3L, 1L, "취준", null, null);
         tag.rename("이직");
         when(folderTagService.updateName(1L, 3L, " 이직 ")).thenReturn(tag);
@@ -57,7 +57,7 @@ class FolderTagUseCaseTest {
 
     @Test
     @DisplayName("소유한 태그 삭제를 서비스에 위임한다")
-    void deletesProjectTag() {
+    void deletesFolderTag() {
         folderTagUseCase.delete(1L, 3L);
 
         verify(folderTagService).delete(1L, 3L);

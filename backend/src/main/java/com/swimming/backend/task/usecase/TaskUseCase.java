@@ -54,16 +54,16 @@ public class TaskUseCase {
             Long folderId,
             CreateTaskRequest request
     ) {
-        FolderReference project = folderService.getReference(userId, folderId);
+        FolderReference folder = folderService.getReference(userId, folderId);
         long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
         return TaskResponse.from(taskService.create(
-                userId, project.id(), request.title(), request.priority(), request.urgent(), matrixRank));
+                userId, folder.id(), request.title(), request.priority(), request.urgent(), matrixRank));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<TaskResponse> getByProject(Long userId, Long folderId) {
-        FolderReference project = folderService.getReference(userId, folderId);
-        return taskService.getByProject(project.id())
+    public List<TaskResponse> getByFolder(Long userId, Long folderId) {
+        FolderReference folder = folderService.getReference(userId, folderId);
+        return taskService.getByFolder(folder.id())
                 .stream()
                 .map(TaskResponse::from)
                 .toList();

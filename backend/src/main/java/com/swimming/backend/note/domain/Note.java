@@ -65,7 +65,7 @@ public class Note {
         );
     }
 
-    public static Note createProject(
+    public static Note createFolder(
             Long userId,
             Long folderId,
             String content
@@ -76,7 +76,7 @@ public class Note {
                 content,
                 NoteStatus.ACTIVE,
                 false,
-                NoteContextType.PROJECT,
+                NoteContextType.FOLDER,
                 folderId,
                 null,
                 null,

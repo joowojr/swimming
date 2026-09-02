@@ -7,7 +7,7 @@ public record DailyPlanItemResponse(
         Long taskId,
         DailyPlanItemType itemType,
         Long folderId,
-        String projectName,
+        String folderName,
         String title,
         TaskStatus status,
         boolean priority,
@@ -15,7 +15,7 @@ public record DailyPlanItemResponse(
         int orderIdx
 ) {
     public DailyPlanItemResponse(Long id, Long taskId, DailyPlanItemType itemType, Long folderId,
-                                 String projectName, String title, TaskStatus status, int orderIdx) {
-        this(id, taskId, itemType, folderId, projectName, title, status, false, false, orderIdx);
+                                 String folderName, String title, TaskStatus status, int orderIdx) {
+        this(id, taskId, itemType, folderId, folderName, title, status, false, false, orderIdx);
     }
 }

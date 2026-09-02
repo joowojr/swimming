@@ -50,7 +50,7 @@ class FolderTagControllerTest {
 
     @Test
     @DisplayName("인증 사용자의 프로젝트 태그 목록을 반환한다")
-    void returnsCurrentUsersProjectTags() throws Exception {
+    void returnsCurrentUsersFolderTags() throws Exception {
         when(folderTagUseCase.getAll(1L)).thenReturn(List.of(
                 new FolderTagResponse(2L, "사이드 프로젝트"),
                 new FolderTagResponse(3L, "취준")
@@ -64,7 +64,7 @@ class FolderTagControllerTest {
 
     @Test
     @DisplayName("프로젝트 태그를 생성하고 Location 헤더를 반환한다")
-    void createsProjectTag() throws Exception {
+    void createsFolderTag() throws Exception {
         FolderTagNameRequest request = new FolderTagNameRequest("취준");
         when(folderTagUseCase.create(1L, request))
                 .thenReturn(new FolderTagResponse(3L, "취준"));
@@ -82,7 +82,7 @@ class FolderTagControllerTest {
 
     @Test
     @DisplayName("프로젝트 태그 이름을 수정한다")
-    void updatesProjectTag() throws Exception {
+    void updatesFolderTag() throws Exception {
         FolderTagNameRequest request = new FolderTagNameRequest("이직");
         when(folderTagUseCase.updateName(1L, 3L, request))
                 .thenReturn(new FolderTagResponse(3L, "이직"));
@@ -98,7 +98,7 @@ class FolderTagControllerTest {
 
     @Test
     @DisplayName("프로젝트 태그를 삭제하면 본문 없이 성공한다")
-    void deletesProjectTag() throws Exception {
+    void deletesFolderTag() throws Exception {
         mockMvc.perform(delete("/api/folder-tags/3"))
                 .andExpect(status().isNoContent());
 
@@ -107,7 +107,7 @@ class FolderTagControllerTest {
 
     @Test
     @DisplayName("프로젝트 태그 이름이 비어 있거나 30자를 초과하면 필드 오류를 반환한다")
-    void rejectsInvalidProjectTagName() throws Exception {
+    void rejectsInvalidFolderTagName() throws Exception {
         mockMvc.perform(post("/api/folder-tags")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

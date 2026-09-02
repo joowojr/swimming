@@ -65,11 +65,11 @@ public class TaskController {
     }
 
     @GetMapping("/folders/{folderId}/tasks")
-    public ResponseEntity<List<TaskResponse>> getByProject(
+    public ResponseEntity<List<TaskResponse>> getByFolder(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable("folderId") Long folderId
     ) {
-        return ResponseEntity.ok(taskUseCase.getByProject(authUser.id(), folderId));
+        return ResponseEntity.ok(taskUseCase.getByFolder(authUser.id(), folderId));
     }
 
     @GetMapping("/tasks")

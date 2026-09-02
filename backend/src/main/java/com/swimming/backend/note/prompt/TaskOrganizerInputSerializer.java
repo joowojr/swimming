@@ -12,7 +12,7 @@ public final class TaskOrganizerInputSerializer {
         xml.append("<task-organizer-input>");
 
         appendMemo(xml, input);
-        appendProjects(xml, input);
+        appendFolders(xml, input);
         appendTasks(xml, input);
 
         xml.append("</task-organizer-input>");
@@ -29,29 +29,29 @@ public final class TaskOrganizerInputSerializer {
                 .append("]]></memo>");
     }
 
-    private static void appendProjects(
+    private static void appendFolders(
             StringBuilder xml,
             TaskOrganizerInput input
     ) {
-        xml.append("<projects>");
+        xml.append("<folders>");
 
-        for (var project : input.projects()) {
-            xml.append("<project id=\"")
-                    .append(project.id())
+        for (var folder : input.folders()) {
+            xml.append("<folder id=\"")
+                    .append(folder.id())
                     .append("\">");
 
             xml.append("<name>")
-                    .append(escapeXml(project.name()))
+                    .append(escapeXml(folder.name()))
                     .append("</name>");
 
             xml.append("<description>")
-                    .append(escapeXml(project.description()))
+                    .append(escapeXml(folder.description()))
                     .append("</description>");
 
-            xml.append("</project>");
+            xml.append("</folder>");
         }
 
-        xml.append("</projects>");
+        xml.append("</folders>");
     }
 
     private static void appendTasks(

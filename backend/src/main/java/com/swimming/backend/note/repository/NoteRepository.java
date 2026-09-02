@@ -33,7 +33,7 @@ public interface NoteRepository extends JpaRepository<NoteEntity, Long> {
             NoteStatus status
     );
 
-    List<NoteEntity> findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
+    List<NoteEntity> findAllByUserIdAndFolderIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
             Long userId,
             Long folderId,
             NoteStatus status

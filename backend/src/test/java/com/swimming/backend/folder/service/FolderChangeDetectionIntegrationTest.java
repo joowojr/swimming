@@ -22,7 +22,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:project-direct-mutation;MODE=MySQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.url=jdbc:h2:mem:folder-direct-mutation;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
@@ -52,11 +52,11 @@ class FolderChangeDetectionIntegrationTest {
 
     @Test
     @DisplayName("프로젝트 수정과 soft delete는 관리 Entity의 변경 감지로 처리한다")
-    void updatesAndDeletesProjectWithDirtyChecking() {
+    void updatesAndDeletesFolderWithDirtyChecking() {
         User user = userRepository.saveAndFlush(User.builder()
-                .email("project-direct-mutation@example.com")
-                .googleSubject("project-change-detection-google-subject")
-                .nickname("project-direct-mutation-user")
+                .email("folder-direct-mutation@example.com")
+                .googleSubject("folder-change-detection-google-subject")
+                .nickname("folder-direct-mutation-user")
                 .timezone("Asia/Seoul")
                 .build());
         FolderTagEntity tag = folderTagRepository.saveAndFlush(

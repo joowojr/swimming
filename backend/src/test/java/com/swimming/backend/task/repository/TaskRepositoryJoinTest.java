@@ -50,7 +50,7 @@ class TaskRepositoryJoinTest {
 
     @Test
     @DisplayName("Task와 폴더 정보를 한 번의 조인 쿼리로 조회한다")
-    void findsTasksWithProjectsInSingleQuery() {
+    void findsTasksWithFoldersInSingleQuery() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("task-list@example.com")
                 .googleSubject("task-repository-google-subject-1")
@@ -63,9 +63,9 @@ class TaskRepositoryJoinTest {
                 null
         ));
         TaskEntity savedTask = taskRepository.saveAndFlush(TaskEntity.from(
-                Task.create(user.getId(), project.getId(), "폴더 Task", 0),
+                Task.create(user.getId(), folder.getId(), "폴더 Task", 0),
                 user,
-                project,
+                folder,
                 null
         ));
 
@@ -74,11 +74,11 @@ class TaskRepositoryJoinTest {
                 .getStatistics();
         statistics.clear();
 
-        List<TaskEntity> tasks = taskRepository.findAllByProjectIdWithProject(project.getId());
+        List<TaskEntity> tasks = taskRepository.findAllByFolderIdWithFolder(folder.getId());
 
         assertThat(tasks).extracting(TaskEntity::getId)
                 .containsExactly(savedTask.getId());
-        assertThat(tasks.getFirst().getProject().getName()).isEqualTo("폴더");
+        assertThat(tasks.getFirst().getFolder().getName()).isEqualTo("폴더");
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
     }
 
@@ -98,9 +98,9 @@ class TaskRepositoryJoinTest {
                 null
         ));
         TaskEntity task = taskRepository.saveAndFlush(TaskEntity.from(
-                Task.create(user.getId(), project.getId(), "세션에 기록된 Task", 0),
+                Task.create(user.getId(), folder.getId(), "세션에 기록된 Task", 0),
                 user,
-                project,
+                folder,
                 null
         ));
 
@@ -109,7 +109,7 @@ class TaskRepositoryJoinTest {
                 List.of(task.getId())
         )).isEqualTo(1);
 
-        assertThat(taskRepository.findAllByProjectIdWithProject(project.getId())).isEmpty();
+        assertThat(taskRepository.findAllByFolderIdWithFolder(folder.getId())).isEmpty();
         assertThat(taskRepository.findByIdAndUser_IdAndDeletedFalse(
                 task.getId(),
                 user.getId()

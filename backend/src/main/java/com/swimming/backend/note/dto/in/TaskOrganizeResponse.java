@@ -10,7 +10,7 @@ public record TaskOrganizeResponse(
     public record TaskSuggestionResponse(
             String sourceText,
             Long folderId,
-            String projectName,
+            String folderName,
             String title
     ) {
     }

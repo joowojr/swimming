@@ -24,7 +24,7 @@ public class FolderTagService {
     @Transactional(propagation = Propagation.REQUIRED)
     public FolderTag create(FolderTag folderTag) {
         if (folderTagRepository.existsByUserIdAndName(folderTag.getUserId(), folderTag.getName())) {
-            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
+            throw new BusinessException(ErrorCode.FOLDER_TAG_ALREADY_EXISTS);
         }
 
         try {
@@ -32,7 +32,7 @@ public class FolderTagService {
                     .saveAndFlush(FolderTagEntity.from(folderTag))
                     .toDomain();
         } catch (DataIntegrityViolationException exception) {
-            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
+            throw new BusinessException(ErrorCode.FOLDER_TAG_ALREADY_EXISTS);
         }
     }
 
@@ -40,7 +40,7 @@ public class FolderTagService {
     public FolderTag getOne(Long userId, Long tagId) {
         return folderTagRepository.findByIdAndUserId(tagId, userId)
                 .map(FolderTagEntity::toDomain)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -54,14 +54,14 @@ public class FolderTagService {
     @Transactional(propagation = Propagation.REQUIRED)
     public FolderTag updateName(Long userId, Long tagId, String name) {
         FolderTagEntity entity = folderTagRepository.findByIdAndUserId(tagId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND));
         String normalizedName = name.trim();
         if (folderTagRepository.existsByUserIdAndNameAndIdNot(
                 userId,
                 normalizedName,
                 tagId
         )) {
-            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS);
+            throw new BusinessException(ErrorCode.FOLDER_TAG_ALREADY_EXISTS);
         }
 
         try {
@@ -69,15 +69,15 @@ public class FolderTagService {
             folderTagRepository.flush();
             return entity.toDomain();
         } catch (DataIntegrityViolationException exception) {
-            throw new BusinessException(ErrorCode.PROJECT_TAG_ALREADY_EXISTS, exception);
+            throw new BusinessException(ErrorCode.FOLDER_TAG_ALREADY_EXISTS, exception);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long tagId) {
-        folderRepository.clearTagFromOwnedProjects(userId, tagId);
+        folderRepository.clearTagFromOwnedFolders(userId, tagId);
         if (folderTagRepository.deleteOwnedTag(tagId, userId) != 1) {
-            throw new BusinessException(ErrorCode.PROJECT_TAG_NOT_FOUND);
+            throw new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND);
         }
     }
 }

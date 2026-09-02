@@ -3,7 +3,6 @@ package com.swimming.backend.plan.repository;
 import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
 import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -25,6 +24,8 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                 project.deleted,
                 task.title,
                 task.status,
+                task.priority,
+                task.urgent,
                 item.orderIdx
             )
             from DailyPlanItemEntity item
@@ -32,6 +33,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
             left join task.project project
             where item.userId = :userId
               and task.user.id = :userId
+              and task.deleted = false
               and item.planDate between :fromDate and :toDate
             order by item.planDate asc, item.orderIdx asc
             """)
@@ -49,14 +51,9 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                               @Param("planDate") LocalDate planDate,
                               @Param("taskIds") Set<Long> taskIds);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            delete from DailyPlanItemEntity item
-            where item.id = :itemId
-              and item.userId = :userId
-              and item.planDate = :planDate
-            """)
-    int deleteOwnedItem(@Param("itemId") Long itemId,
-                        @Param("userId") Long userId,
-                        @Param("planDate") LocalDate planDate);
+    Optional<DailyPlanItemEntity> findByIdAndUserIdAndPlanDate(
+            Long itemId,
+            Long userId,
+            LocalDate planDate
+    );
 }

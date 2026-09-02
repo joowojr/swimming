@@ -20,7 +20,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
-  { label: '할 일', icon: IconFolder, href: '/tasks', end: true },
+  { label: '할 일', icon: IconFolder, href: '/folders', end: true },
   { label: '다이브 세션', icon: IconUsers, href: '/sessions', end: true },
   { label: '캘린더', icon: IconCalendar, disabled: true },
 ]

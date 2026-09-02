@@ -1,0 +1,101 @@
+.root {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-lowest);
+}
+
+.full-width {
+  display: flex;
+  width: 100%;
+}
+
+.button {
+  display: inline-flex;
+  min-width: 0;
+  min-height: var(--button-height);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    color var(--transition-short) var(--ease-in-out),
+    background-color var(--transition-short) var(--ease-in-out),
+    opacity var(--dur-micro) var(--ease-in-out),
+    transform var(--dur-micro) var(--ease-in-out);
+}
+
+.full-width .button {
+  flex: 1 1 0;
+}
+
+.button[aria-pressed='true'],
+.button[aria-selected='true'] {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.button:focus-visible {
+  outline-color: var(--focus-ring-color);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.icon svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not(:disabled):not([aria-pressed='true']):not([aria-selected='true']) {
+    color: var(--color-primary);
+    background: var(--color-surface-container-low);
+  }
+
+  .button:hover:not(:disabled)[aria-pressed='true'],
+  .button:hover:not(:disabled)[aria-selected='true'] {
+    background: var(--color-primary-pressed);
+  }
+}
+
+@media (pointer: coarse) {
+  .button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

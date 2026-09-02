@@ -6,7 +6,7 @@ import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
-import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionFocusDurationRequest;
 import com.swimming.backend.session.usecase.SessionUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -87,13 +87,13 @@ public class SessionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{sessionId}/planned-duration")
-    public ResponseEntity<Void> updatePlannedDuration(
+    @PutMapping("/{sessionId}/focus-duration")
+    public ResponseEntity<Void> updateFocusDuration(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long sessionId,
-            @Valid @RequestBody UpdateSessionPlannedDurationRequest request
+            @Valid @RequestBody UpdateSessionFocusDurationRequest request
     ) {
-        sessionUseCase.updatePlannedDuration(authUser.id(), sessionId, request);
+        sessionUseCase.updateFocusDuration(authUser.id(), sessionId, request);
         return ResponseEntity.noContent().build();
     }
 }

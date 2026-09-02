@@ -20,7 +20,7 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import { useAuthStore } from '../../store/authStore'
 import { useProjectStore } from '../../store/projectStore'
 import { getPlaces } from '../places/placeApi'
-import { getSession, updateSessionMusicUrl, updateSessionPlannedDuration } from './sessionApi'
+import { getSession, updateSessionFocusDuration, updateSessionMusicUrl } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
 import EndSessionModal from './EndSessionModal'
 import SessionMusicPlayer from './music/SessionMusicPlayer'
@@ -53,9 +53,21 @@ const INITIAL_WIDGET_VISIBILITY: WidgetVisibility = {
 
 const DEFAULT_SESSION_BACKGROUND_URL = '/lisbon_1.mp4'
 
-function remainingSeconds(session: SessionDetailResponse) {
+function timerPhase(session: SessionDetailResponse) {
   const elapsed = Math.max(0, Math.floor((Date.now() - Date.parse(session.startedAt)) / 1000))
-  return Math.max(0, session.plannedDurationSec - elapsed)
+  const focus = session.focusDurationSec || session.plannedDurationSec
+  const rest = session.breakDurationSec || 0
+  const repeats = session.repeatCount || 1
+  let cursor = elapsed
+  for (let index = 0; index < repeats; index += 1) {
+    if (cursor < focus) return { kind: 'focus' as const, remaining: focus - cursor, index: index + 1, repeats, elapsed }
+    cursor -= focus
+    if (index < repeats - 1 && rest > 0) {
+      if (cursor < rest) return { kind: 'break' as const, remaining: rest - cursor, index: index + 1, repeats, elapsed }
+      cursor -= rest
+    }
+  }
+  return { kind: 'complete' as const, remaining: 0, index: repeats, repeats, elapsed }
 }
 
 function formatTimer(totalSeconds: number) {
@@ -152,14 +164,18 @@ export default function PersonalSessionPage() {
   }, [state.status])
 
   const session = state.status === 'ready' || state.status === 'ended' ? state.session : null
-  const remaining = useMemo(
-    () => session ? remainingSeconds(session) : 0,
+  const phase = useMemo(
+    () => session ? timerPhase(session) : { kind: 'complete' as const, remaining: 0, index: 1, repeats: 1, elapsed: 0 },
     // nowKey intentionally triggers calculation from the absolute start time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [session, nowKey],
   )
+  const remaining = phase.remaining
+  const maxFocusDurationSec = session
+    ? Math.floor((86400 - session.breakDurationSec * Math.max(0, session.repeatCount - 1)) / session.repeatCount)
+    : 86400
   const progress = session
-    ? Math.min(1, Math.max(0, 1 - remaining / session.plannedDurationSec))
+    ? Math.min(1, Math.max(0, phase.elapsed / session.plannedDurationSec))
     : 0
   const ringOffset = 276.46 * (1 - progress)
   const backgroundAsset = session?.place.backgroundAsset
@@ -206,17 +222,23 @@ export default function PersonalSessionPage() {
 
   const adjustDuration = async (direction: -1 | 1) => {
     if (state.status !== 'ready' || isAdjustingDuration) return
-    const plannedDurationSec = Math.min(
-      86400,
-      Math.max(60, state.session.plannedDurationSec + direction * durationStepSec),
+    const { breakDurationSec, repeatCount } = state.session
+    const maxFocusDurationSec = Math.floor(
+      (86400 - breakDurationSec * Math.max(0, repeatCount - 1)) / repeatCount,
     )
-    if (plannedDurationSec === state.session.plannedDurationSec) return
+    const focusDurationSec = Math.min(
+      maxFocusDurationSec,
+      Math.max(60, state.session.focusDurationSec + direction * durationStepSec),
+    )
+    if (focusDurationSec === state.session.focusDurationSec) return
+    const plannedDurationSec = focusDurationSec * repeatCount
+      + breakDurationSec * Math.max(0, repeatCount - 1)
 
     setIsAdjustingDuration(true)
     try {
-      await updateSessionPlannedDuration(state.session.id, { plannedDurationSec })
+      await updateSessionFocusDuration(state.session.id, { focusDurationSec })
       setState((current) => current.status === 'ready'
-        ? { ...current, session: { ...current.session, plannedDurationSec } }
+        ? { ...current, session: { ...current.session, focusDurationSec, plannedDurationSec } }
         : current)
     } finally {
       setIsAdjustingDuration(false)
@@ -238,7 +260,7 @@ export default function PersonalSessionPage() {
             setState({ status: 'loading' })
             setRequestKey((key) => key + 1)
           }}>다시 불러오기</button>}
-          <button type="button" onClick={() => navigate('/tasks')}>내 폴더로</button>
+          <button type="button" onClick={() => navigate('/folders')}>내 폴더로</button>
         </div>
       </main>
     )
@@ -353,7 +375,7 @@ export default function PersonalSessionPage() {
 
       {widgets.timer && (
         <section className={`${styles.widget} ${styles.timer}`} aria-labelledby="session-timer-title">
-          <header><span>개인 집중</span><strong>{remaining === 0 ? '시간 완료' : '집중'}</strong></header>
+          <header><span>개인 집중</span><strong>{phase.kind === 'complete' ? '시간 완료' : phase.kind === 'break' ? '휴식' : '집중'}</strong></header>
           <div className={styles['timer-main']}>
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <circle className={styles['ring-track']} cx="50" cy="50" r="44" />
@@ -361,14 +383,14 @@ export default function PersonalSessionPage() {
             </svg>
             <div className={styles['timer-value']}>
               <h2 id="session-timer-title">{formatTimer(remaining)}</h2>
-              <p>{formatMinutes(state.session.plannedDurationSec)} 중</p>
+              <p>{phase.kind === 'complete' ? '세션 종료' : `${phase.index}/${phase.repeats}회 · 총 ${formatMinutes(state.session.plannedDurationSec)}`}</p>
             </div>
           </div>
           <div className={styles['timer-adjust']} aria-label="집중 시간 조절">
             <button
               type="button"
               aria-label={`집중 시간 ${formatMinutes(durationStepSec)} 줄이기`}
-              disabled={isAdjustingDuration || state.session.plannedDurationSec <= 60}
+              disabled={isAdjustingDuration || state.session.focusDurationSec <= 60}
               onClick={() => void adjustDuration(-1)}
             >
               <IconMinus aria-hidden="true" />
@@ -388,7 +410,7 @@ export default function PersonalSessionPage() {
             <button
               type="button"
               aria-label={`집중 시간 ${formatMinutes(durationStepSec)} 늘리기`}
-              disabled={isAdjustingDuration || state.session.plannedDurationSec >= 86400}
+              disabled={isAdjustingDuration || state.session.focusDurationSec >= maxFocusDurationSec}
               onClick={() => void adjustDuration(1)}
             >
               <IconPlus aria-hidden="true" />

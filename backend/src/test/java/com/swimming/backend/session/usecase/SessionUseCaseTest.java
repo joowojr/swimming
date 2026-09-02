@@ -17,7 +17,7 @@ import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
-import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionFocusDurationRequest;
 import com.swimming.backend.session.service.SessionService;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
@@ -77,7 +77,7 @@ class SessionUseCaseTest {
     @DisplayName("사용자 타임존의 오늘 계획에 담긴 Task로 개인 세션을 시작한다")
     void startsFromTodayPlanInUserTimezone() {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
-                List.of(10L, 11L), 20L, 1500
+                List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         Session session = startedSession(NOW);
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
@@ -106,7 +106,7 @@ class SessionUseCaseTest {
     @DisplayName("개인 세션을 시작하면 대상 Task가 모두 DOING으로 바뀐다")
     void marksSessionTasksAsDoingOnStart() {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
-                List.of(10L, 11L), 20L, 1500
+                List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
         when(dailyPlanService.containsAllTasks(
@@ -129,7 +129,7 @@ class SessionUseCaseTest {
     @DisplayName("오늘 계획에 없는 Task로는 세션을 시작하지 않는다")
     void rejectsTaskOutsideTodayPlan() {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
-                List.of(10L, 11L), 20L, 1500
+                List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
         when(dailyPlanService.containsAllTasks(
@@ -305,7 +305,10 @@ class SessionUseCaseTest {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
                 List.of(10L, 10L),
                 20L,
-                1500
+                1500,
+                1500,
+                0,
+                1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
 
@@ -320,7 +323,7 @@ class SessionUseCaseTest {
     @DisplayName("존재하지 않는 공간으로는 세션을 시작하지 않는다")
     void rejectsMissingPlace() {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
-                List.of(10L, 11L), 99L, 1500
+                List.of(10L, 11L), 99L, 1500, 1500, 0, 1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
         when(dailyPlanService.containsAllTasks(
@@ -381,15 +384,20 @@ class SessionUseCaseTest {
     }
 
     @Test
-    @DisplayName("진행 중인 세션의 계획 시간을 저장한다")
-    void updatesPlannedDuration() {
-        sessionUseCase.updatePlannedDuration(
+    @DisplayName("진행 중인 세션의 집중 시간과 파생 계획 시간을 저장한다")
+    void updatesFocusDuration() {
+        Session session = startedSession(NOW);
+        when(sessionService.getOwned(1L, 5L)).thenReturn(session);
+
+        sessionUseCase.updateFocusDuration(
                 1L,
                 5L,
-                new UpdateSessionPlannedDurationRequest(1800)
+                new UpdateSessionFocusDurationRequest(1800)
         );
 
-        verify(sessionService).updatePlannedDuration(1L, 5L, 1800);
+        assertThat(session.getFocusDurationSec()).isEqualTo(1800);
+        assertThat(session.getPlannedDurationSec()).isEqualTo(1800);
+        verify(sessionService).updateFocusDuration(session);
     }
 
     private Session startedSession(Instant startedAt) {
@@ -439,6 +447,9 @@ class SessionUseCaseTest {
                 taskCompleted,
                 session.getMusicUrl(),
                 session.getPlannedDurationSec(),
+                session.getFocusDurationSec(),
+                session.getBreakDurationSec(),
+                session.getRepeatCount(),
                 session.getActualDurationSec(),
                 session.getStartedAt(),
                 session.getEndedAt(),

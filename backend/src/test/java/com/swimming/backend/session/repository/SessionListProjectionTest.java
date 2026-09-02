@@ -33,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.generate_statistics=true",
+        "spring.flyway.enabled=false",
         "spring.sql.init.mode=never",
         "spring.ai.openai.api-key=test",
         "app.place.background.cdn-base-url=https://cdn.example.com"
@@ -66,7 +67,7 @@ class SessionListProjectionTest {
     void reusesSessionWithPlaceProjectionInOneQuery() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("session-list-projection@example.com")
-                .passwordHash("password")
+                .googleSubject("session-list-projection-google-subject")
                 .nickname("session-list-projection-user")
                 .timezone("Asia/Seoul")
                 .build());

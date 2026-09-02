@@ -61,6 +61,11 @@ public class ProjectService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public void validateOwnership(Long userId, Long projectId) {
+        getOwnedProjectEntity(userId, projectId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public void validateOwnerships(Long userId, List<Long> projectIds) {
         Set<Long> uniqueProjectIds = Set.copyOf(projectIds);
         if (uniqueProjectIds.isEmpty()) {
@@ -102,6 +107,9 @@ public class ProjectService {
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long projectId) {
         ProjectEntity entity = getOwnedProjectEntity(userId, projectId);
+        if (projectRepository.countActiveTasks(userId, projectId) > 0) {
+            throw new BusinessException(ErrorCode.PROJECT_HAS_TASKS);
+        }
         entity.delete();
         projectRepository.flush();
     }

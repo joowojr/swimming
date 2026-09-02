@@ -18,6 +18,7 @@ import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 public class TaskOrganizerUseCase {
 
     private final TaskService taskService;
+    private final TaskOrderingService taskOrderingService;
     private final TaskOrganizerService taskOrganizerService;
     private final NoteService noteService;
     private final ProjectService projectService;
@@ -149,11 +151,15 @@ public class TaskOrganizerUseCase {
             Long sourceNoteId,
             TaskOrganizeConfirmRequest.ApprovedTaskRequest approvedTask
     ) {
+        long matrixRank = taskOrderingService.nextRank(userId, false, false);
         Task task = taskService.createFromNote(
                 userId,
                 approvedTask.projectId(),
                 sourceNoteId,
-                approvedTask.title()
+                approvedTask.title(),
+                false,
+                false,
+                matrixRank
         );
         return new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                 task.getId(),

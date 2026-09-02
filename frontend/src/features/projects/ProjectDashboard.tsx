@@ -1,8 +1,10 @@
-// import { useMemo } from 'react'
+import { useState } from 'react'
+import ModeToggle from '../../components/ModeToggle'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
 import type { Project, ProjectLoadStatus } from './projectTypes'
+import TaskMatrix from './TaskMatrix'
 import styles from './ProjectDashboard.module.css'
 
 interface ProjectDashboardProps {
@@ -10,6 +12,13 @@ interface ProjectDashboardProps {
   status: ProjectLoadStatus
   onRetry: () => void
 }
+
+type PlannerView = 'daily' | 'matrix'
+
+const PLANNER_VIEW_OPTIONS = [
+  { value: 'daily', label: '캘린더' },
+  { value: 'matrix', label: '매트릭스' },
+] as const
 
 /*
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' })
@@ -24,6 +33,7 @@ export default function ProjectDashboard({
   status,
   onRetry,
 }: ProjectDashboardProps) {
+  const [plannerView, setPlannerView] = useState<PlannerView>('daily')
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -81,7 +91,18 @@ export default function ProjectDashboard({
               <div className={styles['home-grid']}>
                 <div className={styles['home-main']}>
                   <ContinueSessionWidget/>
-                  <DailyPlanner projects={projects}/>
+                  <div className={styles['planner-area']}>
+                    <ModeToggle
+                      className={styles['planner-toggle']}
+                      ariaLabel="Task 보기 방식"
+                      options={PLANNER_VIEW_OPTIONS}
+                      value={plannerView}
+                      onChange={setPlannerView}
+                    />
+                    {plannerView === 'daily'
+                      ? <DailyPlanner projects={projects}/>
+                      : <TaskMatrix projects={projects}/>}
+                  </div>
                 </div>
 
                 <NoteCard projects={projects} />

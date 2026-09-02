@@ -7,7 +7,6 @@
 .composer {
   padding: var(--space-4);
   border: 0;
-  border-bottom: var(--border-width) solid var(--color-border-subtle);
   background: var(--color-surface-lowest);
 }
 
@@ -16,34 +15,6 @@
   align-items: center;
   min-width: 0;
   gap: var(--space-3);
-}
-
-.submit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-8);
-  min-height: var(--control-height);
-  flex: 0 0 auto;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-full);
-  color: var(--color-primary);
-  background: transparent;
-  outline: 0;
-}
-
-.submit-visual {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-8);
-  height: var(--space-8);
-  border: var(--focus-ring-width) solid var(--color-primary);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-lowest);
-  outline: var(--focus-ring-width) solid transparent;
-  outline-offset: var(--border-width);
 }
 
 .row input {
@@ -68,18 +39,26 @@
   border-color: var(--color-error);
 }
 
-.submit:focus-visible .submit-visual {
-  outline-color: var(--color-primary);
-}
-
-.submit:active:not(:disabled) {
-  transform: translateY(var(--border-width));
-}
-
-.row input:disabled,
-.submit:disabled {
+.row input:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.embedded {
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+}
+
+.embedded .row {
+  gap: var(--space-2);
+}
+
+.embedded .row input {
+  min-height: 2.5rem;
+  padding-inline: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
 }
 
 .message {
@@ -89,33 +68,15 @@
   line-height: var(--text-body-sm-line-height);
 }
 
-.spinner {
-  animation: spinner-rotate calc(var(--dur-modal) * 3) linear infinite;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .row input:hover:not(:disabled) {
     border-color: var(--color-primary-outline);
     background: var(--color-surface-lowest);
   }
-
-  .submit:hover:not(:disabled) .submit-visual {
-    background: var(--color-primary-soft);
-  }
-}
-
-@keyframes spinner-rotate {
-  to { transform: rotate(360deg); }
 }
 
 @media (min-width: 40rem) {
   .composer {
     padding: var(--space-4) var(--space-6);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: calc(var(--dur-modal) * 6);
   }
 }

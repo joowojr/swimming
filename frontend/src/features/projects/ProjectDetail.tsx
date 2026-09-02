@@ -3,8 +3,8 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 import {IconChevronRight, IconFilter} from '@tabler/icons-react'
 import {Link, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
-import ActionButton from '../../components/ActionButton'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import DeleteConfirmation from '../../components/DeleteConfirmation'
 import InlineEditableText from '../../components/InlineEditableText'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks} from '../tasks/taskApi'
@@ -154,7 +154,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
     try {
       await deleteProject(project.id)
       onDeleted(project.id)
-      navigate('/tasks', { replace: true })
+      navigate('/folders', { replace: true })
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
@@ -316,7 +316,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         </p>
         <div className={styles['state-actions']}>
           {!state.notFound && <button type="button" onClick={retry}>다시 불러오기</button>}
-          <Link to="/tasks">폴더 목록</Link>
+          <Link to="/folders">폴더 목록</Link>
         </div>
       </section>
     )
@@ -356,7 +356,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
   return (
     <article className={styles.page} aria-labelledby="project-detail-title">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link to="/tasks">폴더</Link>
+        <Link to="/folders">폴더</Link>
         {project.tag && (
             <>
               <IconChevronRight size={14} aria-hidden="true" />
@@ -417,11 +417,13 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
         </DeleteIconButton>
       </div>
       {isConfirmingProjectDelete && (
-        <section className={styles['project-delete-confirmation']} aria-label="폴더 삭제 확인">
-          <p>폴더를 삭제할까요? 연결된 할 일과 메모는 유지됩니다.</p>
-          <ActionButton variant="plain" onClick={() => setIsConfirmingProjectDelete(false)} disabled={isDeletingProject}>취소</ActionButton>
-          <ActionButton isLoading={isDeletingProject} loadingLabel="삭제 중…" onClick={() => void removeProject(project)}>삭제</ActionButton>
-        </section>
+        <DeleteConfirmation
+          message="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 메모는 유지됩니다."
+          ariaLabel="폴더 삭제 확인"
+          isDeleting={isDeletingProject}
+          onCancel={() => setIsConfirmingProjectDelete(false)}
+          onConfirm={() => void removeProject(project)}
+        />
       )}
       {projectDeleteError && <p className={styles['delete-error']} role="alert">{projectDeleteError}</p>}
 
@@ -484,7 +486,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
       <section className={styles.tasks} aria-labelledby="project-tasks-title">
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
-            <h2 id="project-tasks-title">해야 할 일</h2>
+            <h2 id="project-tasks-title">할 일</h2>
             <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
           </div>
           <div className={styles['task-actions']}>
@@ -536,6 +538,7 @@ export default function ProjectDetail({ projectId, onDeleted }: ProjectDetailPro
           <CreateTaskComposer
               projectId={project.id}
               inputRef={taskInputRef}
+              variant="embedded"
               onCreated={() => {
                 setStatusFilter('ALL')
                 setRequestKey((key) => key + 1)

@@ -59,10 +59,10 @@ public class DailyPlanService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, LocalDate planDate, Long itemId) {
-        dailyPlanItemRepository.findByIdAndUserIdAndPlanDate(itemId, userId, planDate)
-                .ifPresentOrElse(dailyPlanItemRepository::delete, () -> {
-                    throw new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND);
-                });
+        DailyPlanItemEntity item = dailyPlanItemRepository
+                .findByIdAndUserIdAndPlanDate(itemId, userId, planDate)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND));
+        dailyPlanItemRepository.delete(item);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

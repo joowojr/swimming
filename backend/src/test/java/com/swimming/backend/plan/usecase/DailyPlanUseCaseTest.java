@@ -13,8 +13,10 @@ import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ class DailyPlanUseCaseTest {
 
     private DailyPlanService dailyPlanService;
     private TaskService taskService;
+    private TaskOrderingService taskOrderingService;
     private ProjectService projectService;
     private DailyPlanUseCase useCase;
 
@@ -47,8 +50,9 @@ class DailyPlanUseCaseTest {
     void setUp() {
         dailyPlanService = mock(DailyPlanService.class);
         taskService = mock(TaskService.class);
+        taskOrderingService = mock(TaskOrderingService.class);
         projectService = mock(ProjectService.class);
-        useCase = new DailyPlanUseCase(dailyPlanService, taskService, projectService);
+        useCase = new DailyPlanUseCase(dailyPlanService, taskService, taskOrderingService, projectService);
     }
 
     @Test
@@ -87,7 +91,10 @@ class DailyPlanUseCaseTest {
     @DisplayName("폴더 없는 Task를 만들어 그날 계획에 추가한다")
     void createsAdHocTaskAndAddsIt() {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
-        when(taskService.createAndGetId(1L, null, "장보기")).thenReturn(20L);
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.create(1L, null, "장보기", false, false, 1024L))
+                .thenReturn(Task.restore(20L, 1L, null, null, "장보기", TaskStatus.TODO,
+                        false, false, 0, 1024L, null, null));
         when(dailyPlanService.getRows(1L, DATE, DATE))
                 .thenReturn(List.of(adHocRow(1L, 20L, "장보기", 0)));
 
@@ -109,8 +116,7 @@ class DailyPlanUseCaseTest {
     void addsOwnedTasksAfterExistingItems() {
         when(dailyPlanService.getItems(1L, DATE))
                 .thenReturn(List.of(DailyPlanItem.restore(1L, 30L, 0, null, null)));
-        when(dailyPlanService.containsTask(1L, DATE, 10L)).thenReturn(false);
-        when(dailyPlanService.containsTask(1L, DATE, 20L)).thenReturn(false);
+        when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(false);
         when(taskService.getReferences(1L, List.of(10L, 20L)))
                 .thenReturn(List.of(taskReference(10L), taskReference(20L)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
@@ -122,10 +128,11 @@ class DailyPlanUseCaseTest {
         assertThat(response.items()).extracting(DailyPlanItemResponse::taskId)
                 .containsExactly(30L, 10L, 20L);
 
-        ArgumentCaptor<DailyPlanItem> captor = ArgumentCaptor.forClass(DailyPlanItem.class);
-        verify(dailyPlanService, org.mockito.Mockito.times(2)).save(eq(1L), eq(DATE), captor.capture());
-        assertThat(captor.getAllValues()).extracting(DailyPlanItem::getTaskId).containsExactly(10L, 20L);
-        assertThat(captor.getAllValues()).extracting(DailyPlanItem::getOrderIdx).containsExactly(1, 2);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<DailyPlanItem>> captor = ArgumentCaptor.forClass(List.class);
+        verify(dailyPlanService).saveAll(eq(1L), eq(DATE), captor.capture());
+        assertThat(captor.getValue()).extracting(DailyPlanItem::getTaskId).containsExactly(10L, 20L);
+        assertThat(captor.getValue()).extracting(DailyPlanItem::getOrderIdx).containsExactly(1, 2);
     }
 
     @Test
@@ -146,7 +153,7 @@ class DailyPlanUseCaseTest {
     void rejectsAlreadyPlannedTaskInBatch() {
         when(dailyPlanService.getItems(1L, DATE))
                 .thenReturn(List.of(DailyPlanItem.restore(1L, 10L, 0, null, null)));
-        when(dailyPlanService.containsTask(1L, DATE, 10L)).thenReturn(true);
+        when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(true);
 
         assertThatThrownBy(() -> useCase.addItems(
                 1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null)))
@@ -171,7 +178,7 @@ class DailyPlanUseCaseTest {
     @DisplayName("다른 사용자의 Task는 계획에 추가하지 않는다")
     void rejectsAnotherUsersTask() {
         when(dailyPlanService.getItems(2L, DATE)).thenReturn(List.of());
-        when(dailyPlanService.containsTask(2L, DATE, 10L)).thenReturn(false);
+        when(dailyPlanService.containsAnyTasks(2L, DATE, List.of(10L))).thenReturn(false);
         when(taskService.getReferences(2L, List.of(10L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> useCase.addItems(
@@ -188,7 +195,10 @@ class DailyPlanUseCaseTest {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
         when(projectService.getReference(1L, 100L))
                 .thenReturn(new ProjectReference(100L, "폴더", null));
-        when(taskService.createAndGetId(1L, 100L, "API 문서 작성")).thenReturn(20L);
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.create(1L, 100L, "API 문서 작성", false, false, 1024L))
+                .thenReturn(Task.restore(20L, 1L, 100L, null, "API 문서 작성", TaskStatus.TODO,
+                        false, false, 0, 1024L, null, null));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(new DailyPlanItemQueryRow(
                 1L, DATE, 20L, 100L, "폴더", false, "API 문서 작성", TaskStatus.TODO, 0)));
 
@@ -201,7 +211,7 @@ class DailyPlanUseCaseTest {
             assertThat(item.projectId()).isEqualTo(100L);
             assertThat(item.title()).isEqualTo("API 문서 작성");
         });
-        verify(taskService).createAndGetId(1L, 100L, "API 문서 작성");
+        verify(taskService).create(1L, 100L, "API 문서 작성", false, false, 1024L);
     }
 
     @Test

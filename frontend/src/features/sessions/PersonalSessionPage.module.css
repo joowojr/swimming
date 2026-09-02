@@ -662,6 +662,40 @@
     }
 }
 
+@media (min-width: 48.01rem) and (max-width: 96rem),
+       (min-width: 48.01rem) and (max-height: 60rem) {
+    .timer {
+        top: 4.25rem;
+        width: 19rem;
+        padding: var(--space-4);
+    }
+
+    .timer-main {
+        width: 12rem;
+        height: 12rem;
+        margin-top: var(--space-4);
+    }
+
+    .ring-track, .ring-progress {
+        stroke-width: 5;
+    }
+
+    .timer-adjust {
+        grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+        width: 10rem;
+        margin-top: var(--space-4);
+    }
+
+    .timer-adjust button, .timer-adjust select {
+        min-height: 2.25rem;
+    }
+
+    .music {
+        bottom: var(--space-3);
+        width: 19rem;
+    }
+}
+
 @media (max-width: 48rem) {
     .page {
         overflow-y: auto;

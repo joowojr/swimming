@@ -4,6 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
@@ -13,6 +14,7 @@ import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,14 +30,18 @@ import static org.mockito.Mockito.when;
 class TaskUseCaseTest {
 
     private TaskService taskService;
+    private TaskOrderingService taskOrderingService;
     private ProjectService projectService;
+    private DailyPlanService dailyPlanService;
     private TaskUseCase taskUseCase;
 
     @BeforeEach
     void setUp() {
         taskService = mock(TaskService.class);
+        taskOrderingService = mock(TaskOrderingService.class);
         projectService = mock(ProjectService.class);
-        taskUseCase = new TaskUseCase(taskService, projectService);
+        dailyPlanService = mock(DailyPlanService.class);
+        taskUseCase = new TaskUseCase(taskService, taskOrderingService, projectService, dailyPlanService);
     }
 
     @Test
@@ -43,7 +49,9 @@ class TaskUseCaseTest {
     void createsTaskInOwnedProject() {
         when(projectService.getReference(1L, 10L))
                 .thenReturn(new ProjectReference(10L, "폴더", null));
-        when(taskService.create(1L, 10L, "Task")).thenReturn(task(1L, 10L, "Task", 0));
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.create(1L, 10L, "Task", false, false, 1024L))
+                .thenReturn(task(1L, 10L, "Task", 0));
 
         TaskResponse response = taskUseCase.create(
                 1L,
@@ -183,4 +191,5 @@ class TaskUseCaseTest {
                 null
         );
     }
+
 }

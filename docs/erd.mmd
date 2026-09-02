@@ -24,7 +24,7 @@ erDiagram
     users {
         bigint id PK
         varchar email UK
-        varchar password_hash
+        varchar google_subject UK
         varchar nickname
         varchar timezone
         timestamp created_at
@@ -59,7 +59,10 @@ erDiagram
         bigint source_note_id FK "nullable"
         varchar title
         varchar status
+        boolean is_priority "기본 false"
+        boolean is_urgent "기본 false"
         int order_idx
+        bigint matrix_rank "Matrix 영역 내 순서"
         boolean is_deleted
         timestamp created_at
         timestamp updated_at
@@ -84,6 +87,9 @@ erDiagram
         bigint group_room_id FK "nullable"
         varchar music_url "nullable; latest URL for this session"
         int planned_duration_sec
+        int focus_duration_sec "집중 페이즈 초"
+        int break_duration_sec "휴식 페이즈 초"
+        int repeat_count "반복 횟수"
         int actual_duration_sec "nullable"
         timestamp started_at
         timestamp end_at "nullable"

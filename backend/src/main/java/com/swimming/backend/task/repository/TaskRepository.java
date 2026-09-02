@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,58 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     List<TaskEntity> findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(Long userId);
 
     List<TaskEntity> findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
+
+    Optional<TaskEntity> findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
+            Long userId,
+            boolean priority,
+            boolean urgent
+    );
+
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            WHERE task.user.id = :userId
+              AND task.deleted = false
+              AND task.priority = :priority
+              AND task.urgent = :urgent
+            ORDER BY task.matrixRank DESC, task.id DESC
+            """)
+    List<TaskEntity> findMatrixFirstPage(
+            @Param("userId") Long userId,
+            @Param("priority") boolean priority,
+            @Param("urgent") boolean urgent,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            WHERE task.user.id = :userId
+              AND task.deleted = false
+              AND task.priority = :priority
+              AND task.urgent = :urgent
+              AND (
+                task.matrixRank < :cursorRank
+                OR (task.matrixRank = :cursorRank AND task.id < :cursorTaskId)
+              )
+            ORDER BY task.matrixRank DESC, task.id DESC
+            """)
+    List<TaskEntity> findMatrixNextPage(
+            @Param("userId") Long userId,
+            @Param("priority") boolean priority,
+            @Param("urgent") boolean urgent,
+            @Param("cursorRank") long cursorRank,
+            @Param("cursorTaskId") long cursorTaskId,
+            Pageable pageable
+    );
+
+    List<TaskEntity> findAllByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
+            Long userId,
+            boolean priority,
+            boolean urgent
+    );
+
+    List<TaskEntity> findAllByUser_IdAndDeletedFalseAndIdIn(Long userId, List<Long> taskIds);
 
     Optional<TaskEntity> findTopByProject_IdAndDeletedFalseOrderByIdDesc(Long projectId);
 

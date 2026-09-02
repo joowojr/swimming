@@ -18,6 +18,8 @@ app:
     allowed-origins: ${ALLOWED_ORIGINS}
   auth:
     secure-cookie: true
+    google:
+      client-id: ${GOOGLE_CLIENT_ID}
 
 logging:
   level:

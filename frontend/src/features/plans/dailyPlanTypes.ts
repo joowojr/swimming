@@ -5,6 +5,8 @@ interface DailyPlanItemBase {
   taskId: number
   title: string
   status: TaskStatus
+  priority: boolean
+  urgent: boolean
 }
 
 export type DailyPlanItem = DailyPlanItemBase & (
@@ -18,5 +20,5 @@ export interface DailyPlan {
 }
 
 export type CreateDailyPlanItemsRequest =
-  | { taskIds: number[]; projectId?: never; title?: never }
-  | { taskIds?: never; projectId?: number; title: string }
+  | { taskIds: number[]; projectId?: never; title?: never; priority?: never; urgent?: never }
+  | { taskIds?: never; projectId?: number; title: string; priority?: boolean; urgent?: boolean }

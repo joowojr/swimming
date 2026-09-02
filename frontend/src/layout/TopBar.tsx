@@ -83,9 +83,6 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
               <button className={styles['top-bar-login']} type="button" onClick={onLogin}>
                 로그인
               </button>
-              <button className={styles['top-bar-signup']} type="button" disabled>
-                회원가입
-              </button>
             </div>
           )}
         </div>

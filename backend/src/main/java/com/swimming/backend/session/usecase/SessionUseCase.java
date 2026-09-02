@@ -14,7 +14,7 @@ import com.swimming.backend.session.dto.web.SessionResponse;
 import com.swimming.backend.session.dto.web.SessionDetailResponse;
 import com.swimming.backend.session.dto.web.StartPersonalSessionRequest;
 import com.swimming.backend.session.dto.web.UpdateSessionMusicUrlRequest;
-import com.swimming.backend.session.dto.web.UpdateSessionPlannedDurationRequest;
+import com.swimming.backend.session.dto.web.UpdateSessionFocusDurationRequest;
 import com.swimming.backend.session.service.SessionService;
 import com.swimming.backend.session.validator.SessionMusicUrlValidator;
 import com.swimming.backend.task.domain.TaskStatus;
@@ -76,7 +76,8 @@ public class SessionUseCase {
                 userId,
                 place.getId(),
                 taskIds,
-                request.plannedDurationSec()
+                request.plannedDurationSec(), request.focusDurationSec(),
+                request.breakDurationSec(), request.repeatCount()
         );
         return SessionResponse.from(sessionService.create(session), place);
     }
@@ -206,16 +207,14 @@ public class SessionUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void updatePlannedDuration(
+    public void updateFocusDuration(
             Long userId,
             Long sessionId,
-            UpdateSessionPlannedDurationRequest request
+            UpdateSessionFocusDurationRequest request
     ) {
-        sessionService.updatePlannedDuration(
-                userId,
-                sessionId,
-                request.plannedDurationSec()
-        );
+        Session session = sessionService.getOwned(userId, sessionId);
+        session.updateFocusDuration(request.focusDurationSec());
+        sessionService.updateFocusDuration(session);
     }
 
     private SessionDetailResponse toDetailResponse(

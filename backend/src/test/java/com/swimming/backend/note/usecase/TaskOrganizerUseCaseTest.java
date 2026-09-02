@@ -18,6 +18,7 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -36,6 +39,7 @@ import static org.mockito.Mockito.when;
 class TaskOrganizerUseCaseTest {
 
     private TaskService taskService;
+    private TaskOrderingService taskOrderingService;
     private TaskOrganizerService taskOrganizerService;
     private NoteService noteService;
     private ProjectService projectService;
@@ -44,17 +48,17 @@ class TaskOrganizerUseCaseTest {
     @BeforeEach
     void setUp() {
         taskService = mock(TaskService.class);
+        taskOrderingService = mock(TaskOrderingService.class);
         taskOrganizerService = mock(TaskOrganizerService.class);
         noteService = mock(NoteService.class);
         projectService = mock(ProjectService.class);
         taskOrganizerUseCase = new TaskOrganizerUseCase(
                 taskService,
+                taskOrderingService,
                 taskOrganizerService,
                 noteService,
                 projectService
         );
-        when(noteService.update(any(Note.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -170,7 +174,8 @@ class TaskOrganizerUseCaseTest {
     void confirmsSelectedTasksWithoutUpdatingSourceNote() {
         Note note = note("장소조회 캐시 테스트 아직 못함\n운동화 주문");
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
-        when(taskService.createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트"))
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트", false, false, 1024L))
                 .thenReturn(Task.restore(
                         41L,
                         1L,
@@ -205,8 +210,7 @@ class TaskOrganizerUseCaseTest {
         assertThat(note.getContent()).isEqualTo("장소조회 캐시 테스트 아직 못함\n운동화 주문");
         assertThat(note.isDeleted()).isFalse();
         verify(projectService).validateOwnership(1L, 10L);
-        verify(taskService).createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트");
-        verify(noteService, never()).update(any());
+        verify(taskService).createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트", false, false, 1024L);
     }
 
     @Test
@@ -214,7 +218,8 @@ class TaskOrganizerUseCaseTest {
     void confirmsUnclassifiedTaskWithoutProject() {
         Note note = note("운동화 주문");
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
-        when(taskService.createFromNote(1L, null, 7L, "운동화 주문"))
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L))
                 .thenReturn(Task.restore(
                         42L,
                         1L,
@@ -247,7 +252,7 @@ class TaskOrganizerUseCaseTest {
                 )
         );
         verify(projectService, never()).validateOwnership(any(), any());
-        verify(taskService).createFromNote(1L, null, 7L, "운동화 주문");
+        verify(taskService).createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L);
     }
 
     @Test
@@ -255,12 +260,14 @@ class TaskOrganizerUseCaseTest {
     void validatesOnlyPresentProjectIds() {
         Note note = note("캐시 테스트\n운동화 주문");
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
-        when(taskService.createFromNote(1L, 10L, 7L, "캐시 테스트"))
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.createFromNote(1L, 10L, 7L, "캐시 테스트", false, false, 1024L))
                 .thenReturn(Task.restore(
                         41L, 1L, 10L, 7L, "캐시 테스트",
                         TaskStatus.TODO, 0, null, null
                 ));
-        when(taskService.createFromNote(1L, null, 7L, "운동화 주문"))
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L))
                 .thenReturn(Task.restore(
                         42L, 1L, null, 7L, "운동화 주문",
                         TaskStatus.TODO, 0, null, null
@@ -282,8 +289,8 @@ class TaskOrganizerUseCaseTest {
         );
 
         verify(projectService).validateOwnership(1L, 10L);
-        verify(taskService).createFromNote(1L, 10L, 7L, "캐시 테스트");
-        verify(taskService).createFromNote(1L, null, 7L, "운동화 주문");
+        verify(taskService).createFromNote(1L, 10L, 7L, "캐시 테스트", false, false, 1024L);
+        verify(taskService).createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L);
     }
 
     @Test
@@ -310,7 +317,8 @@ class TaskOrganizerUseCaseTest {
         )).isInstanceOfSatisfying(BusinessException.class, exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND));
 
-        verify(taskService, never()).createFromNote(any(), any(), any(), any());
+        verify(taskService, never()).createFromNote(
+                any(), any(), any(), any(), anyBoolean(), anyBoolean(), anyLong());
     }
 
     @Test
@@ -318,7 +326,8 @@ class TaskOrganizerUseCaseTest {
     void keepsNoteWhenEverySourceIsApproved() {
         Note note = note("장소조회 캐시 테스트 아직 못함");
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE)).thenReturn(note);
-        when(taskService.createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트"))
+        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
+        when(taskService.createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트", false, false, 1024L))
                 .thenReturn(Task.restore(
                         41L,
                         1L,
@@ -345,7 +354,6 @@ class TaskOrganizerUseCaseTest {
 
         assertThat(note.getContent()).isEqualTo("장소조회 캐시 테스트 아직 못함");
         assertThat(note.isDeleted()).isFalse();
-        verify(noteService, never()).update(any());
     }
 
     @Test
@@ -369,7 +377,8 @@ class TaskOrganizerUseCaseTest {
                         .isEqualTo(ErrorCode.INVALID_TASK_ORGANIZER_SELECTION)
         );
 
-        verify(taskService, never()).createFromNote(any(), any(), any(), any());
+        verify(taskService, never()).createFromNote(
+                any(), any(), any(), any(), anyBoolean(), anyBoolean(), anyLong());
     }
 
     private TaskOrganizerContextRow row(

@@ -46,6 +46,22 @@ class SessionTest {
     }
 
     @Test
+    @DisplayName("반복과 휴식을 포함한 전체 계획 시간이 일치해야 세션을 생성한다")
+    void validatesCalculatedPlannedDurationOnStart() {
+        Session session = Session.createPersonal(
+                1L, 20L, List.of(10L),
+                5700, 2700, 300, 2
+        );
+
+        assertThat(session.getPlannedDurationSec()).isEqualTo(5700);
+        assertThatThrownBy(() -> Session.createPersonal(
+                1L, 20L, List.of(10L),
+                5400, 2700, 300, 2
+        )).isInstanceOfSatisfying(BusinessException.class, exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_SESSION_DURATION));
+    }
+
+    @Test
     @DisplayName("계획 시간 전에 종료하면 실제 시간과 중단 상태를 기록한다")
     void endsBeforePlannedDuration() {
         Session session = startedSession();
@@ -135,36 +151,53 @@ class SessionTest {
     }
 
     @Test
-    @DisplayName("진행 중인 세션의 계획 시간을 변경한다")
-    void updatesPlannedDuration() {
+    @DisplayName("진행 중인 세션의 집중 시간과 전체 계획 시간을 변경한다")
+    void updatesFocusDuration() {
         Session session = startedSession();
 
-        session.updatePlannedDuration(1800);
+        session.updateFocusDuration(1800);
 
+        assertThat(session.getFocusDurationSec()).isEqualTo(1800);
         assertThat(session.getPlannedDurationSec()).isEqualTo(1800);
     }
 
     @Test
-    @DisplayName("허용 범위를 벗어난 계획 시간으로 변경할 수 없다")
-    void rejectsInvalidPlannedDuration() {
+    @DisplayName("허용 범위를 벗어난 집중 시간으로 변경할 수 없다")
+    void rejectsInvalidFocusDuration() {
         Session session = startedSession();
 
-        assertThatThrownBy(() -> session.updatePlannedDuration(59))
+        assertThatThrownBy(() -> session.updateFocusDuration(59))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.INVALID_SESSION_DURATION));
     }
 
     @Test
-    @DisplayName("종료한 세션의 계획 시간은 변경할 수 없다")
-    void rejectsPlannedDurationUpdateAfterEnd() {
+    @DisplayName("종료한 세션의 집중 시간은 변경할 수 없다")
+    void rejectsFocusDurationUpdateAfterEnd() {
         Session session = startedSession();
         session.end(STARTED_AT.plusSeconds(600), null, List.of());
 
-        assertThatThrownBy(() -> session.updatePlannedDuration(1800))
+        assertThatThrownBy(() -> session.updateFocusDuration(1800))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.SESSION_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("반복 세션의 집중 시간을 바꾸면 휴식을 포함한 전체 계획 시간을 다시 계산한다")
+    void recalculatesPlannedDurationForRepeatedSession() {
+        Session session = Session.restore(
+                5L, 1L, SessionType.PERSONAL, 20L,
+                List.of(SessionTask.of(10L)), null,
+                3300, 1500, 300, 2,
+                null, STARTED_AT, null, SessionStatus.IN_PROGRESS, null
+        );
+
+        session.updateFocusDuration(1800);
+
+        assertThat(session.getFocusDurationSec()).isEqualTo(1800);
+        assertThat(session.getPlannedDurationSec()).isEqualTo(3900);
     }
 
     private Session startedSession() {

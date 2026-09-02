@@ -7,7 +7,6 @@ import com.swimming.backend.user.dto.UserAuthInfo;
 import com.swimming.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,25 +17,16 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-
     @Transactional(propagation = Propagation.REQUIRED)
-    public void changePassword(Long userId, String currentPassword, String newPassword) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new BusinessException(ErrorCode.CURRENT_PASSWORD_MISMATCH);
-        }
-        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
-            throw new BusinessException(ErrorCode.PASSWORD_REUSE_NOT_ALLOWED);
-        }
-        user.changePasswordHash(passwordEncoder.encode(newPassword));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public Optional<UserAuthInfo> getAuthInfoByEmail(String email) {
-        return userRepository.findByEmailIgnoreCase(email)
-                .map(this::toAuthInfo);
+    public UserAuthInfo findOrCreateGoogleUser(String googleSubject, String email, String nickname) {
+        return userRepository.findByGoogleSubject(googleSubject)
+                .map(this::toAuthInfo)
+                .orElseGet(() -> toAuthInfo(userRepository.save(User.builder()
+                        .googleSubject(googleSubject)
+                        .email(email)
+                        .nickname(nickname)
+                        .timezone("Asia/Seoul")
+                        .build())));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -56,7 +46,6 @@ public class UserService {
         return new UserAuthInfo(
                 user.getId(),
                 user.getEmail(),
-                user.getPasswordHash(),
                 user.getNickname(),
                 user.getTimezone()
         );

@@ -2,11 +2,14 @@ package com.swimming.backend.task.controller;
 
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskUrgentRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +36,21 @@ public class TaskController {
 
     private final TaskUseCase taskUseCase;
 
+    @PostMapping("/tasks")
+    public ResponseEntity<TaskResponse> createWithOptionalPlan(
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody CreateTaskWithPlanRequest request
+    ) {
+        TaskResponse response = taskUseCase.createWithOptionalPlan(authUser.id(), request);
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/tasks/{id}")
+                .buildAndExpand(response.id())
+                .toUri();
+        return ResponseEntity.created(location).body(response);
+    }
+
     @PostMapping("/projects/{projectId}/tasks")
+    @Deprecated(since = "2026-09-01", forRemoval = true)
     public ResponseEntity<TaskResponse> create(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long projectId,
@@ -79,6 +96,24 @@ public class TaskController {
             @Valid @RequestBody UpdateTaskStatusRequest request
     ) {
         return ResponseEntity.ok(taskUseCase.updateStatus(authUser.id(), taskId, request));
+    }
+
+    @PatchMapping("/tasks/{taskId}/priority")
+    public ResponseEntity<TaskResponse> updatePriority(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @RequestBody UpdateTaskPriorityRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updatePriority(authUser.id(), taskId, request));
+    }
+
+    @PatchMapping("/tasks/{taskId}/urgent")
+    public ResponseEntity<TaskResponse> updateUrgent(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @RequestBody UpdateTaskUrgentRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updateUrgent(authUser.id(), taskId, request));
     }
 
     @DeleteMapping("/tasks")

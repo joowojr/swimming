@@ -105,11 +105,16 @@ function App() {
     setIsCreateModalOpen(false)
   }
 
+  const handleLogout = async () => {
+    await authActions.logout()
+    setGuestView('login')
+  }
+
   if (auth.status === 'authenticated' && location.pathname.startsWith('/sessions/')) {
     return (
       <Routes>
         <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
-        <Route path="*" element={<Navigate to="/tasks" replace />} />
+        <Route path="*" element={<Navigate to="/folders" replace />} />
       </Routes>
     )
   }
@@ -124,10 +129,10 @@ function App() {
         <LoginPage />
       ) : auth.status === 'authenticated' ? (
         <Routes>
-          <Route path="/settings" element={<UserSettingsPage user={auth.user!} />} />
+          <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
           <Route path="/sessions" element={<DiveSessionFeedPage />} />
           <Route
-            path="/tasks"
+            path="/folders"
             element={(
               <>
                 <ProjectListPage
@@ -171,10 +176,10 @@ function App() {
             )}
           />
           <Route
-            path="/tasks/folders/:projectId"
+            path="/folders/:projectId"
             element={<ProjectDetailRoute onDeleted={removeProject} />}
           />
-          <Route path="*" element={<Navigate to="/tasks" replace />} />
+          <Route path="*" element={<Navigate to="/folders" replace />} />
         </Routes>
       ) : (
         <section className={styles['home-overview']} aria-live="polite">

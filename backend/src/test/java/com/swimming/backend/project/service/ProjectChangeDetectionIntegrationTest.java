@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.generate_statistics=true",
+        "spring.flyway.enabled=false",
         "spring.sql.init.mode=never",
         "spring.ai.openai.api-key=test",
         "app.place.background.cdn-base-url=https://cdn.example.com"
@@ -54,7 +55,7 @@ class ProjectChangeDetectionIntegrationTest {
     void updatesAndDeletesProjectWithDirtyChecking() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("project-direct-mutation@example.com")
-                .passwordHash("password")
+                .googleSubject("project-change-detection-google-subject")
                 .nickname("project-direct-mutation-user")
                 .timezone("Asia/Seoul")
                 .build());
@@ -93,7 +94,7 @@ class ProjectChangeDetectionIntegrationTest {
         statistics.clear();
         projectService.delete(user.getId(), entity.getId());
 
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(3);
         assertThat(projectRepository.findByIdAndUser_IdAndDeletedFalse(entity.getId(), user.getId()))
                 .isEmpty();
     }

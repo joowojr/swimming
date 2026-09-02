@@ -19,6 +19,12 @@ public record StartPersonalSessionRequest(
         @NotNull(message = "집중 시간을 입력해 주세요")
         @Min(value = 60, message = "집중 시간은 60초 이상이어야 합니다")
         @Max(value = 86400, message = "집중 시간은 86400초 이하여야 합니다")
-        Integer plannedDurationSec
+        Integer plannedDurationSec,
+
+        @NotNull @Min(60) @Max(86400) Integer focusDurationSec,
+
+        @NotNull @Min(0) @Max(3600) Integer breakDurationSec,
+
+        @NotNull @Min(1) @Max(8) Integer repeatCount
 ) {
 }

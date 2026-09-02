@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,7 +33,24 @@ public class TaskService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Task create(Long userId, Long projectId, String title) {
-        return create(userId, projectId, null, title);
+        return create(userId, projectId, null, title, false, false, 0L);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task create(Long userId, Long projectId, String title, boolean priority, boolean urgent) {
+        return create(userId, projectId, null, title, priority, urgent, 0L);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task create(
+            Long userId,
+            Long projectId,
+            String title,
+            boolean priority,
+            boolean urgent,
+            long matrixRank
+    ) {
+        return create(userId, projectId, null, title, priority, urgent, matrixRank);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -42,14 +60,30 @@ public class TaskService {
             Long sourceNoteId,
             String title
     ) {
-        return create(userId, projectId, sourceNoteId, title);
+        return create(userId, projectId, sourceNoteId, title, false, false, 0L);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task createFromNote(
+            Long userId,
+            Long projectId,
+            Long sourceNoteId,
+            String title,
+            boolean priority,
+            boolean urgent,
+            long matrixRank
+    ) {
+        return create(userId, projectId, sourceNoteId, title, priority, urgent, matrixRank);
     }
 
     private Task create(
             Long userId,
             Long projectId,
             Long sourceNoteId,
-            String title
+            String title,
+            boolean priority,
+            boolean urgent,
+            long matrixRank
     ) {
         int nextOrder = (projectId == null
                 ? taskRepository.findTopByUser_IdAndProjectIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
@@ -58,8 +92,8 @@ public class TaskService {
                 .map(orderIdx -> orderIdx + 1)
                 .orElse(0);
         Task task = sourceNoteId == null
-                ? Task.create(userId, projectId, title, nextOrder)
-                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder);
+                ? Task.create(userId, projectId, title, nextOrder, priority, urgent, matrixRank)
+                : Task.createFromNote(userId, projectId, sourceNoteId, title, nextOrder, priority, urgent, matrixRank);
         User user = entityManager.getReference(User.class, userId);
         ProjectEntity project = projectId == null
                 ? null
@@ -180,4 +214,5 @@ public class TaskService {
         return taskRepository.findByIdAndUser_IdAndDeletedFalse(taskId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
     }
+
 }

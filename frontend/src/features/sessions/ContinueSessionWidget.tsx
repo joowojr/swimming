@@ -17,12 +17,18 @@ type WidgetState =
     | { status: 'ready'; session: SessionDetailResponse | null }
     | { status: 'error' }
 
+type ContinueSessionWidgetVariant = 'home' | 'empty-session'
+
+interface ContinueSessionWidgetProps {
+  variant?: ContinueSessionWidgetVariant
+}
+
 function formatDuration(seconds: number) {
   const minutes = Math.floor(seconds / 60)
   return minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60}시간` : `${minutes}분`
 }
 
-export default function ContinueSessionWidget() {
+export default function ContinueSessionWidget({ variant = 'home' }: ContinueSessionWidgetProps) {
   const navigate = useNavigate()
   const [state, setState] = useState<WidgetState>({ status: 'loading' })
   const [todayTasks, setTodayTasks] = useState<DailyPlanItem[] | null>(null)
@@ -70,7 +76,7 @@ export default function ContinueSessionWidget() {
 
   return (
       <section
-          className={`${styles.widget} ${isEmpty ? styles['is-invite'] : ''}`}
+          className={`${styles.widget} ${styles[variant]} ${isEmpty ? styles['is-invite'] : ''}`}
           aria-labelledby="continue-session-title"
       >
         <div className={styles.thumbnail} aria-hidden="true">
@@ -84,7 +90,9 @@ export default function ContinueSessionWidget() {
         <div className={styles.content}>
           <header>
             <h2 id="continue-session-title">
-              {isEmpty ? '잠시 떠나볼까요' : '이어서 하기'}
+              {isEmpty
+                ? variant === 'empty-session' ? '첫 다이브를 시작해볼까요' : '오늘은 어디에서 집중할까요'
+                : '이어서 하기'}
             </h2>
             <span>{session ? '진행 중인 세션' : '오늘의 집중'}</span>
           </header>
@@ -104,9 +112,13 @@ export default function ContinueSessionWidget() {
               <p className={styles.status}>세션을 확인하지 못했습니다.</p>
           ) : (
               <>
-                <strong className={styles.task}>Lisbon · Alfama Cafe</strong>
+                <strong className={styles.task}>
+                  {variant === 'empty-session' ? '나만의 첫 집중 시간' : '오늘의 다이브 세션'}
+                </strong>
                 <p className={styles['invite-copy']}>
-                  45분만 다른 도시에서 집중해보세요.
+                  {variant === 'empty-session'
+                    ? '아직 진행한 세션이 없습니다. 첫 다이브 세션을 시작해 보세요.'
+                    : '오늘 계획에서 할 일을 골라 다이브 세션을 시작해 보세요.'}
                 </p>
                 <ModalTriggerButton
                     className={`${styles.action} ${styles['action-primary']}`}

@@ -15,10 +15,10 @@ import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
+import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {addDailyPlanItems, deleteDailyPlanItem, getDailyPlans} from './dailyPlanApi'
-import type {TaskStatus} from '../tasks/taskTypes'
+import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanner.module.css'
@@ -27,7 +27,7 @@ interface DailyPlannerProps {
     projects: Project[]
 }
 
-type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status'>>
+type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status' | 'priority' | 'urgent'>>
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {year: 'numeric', month: 'long'})
 const selectedDateFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'long'})
@@ -158,14 +158,19 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
-    const addTask = async (title: string, projectId: number | null) => {
-        replacePlan(await addDailyPlanItems(selectedDate, {title, ...(projectId === null ? {} : {projectId})}))
+    const addTask = async (title: string, projectId: number | null, priority: boolean, urgent: boolean) => {
+        replacePlan(await addDailyPlanItems(selectedDate, {
+            title,
+            priority,
+            urgent,
+            ...(projectId === null ? {} : {projectId}),
+        }))
     }
 
     const updateTaskOverride = (
         taskId: number,
-        field: 'title' | 'status',
-        value: string,
+        field: 'title' | 'status' | 'priority' | 'urgent',
+        value: string | boolean,
     ) => {
         setTaskOverrides((current) => ({
             ...current,
@@ -174,6 +179,11 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 [field]: value,
             },
         }))
+    }
+
+    const updateTaskFlags = (task: TaskResponse) => {
+        updateTaskOverride(task.id, 'priority', task.priority)
+        updateTaskOverride(task.id, 'urgent', task.urgent)
     }
 
     const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
@@ -190,6 +200,32 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? '상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const changeTaskPriority = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            updateTaskFlags(await updateTaskPriority(item.taskId, {priority: !item.priority}))
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '중요 표시를 변경하지 못했습니다.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const changeTaskUrgent = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            updateTaskFlags(await updateTaskUrgent(item.taskId, {urgent: !item.urgent}))
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '즉시 표시를 변경하지 못했습니다.')
         } finally {
             setPendingTaskId(null)
         }
@@ -286,8 +322,13 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                         title={
                                             <InlineEditableText
                                                 value={item.title}
-                                                ariaLabel="Task 제목"
+                                                ariaLabel={`${item.urgent ? '즉시 ' : ''}${item.priority ? '중요 ' : ''}Task 제목`}
                                                 maxLength={255}
+                                                className={[
+                                                    styles['task-title-editor'],
+                                                    item.priority && styles['is-priority'],
+                                                    item.urgent && styles['is-urgent'],
+                                                ].filter(Boolean).join(' ')}
                                                 requiredMessage="Task 제목을 입력해 주세요."
                                                 onSave={(title) => changeTaskTitle(item, title)}
                                                 getErrorMessage={getTaskTitleError}
@@ -311,6 +352,12 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                                             {TASK_STATUS_VALUES.map((taskStatus) => <option value={taskStatus} key={taskStatus}>{TASK_STATUS_LABEL[taskStatus]}</option>)}
                                         </select>
                                         <TaskMenu inline label={`${item.title} 카드 메뉴`}>
+                                            <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
+                                                {item.priority ? '중요 해제' : '중요 설정'}
+                                            </button>
+                                            <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
+                                                {item.urgent ? '즉시 해제' : '즉시 설정'}
+                                            </button>
                                             {selectedDate === today && (
                                                 <ModalTriggerButton dialogId="create-session-dialog" isOpen={sessionTaskId === item.taskId} variant="plain" icon={<IconPlayerPlay size={15} aria-hidden="true" />} onClick={() => setSessionTaskId(item.taskId)}>
                                                     다이브 세션
@@ -329,7 +376,7 @@ export default function DailyPlanner({projects}: DailyPlannerProps) {
                 )}
             </div>
 
-            {isPickerOpen && <TaskPickerModal projects={projects} selectedTaskIds={new Set(items.map((item) => item.taskId))} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
+            {isPickerOpen && <TaskPickerModal projects={projects} selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
             {sessionTaskId !== null && <CreateSessionModal todayTasks={todayTasks} initialTaskId={sessionTaskId} onClose={() => setSessionTaskId(null)} onStarted={(session) => { setSessionTaskId(null); navigate(`/sessions/${session.id}`) }} />}
         </section>
     )

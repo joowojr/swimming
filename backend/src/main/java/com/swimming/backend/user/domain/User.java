@@ -25,8 +25,8 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+    @Column(name = "google_subject", nullable = false, unique = true, updatable = false)
+    private String googleSubject;
 
     @Column(nullable = false)
     private String nickname;
@@ -34,19 +34,15 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private String timezone;
 
-    public void changePasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
     @Builder
     private User(
             String email,
-            String passwordHash,
+            String googleSubject,
             String nickname,
             String timezone
     ) {
         this.email = email;
-        this.passwordHash = passwordHash;
+        this.googleSubject = googleSubject;
         this.nickname = nickname;
         this.timezone = timezone;
     }

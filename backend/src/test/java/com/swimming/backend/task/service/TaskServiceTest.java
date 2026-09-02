@@ -80,6 +80,7 @@ class TaskServiceTest {
         assertThat(task.getTitle()).isEqualTo("API 명세 작성");
         assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
         assertThat(task.getOrderIdx()).isZero();
+        assertThat(task.getMatrixRank()).isZero();
     }
 
     @Test
@@ -164,6 +165,16 @@ class TaskServiceTest {
         assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
         assertThat(tasks).allMatch(task -> task.getProjectId() == null);
         verify(taskRepository).findAllByUser_IdAndProjectIsNullAndDeletedFalseOrderByCreatedAtDesc(1L);
+    }
+
+    @Test
+    @DisplayName("UseCase가 계산한 Matrix rank로 Task를 생성한다")
+    void createsTaskWithSuppliedMatrixRank() {
+        Task task = taskService.create(1L, null, "새 중요 Task", true, false, 5120L);
+
+        assertThat(task.isPriority()).isTrue();
+        assertThat(task.isUrgent()).isFalse();
+        assertThat(task.getMatrixRank()).isEqualTo(5120L);
     }
 
     @Test
@@ -383,7 +394,7 @@ class TaskServiceTest {
     private User user(Long userId) {
         User user = User.builder()
                 .email("user@example.com")
-                .passwordHash("password")
+                .googleSubject("task-service-google-subject")
                 .nickname("사용자")
                 .timezone("Asia/Seoul")
                 .build();

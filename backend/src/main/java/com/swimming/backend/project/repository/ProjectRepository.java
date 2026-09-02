@@ -24,6 +24,20 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, Long> {
     Optional<ProjectEntity> findByIdAndUser_IdAndDeletedFalse(Long id, Long userId);
 
     @Query("""
+            SELECT count(task.id)
+            FROM ProjectEntity project
+            JOIN TaskEntity task ON task.project.id = project.id
+            WHERE project.id = :projectId
+              AND project.user.id = :userId
+              AND project.deleted = false
+              AND task.deleted = false
+            """)
+    long countActiveTasks(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId
+    );
+
+    @Query("""
             SELECT count(project.id)
             FROM ProjectEntity project
             WHERE project.user.id = :userId

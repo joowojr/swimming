@@ -5,7 +5,7 @@
 
 .app-shell-body {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: clamp(10rem, 14vw, 15rem) minmax(0, 1fr);
   min-height: calc(100svh - 3.5rem);
 }
 
@@ -13,6 +13,18 @@
   min-width: 0;
   padding: 0;
   background: var(--color-background);
+}
+
+@media (min-width: 48.01rem) and (max-width: 80rem) {
+  .app-content {
+    --layout-page-padding-inline: var(--space-10);
+  }
+}
+
+@media (min-width: 80.01rem) and (max-width: 90rem) {
+  .app-content {
+    --layout-page-padding-inline: var(--space-12);
+  }
 }
 
 @media (max-width: 48rem) {

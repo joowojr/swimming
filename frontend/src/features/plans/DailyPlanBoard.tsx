@@ -13,14 +13,14 @@ import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {Project, ProjectDetail} from '../projects/projectTypes'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
+import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
 import {
     addDailyPlanItems,
     deleteDailyPlanItem,
     getDailyPlans,
 } from './dailyPlanApi'
-import type {TaskStatus} from '../tasks/taskTypes'
+import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
@@ -117,9 +117,11 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }
 
-    const addTask = async (title: string, projectId: number | null) => {
+    const addTask = async (title: string, projectId: number | null, priority: boolean, urgent: boolean) => {
         replacePlan(await addDailyPlanItems(selectedDate, {
             title,
+            priority,
+            urgent,
             ...(projectId === null ? {} : {projectId}),
         }))
     }
@@ -162,6 +164,47 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                 ? (error as ApiError).message
                 : undefined
             setMessage(apiMessage ?? '상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const replaceTaskFlags = (task: Pick<TaskResponse, 'id' | 'priority' | 'urgent'>) => {
+        const replace = (items: DailyPlanItem[]) => items.map((candidate) => (
+            candidate.taskId === task.id
+                ? {...candidate, priority: task.priority, urgent: task.urgent}
+                : candidate
+        ))
+        setDrafts((current) => Object.fromEntries(
+            Object.entries(current).map(([date, items]) => [date, replace(items)]),
+        ))
+        setPlans((current) => current.map((plan) => ({
+            ...plan,
+            items: replace(plan.items),
+        })))
+    }
+
+    const changeTaskPriority = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            replaceTaskFlags(await updateTaskPriority(item.taskId, {priority: !item.priority}))
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '중요 표시를 변경하지 못했습니다.')
+        } finally {
+            setPendingTaskId(null)
+        }
+    }
+
+    const changeTaskUrgent = async (item: DailyPlanItem) => {
+        setPendingTaskId(item.taskId)
+        setMessage(null)
+        try {
+            replaceTaskFlags(await updateTaskUrgent(item.taskId, {urgent: !item.urgent}))
+        } catch (error: unknown) {
+            const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
+            setMessage(apiMessage ?? '즉시 표시를 변경하지 못했습니다.')
         } finally {
             setPendingTaskId(null)
         }
@@ -264,8 +307,13 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                         <strong>
                                                             <InlineEditableText
                                                                 value={item.title}
-                                                                ariaLabel="Task 제목"
+                                                                ariaLabel={`${item.urgent ? '즉시 ' : ''}${item.priority ? '중요 ' : ''}Task 제목`}
                                                                 maxLength={255}
+                                                                className={[
+                                                                    styles['task-title-editor'],
+                                                                    item.priority && styles['is-priority'],
+                                                                    item.urgent && styles['is-urgent'],
+                                                                ].filter(Boolean).join(' ')}
                                                                 requiredMessage="Task 제목을 입력해 주세요."
                                                                 onSave={(title) => changeTaskTitle(item, title)}
                                                                 getErrorMessage={getTaskTitleError}
@@ -290,6 +338,12 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
                                                     {selected && (
                                                         <TaskMenu
                                                             label={`${item.title} 카드 메뉴`}>
+                                                                <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
+                                                                    {item.priority ? '중요 해제' : '중요 설정'}
+                                                                </button>
+                                                                <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
+                                                                    {item.urgent ? '즉시 해제' : '즉시 설정'}
+                                                                </button>
                                                                 {plan.date === today && (
                                                                     <ModalTriggerButton
                                                                         dialogId="create-session-dialog"
@@ -332,6 +386,7 @@ export default function DailyPlanBoard({projects}: DailyPlanSectionProps) {
             )}
 
             {isPickerOpen && <TaskPickerModal projects={projects}
+                initialPlanDate={selectedDate}
                                               selectedTaskIds={new Set(draftItems.map((item) => item.taskId))}
                                               onAdd={addTasks} onAddTask={addTask}
                                               onClose={() => setIsPickerOpen(false)}/>}

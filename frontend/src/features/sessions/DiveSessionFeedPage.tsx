@@ -9,6 +9,7 @@ import {
   IconPlayerPlay,
 } from '@tabler/icons-react'
 import { getSessions } from './sessionApi'
+import ContinueSessionWidget from './ContinueSessionWidget'
 import type { SessionDetailResponse, SessionStatus } from './sessionTypes'
 import styles from './DiveSessionFeedPage.module.css'
 
@@ -82,11 +83,8 @@ export default function DiveSessionFeedPage() {
         )}
 
         {status === 'ready' && sessions.length === 0 && (
-          <section className={styles.state}>
-            <IconClock size={24} aria-hidden="true" />
-            <strong>아직 기록된 다이브 세션이 없습니다.</strong>
-            <span>오늘의 Task에서 첫 세션을 시작해 보세요.</span>
-            <Link className={styles['state-link']} to="/tasks">폴더 보기</Link>
+          <section className={styles['empty-start']} aria-label="첫 다이브 세션 시작">
+            <ContinueSessionWidget variant="empty-session" />
           </section>
         )}
 

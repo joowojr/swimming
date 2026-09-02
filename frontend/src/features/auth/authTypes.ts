@@ -1,6 +1,5 @@
-export interface LoginRequest {
-  email: string
-  password: string
+export interface GoogleLoginRequest {
+  credential: string
 }
 
 export interface AuthUser {
@@ -20,5 +19,3 @@ export interface RefreshResponse {
 }
 
 export type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated'
-
-export type LoginFieldErrors = Partial<Record<keyof LoginRequest, string>>

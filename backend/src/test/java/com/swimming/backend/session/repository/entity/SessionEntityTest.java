@@ -106,15 +106,16 @@ class SessionEntityTest {
     }
 
     @Test
-    @DisplayName("수정된 계획 시간을 엔티티에 반영한다")
-    void appliesPlannedDuration() {
+    @DisplayName("수정된 집중 시간과 계획 시간을 엔티티에 반영한다")
+    void appliesFocusAndPlannedDuration() {
         SessionEntity entity = SessionEntity.from(
                 Session.createPersonal(1L, 20L, List.of(10L), 1500)
         );
         ReflectionTestUtils.setField(entity, "id", 5L);
         ReflectionTestUtils.setField(entity, "startedAt", STARTED_AT);
-        entity.updatePlannedDuration(1800);
+        entity.updateFocusDuration(1800, 1800);
 
+        assertThat(entity.getFocusDurationSec()).isEqualTo(1800);
         assertThat(entity.getPlannedDurationSec()).isEqualTo(1800);
     }
 }

@@ -5,7 +5,7 @@ import type {
   SessionResponse,
   StartPersonalSessionRequest,
   UpdateSessionMusicUrlRequest,
-  UpdateSessionPlannedDurationRequest,
+  UpdateSessionFocusDurationRequest,
 } from './sessionTypes'
 
 export async function startPersonalSession(
@@ -45,9 +45,9 @@ export async function updateSessionMusicUrl(
   await client.put(`/sessions/${sessionId}/music-url`, request)
 }
 
-export async function updateSessionPlannedDuration(
+export async function updateSessionFocusDuration(
   sessionId: number,
-  request: UpdateSessionPlannedDurationRequest,
+  request: UpdateSessionFocusDurationRequest,
 ): Promise<void> {
-  await client.put(`/sessions/${sessionId}/planned-duration`, request)
+  await client.put(`/sessions/${sessionId}/focus-duration`, request)
 }

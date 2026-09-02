@@ -282,6 +282,20 @@
     animation: spin 1s linear infinite;
 }
 
+span.task-title-editor.is-priority button::before {
+    content: '📌';
+    margin-right: var(--space-2);
+}
+
+span.task-title-editor.is-urgent button::before {
+    content: '⚡';
+    margin-right: var(--space-2);
+}
+
+span.task-title-editor.is-priority.is-urgent button::before {
+  content: '⚡ 📌';
+}
+
 @media (hover: hover) and (pointer: fine) {
     .calendarNav button:hover,
     .day:hover:not([data-selected='true']),

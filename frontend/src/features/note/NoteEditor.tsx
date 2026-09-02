@@ -2,6 +2,7 @@ import type { ChangeEvent, RefObject } from 'react'
 import { IconArchive, IconPlus, IconSparkles } from '@tabler/icons-react'
 import ActionButton from '../../components/ActionButton'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import DeleteConfirmation from '../../components/DeleteConfirmation'
 import type { LoadStatus, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
 import { useNoteEditorStore } from './noteEditorStore'
@@ -100,13 +101,13 @@ export default function NoteEditor({
       </div>
 
       {isConfirmingDelete && (
-        <div className={styles['delete-confirmation']} role="group" aria-label="노트 삭제 확인">
-          <span>이 노트를 삭제할까요?</span>
-          <div>
-            <ActionButton variant="plain" onClick={onCancelDelete} disabled={isDeleting}>취소</ActionButton>
-            <ActionButton isLoading={isDeleting} loadingLabel="삭제 중…" onClick={onDelete}>삭제</ActionButton>
-          </div>
-        </div>
+        <DeleteConfirmation
+          message="이 노트를 삭제할까요?"
+          ariaLabel="노트 삭제 확인"
+          isDeleting={isDeleting}
+          onCancel={onCancelDelete}
+          onConfirm={onDelete}
+        />
       )}
 
       {archiveSuggested && !recentlyArchived && (

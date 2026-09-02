@@ -4,12 +4,18 @@ import com.swimming.backend.project.dto.ProjectReference;
 import com.swimming.backend.project.service.ProjectService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
+import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskListMode;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskUrgentRequest;
 import com.swimming.backend.task.service.TaskService;
+import com.swimming.backend.task.service.TaskOrderingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,16 +28,36 @@ import java.util.List;
 public class TaskUseCase {
 
     private final TaskService taskService;
+    private final TaskOrderingService taskOrderingService;
     private final ProjectService projectService;
+    private final DailyPlanService dailyPlanService;
 
     @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse createWithOptionalPlan(Long userId, CreateTaskWithPlanRequest request) {
+        Long projectId = request.projectId() == null
+                ? null
+                : projectService.getReference(userId, request.projectId()).id();
+        long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
+        Task task = taskService.create(
+                userId, projectId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
+        if (request.planDate() != null) {
+            int orderIdx = dailyPlanService.getItems(userId, request.planDate()).size();
+            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
+        }
+        return TaskResponse.from(task);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Deprecated(since = "2026-09-01", forRemoval = true)
     public TaskResponse create(
             Long userId,
             Long projectId,
             CreateTaskRequest request
     ) {
         ProjectReference project = projectService.getReference(userId, projectId);
-        return TaskResponse.from(taskService.create(userId, project.id(), request.title()));
+        long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
+        return TaskResponse.from(taskService.create(
+                userId, project.id(), request.title(), request.priority(), request.urgent(), matrixRank));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -70,6 +96,16 @@ public class TaskUseCase {
             UpdateTaskStatusRequest request
     ) {
         return TaskResponse.from(taskService.updateStatus(userId, taskId, request.status()));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse updatePriority(Long userId, Long taskId, UpdateTaskPriorityRequest request) {
+        return TaskResponse.from(taskOrderingService.updatePriority(userId, taskId, request.priority()));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public TaskResponse updateUrgent(Long userId, Long taskId, UpdateTaskUrgentRequest request) {
+        return TaskResponse.from(taskOrderingService.updateUrgent(userId, taskId, request.urgent()));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

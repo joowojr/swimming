@@ -317,6 +317,56 @@
   }
 }
 
+@media (min-width: 48.01rem) and (max-width: 96rem),
+       (min-width: 48.01rem) and (max-height: 60rem) {
+  .player {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+
+  .header {
+    gap: var(--space-2);
+  }
+
+  .header > svg {
+    width: var(--space-4);
+  }
+
+  .header .recent-toggle {
+    width: var(--button-height);
+    height: var(--button-height);
+  }
+
+  .options {
+    gap: var(--space-1);
+  }
+
+  .options button {
+    min-height: calc(var(--button-height) - var(--space-1));
+    padding-inline: var(--space-2);
+  }
+
+  .source-row {
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .source button {
+    min-width: var(--space-8);
+    min-height: calc(var(--button-height) - var(--space-1));
+    padding-inline: var(--space-1);
+  }
+
+  .recent {
+    gap: var(--space-1);
+    padding: var(--space-2);
+  }
+
+  .source .recent-source {
+    gap: var(--space-2);
+  }
+}
+
 .recent button:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--space-1);

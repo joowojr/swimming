@@ -13,7 +13,7 @@ import DeleteIconButton from '../../components/DeleteIconButton'
 import ChecklistCard from '../../components/ChecklistCard'
 import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
-import type {Folder, FolderDetail} from '../folders/folderTypes.ts'
+import type {FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
@@ -22,10 +22,6 @@ import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanner.module.css'
-
-interface DailyPlannerProps {
-    folders: Folder[]
-}
 
 type TaskOverride = Partial<Pick<DailyPlanItem, 'title' | 'status' | 'priority' | 'urgent'>>
 
@@ -64,7 +60,7 @@ function monthDays(month: Date) {
     })
 }
 
-export default function DailyPlanner({folders}: DailyPlannerProps) {
+export default function DailyPlanner() {
     const navigate = useNavigate()
     const today = useMemo(() => formatDate(new Date()), [])
     const [selectedDate, setSelectedDate] = useState(today)
@@ -376,7 +372,7 @@ export default function DailyPlanner({folders}: DailyPlannerProps) {
                 )}
             </div>
 
-            {isPickerOpen && <TaskPickerModal folders={folders} selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
+            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
             {sessionTaskId !== null && <CreateSessionModal todayTasks={todayTasks} initialTaskId={sessionTaskId} onClose={() => setSessionTaskId(null)} onStarted={(session) => { setSessionTaskId(null); navigate(`/sessions/${session.id}`) }} />}
         </section>
     )

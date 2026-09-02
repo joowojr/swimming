@@ -11,7 +11,7 @@ import InlineEditableText from '../../components/InlineEditableText'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import TaskMenu from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
-import type {Folder, FolderDetail} from '../folders/folderTypes.ts'
+import type {FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
@@ -24,10 +24,6 @@ import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
-
-interface DailyPlanSectionProps {
-    folders: Folder[]
-}
 
 function formatLocalDate(date: Date) {
     const year = date.getFullYear()
@@ -46,7 +42,7 @@ const dayFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'short', day: 'num
 const weekdayFormatter = new Intl.DateTimeFormat('ko-KR', {weekday: 'short'})
 const rangeFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'short', day: 'numeric'})
 
-export default function DailyPlanBoard({folders}: DailyPlanSectionProps) {
+export default function DailyPlanBoard() {
     const navigate = useNavigate()
     const today = useMemo(() => formatLocalDate(new Date()), [])
     const [fromDate, setFromDate] = useState(today)
@@ -385,7 +381,7 @@ export default function DailyPlanBoard({folders}: DailyPlanSectionProps) {
                 </>
             )}
 
-            {isPickerOpen && <TaskPickerModal folders={folders}
+            {isPickerOpen && <TaskPickerModal
                 initialPlanDate={selectedDate}
                                               selectedTaskIds={new Set(draftItems.map((item) => item.taskId))}
                                               onAdd={addTasks} onAddTask={addTask}

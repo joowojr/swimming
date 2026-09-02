@@ -10,7 +10,7 @@ import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskPickerModal from '../plans/TaskPickerModal'
-import type { Folder } from './folderTypes.ts'
+import { useFolderStore } from '../../store/folderStore.ts'
 import { createTaskWithOptionalPlan } from '../tasks/taskApi'
 import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
@@ -67,8 +67,9 @@ function autoScrollDuringDrag(container: HTMLElement, clientY: number) {
   }
 }
 
-export default function TaskMatrix({ folders }: { folders: Folder[] }) {
+export default function TaskMatrix() {
   const navigate = useNavigate()
+  const folders = useFolderStore((state) => state.folders)
   const folderNameById = useMemo(
     () => new Map(folders.map((folder) => [folder.id, folder.name])),
     [folders],
@@ -457,7 +458,6 @@ export default function TaskMatrix({ folders }: { folders: Folder[] }) {
       )}
       {addDraft && (
         <TaskPickerModal
-          folders={folders}
           selectedTaskIds={new Set()}
           initialPriority={addDraft.priority}
           initialUrgent={addDraft.urgent}

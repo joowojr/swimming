@@ -26,7 +26,7 @@ public class TaskEntity extends BaseTimeEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
+    @JoinColumn(name = "folder_id")
     private ProjectEntity project;
 
     @ManyToOne(fetch = FetchType.LAZY)

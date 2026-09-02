@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "projects")
+@Table(name = "folders")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProjectEntity extends BaseTimeEntity {
@@ -36,7 +36,7 @@ public class ProjectEntity extends BaseTimeEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
+    @JoinColumn(name = "folder_tag_id")
     private ProjectTagEntity tag;
 
     @Column(nullable = false)

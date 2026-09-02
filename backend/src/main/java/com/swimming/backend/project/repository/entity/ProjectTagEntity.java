@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-        name = "project_tags",
+        name = "folder_tags",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_project_tags_user_name",
+                name = "uk_folder_tags_user_name",
                 columnNames = {"user_id", "name"}
         )
 )

@@ -81,7 +81,7 @@ CREATE TABLE sessions (
   break_duration_sec int NOT NULL DEFAULT 300,
   repeat_count int NOT NULL DEFAULT 1,
   actual_duration_sec int,
-  started_at timestamptz NOT NULL,
+  started_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   end_at timestamptz,
   status varchar(255) NOT NULL,
   summary varchar(255),

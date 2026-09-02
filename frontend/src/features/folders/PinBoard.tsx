@@ -100,8 +100,8 @@ export default function PinBoard({
                       onChange={setPlannerView}
                     />
                     {plannerView === 'daily'
-                      ? <DailyPlanner folders={folders}/>
-                      : <TaskMatrix folders={folders}/>}
+                      ? <DailyPlanner/>
+                      : <TaskMatrix/>}
                   </div>
                 </div>
 

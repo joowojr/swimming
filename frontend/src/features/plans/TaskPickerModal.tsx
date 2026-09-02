@@ -3,12 +3,12 @@ import { IconCheck, IconLoader2, IconPlus, IconX } from '@tabler/icons-react'
 import type { MouseEvent } from 'react'
 import ModeToggle from '../../components/ModeToggle'
 import { getFolder } from '../folders/folderApi.ts'
-import type { Folder, FolderDetail } from '../folders/folderTypes.ts'
+import type { FolderDetail } from '../folders/folderTypes.ts'
+import { useFolderStore } from '../../store/folderStore.ts'
 import styles from './TaskPickerModal.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
 
 interface TaskPickerModalProps {
-  folders: Folder[]
   selectedTaskIds: ReadonlySet<number>
   onAdd: (tasks: FolderDetail['tasks']) => Promise<void>
   onAddTask: (title: string, folderId: number | null, priority: boolean, urgent: boolean, planDate: string | null) => Promise<void>
@@ -18,10 +18,8 @@ interface TaskPickerModalProps {
   initialPlanDate?: string
 }
 
-type LoadState =
-  | { status: 'loading' }
-  | { status: 'ready'; details: FolderDetail[] }
-  | { status: 'error' }
+/** 선택한 폴더의 상세를 불러오는 상태. idle은 아직 폴더를 고르지 않은 상태다. */
+type DetailStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 type AddMode = 'direct' | 'folder'
 
@@ -57,7 +55,6 @@ const URGENCY_CHIPS = [
 ]
 
 export default function TaskPickerModal({
-  folders,
   selectedTaskIds,
   onAdd,
   onAddTask,
@@ -67,7 +64,10 @@ export default function TaskPickerModal({
   initialPlanDate = '',
 }: TaskPickerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const [state, setState] = useState<LoadState>({ status: 'loading' })
+  const folders = useFolderStore((state) => state.folders)
+  // 한 번 불러온 폴더 상세는 모달이 닫힐 때까지 재사용한다.
+  const [detailCache, setDetailCache] = useState<Record<number, FolderDetail>>({})
+  const [failedFolderIds, setFailedFolderIds] = useState<ReadonlySet<number>>(new Set())
   const [addMode, setAddMode] = useState<AddMode>('direct')
   const [title, setTitle] = useState('')
   const [folderId, setProjectId] = useState('')
@@ -79,14 +79,18 @@ export default function TaskPickerModal({
   const [selectedUrgent, setSelectedUrgent] = useState(initialUrgent)
   const [planDate, setPlanDate] = useState(initialPlanDate)
 
-  const activeProject = state.status === 'ready'
-    ? state.details.find((detail) => detail.id === Number(taskProjectId))
-    : undefined
-  const pendingTasks = state.status === 'ready'
-    ? state.details.flatMap((detail) => detail.tasks
-      .filter((task) => pendingTaskIds.has(task.id))
-      .map((task) => ({ task, folderName: detail.name })))
-    : []
+  const activeFolderId = taskProjectId ? Number(taskProjectId) : null
+  const activeProject = activeFolderId === null ? undefined : detailCache[activeFolderId]
+  const detailStatus: DetailStatus = activeFolderId === null
+    ? 'idle'
+    : activeProject
+      ? 'ready'
+      : failedFolderIds.has(activeFolderId)
+        ? 'error'
+        : 'loading'
+  const pendingTasks = Object.values(detailCache).flatMap((detail) => detail.tasks
+    .filter((task) => pendingTaskIds.has(task.id))
+    .map((task) => ({ task, folderName: detail.name })))
   const totalTaskCount = addMode === 'direct'
     ? (title.trim() ? 1 : 0)
     : pendingTaskIds.size
@@ -101,12 +105,19 @@ export default function TaskPickerModal({
   }, [])
 
   useEffect(() => {
+    if (activeFolderId === null) return
+    if (detailCache[activeFolderId] || failedFolderIds.has(activeFolderId)) return
+
     let active = true
-    void Promise.all(folders.map((folder) => getFolder(folder.id)))
-      .then((details) => { if (active) setState({ status: 'ready', details }) })
-      .catch(() => { if (active) setState({ status: 'error' }) })
+    void getFolder(activeFolderId)
+      .then((detail) => {
+        if (active) setDetailCache((current) => ({ ...current, [detail.id]: detail }))
+      })
+      .catch(() => {
+        if (active) setFailedFolderIds((current) => new Set(current).add(activeFolderId))
+      })
     return () => { active = false }
-  }, [folders])
+  }, [activeFolderId, detailCache, failedFolderIds])
 
   const requestClose = () => {
     if (!isSubmitting) dialogRef.current?.close()
@@ -283,21 +294,21 @@ export default function TaskPickerModal({
               <select
                 id="daily-plan-task-folder"
                 value={taskProjectId}
-                disabled={isSubmitting || state.status !== 'ready'}
+                disabled={isSubmitting}
                 onChange={(event) => setTaskProjectId(event.target.value)}
               >
                 <option value="">폴더</option>
-                {state.status === 'ready' && state.details.map((detail) => (
-                  <option value={detail.id} key={detail.id}>{detail.name}</option>
+                {folders.map((folder) => (
+                  <option value={folder.id} key={folder.id}>{folder.name}</option>
                 ))}
               </select>
 
-              {state.status === 'loading' ? (
+              {detailStatus === 'loading' ? (
                 <p className={styles.state} role="status">
                   <IconLoader2 className={styles.spinner} size={18} aria-hidden="true" />
                   작업을 불러오는 중…
                 </p>
-              ) : state.status === 'error' ? (
+              ) : detailStatus === 'error' ? (
                 <p className={styles.state} role="alert">작업을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
               ) : !taskProjectId ? (
                 <p className={styles.state}>폴더를 선택하면 할 일을 확인할 수 있습니다.</p>

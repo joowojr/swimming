@@ -58,15 +58,15 @@ class NoteControllerTest {
     }
 
     @Test
-    @DisplayName("Note 생성 시 Location 헤더와 생성된 ID만 반환한다")
-    void createsNoteWithIdOnly() throws Exception {
+    @DisplayName("Note 생성 시 Location 헤더와 생성된 Note를 반환한다")
+    void createsNoteWithCreatedNote() throws Exception {
         NoteCreateRequest request = new NoteCreateRequest(
                 "떠오른 일",
                 NoteContextType.DEFAULT,
                 null,
                 null
         );
-        when(noteUseCase.create(1L, request)).thenReturn(new NoteCreateResponse(7L));
+        when(noteUseCase.create(1L, request)).thenReturn(noteCreateResponse("떠오른 일"));
 
         mockMvc.perform(post("/api/notes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +79,9 @@ class NoteControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/notes/7"))
                 .andExpect(jsonPath("$.id").value(7))
-                .andExpect(jsonPath("$.content").doesNotExist());
+                .andExpect(jsonPath("$.content").value("떠오른 일"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.contextType").value("DEFAULT"));
     }
 
     @Test
@@ -108,7 +110,7 @@ class NoteControllerTest {
                 null,
                 null
         );
-        when(noteUseCase.create(1L, request)).thenReturn(new NoteCreateResponse(7L));
+        when(noteUseCase.create(1L, request)).thenReturn(noteCreateResponse(content));
 
         mockMvc.perform(post("/api/notes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -307,6 +309,19 @@ class NoteControllerTest {
                 contextType,
                 folderId,
                 sessionId
+        );
+    }
+
+    private NoteCreateResponse noteCreateResponse(String content) {
+        return new NoteCreateResponse(
+                7L,
+                content,
+                NoteStatus.ACTIVE,
+                NoteContextType.DEFAULT,
+                null,
+                null,
+                Instant.parse("2026-08-24T10:00:00Z"),
+                Instant.parse("2026-08-24T10:00:00Z")
         );
     }
 

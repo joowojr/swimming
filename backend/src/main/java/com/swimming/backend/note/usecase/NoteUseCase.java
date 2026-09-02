@@ -48,7 +48,7 @@ public class NoteUseCase {
         };
 
         Note created = noteService.create(note);
-        return new NoteCreateResponse(created.getId());
+        return NoteCreateResponse.from(created);
     }
 
     public List<NoteResponse> getAll(

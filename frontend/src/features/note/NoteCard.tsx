@@ -207,7 +207,6 @@ export default function NoteCard({
                 : folderId === undefined
                     ? { content, contextType: 'DEFAULT', folderId: null, sessionId: null }
                     : { content, contextType: 'PROJECT', folderId, sessionId: null })
-                .then((createdNote) => getNote(createdNote.id))
             : await updateNote(noteIdRef.current, { content })
 
         noteIdRef.current = savedNote.id

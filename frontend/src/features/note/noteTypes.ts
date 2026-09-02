@@ -13,9 +13,8 @@ export interface NoteResponse {
   updatedAt: string
 }
 
-export interface NoteCreateResponse {
-  id: number
-}
+// 생성 응답은 조회 응답과 같은 모양이다. 만든 직후 다시 조회하지 않기 위해서다.
+export type NoteCreateResponse = NoteResponse
 
 export type CreateNoteRequest =
   | {

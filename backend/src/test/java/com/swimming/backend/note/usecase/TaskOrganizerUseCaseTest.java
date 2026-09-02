@@ -13,7 +13,7 @@ import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.service.TaskOrganizerService;
 import com.swimming.backend.note.service.NoteService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
@@ -42,7 +42,7 @@ class TaskOrganizerUseCaseTest {
     private TaskOrderingService taskOrderingService;
     private TaskOrganizerService taskOrganizerService;
     private NoteService noteService;
-    private ProjectService projectService;
+    private FolderService folderService;
     private TaskOrganizerUseCase taskOrganizerUseCase;
 
     @BeforeEach
@@ -51,13 +51,13 @@ class TaskOrganizerUseCaseTest {
         taskOrderingService = mock(TaskOrderingService.class);
         taskOrganizerService = mock(TaskOrganizerService.class);
         noteService = mock(NoteService.class);
-        projectService = mock(ProjectService.class);
+        folderService = mock(FolderService.class);
         taskOrganizerUseCase = new TaskOrganizerUseCase(
                 taskService,
                 taskOrderingService,
                 taskOrganizerService,
                 noteService,
-                projectService
+                folderService
         );
     }
 
@@ -209,7 +209,7 @@ class TaskOrganizerUseCaseTest {
         );
         assertThat(note.getContent()).isEqualTo("장소조회 캐시 테스트 아직 못함\n운동화 주문");
         assertThat(note.isDeleted()).isFalse();
-        verify(projectService).validateOwnership(1L, 10L);
+        verify(folderService).validateOwnership(1L, 10L);
         verify(taskService).createFromNote(1L, 10L, 7L, "장소 조회 캐시 테스트", false, false, 1024L);
     }
 
@@ -251,7 +251,7 @@ class TaskOrganizerUseCaseTest {
                         "운동화 주문"
                 )
         );
-        verify(projectService, never()).validateOwnership(any(), any());
+        verify(folderService, never()).validateOwnership(any(), any());
         verify(taskService).createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L);
     }
 
@@ -288,7 +288,7 @@ class TaskOrganizerUseCaseTest {
                 )
         );
 
-        verify(projectService).validateOwnership(1L, 10L);
+        verify(folderService).validateOwnership(1L, 10L);
         verify(taskService).createFromNote(1L, 10L, 7L, "캐시 테스트", false, false, 1024L);
         verify(taskService).createFromNote(1L, null, 7L, "운동화 주문", false, false, 1024L);
     }
@@ -299,7 +299,7 @@ class TaskOrganizerUseCaseTest {
         when(noteService.getOne(1L, 7L, NoteStatus.ACTIVE))
                 .thenReturn(note("다른 프로젝트 Task\n운동화 주문"));
         org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.PROJECT_NOT_FOUND))
-                .when(projectService).validateOwnership(1L, 99L);
+                .when(folderService).validateOwnership(1L, 99L);
 
         assertThatThrownBy(() -> taskOrganizerUseCase.confirm(
                 1L,
@@ -382,14 +382,14 @@ class TaskOrganizerUseCaseTest {
     }
 
     private TaskOrganizerContextRow row(
-            Long projectId,
+            Long folderId,
             String projectName,
             Long taskId,
             String taskTitle,
             TaskStatus taskStatus
     ) {
         return new TaskOrganizerContextRow(
-                projectId,
+                folderId,
                 projectName,
                 "설명",
                 taskId,

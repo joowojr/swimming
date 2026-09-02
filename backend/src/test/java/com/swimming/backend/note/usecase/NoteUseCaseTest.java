@@ -10,7 +10,7 @@ import com.swimming.backend.note.dto.in.NoteCreateResponse;
 import com.swimming.backend.note.dto.in.NoteResponse;
 import com.swimming.backend.note.dto.in.NoteUpdateRequest;
 import com.swimming.backend.note.service.NoteService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.session.service.SessionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,16 +30,16 @@ import static org.mockito.Mockito.when;
 class NoteUseCaseTest {
 
     private NoteService noteService;
-    private ProjectService projectService;
+    private FolderService folderService;
     private SessionService sessionService;
     private NoteUseCase noteUseCase;
 
     @BeforeEach
     void setUp() {
         noteService = mock(NoteService.class);
-        projectService = mock(ProjectService.class);
+        folderService = mock(FolderService.class);
         sessionService = mock(SessionService.class);
-        noteUseCase = new NoteUseCase(noteService, projectService, sessionService);
+        noteUseCase = new NoteUseCase(noteService, folderService, sessionService);
     }
 
     @Test
@@ -67,7 +67,7 @@ class NoteUseCaseTest {
                 new NoteCreateRequest("폴더 메모", NoteContextType.PROJECT, 10L, null)
         );
 
-        verify(projectService).getReference(1L, 10L);
+        verify(folderService).getReference(1L, 10L);
         assertThat(response.id()).isEqualTo(2L);
     }
 
@@ -116,7 +116,7 @@ class NoteUseCaseTest {
                 null
         );
 
-        verify(projectService).getReference(1L, 10L);
+        verify(folderService).getReference(1L, 10L);
         assertThat(responses).extracting(NoteResponse::id).containsExactly(1L);
     }
 
@@ -193,7 +193,7 @@ class NoteUseCaseTest {
             String content,
             NoteStatus status,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId
     ) {
         return Note.restore(
@@ -203,7 +203,7 @@ class NoteUseCaseTest {
                 status,
                 false,
                 contextType,
-                projectId,
+                folderId,
                 sessionId,
                 LocalDateTime.of(2026, 8, 24, 10, 0),
                 LocalDateTime.of(2026, 8, 24, 10, 0)

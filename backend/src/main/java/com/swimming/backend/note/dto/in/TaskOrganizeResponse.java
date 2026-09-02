@@ -9,7 +9,7 @@ public record TaskOrganizeResponse(
 
     public record TaskSuggestionResponse(
             String sourceText,
-            Long projectId,
+            Long folderId,
             String projectName,
             String title
     ) {

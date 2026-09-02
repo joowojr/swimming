@@ -1,8 +1,8 @@
 package com.swimming.backend.task.repository;
 
-import com.swimming.backend.project.domain.Project;
-import com.swimming.backend.project.repository.ProjectRepository;
-import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.repository.FolderRepository;
+import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.repository.entity.TaskEntity;
 import com.swimming.backend.user.domain.User;
@@ -40,7 +40,7 @@ class TaskRepositoryJoinTest {
     private TaskRepository taskRepository;
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private FolderRepository folderRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -57,8 +57,8 @@ class TaskRepositoryJoinTest {
                 .nickname("task-list-user")
                 .timezone("Asia/Seoul")
                 .build());
-        ProjectEntity project = projectRepository.saveAndFlush(ProjectEntity.from(
-                Project.create(user.getId(), null, "폴더", "설명", null),
+        FolderEntity folder = folderRepository.saveAndFlush(FolderEntity.from(
+                Folder.create(user.getId(), null, "폴더", "설명", null),
                 user,
                 null
         ));
@@ -92,8 +92,8 @@ class TaskRepositoryJoinTest {
                 .nickname("soft-delete-task-user")
                 .timezone("Asia/Seoul")
                 .build());
-        ProjectEntity project = projectRepository.saveAndFlush(ProjectEntity.from(
-                Project.create(user.getId(), null, "폴더", "설명", null),
+        FolderEntity folder = folderRepository.saveAndFlush(FolderEntity.from(
+                Folder.create(user.getId(), null, "폴더", "설명", null),
                 user,
                 null
         ));

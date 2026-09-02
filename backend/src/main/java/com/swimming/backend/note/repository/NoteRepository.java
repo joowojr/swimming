@@ -35,7 +35,7 @@ public interface NoteRepository extends JpaRepository<NoteEntity, Long> {
 
     List<NoteEntity> findAllByUserIdAndProjectIdAndStatusAndDeletedFalseOrderByUpdatedAtDesc(
             Long userId,
-            Long projectId,
+            Long folderId,
             NoteStatus status
     );
 

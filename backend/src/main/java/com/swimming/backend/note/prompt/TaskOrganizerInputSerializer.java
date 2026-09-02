@@ -61,8 +61,8 @@ public final class TaskOrganizerInputSerializer {
         xml.append("<tasks>");
 
         for (var task : input.tasks()) {
-            xml.append("<task projectId=\"")
-                    .append(task.projectId())
+            xml.append("<task folderId=\"")
+                    .append(task.folderId())
                     .append("\">");
 
             xml.append("<title>")

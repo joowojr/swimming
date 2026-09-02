@@ -51,7 +51,7 @@ public class NoteController {
             @RequestParam(required = false)
             NoteContextType contextType,
             @RequestParam(required = false)
-            Long projectId,
+            Long folderId,
             @RequestParam(required = false)
             Long sessionId
     ) {
@@ -60,7 +60,7 @@ public class NoteController {
                         authUser.id(),
                         status,
                         contextType,
-                        projectId,
+                        folderId,
                         sessionId
                 )
         );

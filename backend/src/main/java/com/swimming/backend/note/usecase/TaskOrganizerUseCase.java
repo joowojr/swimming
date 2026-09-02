@@ -14,7 +14,7 @@ import com.swimming.backend.note.dto.out.ProjectContext;
 import com.swimming.backend.note.dto.out.TaskContext;
 import com.swimming.backend.note.service.TaskOrganizerService;
 import com.swimming.backend.note.service.NoteService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.service.TaskService;
@@ -37,7 +37,7 @@ public class TaskOrganizerUseCase {
     private final TaskOrderingService taskOrderingService;
     private final TaskOrganizerService taskOrganizerService;
     private final NoteService noteService;
-    private final ProjectService projectService;
+    private final FolderService folderService;
 
     public TaskOrganizeResponse preview(
             Long userId,
@@ -48,9 +48,9 @@ public class TaskOrganizerUseCase {
 
         Map<Long, ProjectContext> projectsById = contextRows.stream()
                 .collect(Collectors.toMap(
-                        TaskOrganizerContextRow::projectId,
+                        TaskOrganizerContextRow::folderId,
                         row -> new ProjectContext(
-                                row.projectId(),
+                                row.folderId(),
                                 row.projectName(),
                                 row.projectDescription()
                         ),
@@ -66,7 +66,7 @@ public class TaskOrganizerUseCase {
                         .map(row ->
                                 new TaskContext(
                                         row.taskId(),
-                                        row.projectId(),
+                                        row.folderId(),
                                         row.taskTitle(),
                                         row.taskStatus()
                                 )
@@ -92,11 +92,11 @@ public class TaskOrganizerUseCase {
         );
 
         request.tasks().stream()
-                .map(TaskOrganizeConfirmRequest.ApprovedTaskRequest::projectId)
-                .filter(projectId -> projectId != null)
+                .map(TaskOrganizeConfirmRequest.ApprovedTaskRequest::folderId)
+                .filter(folderId -> folderId != null)
                 .distinct()
-                .forEach(projectId ->
-                        projectService.validateOwnership(userId, projectId)
+                .forEach(folderId ->
+                        folderService.validateOwnership(userId, folderId)
                 );
 
         validateApprovedSources(
@@ -119,11 +119,11 @@ public class TaskOrganizerUseCase {
         var suggestions = result.suggestions()
                 .stream()
                 .filter(suggestion ->
-                        projectsById.containsKey(suggestion.projectId())
+                        projectsById.containsKey(suggestion.folderId())
                 )
                 .map(suggestion -> {
                     var project =
-                            projectsById.get(suggestion.projectId());
+                            projectsById.get(suggestion.folderId());
 
                     return new TaskOrganizeResponse.TaskSuggestionResponse(
                             suggestion.sourceText(),
@@ -154,7 +154,7 @@ public class TaskOrganizerUseCase {
         long matrixRank = taskOrderingService.nextRank(userId, false, false);
         Task task = taskService.createFromNote(
                 userId,
-                approvedTask.projectId(),
+                approvedTask.folderId(),
                 sourceNoteId,
                 approvedTask.title(),
                 false,
@@ -163,7 +163,7 @@ public class TaskOrganizerUseCase {
         );
         return new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                 task.getId(),
-                task.getProjectId(),
+                task.getFolderId(),
                 task.getTitle()
         );
     }

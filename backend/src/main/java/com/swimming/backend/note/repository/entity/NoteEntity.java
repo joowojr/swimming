@@ -49,7 +49,7 @@ public class NoteEntity extends BaseTimeEntity {
     private boolean deleted;
 
     @Column(name = "folder_id")
-    private Long projectId;
+    private Long folderId;
 
     @Column(name = "session_id")
     private Long sessionId;
@@ -64,7 +64,7 @@ public class NoteEntity extends BaseTimeEntity {
             String content,
             NoteStatus status,
             boolean deleted,
-            Long projectId,
+            Long folderId,
             Long sessionId,
             NoteContextType contextType
     ) {
@@ -72,7 +72,7 @@ public class NoteEntity extends BaseTimeEntity {
         this.content = content;
         this.status = status;
         this.deleted = deleted;
-        this.projectId = projectId;
+        this.folderId = folderId;
         this.sessionId = sessionId;
         this.contextType = contextType;
     }

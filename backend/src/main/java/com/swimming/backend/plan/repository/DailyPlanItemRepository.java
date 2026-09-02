@@ -19,9 +19,9 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                 item.id,
                 item.planDate,
                 item.taskId,
-                project.id,
-                project.name,
-                project.deleted,
+                folder.id,
+                folder.name,
+                folder.deleted,
                 task.title,
                 task.status,
                 task.priority,
@@ -30,7 +30,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
             )
             from DailyPlanItemEntity item
             join TaskEntity task on task.id = item.taskId
-            left join task.project project
+            left join task.folder folder
             where item.userId = :userId
               and task.user.id = :userId
               and task.deleted = false

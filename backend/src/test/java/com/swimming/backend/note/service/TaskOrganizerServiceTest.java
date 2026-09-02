@@ -198,7 +198,7 @@ class TaskOrganizerServiceTest {
     }
 
     private void assertStructurallyValid(TaskOrganizerInput input, TaskOrganizeResult output) {
-        Set<Long> projectIds = input.projects().stream()
+        Set<Long> folderIds = input.projects().stream()
                 .map(ProjectContext::id)
                 .collect(Collectors.toSet());
 
@@ -206,7 +206,7 @@ class TaskOrganizerServiceTest {
         assertThat(output).isNotNull();
         assertThat(output.suggestions()).isNotNull().allSatisfy(suggestion -> {
             assertThat(suggestion.type()).isEqualTo("CREATE_TASK");
-            assertThat(suggestion.projectId()).isIn(projectIds);
+            assertThat(suggestion.folderId()).isIn(folderIds);
             assertThat(suggestion.title()).isNotBlank();
             assertThat(suggestion.sourceText()).isNotBlank();
             suggestion.sourceText().lines().forEach(sourcePart ->

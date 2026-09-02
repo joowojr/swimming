@@ -8,7 +8,7 @@ public record DailyPlanItemQueryRow(
         Long id,
         LocalDate planDate,
         Long taskId,
-        Long projectId,
+        Long folderId,
         String projectName,
         Boolean projectIsDeleted,
         String title,
@@ -17,9 +17,9 @@ public record DailyPlanItemQueryRow(
         boolean urgent,
         int orderIdx
 ) {
-    public DailyPlanItemQueryRow(Long id, LocalDate planDate, Long taskId, Long projectId,
+    public DailyPlanItemQueryRow(Long id, LocalDate planDate, Long taskId, Long folderId,
                                  String projectName, Boolean projectIsDeleted, String title,
                                  TaskStatus status, int orderIdx) {
-        this(id, planDate, taskId, projectId, projectName, projectIsDeleted, title, status, false, false, orderIdx);
+        this(id, planDate, taskId, folderId, projectName, projectIsDeleted, title, status, false, false, orderIdx);
     }
 }

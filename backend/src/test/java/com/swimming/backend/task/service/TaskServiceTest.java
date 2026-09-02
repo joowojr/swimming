@@ -3,9 +3,9 @@ package com.swimming.backend.task.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.note.repository.entity.NoteEntity;
-import com.swimming.backend.project.domain.Project;
-import com.swimming.backend.project.repository.entity.ProjectEntity;
-import com.swimming.backend.project.domain.ProjectStatus;
+import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.repository.entity.FolderEntity;
+import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskReference;
@@ -46,7 +46,7 @@ class TaskServiceTest {
         taskService = new TaskService(taskRepository, entityManager);
         when(entityManager.getReference(eq(User.class), anyLong()))
                 .thenAnswer(invocation -> user(invocation.getArgument(1)));
-        when(entityManager.getReference(eq(ProjectEntity.class), anyLong()))
+        when(entityManager.getReference(eq(FolderEntity.class), anyLong()))
                 .thenAnswer(invocation -> project(invocation.getArgument(1)));
         when(entityManager.getReference(eq(NoteEntity.class), anyLong()))
                 .thenAnswer(invocation -> {
@@ -287,13 +287,13 @@ class TaskServiceTest {
                         null
                 )
         );
-        when(taskRepository.findTaskOrganizerContext(1L, ProjectStatus.ARCHIVED))
+        when(taskRepository.findTaskOrganizerContext(1L, FolderStatus.ARCHIVED))
                 .thenReturn(expected);
 
         List<TaskOrganizerContextRow> result = taskService.getTaskOrganizerContext(1L);
 
         assertThat(result).isSameAs(expected);
-        verify(taskRepository).findTaskOrganizerContext(1L, ProjectStatus.ARCHIVED);
+        verify(taskRepository).findTaskOrganizerContext(1L, FolderStatus.ARCHIVED);
     }
 
     @Test
@@ -361,33 +361,33 @@ class TaskServiceTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
     }
 
-    private TaskEntity taskEntity(Long id, Long projectId, String title, int orderIdx) {
-        return taskEntity(id, projectId, title, orderIdx, TaskStatus.TODO);
+    private TaskEntity taskEntity(Long id, Long folderId, String title, int orderIdx) {
+        return taskEntity(id, folderId, title, orderIdx, TaskStatus.TODO);
     }
 
     private TaskEntity taskEntity(
             Long id,
-            Long projectId,
+            Long folderId,
             String title,
             int orderIdx,
             TaskStatus status
     ) {
-        Task task = Task.create(1L, projectId, title, orderIdx);
+        Task task = Task.create(1L, folderId, title, orderIdx);
         task.changeStatus(status);
-        ProjectEntity project = projectId == null ? null : project(projectId);
+        FolderEntity folder = folderId == null ? null : project(folderId);
         TaskEntity entity = TaskEntity.from(task, user(1L), project, null);
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
 
-    private ProjectEntity project(Long projectId) {
+    private FolderEntity project(Long folderId) {
         User user = user(1L);
-        ProjectEntity project = ProjectEntity.from(
-                Project.create(1L, null, "폴더", "설명", null),
+        FolderEntity folder = FolderEntity.from(
+                Folder.create(1L, null, "폴더", "설명", null),
                 user,
                 null
         );
-        ReflectionTestUtils.setField(project, "id", projectId);
+        ReflectionTestUtils.setField(project, "id", folderId);
         return project;
     }
 

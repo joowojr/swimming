@@ -2,7 +2,7 @@ package com.swimming.backend.task.repository.entity;
 
 import com.swimming.backend.common.entity.BaseTimeEntity;
 import com.swimming.backend.note.repository.entity.NoteEntity;
-import com.swimming.backend.project.repository.entity.ProjectEntity;
+import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.user.domain.User;
@@ -27,7 +27,7 @@ public class TaskEntity extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folder_id")
-    private ProjectEntity project;
+    private FolderEntity project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_note_id")
@@ -58,7 +58,7 @@ public class TaskEntity extends BaseTimeEntity {
     private TaskEntity(
             Task task,
             User user,
-            ProjectEntity project,
+            FolderEntity project,
             NoteEntity sourceNote
     ) {
         this.user = user;
@@ -76,7 +76,7 @@ public class TaskEntity extends BaseTimeEntity {
     public static TaskEntity from(
             Task task,
             User user,
-            ProjectEntity project,
+            FolderEntity project,
             NoteEntity sourceNote
     ) {
         return new TaskEntity(task, user, project, sourceNote);

@@ -10,7 +10,7 @@ import com.swimming.backend.note.dto.in.NoteCreateResponse;
 import com.swimming.backend.note.dto.in.NoteResponse;
 import com.swimming.backend.note.dto.in.NoteUpdateRequest;
 import com.swimming.backend.note.service.NoteService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.session.service.SessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ import java.util.List;
 public class NoteUseCase {
 
     private final NoteService noteService;
-    private final ProjectService projectService;
+    private final FolderService folderService;
     private final SessionService sessionService;
 
     public NoteCreateResponse create(
@@ -55,22 +55,22 @@ public class NoteUseCase {
             Long userId,
             NoteStatus status,
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId
     ) {
-        validateListFilters(contextType, projectId, sessionId);
+        validateListFilters(contextType, folderId, sessionId);
 
         List<Note> notes;
 
-        if (projectId != null) {
-            projectService.getReference(
+        if (folderId != null) {
+            folderService.getReference(
                     userId,
-                    projectId
+                    folderId
             );
 
             notes = noteService.getByProject(
                     userId,
-                    projectId,
+                    folderId,
                     status
             );
 
@@ -181,7 +181,7 @@ public class NoteUseCase {
             Long userId,
             NoteCreateRequest request
     ) {
-        if (request.projectId() != null
+        if (request.folderId() != null
                 || request.sessionId() != null) {
             throw new BusinessException(
                     ErrorCode.INVALID_NOTE_CONTEXT
@@ -198,21 +198,21 @@ public class NoteUseCase {
             Long userId,
             NoteCreateRequest request
     ) {
-        if (request.projectId() == null
+        if (request.folderId() == null
                 || request.sessionId() != null) {
             throw new BusinessException(
                     ErrorCode.INVALID_NOTE_CONTEXT
             );
         }
 
-        projectService.getReference(
+        folderService.getReference(
                 userId,
-                request.projectId()
+                request.folderId()
         );
 
         return Note.createProject(
                 userId,
-                request.projectId(),
+                request.folderId(),
                 request.content()
         );
     }
@@ -222,7 +222,7 @@ public class NoteUseCase {
             NoteCreateRequest request
     ) {
         if (request.sessionId() == null
-                || request.projectId() != null) {
+                || request.folderId() != null) {
             throw new BusinessException(
                     ErrorCode.INVALID_NOTE_CONTEXT
             );
@@ -242,14 +242,14 @@ public class NoteUseCase {
 
     private void validateListFilters(
             NoteContextType contextType,
-            Long projectId,
+            Long folderId,
             Long sessionId
     ) {
         int filterCount = 0;
         if (contextType != null) {
             filterCount++;
         }
-        if (projectId != null) {
+        if (folderId != null) {
             filterCount++;
         }
         if (sessionId != null) {
@@ -267,7 +267,7 @@ public class NoteUseCase {
                 note.getContent(),
                 note.getStatus(),
                 note.getContextType(),
-                note.getProjectId(),
+                note.getFolderId(),
                 note.getSessionId(),
                 note.getCreatedAt(),
                 note.getUpdatedAt()

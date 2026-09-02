@@ -63,7 +63,7 @@ class TaskOrganizerControllerTest {
                                 {"memo":"메모"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.suggestions[0].projectId").value(10L))
+                .andExpect(jsonPath("$.suggestions[0].folderId").value(10L))
                 .andExpect(jsonPath("$.suggestions[0].title").value("정리된 Task"))
                 .andExpect(jsonPath("$.suggestions[0].confidence").doesNotExist());
     }
@@ -96,7 +96,7 @@ class TaskOrganizerControllerTest {
                                   "noteId":7,
                                   "tasks":[{
                                     "sourceText":"원문",
-                                    "projectId":10,
+                                    "folderId":10,
                                     "title":"정리된 Task"
                                   }]
                                 }
@@ -108,7 +108,7 @@ class TaskOrganizerControllerTest {
     }
 
     @Test
-    @DisplayName("미분류 Task의 null projectId를 확정 요청과 응답에서 허용한다")
+    @DisplayName("미분류 Task의 null folderId를 확정 요청과 응답에서 허용한다")
     void confirmsUnclassifiedTask() throws Exception {
         TaskOrganizeConfirmRequest request = new TaskOrganizeConfirmRequest(
                 7L,
@@ -135,14 +135,14 @@ class TaskOrganizerControllerTest {
                                   "noteId":7,
                                   "tasks":[{
                                     "sourceText":"운동화 주문",
-                                    "projectId":null,
+                                    "folderId":null,
                                     "title":"운동화 주문"
                                   }]
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.createdTasks[0].id").value(42L))
-                .andExpect(jsonPath("$.createdTasks[0].projectId").isEmpty());
+                .andExpect(jsonPath("$.createdTasks[0].folderId").isEmpty());
 
         verify(taskOrganizerUseCase).confirm(1L, request);
     }

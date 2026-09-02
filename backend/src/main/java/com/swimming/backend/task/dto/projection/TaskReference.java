@@ -4,7 +4,7 @@ import com.swimming.backend.task.domain.TaskStatus;
 
 public record TaskReference(
         Long id,
-        Long projectId,
+        Long folderId,
         String projectName,
         String title,
         TaskStatus status

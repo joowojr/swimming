@@ -10,7 +10,7 @@ import com.swimming.backend.plan.dto.DailyPlanResponse;
 import com.swimming.backend.plan.dto.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.plan.service.DailyPlanService;
-import com.swimming.backend.project.service.ProjectService;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.task.service.TaskOrderingService;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class DailyPlanUseCase {
     private final DailyPlanService dailyPlanService;
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
-    private final ProjectService projectService;
+    private final FolderService folderService;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<DailyPlanResponse> getRange(Long userId, LocalDate fromDate, LocalDate toDate) {
@@ -56,7 +56,7 @@ public class DailyPlanUseCase {
         String title = request.title() == null ? null : request.title().trim();
         List<Long> taskIds = request.taskIds();
         boolean linksExistingTasks = taskIds != null && !taskIds.isEmpty()
-                && request.projectId() == null && (title == null || title.isEmpty());
+                && request.folderId() == null && (title == null || title.isEmpty());
         boolean createsTask = taskIds == null && title != null && !title.isEmpty();
         if (!linksExistingTasks && !createsTask) {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM);
@@ -77,12 +77,12 @@ public class DailyPlanUseCase {
             }
             dailyPlanService.saveAll(userId, date, items);
         } else {
-            Long projectId = request.projectId() == null
+            Long folderId = request.folderId() == null
                     ? null
-                    : projectService.getReference(userId, request.projectId()).id();
+                    : folderService.getReference(userId, request.folderId()).id();
             long matrixRank = taskOrderingService.nextRank(userId, false, false);
             Long createdTaskId = taskService.create(
-                    userId, projectId, title, false, false, matrixRank).getId();
+                    userId, folderId, title, false, false, matrixRank).getId();
             dailyPlanService.save(userId, date, DailyPlanItem.restore(null, createdTaskId, nextOrderIdx, null, null));
         }
         return loadPlanResponse(userId, date);
@@ -124,8 +124,8 @@ public class DailyPlanUseCase {
         return new DailyPlanItemResponse(
                 row.id(),
                 row.taskId(),
-                (row.projectId() == null || row.projectIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
-                row.projectId(),
+                (row.folderId() == null || row.projectIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
+                row.folderId(),
                 row.projectName(),
                 row.title(),
                 row.status(),

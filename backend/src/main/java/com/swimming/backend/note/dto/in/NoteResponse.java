@@ -10,7 +10,7 @@ public record NoteResponse(
         String content,
         NoteStatus status,
         NoteContextType contextType,
-        Long projectId,
+        Long folderId,
         Long sessionId,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

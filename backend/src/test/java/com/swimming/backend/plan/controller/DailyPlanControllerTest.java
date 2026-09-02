@@ -108,7 +108,7 @@ class DailyPlanControllerTest {
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"projectId\":100,\"title\":\"API 문서 작성\"}"))
+                        .content("{\"folderId\":100,\"title\":\"API 문서 작성\"}"))
                 .andExpect(status().isCreated());
 
         verify(useCase).addItems(1L, DATE, request);

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 public record TaskMatrixItemResponse(
         Long id,
-        Long projectId,
+        Long folderId,
         String title,
         TaskStatus status,
         boolean priority,
@@ -19,7 +19,7 @@ public record TaskMatrixItemResponse(
     public static TaskMatrixItemResponse from(Task task, String positionCursor) {
         return new TaskMatrixItemResponse(
                 task.getId(),
-                task.getProjectId(),
+                task.getFolderId(),
                 task.getTitle(),
                 task.getStatus(),
                 task.isPriority(),

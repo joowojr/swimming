@@ -31,7 +31,7 @@ public record TaskOrganizeResult(
             @JsonPropertyDescription(
                     "Id of an existing project supplied in the input."
             )
-            Long projectId,
+            Long folderId,
 
             @JsonPropertyDescription(
                     "Short actionable task title."

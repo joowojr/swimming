@@ -3,7 +3,7 @@ package com.swimming.backend.task.dto.projection;
 import com.swimming.backend.task.domain.TaskStatus;
 
 public record TaskOrganizerContextRow(
-        Long projectId,
+        Long folderId,
         String projectName,
         String projectDescription,
         Long taskId,

@@ -7,7 +7,7 @@ import java.util.List;
 
 public record CreateDailyPlanItemsRequest(
         List<@NotNull Long> taskIds,
-        Long projectId,
+        Long folderId,
         @Size(max = 255, message = "할 일은 255자 이내로 입력해 주세요")
         String title,
         Boolean priority,
@@ -18,7 +18,7 @@ public record CreateDailyPlanItemsRequest(
         urgent = Boolean.TRUE.equals(urgent);
     }
 
-    public CreateDailyPlanItemsRequest(List<Long> taskIds, Long projectId, String title) {
-        this(taskIds, projectId, title, Boolean.FALSE, Boolean.FALSE);
+    public CreateDailyPlanItemsRequest(List<Long> taskIds, Long folderId, String title) {
+        this(taskIds, folderId, title, Boolean.FALSE, Boolean.FALSE);
     }
 }

@@ -65,7 +65,7 @@ class TaskControllerTest {
         when(taskUseCase.create(1L, 10L, request))
                 .thenReturn(response(1L, "API 명세 작성", TaskStatus.TODO, 0));
 
-        mockMvc.perform(post("/api/projects/10/tasks")
+        mockMvc.perform(post("/api/folders/10/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"title":"API 명세 작성"}
@@ -73,7 +73,7 @@ class TaskControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/tasks/1"))
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.projectId").value(10))
+                .andExpect(jsonPath("$.folderId").value(10))
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.completionPct").doesNotExist())
                 .andExpect(jsonPath("$.orderIdx").value(0));
@@ -87,7 +87,7 @@ class TaskControllerTest {
                 response(1L, "둘째", TaskStatus.TODO, 1)
         ));
 
-        mockMvc.perform(get("/api/projects/10/tasks"))
+        mockMvc.perform(get("/api/folders/10/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(2))
                 .andExpect(jsonPath("$[0].orderIdx").value(0))
@@ -129,7 +129,7 @@ class TaskControllerTest {
         mockMvc.perform(get("/api/tasks").queryParam("mode", "unclassified"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(2))
-                .andExpect(jsonPath("$[0].projectId").doesNotExist());
+                .andExpect(jsonPath("$[0].folderId").doesNotExist());
 
         verify(taskUseCase).getList(1L, TaskListMode.UNCLASSIFIED);
     }

@@ -3,7 +3,7 @@ package com.swimming.backend.task.dto.in;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record TaskResponse(
         Long id,
@@ -13,8 +13,8 @@ public record TaskResponse(
         boolean priority,
         boolean urgent,
         int orderIdx,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public TaskResponse(
             Long id,
@@ -22,8 +22,8 @@ public record TaskResponse(
             String title,
             TaskStatus status,
             int orderIdx,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         this(id, folderId, title, status, false, false, orderIdx, createdAt, updatedAt);
     }

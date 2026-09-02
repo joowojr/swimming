@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -205,8 +205,8 @@ class NoteUseCaseTest {
                 contextType,
                 folderId,
                 sessionId,
-                LocalDateTime.of(2026, 8, 24, 10, 0),
-                LocalDateTime.of(2026, 8, 24, 10, 0)
+                Instant.parse("2026-08-24T10:00:00Z"),
+                Instant.parse("2026-08-24T10:00:00Z")
         );
     }
 }

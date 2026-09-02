@@ -24,7 +24,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -288,8 +288,8 @@ class NoteControllerTest {
                 contextType,
                 folderId,
                 sessionId,
-                LocalDateTime.of(2026, 8, 24, 10, 0),
-                LocalDateTime.of(2026, 8, 24, 10, 0)
+                Instant.parse("2026-08-24T10:00:00Z"),
+                Instant.parse("2026-08-24T10:00:00Z")
         );
     }
 

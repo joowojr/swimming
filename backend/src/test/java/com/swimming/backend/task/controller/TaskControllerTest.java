@@ -25,7 +25,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -120,8 +120,8 @@ class TaskControllerTest {
                 "미분류 Task",
                 TaskStatus.TODO,
                 0,
-                LocalDateTime.of(2026, 8, 20, 10, 0),
-                LocalDateTime.of(2026, 8, 20, 10, 0)
+                Instant.parse("2026-08-20T10:00:00Z"),
+                Instant.parse("2026-08-20T10:00:00Z")
         );
         when(taskUseCase.getList(1L, TaskListMode.UNCLASSIFIED))
                 .thenReturn(List.of(unclassified));
@@ -272,8 +272,8 @@ class TaskControllerTest {
                 title,
                 status,
                 orderIdx,
-                LocalDateTime.of(2026, 8, 20, 10, 0),
-                LocalDateTime.of(2026, 8, 20, 10, 0)
+                Instant.parse("2026-08-20T10:00:00Z"),
+                Instant.parse("2026-08-20T10:00:00Z")
         );
     }
 

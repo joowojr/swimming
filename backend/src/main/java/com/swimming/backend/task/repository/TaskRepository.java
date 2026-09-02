@@ -150,7 +150,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     @Query("""
             update TaskEntity task
             set task.deleted = true,
-                task.updatedAt = CURRENT_TIMESTAMP
+                task.updatedAt = instant
             where task.user.id = :userId
               and task.id in :taskIds
               and task.deleted = false
@@ -162,7 +162,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     @Query("""
             update TaskEntity task
             set task.status = :status,
-                task.updatedAt = CURRENT_TIMESTAMP
+                task.updatedAt = instant
             where task.user.id = :userId
               and task.id in :taskIds
             """)

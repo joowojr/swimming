@@ -2,7 +2,7 @@ package com.swimming.backend.folder.domain;
 
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 public class FolderTag {
@@ -10,15 +10,15 @@ public class FolderTag {
     private final Long id;
     private final Long userId;
     private String name;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     private FolderTag(
             Long id,
             Long userId,
             String name,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         this.id = id;
         this.userId = userId;
@@ -35,8 +35,8 @@ public class FolderTag {
             Long id,
             Long userId,
             String name,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         return new FolderTag(id, userId, name, createdAt, updatedAt);
     }

@@ -15,7 +15,7 @@ public interface SessionTaskRepository extends JpaRepository<SessionTaskEntity, 
     @Query("""
             update SessionTaskEntity sessionTask
             set sessionTask.isCompleted = true,
-                sessionTask.updatedAt = CURRENT_TIMESTAMP
+                sessionTask.updatedAt = instant
             where sessionTask.session.id = :sessionId
               and sessionTask.id.taskId in :taskIds
             """)

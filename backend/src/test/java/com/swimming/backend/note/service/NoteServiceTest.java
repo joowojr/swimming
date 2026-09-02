@@ -12,7 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +37,7 @@ class NoteServiceTest {
     @Test
     @DisplayName("세션 Note를 연결 ID와 감사 시간까지 저장해 도메인으로 반환한다")
     void createsSessionNoteWithContextAndTimestamps() {
-        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 24, 10, 0);
+        Instant createdAt = Instant.parse("2026-08-24T10:00:00Z");
         when(noteRepository.saveAndFlush(any(NoteEntity.class))).thenAnswer(invocation -> {
             NoteEntity entity = invocation.getArgument(0);
             ReflectionTestUtils.setField(entity, "id", 1L);
@@ -136,8 +136,8 @@ class NoteServiceTest {
                 .contextType(NoteContextType.DEFAULT)
                 .build();
         ReflectionTestUtils.setField(entity, "id", id);
-        ReflectionTestUtils.setField(entity, "createdAt", LocalDateTime.of(2026, 8, 24, 10, 0));
-        ReflectionTestUtils.setField(entity, "updatedAt", LocalDateTime.of(2026, 8, 24, 10, 0));
+        ReflectionTestUtils.setField(entity, "createdAt", Instant.parse("2026-08-24T10:00:00Z"));
+        ReflectionTestUtils.setField(entity, "updatedAt", Instant.parse("2026-08-24T10:00:00Z"));
         return entity;
     }
 }

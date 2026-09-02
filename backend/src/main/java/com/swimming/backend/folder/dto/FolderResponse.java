@@ -4,7 +4,7 @@ import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderStatus;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record FolderResponse(
         Long id,
@@ -13,8 +13,8 @@ public record FolderResponse(
         LocalDate targetDate,
         FolderStatus status,
         FolderTagResponse tag,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static FolderResponse from(Folder folder) {
         return new FolderResponse(

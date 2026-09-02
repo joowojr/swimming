@@ -3,7 +3,7 @@ package com.swimming.backend.note.dto.in;
 import com.swimming.backend.note.domain.NoteContextType;
 import com.swimming.backend.note.domain.NoteStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record NoteResponse(
         Long id,
@@ -12,7 +12,7 @@ public record NoteResponse(
         NoteContextType contextType,
         Long folderId,
         Long sessionId,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

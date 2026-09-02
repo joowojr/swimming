@@ -27,9 +27,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.flywaydb:flyway-database-postgresql'
 
-    // mysql
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    // postgresql
+    runtimeOnly 'org.postgresql:postgresql'
 
     // lombok
     compileOnly 'org.projectlombok:lombok'

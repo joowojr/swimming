@@ -28,7 +28,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -78,8 +78,8 @@ class FolderControllerTest {
                 LocalDate.of(2026, 9, 30),
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(3L, "취준"),
-                LocalDateTime.of(2026, 8, 19, 10, 0),
-                LocalDateTime.of(2026, 8, 19, 10, 0)
+                Instant.parse("2026-08-19T10:00:00Z"),
+                Instant.parse("2026-08-19T10:00:00Z")
         ));
 
         mockMvc.perform(post("/api/folders")
@@ -117,8 +117,8 @@ class FolderControllerTest {
                 null,
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(4L, "포트폴리오"),
-                LocalDateTime.of(2026, 8, 20, 10, 0),
-                LocalDateTime.of(2026, 8, 20, 10, 0)
+                Instant.parse("2026-08-20T10:00:00Z"),
+                Instant.parse("2026-08-20T10:00:00Z")
         ));
 
         mockMvc.perform(post("/api/folders")
@@ -303,8 +303,8 @@ class FolderControllerTest {
                 targetDate,
                 status,
                 null,
-                LocalDateTime.of(2026, 8, 19, 10, 0),
-                LocalDateTime.of(2026, 8, 19, 10, 0)
+                Instant.parse("2026-08-19T10:00:00Z"),
+                Instant.parse("2026-08-19T10:00:00Z")
         );
     }
 

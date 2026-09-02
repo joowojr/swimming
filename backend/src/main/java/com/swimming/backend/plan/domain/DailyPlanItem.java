@@ -2,7 +2,7 @@ package com.swimming.backend.plan.domain;
 
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 public class DailyPlanItem {
@@ -10,15 +10,15 @@ public class DailyPlanItem {
     private final Long id;
     private final Long taskId;
     private int orderIdx;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     private DailyPlanItem(
             Long id,
             Long taskId,
             int orderIdx,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         this.id = id;
         this.taskId = taskId;
@@ -35,8 +35,8 @@ public class DailyPlanItem {
             Long id,
             Long taskId,
             int orderIdx,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         return new DailyPlanItem(id, taskId, orderIdx, createdAt, updatedAt);
     }

@@ -81,9 +81,9 @@ export default function NoteCard({
   const isMountedRef = useRef(true)
   // 이미 불러온 필터. 첫 조회를 건너뛴 경우에도 필터 변경 이펙트가 대신 조회하지 않게 한다.
   const loadedFilterRef = useRef<NoteListFilter | null>(null)
-  // 새 세션의 첫 메모 조회 skip은 이 NoteCard 인스턴스에서 한 번만 소비한다.
+  // 스킵 여부는 마운트 시점 값으로 고정한다. 부모가 플래그를 내렸다고 다시 조회하면 안 되고,
+  // StrictMode가 이펙트를 두 번 실행해도 두 번 다 스킵해야 한다.
   const skipInitialLoadRef = useRef(skipInitialLoad)
-  const initialSkipConsumedRef = useRef(false)
   const onInitialLoadSkipRef = useRef(onInitialLoadSkip)
 
   useEffect(() => {
@@ -110,11 +110,7 @@ export default function NoteCard({
     // 폴더·세션이 바뀌면 부모가 key로 새 인스턴스를 만들므로, 여기서 이전 상태를 비울 필요가 없다.
     resetEditorStore()
 
-    const shouldSkipInitialLoad =
-        skipInitialLoadRef.current && !initialSkipConsumedRef.current
-
-    if (shouldSkipInitialLoad) {
-      initialSkipConsumedRef.current = true
+    if (skipInitialLoadRef.current) {
       loadedFilterRef.current = defaultFilter
       onInitialLoadSkipRef.current?.()
 

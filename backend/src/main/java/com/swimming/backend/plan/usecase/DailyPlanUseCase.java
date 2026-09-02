@@ -80,9 +80,9 @@ public class DailyPlanUseCase {
             Long folderId = request.folderId() == null
                     ? null
                     : folderService.getReference(userId, request.folderId()).id();
-            long matrixRank = taskOrderingService.nextRank(userId, false, false);
+            long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
             Long createdTaskId = taskService.create(
-                    userId, folderId, title, false, false, matrixRank).getId();
+                    userId, folderId, title, request.priority(), request.urgent(), matrixRank).getId();
             dailyPlanService.save(userId, date, DailyPlanItem.restore(null, createdTaskId, nextOrderIdx, null, null));
         }
         return loadPlanResponse(userId, date);

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconCheck, IconFolder, IconLoader2, IconPlayerPause, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
+import { IconCheck, IconFolder, IconLoader2, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ChecklistCard from '../../components/ChecklistCard'
@@ -189,13 +189,10 @@ export default function TaskList({
               key={task.id}
             >
               <ChecklistCard
-                leadingControl={(
-                  <span className={styles.check} aria-hidden="true">
-                    {task.status === 'DONE' ? <IconCheck size={16} stroke={2.2}/> : null}
-                    {task.status === 'HOLD' ? <IconPlayerPause size={14} stroke={2}/> : null}
-                    {task.status === 'DOING' ? <span className={styles['check-core']}/> : null}
-                  </span>
-                )}
+                status={task.status}
+                ariaLabel={`${task.title} ${task.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
+                disabled={isPending || isDeleteMode}
+                onToggle={() => void changeTaskStatus(task, task.status === 'DONE' ? 'TODO' : 'DONE')}
                 description={task.folderId != null && getMetaText ? getMetaText(task) : undefined}
                         title={(
                           <div className={styles.content}>

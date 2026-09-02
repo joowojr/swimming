@@ -61,6 +61,66 @@
   opacity: 0.55;
 }
 
+/* Task 상태 표시등. 체크박스와 크기·정렬을 맞춰 두 모드가 같은 자리에 놓이게 한다. */
+.status {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: var(--focus-ring-width) solid var(--color-mute);
+  border-radius: var(--radius-sm);
+  color: var(--color-mute);
+  background: var(--color-surface-container-lowest);
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+  cursor: pointer;
+}
+
+.status[data-status='DOING'] {
+  border-radius: var(--radius-full);
+  border-color: var(--chip-doing-fg);
+  color: var(--chip-doing-fg);
+  background: var(--chip-doing-fg);
+}
+
+.status[data-status='DONE'] {
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 0.25rem var(--color-primary);
+}
+
+.status[data-status='HOLD'] {
+  border-radius: var(--radius-full);
+  border-style: dashed;
+  border-color: var(--chip-hold-border);
+  color: var(--chip-hold-fg);
+  background: var(--chip-hold-bg);
+}
+
+.status:focus-visible {
+  outline-color: var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+.status:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.status-core {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--chip-doing-fg);
+}
+
 .copy {
   display: grid;
   min-width: 0;

@@ -312,9 +312,9 @@ export default function DailyPlanner() {
                     <>
                         <ol className={styles.todoList}>
                             {items.map((item) => (
-                                <li key={item.id}>
+                                <li key={item.id} className={styles[`is-${item.status.toLowerCase()}`]}>
                                     <ChecklistCard
-                                        id={item.taskId}
+                                        status={item.status}
                                         title={
                                             <InlineEditableText
                                                 value={item.title}
@@ -331,7 +331,6 @@ export default function DailyPlanner() {
                                             />
                                         }
                                         description={item.itemType === 'TASK' ? item.folderName : undefined}
-                                        checked={item.status === 'DONE'}
                                         ariaLabel={`${item.title} ${item.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
                                         disabled={pendingTaskId === item.taskId}
                                         onToggle={() => void changeTaskStatus(item, item.status === 'DONE' ? 'TODO' : 'DONE')}

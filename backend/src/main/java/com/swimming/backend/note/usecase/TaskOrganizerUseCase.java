@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskOrganizerUseCase {
 
+    private static final int MAX_TASKS_PER_FOLDER = 10;
+
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
     private final TaskOrganizerService taskOrganizerService;
@@ -61,17 +63,7 @@ public class TaskOrganizerUseCase {
         TaskOrganizerInput input = new TaskOrganizerInput(
                 request.memo(),
                 List.copyOf(foldersById.values()),
-                contextRows.stream()
-                        .filter(row -> row.taskId() != null)
-                        .map(row ->
-                                new TaskContext(
-                                        row.taskId(),
-                                        row.folderId(),
-                                        row.taskTitle(),
-                                        row.taskStatus()
-                                )
-                        )
-                        .toList()
+                recentTasksByFolder(contextRows)
         );
 
         TaskOrganizeResult result =
@@ -110,6 +102,26 @@ public class TaskOrganizerUseCase {
                         .toList();
 
         return new TaskOrganizeConfirmResponse(createdTasks);
+    }
+    
+    private List<TaskContext> recentTasksByFolder(List<TaskOrganizerContextRow> contextRows) {
+        return contextRows.stream()
+                .filter(row -> row.taskId() != null)
+                .collect(Collectors.groupingBy(
+                        TaskOrganizerContextRow::folderId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values()
+                .stream()
+                .flatMap(rows -> rows.stream().limit(MAX_TASKS_PER_FOLDER))
+                .map(row -> new TaskContext(
+                        row.taskId(),
+                        row.folderId(),
+                        row.taskTitle(),
+                        row.taskStatus()
+                ))
+                .toList();
     }
 
     private TaskOrganizeResponse toResponse(

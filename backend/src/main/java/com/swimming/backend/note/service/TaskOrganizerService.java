@@ -1,79 +1,79 @@
 package com.swimming.backend.note.service;
 
+import com.swimming.backend.common.config.llm.ChatOptionsFactory;
+import com.swimming.backend.common.logging.LlmUsageLogger;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.prompt.TaskOrganizerInputSerializer;
-import com.swimming.backend.note.prompt.TaskOrganizerPromptProvider;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.swimming.backend.common.prompt.PromptKey;
+import com.swimming.backend.common.prompt.PromptRepository;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TaskOrganizerService {
 
-    private final ChatClient chatClient;
-    private final TaskOrganizerPromptProvider promptProvider;
-    private final String model;
-    private static final String DEFAULT_MODEL = "gpt-5.6-luna";
+    private static final String LOG_FEATURE = "task-organizer";
 
-    @Autowired
+    private final ChatClient chatClient;
+    private final PromptRepository promptRepository;
+    private final ChatOptionsFactory chatOptionsFactory;
+    private final LlmUsageLogger usageLogger;
+
     public TaskOrganizerService(
             ChatClient chatClient,
-            TaskOrganizerPromptProvider promptProvider
-    ) {
-        this(chatClient, promptProvider, DEFAULT_MODEL);
-    }
-
-    TaskOrganizerService(
-            ChatClient chatClient,
-            TaskOrganizerPromptProvider promptProvider,
-            String model
+            PromptRepository promptRepository,
+            ChatOptionsFactory chatOptionsFactory,
+            LlmUsageLogger usageLogger
     ) {
         this.chatClient = chatClient;
-        this.promptProvider = promptProvider;
-        this.model = model;
+        this.promptRepository = promptRepository;
+        this.chatOptionsFactory = chatOptionsFactory;
+        this.usageLogger = usageLogger;
     }
 
+    /**
+     * 구조화 출력은 provider와 무관하게 항상 켠다.
+     *
+     * <p>{@code useProviderStructuredOutput}은 JSON Schema를 프롬프트가 아니라 API 파라미터로
+     * 넘겨 형식을 강제한다. {@code validateSchema}는 그렇게 받은 응답을 다시 검증하고
+     * 실패하면 오류를 붙여 재요청한다. 형식은 앞쪽이, 내용은 뒤쪽이 책임진다.
+     *
+     * <p>{@code responseEntity}로 받는 이유는 변환된 결과와 함께 응답 메타데이터가 필요해서다.
+     * 토큰 사용량은 거기에만 들어 있다.
+     */
     public TaskOrganizeResult organize(TaskOrganizerInput input) {
-        return chatClient.prompt()
-                .system(promptProvider.get())
-                .user(TaskOrganizerInputSerializer.serialize(input))
-                .options(createOptionsBuilder())
+        String systemPrompt = promptRepository.get(PromptKey.TASK_ORGANIZER);
+        String userMessage = TaskOrganizerInputSerializer.serialize(input);
+
+        var response = chatClient.prompt()
+                .system(systemPrompt)
+                .user(userMessage)
+                .options(chatOptionsFactory.create())
                 .call()
-                .entity(
+                .responseEntity(
                         TaskOrganizeResult.class,
                         spec -> spec
                                 .useProviderStructuredOutput()
                                 .validateSchema()
                 );
+
+        usageLogger.log(
+                LOG_FEATURE,
+                response.getResponse(),
+                systemPrompt,
+                userMessage,
+                inputScale(input)
+        );
+
+        return response.getEntity();
     }
 
-    OpenAiChatOptions.Builder createOptionsBuilder() {
-        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
-                .model(model)
-                .logprobs(false);
-
-        if (model.startsWith("gpt-5")) {
-            optionsBuilder
-                    .reasoningEffort("low")
-                    .maxCompletionTokens(2_000);
-        } else {
-            optionsBuilder.maxTokens(2_000)
-                    .temperature(0.0);
-        }
-
-        return optionsBuilder;
+    private String inputScale(TaskOrganizerInput input) {
+        return "folders=%d tasks=%d memo=%d".formatted(
+                input.folders().size(),
+                input.tasks().size(),
+                input.memo() == null ? 0 : input.memo().length()
+        );
     }
-
-//    private String serialize(TaskOrganizerInput input) {
-//        try {
-//            return objectMapper.writeValueAsString(input);
-//        } catch (JsonProcessingException e) {
-//            throw new IllegalArgumentException(
-//                    "Failed to serialize task organizer input.",
-//                    e
-//            );
-//        }
-//    }
 }

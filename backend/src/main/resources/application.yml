@@ -35,9 +35,12 @@ spring:
 app:
   prompt:
     locations:
-      # classpath: 는 jar 에 번들된 기본값, file: 은 이미지를 다시 만들지 않고
-      # 내용을 고칠 때 쓴다. 기동 시 읽으므로 바꾸면 재기동이 필요하다.
-      task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer-v4.md}
+      task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer/classify.md}
+      task-extractor: ${TASK_EXTRACTOR_PROMPT_PATH:classpath:prompts/task-organizer/extract.md}
+    # 골격의 <!-- fragment: 이름 --> 줄에 끼워 넣는다.
+    fragments:
+      splitting: classpath:prompts/task-organizer/_splitting.md
+      titles: classpath:prompts/task-organizer/_titles.md
   place:
     background:
       cdn-base-url: ${PLACE_CDN_BASE_URL}

@@ -20,6 +20,19 @@ public final class TaskOrganizerInputSerializer {
         return xml.toString();
     }
 
+    /**
+     * 폴더가 이미 정해진 추출 경로용. 폴더와 기존 task 를 넣지 않는다.
+     */
+    public static String serializeMemoOnly(TaskOrganizerInput input) {
+        StringBuilder xml = new StringBuilder();
+
+        xml.append("<task-organizer-input>");
+        appendMemo(xml, input);
+        xml.append("</task-organizer-input>");
+
+        return xml.toString();
+    }
+
     private static void appendMemo(
             StringBuilder xml,
             TaskOrganizerInput input

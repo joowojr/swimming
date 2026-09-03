@@ -2,6 +2,7 @@ package com.swimming.backend.note.service;
 
 import com.swimming.backend.common.config.llm.ChatOptionsFactory;
 import com.swimming.backend.common.logging.LlmUsageLogger;
+import com.swimming.backend.note.dto.out.TaskExtractResult;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.prompt.TaskOrganizerInputSerializer;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class TaskOrganizerService {
 
     private static final String LOG_FEATURE = "task-organizer";
+    private static final String LOG_FEATURE_EXTRACT = "task-extractor";
 
     private final ChatClient chatClient;
     private final PromptRepository promptRepository;
@@ -60,6 +62,36 @@ public class TaskOrganizerService {
 
         usageLogger.log(
                 LOG_FEATURE,
+                response.getResponse(),
+                systemPrompt,
+                userMessage,
+                inputScale(input)
+        );
+
+        return response.getEntity();
+    }
+
+    /**
+     * 폴더가 이미 정해진 경우. 분류 단계가 없으므로 폴더 후보 판단을 요구하지 않는다.
+     */
+    public TaskExtractResult extract(TaskOrganizerInput input) {
+        String systemPrompt = promptRepository.get(PromptKey.TASK_EXTRACTOR);
+        String userMessage = TaskOrganizerInputSerializer.serialize(input);
+
+        var response = chatClient.prompt()
+                .system(systemPrompt)
+                .user(userMessage)
+                .options(chatOptionsFactory.create())
+                .call()
+                .responseEntity(
+                        TaskExtractResult.class,
+                        spec -> spec
+                                .useProviderStructuredOutput()
+                                .validateSchema()
+                );
+
+        usageLogger.log(
+                LOG_FEATURE_EXTRACT,
                 response.getResponse(),
                 systemPrompt,
                 userMessage,

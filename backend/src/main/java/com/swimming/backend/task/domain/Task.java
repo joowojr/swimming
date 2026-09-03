@@ -2,7 +2,7 @@ package com.swimming.backend.task.domain;
 
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 public class Task {
@@ -17,8 +17,8 @@ public class Task {
     private boolean urgent;
     private int orderIdx;
     private long matrixRank;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     private Task(
             Long id,
@@ -31,8 +31,8 @@ public class Task {
             boolean urgent,
             int orderIdx,
             long matrixRank,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         this.id = id;
         this.userId = userId;
@@ -131,8 +131,8 @@ public class Task {
             String title,
             TaskStatus status,
             int orderIdx,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         return restore(id, userId, folderId, sourceNoteId, title, status, false, false, orderIdx, 0L, createdAt, updatedAt);
     }
@@ -140,7 +140,7 @@ public class Task {
     public static Task restore(
             Long id, Long userId, Long folderId, Long sourceNoteId, String title,
             TaskStatus status, boolean priority, boolean urgent, int orderIdx,
-            LocalDateTime createdAt, LocalDateTime updatedAt
+            Instant createdAt, Instant updatedAt
     ) {
         return restore(id, userId, folderId, sourceNoteId, title, status, priority, urgent, orderIdx, 0L, createdAt, updatedAt);
     }
@@ -148,7 +148,7 @@ public class Task {
     public static Task restore(
             Long id, Long userId, Long folderId, Long sourceNoteId, String title,
             TaskStatus status, boolean priority, boolean urgent, int orderIdx, long matrixRank,
-            LocalDateTime createdAt, LocalDateTime updatedAt
+            Instant createdAt, Instant updatedAt
     ) {
         return new Task(
                 id,

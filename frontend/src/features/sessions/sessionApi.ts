@@ -10,8 +10,8 @@ import type {
 
 export async function startPersonalSession(
   request: StartPersonalSessionRequest,
-): Promise<SessionResponse> {
-  const response = await client.post<SessionResponse>('/sessions', request)
+): Promise<SessionDetailResponse> {
+  const response = await client.post<SessionDetailResponse>('/sessions', request)
   return response.data
 }
 

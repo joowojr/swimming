@@ -3,15 +3,13 @@ import {
     IconChevronLeft,
     IconChevronRight,
     IconLoader2,
-    IconPlayerPlay,
     IconPlus,
 } from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
-import DeleteIconButton from '../../components/DeleteIconButton'
 import ChecklistCard from '../../components/ChecklistCard'
-import TaskMenu from '../../components/TaskMenu'
+import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -312,9 +310,9 @@ export default function DailyPlanner() {
                     <>
                         <ol className={styles.todoList}>
                             {items.map((item) => (
-                                <li key={item.id}>
+                                <li key={item.id} className={styles[`is-${item.status.toLowerCase()}`]}>
                                     <ChecklistCard
-                                        id={item.taskId}
+                                        status={item.status}
                                         title={
                                             <InlineEditableText
                                                 value={item.title}
@@ -331,7 +329,6 @@ export default function DailyPlanner() {
                                             />
                                         }
                                         description={item.itemType === 'TASK' ? item.folderName : undefined}
-                                        checked={item.status === 'DONE'}
                                         ariaLabel={`${item.title} ${item.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
                                         disabled={pendingTaskId === item.taskId}
                                         onToggle={() => void changeTaskStatus(item, item.status === 'DONE' ? 'TODO' : 'DONE')}
@@ -348,18 +345,19 @@ export default function DailyPlanner() {
                                             {TASK_STATUS_VALUES.map((taskStatus) => <option value={taskStatus} key={taskStatus}>{TASK_STATUS_LABEL[taskStatus]}</option>)}
                                         </select>
                                         <TaskMenu inline label={`${item.title} 카드 메뉴`}>
-                                            <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
-                                                {item.priority ? '중요 해제' : '중요 설정'}
-                                            </button>
-                                            <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
-                                                {item.urgent ? '즉시 해제' : '즉시 설정'}
-                                            </button>
-                                            {selectedDate === today && (
-                                                <ModalTriggerButton dialogId="create-session-dialog" isOpen={sessionTaskId === item.taskId} variant="plain" icon={<IconPlayerPlay size={15} aria-hidden="true" />} onClick={() => setSessionTaskId(item.taskId)}>
-                                                    다이브 세션
-                                                </ModalTriggerButton>
-                                            )}
-                                            <DeleteIconButton label="계획에서 제거" iconSize={15} onClick={() => void removeItem(item.id)} />
+                                            <TaskFlagMenuItems
+                                                priority={item.priority}
+                                                urgent={item.urgent}
+                                                disabled={pendingTaskId === item.taskId}
+                                                onTogglePriority={() => void changeTaskPriority(item)}
+                                                onToggleUrgent={() => void changeTaskUrgent(item)}
+                                                session={selectedDate === today ? {
+                                                    onStart: () => setSessionTaskId(item.taskId),
+                                                    dialogId: 'create-session-dialog',
+                                                    isOpen: sessionTaskId === item.taskId,
+                                                } : undefined}
+                                                onDelete={() => void removeItem(item.id)}
+                                            />
                                         </TaskMenu>
                                           </>
                                         )}

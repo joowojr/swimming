@@ -588,8 +588,8 @@
     opacity: 0.55;
 }
 
-.organize-project-select,
-.organize-project-action {
+.organize-folder-select,
+.organize-folder-action {
     width: 100%;
     border: var(--border-width) solid transparent;
     border-radius: var(--radius-sm);
@@ -608,8 +608,8 @@
     margin-top: 0;
 }
 
-.organize-project-select,
-.organize-project-action {
+.organize-folder-select,
+.organize-folder-action {
     width: fit-content;
     max-width: 100%;
     min-height: var(--space-6);
@@ -619,12 +619,12 @@
     cursor: pointer;
 }
 
-.organize-project-action {
+.organize-folder-action {
     text-align: start;
 }
 
-.organize-project-select:disabled,
-.organize-project-action:disabled {
+.organize-folder-select:disabled,
+.organize-folder-action:disabled {
     cursor: not-allowed;
     opacity: 0.55;
 }
@@ -781,8 +781,8 @@
     }
 }
 
-.organize-project-select:focus-visible,
-.organize-project-action:focus-visible,
+.organize-folder-select:focus-visible,
+.organize-folder-action:focus-visible,
 .plan-link-date-action:focus-visible,
 .plan-link-date-input:focus-visible,
 .organize-exclude-action:focus-visible,
@@ -792,14 +792,14 @@
     outline-offset: var(--border-width);
 }
 
-.organize-project-select:focus-visible {
+.organize-folder-select:focus-visible {
     background: var(--color-surface);
 }
 
 .organize-exclude-action:active:not(:disabled),
 .organize-cancel-action:active:not(:disabled),
 .organize-confirm-action:active:not(:disabled),
-.organize-project-action:active:not(:disabled) {
+.organize-folder-action:active:not(:disabled) {
     transform: translateY(var(--border-width));
 }
 
@@ -811,8 +811,8 @@
 
 @media (pointer: coarse) {
     .organize-exclude-action,
-    .organize-project-select,
-    .organize-project-action {
+    .organize-folder-select,
+    .organize-folder-action {
         min-height: var(--control-height);
     }
 
@@ -826,8 +826,8 @@
     .organize-task-row-unclassified:hover,
     .organize-task-row-excluded:hover,
     .plan-link-task-row:hover,
-    .organize-project-select:hover:not(:disabled),
-    .organize-project-action:hover:not(:disabled),
+    .organize-folder-select:hover:not(:disabled),
+    .organize-folder-action:hover:not(:disabled),
     .organize-exclude-action:hover:not(:disabled),
     .organize-cancel-action:hover:not(:disabled) {
         background: var(--color-surface-container-high);

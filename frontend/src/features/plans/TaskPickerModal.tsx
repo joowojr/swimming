@@ -207,11 +207,11 @@ export default function TaskPickerModal({
             semantics="tabs"
             onChange={selectAddMode}
           />
-          <section className={`${styles['planning-option-field']} ${addMode === 'folder' ? styles['planning-option-field-single'] : ''}`} aria-label="할 일 계획 옵션">
+          <section className={styles['planning-option-field']} aria-label="할 일 계획 옵션">
             <label className={styles['date-option']}>
               <input aria-label="계획 날짜" type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} disabled={isSubmitting} />
             </label>
-            {addMode === 'direct' && <div className={styles['planning-option-group']}>
+            {addMode === 'direct' && (
               <div className={styles['planning-option-chips']} role="list">
                 {URGENCY_CHIPS.map((option) => (
                   <span role="listitem" key={option.label}>
@@ -226,10 +226,6 @@ export default function TaskPickerModal({
                     </button>
                   </span>
                 ))}
-              </div>
-            </div>}
-            {addMode === 'direct' && <div className={styles['planning-option-group']}>
-              <div className={styles['planning-option-chips']} role="list">
                 {PRIORITY_CHIPS.map((option) => (
                   <span role="listitem" key={option.label}>
                     <button
@@ -246,7 +242,7 @@ export default function TaskPickerModal({
                   </span>
                 ))}
               </div>
-            </div>}
+            )}
           </section>
           <section
             id="direct-add-panel"

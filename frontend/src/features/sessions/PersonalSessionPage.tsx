@@ -19,6 +19,7 @@ import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import { useAuthStore } from '../../store/authStore'
 import { useFolderStore } from '../../store/folderStore.ts'
+import { useActiveSessionStore } from '../../store/activeSessionStore'
 import { getPlaces } from '../places/placeApi'
 import { getSession, updateSessionFocusDuration, updateSessionMusicUrl } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
@@ -94,12 +95,17 @@ export default function PersonalSessionPage() {
   const navigate = useNavigate()
   const auth = useAuthStore()
   const folders = useFolderStore((state) => state.folders)
+  const activeSession = useActiveSessionStore((state) => state.session)
+  const isJustCreatedSession = useActiveSessionStore((state) => state.isJustCreated)
+  const consumeJustCreatedSession = useActiveSessionStore((state) => state.consumeJustCreated)
+  const applyActiveSession = useActiveSessionStore((state) => state.apply)
+  const clearActiveSession = useActiveSessionStore((state) => state.clear)
   const { sessionId } = useParams()
   const parsedSessionId = Number(sessionId)
   const validSessionId = Number.isSafeInteger(parsedSessionId) && parsedSessionId > 0
     ? parsedSessionId
     : null
-  const [state, setState] = useState<PageState>({ status: 'loading' })
+  const [fetchState, setFetchState] = useState<PageState>({ status: 'loading' })
   const [nowKey, setNowKey] = useState(0)
   const [isEndModalOpen, setIsEndModalOpen] = useState(false)
   const [isAdjustingDuration, setIsAdjustingDuration] = useState(false)
@@ -109,29 +115,34 @@ export default function PersonalSessionPage() {
   const [isLayoutSwapped, setIsLayoutSwapped] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [musicOptions, setMusicOptions] = useState<SessionMusicOption[]>([])
-  const [hasBackgroundError, setHasBackgroundError] = useState(false)
+  const [backgroundErrorSessionId, setBackgroundErrorSessionId] = useState<number | null>(null)
+
+  // 진행 중인 세션은 store가 단일 출처다. 방금 시작한 세션도 여기로 들어와 재조회가 없다.
+  const state: PageState = activeSession?.id === validSessionId
+    ? { status: 'ready', session: activeSession }
+    : fetchState
 
   useEffect(() => {
     if (!validSessionId) return
+    if (activeSession?.id === validSessionId) return
 
     let active = true
     void getSession(validSessionId)
       .then((session) => {
         if (!active) return
-        setHasBackgroundError(false)
-        setState(session.status === 'IN_PROGRESS'
+        setFetchState(session.status === 'IN_PROGRESS'
           ? { status: 'ready', session }
           : { status: 'ended', session })
       })
       .catch((error: unknown) => {
         if (!active) return
         const apiError = error as ApiError
-        setState(apiError.status === 404
+        setFetchState(apiError.status === 404
           ? { status: 'empty' }
           : { status: 'error', message: errorMessage(error) })
       })
     return () => { active = false }
-  }, [requestKey, validSessionId])
+  }, [activeSession, requestKey, validSessionId])
 
   useEffect(() => {
     let active = true
@@ -179,6 +190,8 @@ export default function PersonalSessionPage() {
     : 0
   const ringOffset = 276.46 * (1 - progress)
   const backgroundAsset = session?.place.backgroundAsset
+  // 배경 로딩 실패는 그 세션에만 적용한다. 다른 세션으로 옮기면 자연히 풀린다.
+  const hasBackgroundError = session !== null && backgroundErrorSessionId === session.id
   const configuredBackgroundUrl = backgroundAsset?.url?.trim() || null
   const backgroundUrl = configuredBackgroundUrl && !hasBackgroundError
     ? configuredBackgroundUrl
@@ -187,7 +200,7 @@ export default function PersonalSessionPage() {
     ? backgroundAsset?.type
     : 'VIDEO'
 
-  const handleBackgroundError = () => setHasBackgroundError(true)
+  const handleBackgroundError = () => setBackgroundErrorSessionId(session?.id ?? null)
 
   const toggleWidget = (widget: keyof WidgetVisibility) => {
     setWidgets((current) => ({ ...current, [widget]: !current[widget] }))
@@ -209,13 +222,15 @@ export default function PersonalSessionPage() {
 
   const handleEnded = () => {
     setIsEndModalOpen(false)
-    if (session) setState({ status: 'ended', session })
+    clearActiveSession()
+    if (session) setFetchState({ status: 'ended', session })
   }
 
   const saveMusicSource = async (source: string | null) => {
     if (state.status !== 'ready') return
     await updateSessionMusicUrl(state.session.id, { musicUrl: source })
-    setState((current) => current.status === 'ready'
+    applyActiveSession({ ...state.session, musicUrl: source })
+    setFetchState((current) => current.status === 'ready'
       ? { ...current, session: { ...current.session, musicUrl: source } }
       : current)
   }
@@ -237,7 +252,8 @@ export default function PersonalSessionPage() {
     setIsAdjustingDuration(true)
     try {
       await updateSessionFocusDuration(state.session.id, { focusDurationSec })
-      setState((current) => current.status === 'ready'
+      applyActiveSession({ ...state.session, focusDurationSec, plannedDurationSec })
+      setFetchState((current) => current.status === 'ready'
         ? { ...current, session: { ...current.session, focusDurationSec, plannedDurationSec } }
         : current)
     } finally {
@@ -257,7 +273,7 @@ export default function PersonalSessionPage() {
         {state.status === 'error' && <p role="alert">{state.message}</p>}
         <div className={styles['state-actions']}>
           {state.status === 'error' && <button type="button" onClick={() => {
-            setState({ status: 'loading' })
+            setFetchState({ status: 'loading' })
             setRequestKey((key) => key + 1)
           }}>다시 불러오기</button>}
           <button type="button" onClick={() => navigate('/folders')}>내 폴더로</button>
@@ -367,9 +383,12 @@ export default function PersonalSessionPage() {
 
       {widgets.tasks && !focusMode && (
         <NoteCard
+          key={state.session.id}
           className={`${styles.widget} ${styles['session-note']}`}
           folders={folders}
           sessionId={state.session.id}
+          skipInitialLoad={isJustCreatedSession && activeSession?.id === state.session.id}
+          onInitialLoadSkip={consumeJustCreatedSession}
         />
       )}
 
@@ -379,7 +398,7 @@ export default function PersonalSessionPage() {
           <div className={styles['timer-main']}>
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <circle className={styles['ring-track']} cx="50" cy="50" r="44" />
-              <circle className={styles['ring-progress']} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
+              <circle className={styles['ring-progress']} data-phase={phase.kind} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
             </svg>
             <div className={styles['timer-value']}>
               <h2 id="session-timer-title">{formatTimer(remaining)}</h2>

@@ -72,10 +72,14 @@
   background: var(--color-surface-lowest);
 }
 
-.actions button:disabled,
-.filter-button:disabled {
+.actions button:disabled {
   cursor: default;
   opacity: 1;
+}
+
+.filter-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .section-heading {

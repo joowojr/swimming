@@ -2,19 +2,35 @@ spring:
   application:
     name: backend
   profiles:
-    active: local
+    default: local
   jpa:
     properties:
       hibernate:
         format_sql: true
+  sql:
+    init:
+      mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
   jackson:
     time-zone: UTC
   mvc:
     problemdetails:
       enabled: true
   ai:
-    openai:
-      api-key: ${OPENAI_API_KEY}
+    model:
+      # 이 서비스가 쓰는 모델은 chat 뿐이다. 나머지 오토컨피그는 기본이 활성이라
+      # 꺼두지 않으면 쓰지도 않는 OpenAI 자격증명을 요구하고, 스타터가 둘이라 빈도 중복된다.
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+      # chat 과 app.llm.* 은 여기서 정하지 않는다. 프로필이 llm/ 아래 조각 하나를
+      # spring.config.import 로 끌어다 쓰고, 그 파일이 유일한 출처가 된다.
 
 app:
   place:

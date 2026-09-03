@@ -282,6 +282,12 @@
     animation: spin 1s linear infinite;
 }
 
+.is-done .task-title-editor {
+    color: var(--color-mute);
+    text-decoration: line-through;
+    text-decoration-color: var(--color-hairline);
+}
+
 span.task-title-editor.is-priority button::before {
     content: '📌';
     margin-right: var(--space-2);

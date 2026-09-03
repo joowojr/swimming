@@ -3,7 +3,7 @@ package com.swimming.backend.note.domain;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 public class Note {
@@ -19,8 +19,8 @@ public class Note {
     private final Long folderId;
     private final Long sessionId;
 
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     @Builder
     public Note(
@@ -32,8 +32,8 @@ public class Note {
             NoteContextType contextType,
             Long folderId,
             Long sessionId,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         this.id = id;
         this.userId = userId;
@@ -112,8 +112,8 @@ public class Note {
             NoteContextType contextType,
             Long folderId,
             Long sessionId,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         return new Note(
                 id,

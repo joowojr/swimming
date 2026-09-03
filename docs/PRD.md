@@ -7,9 +7,9 @@
 ### 용어
 
 - 사용자에게 노출하는 기능명과 화면 문구에서는 `폴더`를 사용한다.
-- `폴더`는 코드와 API에서 `project`로 식별되는 기존 프로젝트 도메인의 제품 용어다. 새로운 별도 도메인을 뜻하지 않는다.
+- `폴더`는 코드와 API에서 `folder`로 식별되는 기존 프로젝트 도메인의 제품 용어다. 새로운 별도 도메인을 뜻하지 않는다.
 - 사용자에게 노출되는 프론트엔드 화면 경로는 `/folders`, `/folders/{id}`를 사용한다.
-- API 경로, 요청·응답 필드, 요구사항 ID처럼 구현 계약을 그대로 가리킬 때는 `/projects`, `projectId`, `PROJ-*` 등의 기술 식별자를 유지한다.
+- API 경로, 요청·응답 필드, 요구사항 ID처럼 구현 계약을 그대로 가리킬 때는 `/folders`, `projectId`, `PROJ-*` 등의 기술 식별자를 유지한다.
 - `미분류`는 폴더가 연결되지 않아 API에서 `projectId=null`인 Task를 뜻한다.
 
 ### 목표 (Goals)
@@ -205,18 +205,18 @@
 | POST | /auth/google | Google 로그인(토큰 발급) |
 | POST | /auth/refresh | 토큰 갱신 |
 |  |  |  |
-| GET | /projects | 내 폴더 목록 |
-| POST | /projects | 폴더 생성 |
-| GET | /projects/{id} | 폴더 상세(폴더 정보·Task 진척·Task 목록) |
-| PATCH | /projects/{id} | 폴더 수정 |
-| GET | /project-tags | 내 폴더 태그 목록 |
-| POST | /project-tags | 폴더 태그 생성 |
-| PATCH | /project-tags/{id} | 폴더 태그 이름 수정 |
-| DELETE | /project-tags/{id} | 폴더 연결 해제 후 태그 삭제 |
+| GET | /folders | 내 폴더 목록 |
+| POST | /folders | 폴더 생성 |
+| GET | /folders/{id} | 폴더 상세(폴더 정보·Task 진척·Task 목록) |
+| PATCH | /folders/{id} | 폴더 수정 |
+| GET | /folder-tags | 내 폴더 태그 목록 |
+| POST | /folder-tags | 폴더 태그 생성 |
+| PATCH | /folder-tags/{id} | 폴더 태그 이름 수정 |
+| DELETE | /folder-tags/{id} | 폴더 연결 해제 후 태그 삭제 |
 | GET | /tasks?mode=all\|unclassified | 내 전체 Task 또는 폴더 없는 Task 목록 |
-| GET | /projects/{id}/tasks | task 목록 |
-| POST | /projects/{id}/tasks | task 생성 |
-| PUT | /projects/{id}/tasks/order | task 순서 저장 |
+| GET | /folders/{id}/tasks | task 목록 |
+| POST | /folders/{id}/tasks | task 생성 |
+| PUT | /folders/{id}/tasks/order | task 순서 저장 |
 |  |  |  |
 | PATCH | /tasks/{id} | task 수정(제목·상태) |
 | DELETE | /tasks/{id} | task 삭제 |
@@ -252,7 +252,7 @@
 
 ### 폴더 상세 조회
 
-`GET /api/projects/{id}`는 폴더 상세 화면의 중앙 영역에 필요한 데이터만 반환한다. 현재 구현된 Project와 Task 도메인만 사용하며, Task 상태로 계산할 수 있는 진척과 정렬된 Task 목록을 폴더 기본 정보와 함께 제공한다.
+`GET /api/folders/{id}`는 폴더 상세 화면의 중앙 영역에 필요한 데이터만 반환한다. 현재 구현된 Project와 Task 도메인만 사용하며, Task 상태로 계산할 수 있는 진척과 정렬된 Task 목록을 폴더 기본 정보와 함께 제공한다.
 
 #### 성공 응답
 
@@ -298,7 +298,7 @@
 #### 오류 응답
 
 - 인증되지 않은 요청은 `401 Unauthorized`를 반환한다.
-- 폴더가 없거나 다른 사용자의 폴더인 경우 `404 Not Found`와 `PROJECT_NOT_FOUND` ProblemDetail을 반환한다.
+- 폴더가 없거나 다른 사용자의 폴더인 경우 `404 Not Found`와 `FOLDER_NOT_FOUND` ProblemDetail을 반환한다.
 
 #### 제외 범위
 
@@ -338,7 +338,7 @@
 
 - Frontend: React SPA. REST 호출, 그룹 세션은 STOMP over WebSocket 구독, 타이머 로직, 오디오 재생.
 - Backend: Spring Boot. REST API + WebSocket(STOMP). 인증, 도메인 로직, 측정 집계.
-- DB: 관계형 DB(MYSQL). JPA/Hibernate로 매핑.
+- DB: 관계형 DB(PostgreSQL). JPA/Hibernate로 매핑.
 - 실시간 상태: 그룹 세션 타이머·존재감 동기화. 단일 인스턴스는 인메모리, 수평 확장 시 Redis pub/sub로 브로드캐스트.
 - 정적 자산: 도시 배경 영상/이미지는 오브젝트 스토리지(S3 등) + CDN.
 
@@ -399,7 +399,7 @@ React가 REST로 폴더·task·세션 CRUD를 처리하고, 그룹 세션 진행
 - Spring WebSocket (STOMP)
 - Spring Data JPA + Hibernate
 - Validation (Bean Validation)
-- DB: MYSQL
+- DB: PostgreSQL
 - (선택) Redis: 실시간 브로드캐스트·세션 캐시
 
 ### 인프라

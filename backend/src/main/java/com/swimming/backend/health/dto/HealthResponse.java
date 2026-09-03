@@ -2,6 +2,6 @@ package com.swimming.backend.health.dto;
 
 public record HealthResponse(String status, Detail detail) {
 
-    public record Detail(String mysql) {
+    public record Detail(String postgres) {
     }
 }

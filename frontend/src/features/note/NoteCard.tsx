@@ -27,6 +27,9 @@ interface NoteCardProps {
   folderId?: number
   sessionId?: number
   className?: string
+  // 방금 만들어진 세션처럼 메모가 없는 것이 확실할 때, 첫 조회를 건너뛴다.
+  skipInitialLoad?: boolean
+  onInitialLoadSkip?: () => void
 }
 
 interface OrganizerSource {
@@ -36,14 +39,22 @@ interface OrganizerSource {
 
 const AUTO_SAVE_DELAY_MS = 700
 
-export default function NoteCard({ folders, folderId, sessionId, className }: NoteCardProps) {
+export default function NoteCard({
+                                   folders,
+                                   folderId,
+                                   sessionId,
+                                   className,
+                                   skipInitialLoad = false,
+                                   onInitialLoadSkip,
+                                 }: NoteCardProps) {
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
   const [noteFilter, setNoteFilter] = useState<NoteListFilter>(
-    sessionId !== undefined ? 'SESSION' : folderId !== undefined ? 'PROJECT' : 'DEFAULT',
+      sessionId !== undefined ? 'SESSION' : folderId !== undefined ? 'FOLDER' : 'DEFAULT',
   )
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
-  const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
+  // 첫 조회를 건너뛰는 경우에는 기다릴 것이 없으므로 처음부터 준비된 상태다.
+  const [loadStatus, setLoadStatus] = useState<LoadStatus>(skipInitialLoad ? 'ready' : 'loading')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [organizerSource, setOrganizerSource] = useState<OrganizerSource | null>(null)
   const [isStartingNew, setIsStartingNew] = useState(false)
@@ -68,47 +79,73 @@ export default function NoteCard({ folders, folderId, sessionId, className }: No
   const pendingContentRef = useRef<string | null>(null)
   const pendingSaveRef = useRef<Promise<boolean> | null>(null)
   const isMountedRef = useRef(true)
-  const initialNotesLoadedRef = useRef(false)
+  // 이미 불러온 필터. 첫 조회를 건너뛴 경우에도 필터 변경 이펙트가 대신 조회하지 않게 한다.
+  const loadedFilterRef = useRef<NoteListFilter | null>(null)
+  // 스킵 여부는 마운트 시점 값으로 고정한다. 부모가 플래그를 내렸다고 다시 조회하면 안 되고,
+  // StrictMode가 이펙트를 두 번 실행해도 두 번 다 스킵해야 한다.
+  const skipInitialLoadRef = useRef(skipInitialLoad)
+  const onInitialLoadSkipRef = useRef(onInitialLoadSkip)
+
+  useEffect(() => {
+    onInitialLoadSkipRef.current = onInitialLoadSkip
+  }, [onInitialLoadSkip])
 
   const getNotesForFilter = useCallback((filter: NoteListFilter) => {
     if (filter === 'ALL') return getNotes()
     if (filter === 'ARCHIVED') return getNotes({ status: 'ARCHIVED' })
     if (filter === 'SESSION' && sessionId !== undefined) return getNotes({ sessionId })
-    if (filter === 'PROJECT' && folderId !== undefined) return getNotes({ folderId })
+    if (filter === 'FOLDER' && folderId !== undefined) return getNotes({ folderId })
     return getNotes({ contextType: filter })
   }, [folderId, sessionId])
 
   useEffect(() => {
     isMountedRef.current = true
-    initialNotesLoadedRef.current = false
+    loadedFilterRef.current = null
+
     const defaultFilter: NoteListFilter = sessionId !== undefined
-      ? 'SESSION'
-      : folderId !== undefined ? 'PROJECT' : 'DEFAULT'
+        ? 'SESSION'
+        : folderId !== undefined ? 'FOLDER' : 'DEFAULT'
     let cancelled = false
+
+    // 폴더·세션이 바뀌면 부모가 key로 새 인스턴스를 만들므로, 여기서 이전 상태를 비울 필요가 없다.
+    resetEditorStore()
+
+    if (skipInitialLoadRef.current) {
+      loadedFilterRef.current = defaultFilter
+      onInitialLoadSkipRef.current?.()
+
+      return () => {
+        cancelled = true
+        isMountedRef.current = false
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      }
+    }
 
     async function loadLatestNote() {
       try {
         const loadedNotes = await getNotesForFilter(defaultFilter)
-      if (cancelled) return
+        if (cancelled) return
 
         const latestNote = loadedNotes[0]
         const content = latestNote?.content ?? ''
+
         noteIdRef.current = latestNote?.id ?? null
         memoRef.current = content
         lastSavedContentRef.current = content
+        loadedFilterRef.current = defaultFilter
+
         setNotes(loadedNotes)
         setSelectedNoteId(latestNote?.id ?? null)
         setMemo(content)
         setLoadStatus('ready')
         setSaveStatus(latestNote ? 'saved' : 'idle')
-        initialNotesLoadedRef.current = true
-        resetEditorStore()
       } catch {
         if (!cancelled) setLoadStatus('error')
       }
     }
 
     void loadLatestNote()
+
     return () => {
       cancelled = true
       isMountedRef.current = false
@@ -117,14 +154,24 @@ export default function NoteCard({ folders, folderId, sessionId, className }: No
   }, [getNotesForFilter, folderId, resetEditorStore, sessionId])
 
   useEffect(() => {
-    if (!initialNotesLoadedRef.current) return
+    // 최초 조회가 진행 중이거나, 이미 현재 필터의 목록을 갖고 있으면 재조회하지 않는다.
+    if (loadedFilterRef.current === null || loadedFilterRef.current === noteFilter) return
+
     let cancelled = false
-    void getNotesForFilter(noteFilter).then((loadedNotes) => {
-      if (!cancelled) setNotes(loadedNotes)
-    }).catch(() => {
-      if (!cancelled) setActionMessage('메모 목록을 불러오지 못했어요')
-    })
-    return () => { cancelled = true }
+
+    void getNotesForFilter(noteFilter)
+        .then((loadedNotes) => {
+          if (cancelled) return
+          loadedFilterRef.current = noteFilter
+          setNotes(loadedNotes)
+        })
+        .catch(() => {
+          if (!cancelled) setActionMessage('메모 목록을 불러오지 못했어요')
+        })
+
+    return () => {
+      cancelled = true
+    }
   }, [getNotesForFilter, noteFilter, setActionMessage])
 
   useEffect(() => {
@@ -151,13 +198,12 @@ export default function NoteCard({ folders, folderId, sessionId, className }: No
 
       try {
         const savedNote = noteIdRef.current === null
-          ? await createNote(sessionId !== undefined
-            ? { content, contextType: 'SESSION', folderId: null, sessionId }
-            : folderId === undefined
-              ? { content, contextType: 'DEFAULT', folderId: null, sessionId: null }
-              : { content, contextType: 'PROJECT', folderId, sessionId: null })
-              .then((createdNote) => getNote(createdNote.id))
-          : await updateNote(noteIdRef.current, { content })
+            ? await createNote(sessionId !== undefined
+                ? { content, contextType: 'SESSION', folderId: null, sessionId }
+                : folderId === undefined
+                    ? { content, contextType: 'DEFAULT', folderId: null, sessionId: null }
+                    : { content, contextType: 'FOLDER', folderId, sessionId: null })
+            : await updateNote(noteIdRef.current, { content })
 
         noteIdRef.current = savedNote.id
         lastSavedContentRef.current = savedNote.content
@@ -317,7 +363,7 @@ export default function NoteCard({ folders, folderId, sessionId, className }: No
     setIsDeleting(true)
     setActionMessage(null)
     try {
-      await saveContent(memoRef.current)
+      if (!(await saveContent(memoRef.current))) return
       await deleteNote(noteId)
       removeNoteFromList(noteId)
       setRecentlyArchivedId(null)
@@ -350,59 +396,59 @@ export default function NoteCard({ folders, folderId, sessionId, className }: No
   }, [setActionMessage, setArchiveSuggestionNoteId])
 
   const isEditorDisabled =
-    loadStatus !== 'ready' ||
-    organizerSource !== null ||
-    isStartingNew ||
-    isSelectingNote ||
-    isArchiving ||
-    isDeleting
+      loadStatus !== 'ready' ||
+      organizerSource !== null ||
+      isStartingNew ||
+      isSelectingNote ||
+      isArchiving ||
+      isDeleting
   const isSelectedNoteArchived = noteFilter === 'ARCHIVED'
-    || notes.find((note) => note.id === selectedNoteId)?.status === 'ARCHIVED'
+      || notes.find((note) => note.id === selectedNoteId)?.status === 'ARCHIVED'
 
   return (
-    <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
-      {organizerSource ? (
-        <TaskOrganizerPanel source={organizerSource} folders={folders} onCancel={closeOrganizer} onFinish={finishOrganizer} />
-      ) : (
-        <>
-          <NoteEditor
-            memo={memo}
-            loadStatus={loadStatus}
-            saveStatus={saveStatus}
-            selectedNoteId={selectedNoteId}
-            isArchived={isSelectedNoteArchived}
-            disabled={isEditorDisabled}
-            isStartingNew={isStartingNew}
-            isArchiving={isArchiving}
-            isDeleting={isDeleting}
-            textareaRef={textareaRef}
-            onMemoChange={handleMemoChange}
-            onMemoBlur={() => void saveContent(memoRef.current)}
-            onOrganize={() => void handleOrganize()}
-            onNewMemo={() => void handleNewMemo()}
-            onArchive={() => void handleArchive()}
-            onConfirmArchive={() => {
-              setArchiveSuggestionNoteId(null)
-              void handleArchive()
-            }}
-            onDismissArchive={() => setArchiveSuggestionNoteId(null)}
-            onRequestDelete={handleRequestDelete}
-            onCancelDelete={() => setIsConfirmingDelete(false)}
-            onDelete={() => void handleDelete()}
-            onRestore={() => void handleRestoreRecent()}
-          />
-          <NoteList
-            notes={notes}
-            selectedNoteId={selectedNoteId}
-            disabled={isEditorDisabled}
-            folderId={folderId}
-            sessionId={sessionId}
-            filter={noteFilter}
-            onFilterChange={setNoteFilter}
-            onSelect={(note) => void handleSelectNote(note)}
-          />
-        </>
-      )}
-    </section>
+      <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
+        {organizerSource ? (
+            <TaskOrganizerPanel source={organizerSource} folders={folders} onCancel={closeOrganizer} onFinish={finishOrganizer} />
+        ) : (
+            <>
+              <NoteEditor
+                  memo={memo}
+                  loadStatus={loadStatus}
+                  saveStatus={saveStatus}
+                  selectedNoteId={selectedNoteId}
+                  isArchived={isSelectedNoteArchived}
+                  disabled={isEditorDisabled}
+                  isStartingNew={isStartingNew}
+                  isArchiving={isArchiving}
+                  isDeleting={isDeleting}
+                  textareaRef={textareaRef}
+                  onMemoChange={handleMemoChange}
+                  onMemoBlur={() => void saveContent(memoRef.current)}
+                  onOrganize={() => void handleOrganize()}
+                  onNewMemo={() => void handleNewMemo()}
+                  onArchive={() => void handleArchive()}
+                  onConfirmArchive={() => {
+                    setArchiveSuggestionNoteId(null)
+                    void handleArchive()
+                  }}
+                  onDismissArchive={() => setArchiveSuggestionNoteId(null)}
+                  onRequestDelete={handleRequestDelete}
+                  onCancelDelete={() => setIsConfirmingDelete(false)}
+                  onDelete={() => void handleDelete()}
+                  onRestore={() => void handleRestoreRecent()}
+              />
+              <NoteList
+                  notes={notes}
+                  selectedNoteId={selectedNoteId}
+                  disabled={isEditorDisabled}
+                  folderId={folderId}
+                  sessionId={sessionId}
+                  filter={noteFilter}
+                  onFilterChange={setNoteFilter}
+                  onSelect={(note) => void handleSelectNote(note)}
+              />
+            </>
+        )}
+      </section>
   )
 }

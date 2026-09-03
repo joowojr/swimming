@@ -24,7 +24,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -65,8 +65,8 @@ class TaskOrderingControllerTest {
                 false,
                 true,
                 "position-cursor",
-                LocalDateTime.of(2026, 9, 1, 10, 0),
-                LocalDateTime.of(2026, 9, 1, 10, 0)
+                Instant.parse("2026-09-01T10:00:00Z"),
+                Instant.parse("2026-09-01T10:00:00Z")
         );
         when(taskOrderingUseCase.getMatrixPage(1L, query)).thenReturn(new TaskMatrixPageResponse(
                 TaskMatrixSection.URGENT,
@@ -129,8 +129,8 @@ class TaskOrderingControllerTest {
                 false,
                 true,
                 "position-cursor",
-                LocalDateTime.of(2026, 9, 1, 10, 0),
-                LocalDateTime.of(2026, 9, 1, 11, 0)
+                Instant.parse("2026-09-01T10:00:00Z"),
+                Instant.parse("2026-09-01T11:00:00Z")
         );
         when(taskOrderingUseCase.move(1L, 4L, request)).thenReturn(new TaskPlacementResponse(
                 TaskOrderingScope.MATRIX,

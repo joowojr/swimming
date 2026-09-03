@@ -39,11 +39,11 @@ public class SessionController {
     }
 
     @PostMapping
-    public ResponseEntity<SessionResponse> startPersonal(
+    public ResponseEntity<SessionDetailResponse> startPersonal(
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody StartPersonalSessionRequest request
     ) {
-        SessionResponse response = sessionUseCase.startPersonal(authUser.id(), request);
+        SessionDetailResponse response = sessionUseCase.startPersonal(authUser.id(), request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.id())

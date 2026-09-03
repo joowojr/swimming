@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,7 +43,7 @@ class NoteUseCaseTest {
     }
 
     @Test
-    @DisplayName("기본 Note를 생성하고 생성된 ID만 반환한다")
+    @DisplayName("기본 Note를 생성하고 저장된 Note를 그대로 반환한다")
     void createsDefaultNote() {
         Note saved = note(1L, "메모", NoteStatus.ACTIVE, NoteContextType.DEFAULT, null, null);
         when(noteService.create(any(Note.class))).thenReturn(saved);
@@ -54,6 +54,11 @@ class NoteUseCaseTest {
         );
 
         assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.content()).isEqualTo("메모");
+        assertThat(response.status()).isEqualTo(NoteStatus.ACTIVE);
+        assertThat(response.contextType()).isEqualTo(NoteContextType.DEFAULT);
+        assertThat(response.createdAt()).isEqualTo(Instant.parse("2026-08-24T10:00:00Z"));
+        assertThat(response.updatedAt()).isEqualTo(Instant.parse("2026-08-24T10:00:00Z"));
     }
 
     @Test
@@ -69,6 +74,8 @@ class NoteUseCaseTest {
 
         verify(folderService).getReference(1L, 10L);
         assertThat(response.id()).isEqualTo(2L);
+        assertThat(response.folderId()).isEqualTo(10L);
+        assertThat(response.content()).isEqualTo("폴더 메모");
     }
 
     @Test
@@ -205,8 +212,8 @@ class NoteUseCaseTest {
                 contextType,
                 folderId,
                 sessionId,
-                LocalDateTime.of(2026, 8, 24, 10, 0),
-                LocalDateTime.of(2026, 8, 24, 10, 0)
+                Instant.parse("2026-08-24T10:00:00Z"),
+                Instant.parse("2026-08-24T10:00:00Z")
         );
     }
 }

@@ -6,16 +6,10 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { getTodayPlanItems } from '../plans/todayPlan'
 import CreateSessionModal from './CreateSessionModal'
-import { getActiveSession } from './sessionApi'
-import type { SessionDetailResponse } from './sessionTypes'
+import { useActiveSessionStore } from '../../store/activeSessionStore'
 import styles from './ContinueSessionWidget.module.css'
 
 const DEFAULT_THUMBNAIL_URL = '/lisbon_1.mp4'
-
-type WidgetState =
-    | { status: 'loading' }
-    | { status: 'ready'; session: SessionDetailResponse | null }
-    | { status: 'error' }
 
 type ContinueSessionWidgetVariant = 'home' | 'empty-session'
 
@@ -30,29 +24,20 @@ function formatDuration(seconds: number) {
 
 export default function ContinueSessionWidget({ variant = 'home' }: ContinueSessionWidgetProps) {
   const navigate = useNavigate()
-  const [state, setState] = useState<WidgetState>({ status: 'loading' })
+  const session = useActiveSessionStore((state) => state.session)
+  const status = useActiveSessionStore((state) => state.status)
+  const loadActiveSession = useActiveSessionStore((state) => state.load)
+  const markSessionCreated = useActiveSessionStore((state) => state.markCreated)
   const [todayTasks, setTodayTasks] = useState<DailyPlanItem[] | null>(null)
   const [isPreparingStart, setIsPreparingStart] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
 
   useEffect(() => {
-    let active = true
-    void getActiveSession()
-        .then((response) => {
-          console.log('[SESSION_BG] 진행 중 세션 조회', {
-            hasSession: response !== null,
-            backgroundAsset: response?.place.backgroundAsset ?? null,
-          })
-          if (active) setState({ status: 'ready', session: response })
-        })
-        .catch(() => {
-          if (active) setState({ status: 'error' })
-        })
-    return () => { active = false }
-  }, [])
+    void loadActiveSession()
+  }, [loadActiveSession])
 
-  const session = state.status === 'ready' ? state.session : null
-  const isEmpty = state.status === 'ready' && !session
+  const isLoading = status === 'idle' || status === 'loading'
+  const isEmpty = status === 'ready' && !session
 
   const openStartModal = async () => {
     setIsPreparingStart(true)
@@ -97,7 +82,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
             <span>{session ? '진행 중인 세션' : '오늘의 집중'}</span>
           </header>
 
-          {state.status === 'loading' ? (
+          {isLoading ? (
               <p className={styles.status} role="status">세션을 확인하고 있습니다.</p>
           ) : session ? (
               <>
@@ -108,7 +93,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
                   <span><IconClock aria-hidden="true" />{formatDuration(session.plannedDurationSec)}</span>
                 </div>
               </>
-          ) : state.status === 'error' ? (
+          ) : status === 'error' ? (
               <p className={styles.status}>세션을 확인하지 못했습니다.</p>
           ) : (
               <>
@@ -143,6 +128,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
                 onClose={() => setTodayTasks(null)}
                 onStarted={(startedSession) => {
                   setTodayTasks(null)
+                  markSessionCreated(startedSession)
                   navigate(`/sessions/${startedSession.id}`)
                 }}
             />

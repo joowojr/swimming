@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconFilter, IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
+import { IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
 import { useSearchParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
+import TaskFilterMenu from '../../components/TaskFilterMenu'
+import {
+  EMPTY_TASK_FILTER,
+  countActiveFilters,
+  matchesTaskFilter,
+} from '../tasks/taskFilter'
+import type { TaskFilter } from '../tasks/taskFilter'
 import { deleteTasks, getTaskList } from '../tasks/taskApi'
 import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
 import FolderCard from './FolderCard.tsx'
@@ -54,6 +61,7 @@ export default function FolderListPage({
     tasks: [],
   })
   const [taskReloadKey, setTaskReloadKey] = useState(0)
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
@@ -67,6 +75,7 @@ export default function FolderListPage({
     setIsDeleteMode(false)
     setSelectedTaskIds(new Set())
     setDeleteError(null)
+    setTaskFilter(EMPTY_TASK_FILTER)
   }, [taskMode])
 
   useEffect(() => {
@@ -129,11 +138,17 @@ export default function FolderListPage({
     }
   }
 
+  const activeFilterCount = countActiveFilters(taskFilter)
+  const visibleTasks = useMemo(
+    () => taskListState.tasks.filter((task) => matchesTaskFilter(task, taskFilter)),
+    [taskListState.tasks, taskFilter],
+  )
+
   return (
     <section className={styles.page} aria-labelledby="folders-page-title">
       <header className={styles.heading}>
         <div>
-          <h1 id="folders-page-title">할 일</h1>
+          <h1 id="folders-page-title">폴더</h1>
           <p>진행 중인 할 일을 확인하고 관리합니다.</p>
         </div>
         <div className={styles.actions}>
@@ -159,15 +174,13 @@ export default function FolderListPage({
           value={activeView}
           onChange={changeView}
         />
-        <button
-          type="button"
-          className={`${styles.secondary} ${styles['filter-button']}`}
-          disabled
-          title="필터 · 준비 중"
-        >
-          <IconFilter size={17} aria-hidden="true" />
-          필터
-        </button>
+        <TaskFilterMenu
+          value={taskFilter}
+          onChange={setTaskFilter}
+          disabled={taskMode === null}
+          triggerClassName={`${styles.secondary} ${styles['filter-button']}`}
+          triggerTitle={taskMode === null ? '할 일 화면에서 쓸 수 있어요' : '할 일 필터'}
+        />
       </div>
 
       {taskMode !== null ? (
@@ -191,7 +204,11 @@ export default function FolderListPage({
               <div className={styles['section-heading']}>
                 <h2>{taskMode === 'all' ? '최신 할 일' : '미분류 할 일'}</h2>
                 <div className={styles['task-list-actions']}>
-                  <span>{taskListState.tasks.length}개</span>
+                  <span>
+                    {activeFilterCount > 0
+                      ? `${visibleTasks.length} / ${taskListState.tasks.length}개`
+                      : `${taskListState.tasks.length}개`}
+                  </span>
                   <DeleteIconButton
                     label={isDeleteMode ? '할 일 삭제 선택 취소' : '할 일 삭제 선택'}
                     active={isDeleteMode}
@@ -216,11 +233,15 @@ export default function FolderListPage({
               </div>
               {deleteError && <p className={styles['delete-error']} role="alert">{deleteError}</p>}
               <TaskList
-                tasks={taskListState.tasks}
-                emptyTitle={taskMode === 'all' ? '등록된 할 일이 없어요.' : '미분류 할 일이 없어요.'}
-                emptyDescription={taskMode === 'all'
-                  ? '할 일을 만들면 최신순으로 이곳에 표시됩니다.'
-                  : '폴더에 연결되지 않은 할 일이 이곳에 표시됩니다.'}
+                tasks={visibleTasks}
+                emptyTitle={activeFilterCount > 0
+                  ? '조건에 맞는 할 일이 없어요.'
+                  : taskMode === 'all' ? '등록된 할 일이 없어요.' : '미분류 할 일이 없어요.'}
+                emptyDescription={activeFilterCount > 0
+                  ? '필터 조건을 바꾸면 다른 할 일을 볼 수 있어요.'
+                  : taskMode === 'all'
+                    ? '할 일을 만들면 최신순으로 이곳에 표시됩니다.'
+                    : '폴더에 연결되지 않은 할 일이 이곳에 표시됩니다.'}
                 getMetaText={(task) => task.folderId === null
                   ? '미분류'
                   : folderNameById.get(task.folderId ?? -1) ?? '폴더'}

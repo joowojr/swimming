@@ -14,11 +14,12 @@ import LoginPage from './pages/LoginPage'
 import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
 import { useFolderStore } from './store/folderStore.ts'
+import { useActiveSessionStore } from './store/activeSessionStore'
 import styles from './App.module.css'
 
 interface HealthResponse {
   status: 'UP'
-  detail: { mysql: 'UP' }
+  detail: { postgres: 'UP' }
 }
 
 type ResourceStatus = 'checking' | 'up' | 'unavailable'
@@ -37,7 +38,7 @@ function ProjectDetailRoute({ onDeleted }: { onDeleted: (folderId: number) => vo
 function App() {
   const location = useLocation()
   const auth = useAuthStore()
-  const [mysqlStatus, setMysqlStatus] = useState<ResourceStatus>('checking')
+  const [postgresStatus, setPostgresStatus] = useState<ResourceStatus>('checking')
   const [guestView, setGuestView] = useState<GuestView>('home')
   const folders = useFolderStore((state) => state.folders)
   const folderStatus = useFolderStore((state) => state.status)
@@ -45,6 +46,7 @@ function App() {
   const addFolder = useFolderStore((state) => state.add)
   const removeFolder = useFolderStore((state) => state.remove)
   const resetFolders = useFolderStore((state) => state.reset)
+  const clearActiveSession = useActiveSessionStore((state) => state.clear)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
@@ -56,13 +58,13 @@ function App() {
     const checkHealth = async () => {
       try {
         const response = await client.get<HealthResponse>('/health')
-        setMysqlStatus(
-          response.data.status === 'UP' && response.data.detail.mysql === 'UP'
+        setPostgresStatus(
+          response.data.status === 'UP' && response.data.detail.postgres === 'UP'
             ? 'up'
             : 'unavailable',
         )
       } catch {
-        setMysqlStatus('unavailable')
+        setPostgresStatus('unavailable')
       }
     }
 
@@ -72,6 +74,7 @@ function App() {
   useEffect(() => {
     if (auth.status === 'unauthenticated') {
       resetFolders()
+      clearActiveSession()
       return
     }
 
@@ -79,7 +82,7 @@ function App() {
     if (auth.status !== 'authenticated' || userId === undefined) return
 
     void loadFolders(userId)
-  }, [auth.status, auth.user?.id, loadFolders, resetFolders])
+  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetFolders])
 
   if (auth.status === 'checking') {
     return (
@@ -89,11 +92,11 @@ function App() {
     )
   }
 
-  const mysqlStatusMessage = {
+  const postgresStatusMessage = {
     checking: '연결 확인 중',
     up: '연결됨',
     unavailable: '연결 대기 중',
-  }[mysqlStatus]
+  }[postgresStatus]
 
   const retryLoadProjects = () => {
     const userId = auth.user?.id
@@ -190,8 +193,8 @@ function App() {
           </p>
           <div className={styles['connection-status']}>
             <span className={styles['status-dot']} aria-hidden="true" />
-            <span>MySQL</span>
-            <strong>{mysqlStatusMessage}</strong>
+            <span>PostgreSQL</span>
+            <strong>{postgresStatusMessage}</strong>
           </div>
         </section>
       )}

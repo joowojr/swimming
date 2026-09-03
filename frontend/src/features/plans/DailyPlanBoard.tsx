@@ -2,14 +2,12 @@ import {useEffect, useMemo, useState} from 'react'
 import {
     IconCalendar,
     IconLoader2,
-    IconPlayerPlay,
     IconPlus
 } from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
-import DeleteIconButton from '../../components/DeleteIconButton'
-import TaskMenu from '../../components/TaskMenu'
+import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
 import type {FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -334,28 +332,18 @@ export default function DailyPlanBoard() {
                                                     {selected && (
                                                         <TaskMenu
                                                             label={`${item.title} 카드 메뉴`}>
-                                                                <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskPriority(item)}>
-                                                                    {item.priority ? '중요 해제' : '중요 설정'}
-                                                                </button>
-                                                                <button type="button" disabled={pendingTaskId === item.taskId} onClick={() => void changeTaskUrgent(item)}>
-                                                                    {item.urgent ? '즉시 해제' : '즉시 설정'}
-                                                                </button>
-                                                                {plan.date === today && (
-                                                                    <ModalTriggerButton
-                                                                        dialogId="create-session-dialog"
-                                                                        isOpen={sessionTaskId === item.taskId}
-                                                                        variant="plain"
-                                                                        icon={<IconPlayerPlay size={15}
-                                                                                              aria-hidden="true"/>}
-                                                                        onClick={() => setSessionTaskId(item.taskId)}
-                                                                    >
-                                                                        다이브 세션
-                                                                    </ModalTriggerButton>
-                                                                )}
-                                                                <DeleteIconButton
-                                                                    label="계획에서 제거"
-                                                                    iconSize={15}
-                                                                    onClick={() => void removeItem(plan.date, item.id)}
+                                                                <TaskFlagMenuItems
+                                                                    priority={item.priority}
+                                                                    urgent={item.urgent}
+                                                                    disabled={pendingTaskId === item.taskId}
+                                                                    onTogglePriority={() => void changeTaskPriority(item)}
+                                                                    onToggleUrgent={() => void changeTaskUrgent(item)}
+                                                                    session={plan.date === today ? {
+                                                                        onStart: () => setSessionTaskId(item.taskId),
+                                                                        dialogId: 'create-session-dialog',
+                                                                        isOpen: sessionTaskId === item.taskId,
+                                                                    } : undefined}
+                                                                    onDelete={() => void removeItem(plan.date, item.id)}
                                                                 />
                                                         </TaskMenu>
                                                     )}

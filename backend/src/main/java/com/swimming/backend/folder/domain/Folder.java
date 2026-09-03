@@ -3,7 +3,7 @@ package com.swimming.backend.folder.domain;
 import lombok.Getter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 public class Folder {
@@ -16,8 +16,8 @@ public class Folder {
     private LocalDate targetDate;
     private FolderStatus status;
     private boolean deleted;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private final Instant createdAt;
+    private final Instant updatedAt;
 
     private Folder(
             Long id,
@@ -28,8 +28,8 @@ public class Folder {
             LocalDate targetDate,
             FolderStatus status,
             boolean deleted,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         this.id = id;
         this.userId = userId;
@@ -73,8 +73,8 @@ public class Folder {
             LocalDate targetDate,
             FolderStatus status,
             boolean deleted,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
         return new Folder(
                 id,

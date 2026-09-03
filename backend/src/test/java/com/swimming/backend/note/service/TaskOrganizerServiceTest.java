@@ -1,11 +1,20 @@
 package com.swimming.backend.note.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.swimming.backend.common.config.llm.LlmProperties;
+import com.swimming.backend.common.config.llm.LlmProvider;
+import com.swimming.backend.common.logging.LlmUsageLogger;
+import com.swimming.backend.common.config.llm.OllamaChatOptionsFactory;
+import com.swimming.backend.common.config.llm.OpenAiChatOptionsFactory;
 import com.swimming.backend.note.dto.out.FolderContext;
 import com.swimming.backend.note.dto.out.TaskContext;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
-import com.swimming.backend.note.prompt.TaskOrganizerPromptProvider;
+import com.swimming.backend.common.prompt.PromptKey;
+import com.swimming.backend.common.prompt.PromptProperties;
+import com.swimming.backend.common.prompt.PromptRepository;
+import com.swimming.backend.common.prompt.ResourcePromptRepository;
+import org.springframework.core.io.DefaultResourceLoader;
 import com.swimming.backend.task.domain.TaskStatus;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,7 +24,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientRequest;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
+import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.ollama.api.OllamaApi;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 
@@ -25,6 +41,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,15 +54,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("llm-eval")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Timeout(value = 15, unit = TimeUnit.MINUTES)
+@Timeout(value = 45, unit = TimeUnit.MINUTES)
 class TaskOrganizerServiceTest {
 
-    private static final List<String> MODELS = List.of(
-//            "gpt-4o-mini",
-//            "gpt-4.1",
-            "gpt-5.4",
-            "gpt-5.6-luna"
+    private record EvalModel(String id, LlmProvider provider) {
+    }
+
+    private static final List<EvalModel> EVAL_MODELS = List.of(
+//            new EvalModel("gpt-5.4", LlmProvider.OPENAI),
+            new EvalModel("gpt-5.6-luna", LlmProvider.OPENAI)
+//            new EvalModel("qwen3:8b", LlmProvider.OLLAMA)
     );
+    private static final List<String> MODELS = EVAL_MODELS.stream()
+            .map(EvalModel::id)
+            .toList();
+    private static final String OLLAMA_BASE_URL = System.getenv()
+            .getOrDefault("OLLAMA_BASE_URL", "http://localhost:11434");
     private static final Path REPORT_DIRECTORY = Path.of(
             "build/reports/task-organizer-eval"
     );
@@ -68,29 +93,185 @@ class TaskOrganizerServiceTest {
             5L, "건강 루틴", "운동 기록, 러닝과 PT 일정 관리"
     );
 
+    /** 비교할 프롬프트 버전. key 는 리포트에 남는 라벨이다. */
+    /** 프롬프트 버전 비교의 반복 횟수. reasoning 모델은 temperature 0 에서도 결정적이지 않다. */
+    private static final int PROMPT_VERSION_RUNS = 3;
+
+    private static final Map<String, String> PROMPT_VERSIONS = Map.of(
+            "v2", "classpath:prompts/task-organizer-v2.md",
+            "v3", "classpath:prompts/task-organizer-v3.md",
+            "v4", "classpath:prompts/task-organizer-v4.md"
+    );
+
     private Map<String, TaskOrganizerService> services;
+    /** 프롬프트 버전별 서비스. 모델은 EVAL_MODELS 의 첫 번째 하나만 쓴다. */
+    private Map<String, TaskOrganizerService> promptVariants;
+    private final UsageRecorder usageRecorder = new UsageRecorder();
+
+    /** 한 프롬프트만 담은 저장소. 버전별로 나란히 비교할 때 쓴다. */
+    private static PromptRepository promptRepository(String location) {
+        return new ResourcePromptRepository(
+                new PromptProperties(Map.of(PromptKey.TASK_ORGANIZER.configName(), location)),
+                new DefaultResourceLoader()
+        );
+    }
 
     @BeforeAll
     void setUp() {
-        OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .apiKey(loadApiKey())
-                .build();
-        OpenAiChatModel chatModel = OpenAiChatModel.builder()
-                .options(options)
-                .build();
-        ChatClient chatClient = ChatClient.builder(chatModel)
-                .defaultAdvisors(SimpleLoggerAdvisor.builder().build())
-                .build();
-        TaskOrganizerPromptProvider promptProvider = new TaskOrganizerPromptProvider();
+        PromptRepository promptRepository = promptRepository(PROMPT_VERSIONS.get("v4"));
+        LlmUsageLogger usageLogger = new LlmUsageLogger();
+        Map<String, TaskOrganizerService> built = new LinkedHashMap<>();
 
-        services = MODELS.stream().collect(Collectors.toUnmodifiableMap(
-                Function.identity(),
-                model -> new TaskOrganizerService(
-                        chatClient,
-                        promptProvider,
-                        model
+        // provider 별 ChatClient 는 필요할 때 한 번만 만든다.
+        ChatClient openAiClient = null;
+        ChatClient ollamaClient = null;
+
+        for (EvalModel evalModel : EVAL_MODELS) {
+            TaskOrganizerService service;
+
+            switch (evalModel.provider()) {
+                case OPENAI -> {
+                    if (openAiClient == null) {
+                        openAiClient = chatClient(OpenAiChatModel.builder()
+                                .options(OpenAiChatOptions.builder()
+                                        .apiKey(loadApiKey())
+                                        .build())
+                                .build());
+                    }
+                    service = new TaskOrganizerService(
+                            openAiClient,
+                            promptRepository,
+                            new OpenAiChatOptionsFactory(openAiProperties(evalModel.id())),
+                            usageLogger
+                    );
+                }
+                case OLLAMA -> {
+                    if (ollamaClient == null) {
+                        ollamaClient = chatClient(OllamaChatModel.builder()
+                                .ollamaApi(OllamaApi.builder()
+                                        .baseUrl(OLLAMA_BASE_URL)
+                                        .build())
+                                .build());
+                    }
+                    service = new TaskOrganizerService(
+                            ollamaClient,
+                            promptRepository,
+                            new OllamaChatOptionsFactory(ollamaProperties(evalModel.id())),
+                            usageLogger
+                    );
+                }
+                default -> throw new IllegalStateException(
+                        "Unsupported eval provider: " + evalModel.provider()
+                );
+            }
+
+            built.put(evalModel.id(), service);
+        }
+
+        services = Collections.unmodifiableMap(built);
+
+        EvalModel primary = EVAL_MODELS.get(0);
+        ChatClient primaryClient = primary.provider() == LlmProvider.OPENAI
+                ? openAiClient
+                : ollamaClient;
+        var optionsFactory = primary.provider() == LlmProvider.OPENAI
+                ? new OpenAiChatOptionsFactory(openAiProperties(primary.id()))
+                : new OllamaChatOptionsFactory(ollamaProperties(primary.id()));
+
+        Map<String, TaskOrganizerService> variants = new LinkedHashMap<>();
+        PROMPT_VERSIONS.keySet().stream().sorted().forEach(version -> variants.put(
+                version,
+                new TaskOrganizerService(
+                        primaryClient,
+                        promptRepository(PROMPT_VERSIONS.get(version)),
+                        optionsFactory,
+                        usageLogger
                 )
         ));
+        promptVariants = Collections.unmodifiableMap(variants);
+    }
+
+    /** 호출 한 번의 토큰 사용량을 리포트에 담으려고 응답 메타데이터를 가로챈다. */
+    private static final class UsageRecorder implements CallAdvisor {
+
+        private Usage last;
+
+        @Override
+        public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
+            ChatClientResponse response = chain.nextCall(request);
+            var chatResponse = response.chatResponse();
+            last = chatResponse == null || chatResponse.getMetadata() == null
+                    ? null
+                    : chatResponse.getMetadata().getUsage();
+            return response;
+        }
+
+        @Override
+        public String getName() {
+            return "usage-recorder";
+        }
+
+        @Override
+        public int getOrder() {
+            return 0;
+        }
+
+        private TokenUsage drain() {
+            Usage usage = last;
+            last = null;
+            if (usage == null) {
+                return new TokenUsage(-1, -1, -1, -1);
+            }
+            return new TokenUsage(
+                    usage.getPromptTokens() == null ? -1 : usage.getPromptTokens(),
+                    usage.getCompletionTokens() == null ? -1 : usage.getCompletionTokens(),
+                    usage.getTotalTokens() == null ? -1 : usage.getTotalTokens(),
+                    usage.getCacheReadInputTokens() == null ? -1 : usage.getCacheReadInputTokens()
+            );
+        }
+    }
+
+    private record TokenUsage(
+            int promptTokens,
+            int completionTokens,
+            int totalTokens,
+            long cachedPromptTokens
+    ) {
+    }
+
+    private ChatClient chatClient(org.springframework.ai.chat.model.ChatModel chatModel) {
+        return ChatClient.builder(chatModel)
+                .defaultAdvisors(SimpleLoggerAdvisor.builder().build(), usageRecorder)
+                .build();
+    }
+
+    /**
+     * reasoning 모델 계열에만 reasoning effort를 준다.
+     * reasoning effort를 주면 maxCompletionTokens를, 주지 않으면 maxTokens를 쓰는데 둘은 상호 배타적이다.
+     */
+    private static LlmProperties openAiProperties(String model) {
+        String reasoningEffort = model.startsWith("gpt-5") ? "low" : null;
+
+        return new LlmProperties(
+                LlmProvider.OPENAI,
+                model,
+                2_000,
+                0.0,
+                new LlmProperties.OpenAi(reasoningEffort),
+                null
+        );
+    }
+
+    /** 운영 llm/ollama.yml 과 같은 값을 쓴다. thinking 은 끈다. */
+    private static LlmProperties ollamaProperties(String model) {
+        return new LlmProperties(
+                LlmProvider.OLLAMA,
+                model,
+                2_000,
+                0.0,
+                null,
+                new LlmProperties.Ollama(4_096, "10m", false)
+        );
     }
 
     @Test
@@ -123,6 +304,27 @@ class TaskOrganizerServiceTest {
         );
     }
 
+    @Test
+    @DisplayName("프롬프트 버전별 분류 결과와 토큰 사용량을 나란히 리포트로 생성한다")
+    void generatesPromptVersionComparisonReport() throws Exception {
+        List<ScenarioResult> results = new ArrayList<>();
+
+        for (TaskOrganizerTestScenario scenario : DigitalMarketerTestData.scenarios()) {
+            for (var variant : promptVariants.entrySet()) {
+                for (int run = 1; run <= PROMPT_VERSION_RUNS; run++) {
+                    results.add(evaluate(scenario, variant.getKey(), variant.getValue(), run));
+                }
+            }
+        }
+
+        writeReport(
+                "task-organizer-prompt-version-results",
+                "프리랜서 마케터 시나리오에 프롬프트 버전만 바꿔 %d회씩 반복 측정한다".formatted(PROMPT_VERSION_RUNS),
+                List.copyOf(promptVariants.keySet()),
+                results
+        );
+    }
+
     private void generateReport(
             String filePrefix,
             String persona,
@@ -136,12 +338,21 @@ class TaskOrganizerServiceTest {
             }
         }
 
+        writeReport(filePrefix, persona, MODELS, results);
+    }
+
+    private void writeReport(
+            String filePrefix,
+            String persona,
+            List<String> models,
+            List<ScenarioResult> results
+    ) throws Exception {
         Instant generatedAt = Instant.now();
         Path reportPath = reportPath(filePrefix, generatedAt);
         EvaluationReport report = new EvaluationReport(
                 generatedAt.toString(),
                 persona,
-                MODELS,
+                models,
                 results
         );
         Files.createDirectories(REPORT_DIRECTORY);
@@ -166,21 +377,31 @@ class TaskOrganizerServiceTest {
     }
 
     private ScenarioResult evaluate(TaskOrganizerTestScenario scenario, String model) {
+        return evaluate(scenario, model, services.get(model), 1);
+    }
+
+    private ScenarioResult evaluate(
+            TaskOrganizerTestScenario scenario,
+            String label,
+            TaskOrganizerService service,
+            int run
+    ) {
         long startedAt = System.nanoTime();
 
         try {
-            TaskOrganizeResult output = services.get(model).organize(scenario.input());
+            TaskOrganizeResult output = service.organize(scenario.input());
             assertStructurallyValid(scenario.input(), output);
-            return result(scenario, model, startedAt, output, null);
-        } catch (Exception exception) {
-            String error = exception.getClass().getSimpleName() + ": " + exception.getMessage();
-            return result(scenario, model, startedAt, null, error);
+            return result(scenario, label, run, startedAt, output, null);
+        } catch (Exception | AssertionError failure) {
+            String error = failure.getClass().getSimpleName() + ": " + failure.getMessage();
+            return result(scenario, label, run, startedAt, null, error);
         }
     }
 
     private ScenarioResult result(
             TaskOrganizerTestScenario scenario,
             String model,
+            int run,
             long startedAt,
             TaskOrganizeResult output,
             String error
@@ -190,7 +411,9 @@ class TaskOrganizerServiceTest {
                 scenario.name(),
                 scenario.evaluationCriteria(),
                 model,
+                run,
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt),
+                usageRecorder.drain(),
                 scenario.input(),
                 output,
                 error
@@ -359,9 +582,9 @@ class TaskOrganizerServiceTest {
             return processApiKey;
         }
 
-        Path envPath = Path.of("src/test/.env").toAbsolutePath().normalize();
+        Path envPath = Path.of("src/test/.env.test").toAbsolutePath().normalize();
         if (!Files.isRegularFile(envPath)) {
-            envPath = Path.of("backend/src/test/.env").toAbsolutePath().normalize();
+            envPath = Path.of("backend/src/test/.env.test").toAbsolutePath().normalize();
         }
 
         String testApiKey = Dotenv.configure()
@@ -410,7 +633,9 @@ class TaskOrganizerServiceTest {
             String scenarioName,
             String evaluationCriteria,
             String model,
+            int run,
             long latencyMillis,
+            TokenUsage tokens,
             TaskOrganizerInput input,
             TaskOrganizeResult output,
             String error

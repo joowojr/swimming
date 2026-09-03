@@ -398,7 +398,7 @@ export default function PersonalSessionPage() {
           <div className={styles['timer-main']}>
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <circle className={styles['ring-track']} cx="50" cy="50" r="44" />
-              <circle className={styles['ring-progress']} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
+              <circle className={styles['ring-progress']} data-phase={phase.kind} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
             </svg>
             <div className={styles['timer-value']}>
               <h2 id="session-timer-title">{formatTimer(remaining)}</h2>

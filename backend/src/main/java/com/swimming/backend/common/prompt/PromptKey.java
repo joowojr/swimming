@@ -8,7 +8,11 @@ package com.swimming.backend.common.prompt;
  */
 public enum PromptKey {
 
-    TASK_ORGANIZER("task-organizer");
+    /** 메모를 여러 폴더 중 하나로 분류한다. */
+    TASK_ORGANIZER("task-organizer"),
+
+    /** 폴더가 이미 정해진 상태에서 메모에서 할 일만 뽑는다. */
+    TASK_EXTRACTOR("task-extractor");
 
     private final String configName;
 

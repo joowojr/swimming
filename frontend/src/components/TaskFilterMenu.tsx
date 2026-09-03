@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconFilter } from '@tabler/icons-react'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../features/tasks/taskLabels'
-import type { TaskStatus } from '../features/tasks/taskTypes'
+import { EMPTY_TASK_FILTER, countActiveFilters } from '../features/tasks/taskFilter'
+import type { TaskFilter } from '../features/tasks/taskFilter'
 import styles from './TaskFilterMenu.module.css'
 
 /** 역할: 할 일 목록을 상태·중요·즉시로 좁히는 필터 메뉴를 화면들이 같은 규칙으로 쓰게 한다. */
-export interface TaskFilter {
-  status: 'ALL' | TaskStatus
-  priority: boolean
-  urgent: boolean
-}
-
 interface TaskFilterMenuProps {
   value: TaskFilter
   onChange: (filter: TaskFilter) => void
@@ -19,23 +14,6 @@ interface TaskFilterMenuProps {
   triggerClassName?: string
   triggerTitle?: string
   iconSize?: number
-}
-
-export const EMPTY_TASK_FILTER: TaskFilter = { status: 'ALL', priority: false, urgent: false }
-
-export function countActiveFilters(filter: TaskFilter) {
-  return (filter.status === 'ALL' ? 0 : 1)
-    + (filter.priority ? 1 : 0)
-    + (filter.urgent ? 1 : 0)
-}
-
-export function matchesTaskFilter(
-  task: { status: TaskStatus; priority: boolean; urgent: boolean },
-  filter: TaskFilter,
-) {
-  return (filter.status === 'ALL' || task.status === filter.status)
-    && (!filter.priority || task.priority)
-    && (!filter.urgent || task.urgent)
 }
 
 export default function TaskFilterMenu({
@@ -71,10 +49,6 @@ export default function TaskFilterMenu({
     }
   }, [isOpen])
 
-  useEffect(() => {
-    if (disabled) setIsOpen(false)
-  }, [disabled])
-
   return (
     <div className={styles.wrap} ref={wrapRef}>
       <button
@@ -95,7 +69,7 @@ export default function TaskFilterMenu({
           </span>
         )}
       </button>
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className={styles.panel} role="dialog" aria-label="할 일 필터">
           <label className={styles.field}>
             <span>상태</span>

@@ -5,12 +5,13 @@ import type { ApiError } from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
-import TaskFilterMenu, {
+import TaskFilterMenu from '../../components/TaskFilterMenu'
+import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
   matchesTaskFilter,
-} from '../../components/TaskFilterMenu'
-import type { TaskFilter } from '../../components/TaskFilterMenu'
+} from '../tasks/taskFilter'
+import type { TaskFilter } from '../tasks/taskFilter'
 import { deleteTasks, getTaskList } from '../tasks/taskApi'
 import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
 import FolderCard from './FolderCard.tsx'

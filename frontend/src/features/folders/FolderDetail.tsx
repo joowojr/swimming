@@ -1,4 +1,4 @@
-import type {CSSProperties, KeyboardEvent} from 'react'
+import type {KeyboardEvent} from 'react'
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {IconCalendarDue, IconChevronRight} from '@tabler/icons-react'
 import {Link, useNavigate} from 'react-router-dom'
@@ -7,12 +7,13 @@ import DdayChip from '../../components/DdayChip'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import InlineEditableText from '../../components/InlineEditableText'
-import TaskFilterMenu, {
+import TaskFilterMenu from '../../components/TaskFilterMenu'
+import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
   matchesTaskFilter,
-} from '../../components/TaskFilterMenu'
-import type { TaskFilter } from '../../components/TaskFilterMenu'
+} from '../tasks/taskFilter'
+import type { TaskFilter } from '../tasks/taskFilter'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks} from '../tasks/taskApi'
 import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
@@ -316,10 +317,6 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   }
 
   const { folder } = state
-  const completionPct = Math.min(100, Math.max(0, folder.progress.completionPct))
-  const progressStyle = {
-    '--folder-progress-scale': completionPct / 100,
-  } as CSSProperties
   const activeFilterCount = countActiveFilters(taskFilter)
   const visibleTasks = folder.tasks.filter((task) => matchesTaskFilter(task, taskFilter))
   const emptyCopy = activeFilterCount > 0

@@ -139,7 +139,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             WHERE folder.user.id = :userId
               AND folder.status <> :excludedStatus
               AND folder.deleted = false
-            ORDER BY folder.createdAt DESC, task.orderIdx ASC, task.id ASC
+            ORDER BY folder.createdAt DESC, task.createdAt DESC
             """)
     List<TaskOrganizerContextRow> findTaskOrganizerContext(
             @Param("userId") Long userId,

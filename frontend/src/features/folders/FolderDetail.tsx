@@ -1,15 +1,20 @@
 import type {CSSProperties, KeyboardEvent} from 'react'
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {IconChevronRight, IconFilter} from '@tabler/icons-react'
+import {IconCalendarDue, IconChevronRight} from '@tabler/icons-react'
 import {Link, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
+import DdayChip from '../../components/DdayChip'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import InlineEditableText from '../../components/InlineEditableText'
+import TaskFilterMenu, {
+  EMPTY_TASK_FILTER,
+  countActiveFilters,
+  matchesTaskFilter,
+} from '../../components/TaskFilterMenu'
+import type { TaskFilter } from '../../components/TaskFilterMenu'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks} from '../tasks/taskApi'
-import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
-import type {TaskStatus} from '../tasks/taskTypes'
 import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
 import {useFolderStore} from '../../store/folderStore.ts'
 import type {FolderDetail as FolderDetailData, FolderStatus} from './folderTypes.ts'
@@ -27,7 +32,6 @@ type DetailState =
   | { status: 'ready'; folder: FolderDetailData }
   | { status: 'error'; notFound: boolean }
 
-type TaskFilter = 'ALL' | TaskStatus
 type EditableFolderTextField = 'name' | 'description'
 
 // const taskFilters: Array<{ value: TaskFilter; label: string }> = [
@@ -59,16 +63,6 @@ function isNotFound(error: unknown) {
   return typeof error === 'object' && error !== null && (error as ApiError).status === 404
 }
 
-function openSelectPicker(select: HTMLSelectElement | null | undefined) {
-  if (!select || select.disabled) return
-  select.focus()
-  try {
-    select.showPicker()
-  } catch {
-    select.focus()
-  }
-}
-
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
   const applyFolderToStore = useFolderStore((state) => state.apply)
@@ -76,8 +70,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   const [state, setState] = useState<DetailState>(
     folderId === null ? { status: 'error', notFound: true } : { status: 'loading' },
   )
-  const [statusFilter, setStatusFilter] = useState<TaskFilter>('ALL')
-  const filterSelectRef = useRef<HTMLSelectElement>(null)
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
@@ -327,31 +320,17 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   const progressStyle = {
     '--folder-progress-scale': completionPct / 100,
   } as CSSProperties
-  const visibleTasks = statusFilter === 'ALL'
-    ? folder.tasks
-    : folder.tasks.filter((task) => task.status === statusFilter)
-  const emptyCopy = {
-    ALL: {
+  const activeFilterCount = countActiveFilters(taskFilter)
+  const visibleTasks = folder.tasks.filter((task) => matchesTaskFilter(task, taskFilter))
+  const emptyCopy = activeFilterCount > 0
+    ? {
+      title: '조건에 맞는 할 일이 없어요.',
+      description: '필터 조건을 바꾸면 다른 할 일을 볼 수 있어요.',
+    }
+    : {
       title: '등록된 할 일이 없어요.',
       description: '할 일이 추가되면 진행 순서대로 이곳에 표시됩니다.',
-    },
-    TODO: {
-      title: '시작 전인 할 일이 없어요.',
-      description: '새로운 작업을 추가하면 이곳에서 확인할 수 있습니다.',
-    },
-    DOING: {
-      title: '등록된 할 일이 없어요.',
-      description: '진행을 시작한 할 일이 생기면 이곳에 표시됩니다.',
-    },
-    DONE: {
-      title: '끝낸 할 일이 없어요.',
-      description: '완료한 할 일이 생기면 이곳에 차곡차곡 표시됩니다.',
-    },
-    HOLD: {
-      title: '잠시 멈춘 할 일이 없어요.',
-      description: '',
-    },
-  }[statusFilter]
+    }
 
   return (
     <article className={styles.page} aria-labelledby="folder-detail-title">
@@ -371,10 +350,36 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
         <div className={styles['detail-main']}>
 
       <header className={styles.header}>
-      <div className={styles.badges} data-tone={folder.id % 4}>
-          {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
-          <span className={styles['folder-status']} data-status={folder.status}>{folderStatusLabel[folder.status]}</span>
+        <div className={styles['header-top']}>
+          <div className={styles.badges} data-tone={folder.id % 4}>
+            {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
+            <span className={styles['folder-status']} data-status={folder.status}>{folderStatusLabel[folder.status]}</span>
+            <DdayChip targetDate={folder.targetDate} />
+          </div>
+          <DeleteIconButton
+            className={styles['compact-delete-button']}
+            iconSize={14}
+            label="폴더 삭제"
+            active={isConfirmingFolderDelete}
+            disabled={isDeletingFolder}
+            onClick={() => {
+              setIsConfirmingFolderDelete((current) => !current)
+              setFolderDeleteError(null)
+            }}
+          >
+            <span>{isConfirmingFolderDelete ? '취소' : '폴더 삭제'}</span>
+          </DeleteIconButton>
         </div>
+        {isConfirmingFolderDelete && (
+          <DeleteConfirmation
+            message="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 메모는 유지됩니다."
+            ariaLabel="폴더 삭제 확인"
+            isDeleting={isDeletingFolder}
+            onCancel={() => setIsConfirmingFolderDelete(false)}
+            onConfirm={() => void removeFolder(folder)}
+          />
+        )}
+        {folderDeleteError && <p className={styles['delete-error']} role="alert">{folderDeleteError}</p>}
         <div className={styles['editable-group']}>
           <h1 id="folder-detail-title">
             <InlineEditableText
@@ -401,31 +406,40 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             />
           </p>
         </div>
+        <div className={styles['header-bottom']}>
+          {isEditingTargetDate ? (
+            <span className={styles['date-editor']}>
+              <input
+                type="date"
+                value={editValue}
+                aria-label="폴더 목표일"
+                aria-invalid={Boolean(editError)}
+                disabled={isSavingFolder}
+                autoFocus
+                onChange={(event) => { setEditValue(event.target.value); setEditError(null) }}
+                onBlur={() => void saveTargetDate(folder)}
+                onKeyDown={handleTargetDateEditorKeyDown}
+              />
+            </span>
+          ) : (
+            <button
+              type="button"
+              className={styles['target-date-chip']}
+              title="더블 클릭하여 목표일 수정"
+              disabled={isSavingFolder}
+              onDoubleClick={() => startEditingTargetDate(folder.targetDate)}
+              onKeyDown={handleTargetDateDisplayKeyDown}
+            >
+              <IconCalendarDue size={14} stroke={1.8} aria-hidden="true" />
+              <span>
+                <span className="sr-only">목표일 </span>
+                {formatTargetDate(folder.targetDate)}
+              </span>
+            </button>
+          )}
+        </div>
+        {editError && <p className={styles['target-date-error']} role="alert">{editError}</p>}
       </header>
-
-      <div className={styles['folder-delete-actions']}>
-        <DeleteIconButton
-          label="폴더 삭제"
-          active={isConfirmingFolderDelete}
-          disabled={isDeletingFolder}
-          onClick={() => {
-            setIsConfirmingFolderDelete((current) => !current)
-            setFolderDeleteError(null)
-          }}
-        >
-          <span>{isConfirmingFolderDelete ? '취소' : '폴더 삭제'}</span>
-        </DeleteIconButton>
-      </div>
-      {isConfirmingFolderDelete && (
-        <DeleteConfirmation
-          message="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 메모는 유지됩니다."
-          ariaLabel="폴더 삭제 확인"
-          isDeleting={isDeletingFolder}
-          onCancel={() => setIsConfirmingFolderDelete(false)}
-          onConfirm={() => void removeFolder(folder)}
-        />
-      )}
-      {folderDeleteError && <p className={styles['delete-error']} role="alert">{folderDeleteError}</p>}
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}
@@ -488,31 +502,22 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
             <h2 id="folder-tasks-title">할 일</h2>
-            <span>총 {visibleTasks.length}개의 할 일이 있어요</span>
+            <span>
+              {activeFilterCount > 0
+                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${folder.tasks.length}개`
+                : `총 ${visibleTasks.length}개의 할 일이 있어요`}
+            </span>
           </div>
           <div className={styles['task-actions']}>
-            <button type="button" className={styles['task-filters']} title="필터 · 준비 중"
-                    onClick={() => openSelectPicker(filterSelectRef.current)}>
-              <IconFilter size={17} aria-hidden="true"/>
-              필터
-            </button>
-            <span id="task-filter-current" className="sr-only">
-          {statusFilter === 'ALL' ? '전체' : TASK_STATUS_LABEL[statusFilter]}
-        </span>
-
-            <select
-                ref={filterSelectRef}
-                className={styles['filter-select']}
-                value={statusFilter}
-                aria-label="task 상태로 필터"
-                onChange={(event) => setStatusFilter(event.target.value as TaskFilter)}
-            >
-              <option value="ALL">전체</option>
-              {TASK_STATUS_VALUES.map((status) => (
-                  <option value={status} key={status}>{TASK_STATUS_LABEL[status]}</option>
-              ))}
-            </select>
+            <TaskFilterMenu
+                value={taskFilter}
+                onChange={setTaskFilter}
+                triggerClassName={styles['task-filters']}
+                iconSize={14}
+            />
             <DeleteIconButton
+                className={styles['compact-delete-button']}
+                iconSize={14}
                 label={isDeleteMode ? '할 일 삭제 선택 취소' : '할 일 삭제 선택'}
                 active={isDeleteMode}
                 disabled={isDeletingTasks}
@@ -525,6 +530,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             </DeleteIconButton>
             {isDeleteMode && (
                 <DeleteIconButton
+                    className={styles['compact-delete-button']}
+                    iconSize={14}
                     label="선택한 Task 삭제"
                     disabled={selectedTaskIds.size === 0 || isDeletingTasks}
                     onClick={() => void removeSelectedTasks()}
@@ -541,7 +548,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
               inputRef={taskInputRef}
               variant="embedded"
               onCreated={() => {
-                setStatusFilter('ALL')
+                setTaskFilter(EMPTY_TASK_FILTER)
                 setRequestKey((key) => key + 1)
               }}
           />

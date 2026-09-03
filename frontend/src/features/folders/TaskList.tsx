@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { IconCheck, IconFolder, IconLoader2, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
+import { IconCheck, IconFolder, IconLoader2, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ChecklistCard from '../../components/ChecklistCard'
-import TaskMenu from '../../components/TaskMenu'
+import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
@@ -223,7 +223,7 @@ export default function TaskList({
                       className={styles.status}
                       value={task.status}
                       aria-label={`${task.title} 상태`}
-                      disabled={isPending}
+                      disabled={isPending || isDeleteMode}
                       onChange={(event) => void changeTaskStatus(task, event.target.value as TaskStatus)}
                     >
                       {TASK_STATUS_VALUES.map((status) => (
@@ -254,39 +254,21 @@ export default function TaskList({
                       </span>
                     ) : (
                       <TaskMenu inline label={`${task.title} 카드 메뉴`}>
-                      <>
-                        <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => void changeTaskPriority(task)}
-                      >
-                        {task.priority ? '중요 해제' : '중요 설정'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => void changeTaskUrgent(task)}
-                      >
-                          {task.urgent ? '즉시 해제' : '즉시 설정'}
-                        </button>
-                      </>
-                        <button
-                          type="button"
+                      <TaskFlagMenuItems
+                          priority={task.priority}
+                          urgent={task.urgent}
                           disabled={isPending}
-                          onClick={() => void startSession(task)}
-                        >
-                          {isPending
-                            ? <IconLoader2 className={styles.spinner} size={15} aria-hidden="true"/>
-                            : <IconPlayerPlay size={15} aria-hidden="true"/>}
-                          다이브 세션
-                        </button>
+                          onTogglePriority={() => void changeTaskPriority(task)}
+                          onToggleUrgent={() => void changeTaskUrgent(task)}
+                          session={{ onStart: () => void startSession(task), isPending }}
+                        />
                         <button
                           type="button"
                           disabled
                           title="폴더 이동 · 준비 중"
                           aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
                         >
-                          <IconFolder size={15} aria-hidden="true"/>
+                          <IconFolder size={14} aria-hidden="true"/>
                           이동하기
                         </button>
                       </TaskMenu>

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconLoader2, IconPlayerPlay, IconTrash } from '@tabler/icons-react'
+import { IconLoader2 } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import AddItemButton from '../../components/AddItemButton'
 import ChecklistCard from '../../components/ChecklistCard'
 import InlineEditableText from '../../components/InlineEditableText'
-import TaskMenu from '../../components/TaskMenu'
+import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
@@ -401,24 +401,11 @@ export default function TaskMatrix() {
                                 ))}
                               </select>
                               <TaskMenu inline label={`${task.title} 카드 메뉴`}>
-                                <button
-                                  type="button"
+                                <TaskFlagMenuItems
                                   disabled={isPending}
-                                  onClick={() => void startSession(task)}
-                                >
-                                  {isPending
-                                    ? <IconLoader2 className={styles.spinner} size={15} aria-hidden="true"/>
-                                    : <IconPlayerPlay size={15} aria-hidden="true"/>}
-                                  다이브 세션
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isPending}
-                                  onClick={() => void deleteTask(task)}
-                                >
-                                  <IconTrash size={15} aria-hidden="true"/>
-                                  삭제하기
-                                </button>
+                                  session={{ onStart: () => void startSession(task), isPending }}
+                                  onDelete={() => void deleteTask(task)}
+                                />
                               </TaskMenu>
                             </>
                           )}

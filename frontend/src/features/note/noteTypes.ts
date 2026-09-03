@@ -1,4 +1,4 @@
-export type NoteContextType = 'DEFAULT' | 'PROJECT' | 'SESSION'
+export type NoteContextType = 'DEFAULT' | 'FOLDER' | 'SESSION'
 
 export type NoteStatus = 'ACTIVE' | 'ARCHIVED'
 
@@ -25,7 +25,7 @@ export type CreateNoteRequest =
     }
   | {
       content: string
-      contextType: 'PROJECT'
+      contextType: 'FOLDER'
       folderId: number
       sessionId: null
     }

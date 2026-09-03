@@ -50,7 +50,7 @@ export default function NoteList({
           <select id="saved-memos-title" value={filter} onChange={(event) => onFilterChange(event.target.value as NoteListFilter)}>
             <option value="DEFAULT">핀보드</option>
             <option value="SESSION">세션</option>
-            <option value="PROJECT">폴더</option>
+            <option value="FOLDER">폴더</option>
             <option value="ALL">전체</option>
             <option value="ARCHIVED">보관함</option>
           </select>

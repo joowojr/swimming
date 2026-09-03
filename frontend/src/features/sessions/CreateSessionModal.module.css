@@ -484,6 +484,17 @@
     cursor: not-allowed;
 }
 
+.fieldset:disabled {
+    opacity: 0.55;
+}
+
+.fieldset:disabled .place-choice:has(input:disabled),
+.fieldset:disabled .durations label:has(input:disabled) > span,
+.fieldset:disabled .custom-value input:disabled {
+    cursor: not-allowed;
+    opacity: 1;
+}
+
 @media (hover: hover) and (pointer: fine) {
     .close:hover:not(:disabled),
     .durations label:not(:has(input:checked)):hover > span,

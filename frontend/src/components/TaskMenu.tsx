@@ -8,8 +8,79 @@ import {
 } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { IconDots } from '@tabler/icons-react'
+import { IconDots, IconLoader2, IconPlayerPlay } from '@tabler/icons-react'
+import DeleteIconButton from './DeleteIconButton'
+import ModalTriggerButton from './ModalTriggerButton'
 import styles from './TaskMenu.module.css'
+
+interface TaskFlagMenuItemsProps {
+  priority?: boolean
+  urgent?: boolean
+  disabled?: boolean
+  onTogglePriority?: () => void
+  onToggleUrgent?: () => void
+  /** 다이브 세션 항목. dialogId를 주면 모달 트리거로, 아니면 바로 시작하는 버튼으로 그린다. */
+  session?: {
+    onStart: () => void
+    isPending?: boolean
+    dialogId?: string
+    isOpen?: boolean
+  }
+  /** 삭제 항목. 문구는 모든 화면에서 '삭제하기'로 통일한다. */
+  onDelete?: () => void
+}
+
+/** 역할: TaskMenu를 쓰는 화면들이 공통으로 두는 중요·즉시·다이브 세션·삭제 항목을 한곳에서 정의한다. */
+export function TaskFlagMenuItems({
+  priority = false,
+  urgent = false,
+  disabled = false,
+  onTogglePriority,
+  onToggleUrgent,
+  session,
+  onDelete,
+}: TaskFlagMenuItemsProps) {
+  return (
+    <>
+      {onTogglePriority && (
+        <button type="button" disabled={disabled} onClick={onTogglePriority}>
+          {priority ? '📌  중요 해제' : '📌  중요 설정'}
+        </button>
+      )}
+      {onToggleUrgent && (
+        <button type="button" disabled={disabled} onClick={onToggleUrgent}>
+          {urgent ? '⚡  ️즉시 해제' : '⚡  ️즉시 설정'}
+        </button>
+      )}
+      {session && (session.dialogId
+        ? (
+          <ModalTriggerButton
+            dialogId={session.dialogId}
+            isOpen={session.isOpen}
+            variant="plain"
+            disabled={disabled}
+            icon={<IconPlayerPlay size={14} aria-hidden="true" />}
+            onClick={session.onStart}
+          >
+            다이브 세션
+          </ModalTriggerButton>
+        )
+        : (
+          <button type="button" disabled={disabled || session.isPending} onClick={session.onStart}>
+            {session.isPending
+              ? <IconLoader2 className={styles.spinner} size={14} aria-hidden="true" />
+              : <IconPlayerPlay size={14} aria-hidden="true" />}
+            다이브 세션
+          </button>
+        ))}
+      {onDelete && (
+        <DeleteIconButton label="삭제하기" iconSize={14} disabled={disabled} onClick={onDelete}>
+          삭제하기
+        </DeleteIconButton>
+      )}
+    </>
+  )
+}
 
 interface TaskMenuProps {
   label: string
@@ -129,7 +200,7 @@ export default function TaskMenu({
         aria-controls={isOpen ? menuId : undefined}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <IconDots size={17} aria-hidden="true" />
+        <IconDots size={15} aria-hidden="true" />
       </button>
       {isOpen && createPortal(
         <div

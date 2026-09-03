@@ -121,6 +121,7 @@ export default function CreateSessionModal({
   const breakMinutes = breakPreset === 'custom' ? Number(customBreakMinutes) : breakPreset
   const validDuration = Number.isInteger(durationMinutes) && durationMinutes >= 1 && durationMinutes <= 1440
   const validBreak = Number.isInteger(breakMinutes) && breakMinutes >= 1 && breakMinutes <= 60
+  const hasBreak = repeat > 1
   const totalMinutes = validDuration ? durationMinutes * repeat + Math.max(0, repeat - 1) * breakMinutes : 0
   const validTotal = totalMinutes >= 1 && totalMinutes <= 1440
   const placeOptions = useMemo<PlaceOption[]>(
@@ -155,7 +156,7 @@ export default function CreateSessionModal({
     setMockNotice(null)
 
     if (selectedTaskIds.length === 0) {
-      setSubmitError('세션에서 진행할 작업을 하나 이상 선택해 주세요.')
+      setSubmitError('세션에서 진행할 할 일을 하나 이상 선택해 주세요.')
       firstTaskRef.current?.focus()
       return
     }
@@ -172,7 +173,7 @@ export default function CreateSessionModal({
       customMinutesRef.current?.focus()
       return
     }
-    if (repeat > 1 && !validBreak) {
+    if (hasBreak && !validBreak) {
       setSubmitError('휴식 시간은 1분에서 60분 사이로 입력해 주세요.')
       customBreakMinutesRef.current?.focus()
       return
@@ -185,7 +186,7 @@ export default function CreateSessionModal({
         placeId: selectedPlace.place.id,
         plannedDurationSec: durationMinutes * 60,
         focusDurationSec: durationMinutes * 60,
-        breakDurationSec: repeat > 1 ? breakMinutes * 60 : 0,
+        breakDurationSec: hasBreak ? breakMinutes * 60 : 0,
         repeatCount: repeat,
       }))
     } catch (error) {
@@ -244,7 +245,7 @@ export default function CreateSessionModal({
 
             <fieldset className={styles.fieldset}>
               <legend>무엇을 할까요</legend>
-              <p className={styles.hint}>오늘 계획에서 함께 진행할 작업을 모두 선택해 주세요.</p>
+              <p className={styles.hint}>오늘 계획에서 함께 진행할 할 일을 모두 선택해 주세요.</p>
               {linkedTasks.length === 0 ? (
                 <p className={styles.empty}>오늘 계획에 포함된 할 일이 없습니다.</p>
               ) : (
@@ -347,27 +348,8 @@ export default function CreateSessionModal({
                     </div>
                   </fieldset>
 
-        <fieldset className={styles.fieldset}>
-                    <legend>휴식 시간</legend>
-                    <p className={styles['value-box']}>
-                      {breakPreset === 'custom' ? (
-                        <label className={styles['custom-value']}>
-                          <span className="sr-only">휴식 시간</span>
-                          <input ref={customBreakMinutesRef} type="number" min={1} max={60} value={customBreakMinutes} placeholder="—" onChange={(event) => setCustomBreakMinutes(event.target.value)} aria-invalid={Boolean(customBreakMinutes) && !validBreak} disabled={isSubmitting} />
-                          <span aria-hidden="true">분</span>
-                        </label>
-                      ) : <><strong>{breakMinutes}</strong>분</>}
-                    </p>
-                    <div className={styles.durations}>
-                      {([5, 10, 15] as const).map((minutes) => (
-                        <label key={minutes}><input type="radio" name="break-duration" checked={breakPreset === minutes} onChange={() => setBreakPreset(minutes)} disabled={isSubmitting} /><span>{minutes}분</span></label>
-                      ))}
-                      <label><input type="radio" name="break-duration" checked={breakPreset === 'custom'} onChange={() => setBreakPreset('custom')} disabled={isSubmitting} /><span>직접 입력</span></label>
-                    </div>
-                  </fieldset>
-
                   <fieldset className={styles.fieldset}>
-                    <legend>반복</legend>
+                    <legend>얼마나 반복할까요</legend>
                     <div className={styles.repeat}>
                       <button type="button" aria-label="반복 줄이기" onClick={() => setRepeat((value) => Math.max(1, value - 1))} disabled={isSubmitting || repeat === 1}>−</button>
                       <strong>{repeat}</strong>
@@ -375,9 +357,30 @@ export default function CreateSessionModal({
                     </div>
                     <p className={styles.hint}>
                       총 {formatTotalTime(totalMinutes)}
-                      {repeat > 1 && ` · 사이에 ${breakMinutes}분 휴식`}
+                      {hasBreak && ` · 사이에 ${breakMinutes}분 휴식`}
                     </p>
                   </fieldset>
+
+                  {hasBreak && (
+                    <fieldset className={styles.fieldset} disabled={isSubmitting}>
+                      <legend>휴식 시간</legend>
+                      <p className={styles['value-box']}>
+                        {breakPreset === 'custom' ? (
+                          <label className={styles['custom-value']}>
+                            <span className="sr-only">휴식 시간</span>
+                            <input ref={customBreakMinutesRef} type="number" min={1} max={60} value={customBreakMinutes} placeholder="—" onChange={(event) => setCustomBreakMinutes(event.target.value)} aria-invalid={Boolean(customBreakMinutes) && !validBreak} />
+                            <span aria-hidden="true">분</span>
+                          </label>
+                        ) : <><strong>{breakMinutes}</strong>분</>}
+                      </p>
+                      <div className={styles.durations}>
+                        {([5, 10, 15] as const).map((minutes) => (
+                          <label key={minutes}><input type="radio" name="break-duration" checked={breakPreset === minutes} onChange={() => setBreakPreset(minutes)} /><span>{minutes}분</span></label>
+                        ))}
+                        <label><input type="radio" name="break-duration" checked={breakPreset === 'custom'} onChange={() => setBreakPreset('custom')} /><span>직접 입력</span></label>
+                      </div>
+                    </fieldset>
+                  )}
                 </div>
               </>
             )}

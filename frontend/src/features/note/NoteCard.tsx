@@ -50,7 +50,7 @@ export default function NoteCard({
   const [memo, setMemo] = useState('')
   const [notes, setNotes] = useState<NoteResponse[]>([])
   const [noteFilter, setNoteFilter] = useState<NoteListFilter>(
-      sessionId !== undefined ? 'SESSION' : folderId !== undefined ? 'PROJECT' : 'DEFAULT',
+      sessionId !== undefined ? 'SESSION' : folderId !== undefined ? 'FOLDER' : 'DEFAULT',
   )
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
   // 첫 조회를 건너뛰는 경우에는 기다릴 것이 없으므로 처음부터 준비된 상태다.
@@ -94,7 +94,7 @@ export default function NoteCard({
     if (filter === 'ALL') return getNotes()
     if (filter === 'ARCHIVED') return getNotes({ status: 'ARCHIVED' })
     if (filter === 'SESSION' && sessionId !== undefined) return getNotes({ sessionId })
-    if (filter === 'PROJECT' && folderId !== undefined) return getNotes({ folderId })
+    if (filter === 'FOLDER' && folderId !== undefined) return getNotes({ folderId })
     return getNotes({ contextType: filter })
   }, [folderId, sessionId])
 
@@ -104,7 +104,7 @@ export default function NoteCard({
 
     const defaultFilter: NoteListFilter = sessionId !== undefined
         ? 'SESSION'
-        : folderId !== undefined ? 'PROJECT' : 'DEFAULT'
+        : folderId !== undefined ? 'FOLDER' : 'DEFAULT'
     let cancelled = false
 
     // 폴더·세션이 바뀌면 부모가 key로 새 인스턴스를 만들므로, 여기서 이전 상태를 비울 필요가 없다.
@@ -202,7 +202,7 @@ export default function NoteCard({
                 ? { content, contextType: 'SESSION', folderId: null, sessionId }
                 : folderId === undefined
                     ? { content, contextType: 'DEFAULT', folderId: null, sessionId: null }
-                    : { content, contextType: 'PROJECT', folderId, sessionId: null })
+                    : { content, contextType: 'FOLDER', folderId, sessionId: null })
             : await updateNote(noteIdRef.current, { content })
 
         noteIdRef.current = savedNote.id

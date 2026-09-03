@@ -12,8 +12,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   padding: 0;
   border: 0;
   border-radius: var(--radius-default);
@@ -30,7 +30,7 @@
   width: max-content;
   justify-items: start;
   gap: var(--space-1);
-  padding: var(--space-2);
+  padding: var(--space-1);
   border: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-surface-container-lowest);
@@ -41,10 +41,11 @@
   display: inline-flex;
   align-items: center;
   width: auto;
-  min-height: 2.25rem;
+  min-width: 0;
+  min-height: 1.75rem;
   justify-content: flex-start;
   justify-self: start;
-  gap: var(--space-2);
+  gap: var(--space-1);
   padding: 0 var(--space-2);
   border: 0;
   border-radius: var(--radius-default);
@@ -70,4 +71,21 @@
 .card-menu-trigger:active,
 .floating-card-menu button:active:not(:disabled) {
   transform: translateY(var(--border-width));
+}
+
+.spinner {
+  flex: 0 0 auto;
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
 }

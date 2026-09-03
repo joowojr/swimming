@@ -1,5 +1,6 @@
 import { IconCalendarDue } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
+import DdayChip from '../../components/DdayChip'
 import type { Folder } from './folderTypes.ts'
 import styles from './FolderCard.module.css'
 
@@ -37,15 +38,18 @@ export default function FolderCard({ folder: folder }: FolderCardProps) {
           {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
           <h3>{folder.name}</h3>
         </div>
-        {folder.targetDate && (
-          <span className={styles['target-date']}>
-            <IconCalendarDue size={15} stroke={1.8} aria-hidden="true" />
-            <span>
-              <span className="sr-only">목표일 </span>
-              {formatTargetDate(folder.targetDate)}
+        <span className={styles['heading-chips']}>
+          <DdayChip targetDate={folder.targetDate} />
+          {folder.targetDate && (
+            <span className={styles['target-date']}>
+              <IconCalendarDue size={15} stroke={1.8} aria-hidden="true" />
+              <span>
+                <span className="sr-only">목표일 </span>
+                {formatTargetDate(folder.targetDate)}
+              </span>
             </span>
-          </span>
-        )}
+          )}
+        </span>
       </div>
       <p className={styles.description}>
         {folder.description || '폴더 설명이 아직 없습니다.'}

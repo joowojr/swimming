@@ -1,0 +1,14 @@
+/* 목표일이 가까운 항목에 붙는 남은 일수 칩 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-label-caps-weight);
+  white-space: nowrap;
+}

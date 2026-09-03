@@ -53,11 +53,16 @@
   min-width: 0;
 }
 
-.project-delete-actions {
+.header-top {
   display: flex;
-  width: 100%;
-  justify-content: flex-end;
-  margin-top: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.header-top .badges {
+  margin-bottom: 0;
 }
 
 .project-delete-confirmation {
@@ -81,13 +86,14 @@
 
 .badges {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: var(--space-3);
 }
 
 .tag,
-.project-status {
+.folder-status {
   padding: var(--space-1) var(--space-2);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
@@ -105,14 +111,14 @@
   background: var(--project-tone-tint, var(--color-surface-container-highest));
 }
 
-.project-status {
+.folder-status {
   border: var(--border-width) solid var(--chip-doing-border);
   border-radius: var(--radius-full);
   color: var(--chip-doing-fg);
   background: var(--chip-doing-bg);
 }
 
-.project-status[data-status='ARCHIVED'] {
+.folder-status[data-status='ARCHIVED'] {
   border-style: dashed;
   border-color: var(--chip-hold-border);
   color: var(--chip-hold-fg);
@@ -183,6 +189,49 @@
   line-height: inherit;
   white-space: nowrap;
   cursor: text;
+}
+
+.header-bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.target-date-error {
+  margin: var(--space-2) 0 0;
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+  text-align: right;
+}
+
+.target-date-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 1.875rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  white-space: nowrap;
+  background: var(--color-secondary-bg);
+  cursor: text;
+}
+
+.target-date-chip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+.target-date-chip:disabled {
+  cursor: wait;
+  opacity: .55;
 }
 
 .date-editor input {
@@ -397,15 +446,25 @@
 }
 
 .task-actions {
-  gap: var(--space-3);
+  gap: var(--space-2);
+}
+
+.task-actions .compact-delete-button,
+.header-top .compact-delete-button {
+  min-width: 1.875rem;
+  min-height: 1.875rem;
+  padding-inline: var(--space-2);
+  font-size: var(--text-label-caps-size);
 }
 
 .task-filters {
   flex-wrap: wrap;
+  min-height: 1.875rem;
   gap: var(--space-1);
   margin: 0;
-  padding: var(--space-1);
-  border-radius: var(--radius-lg);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  font-size: var(--text-label-caps-size);
   background: var(--color-surface-container-lowest);
 }
 
@@ -442,7 +501,7 @@
 
 .task-filters,
 .state button {
-  gap: var(--space-2);
+  gap: var(--space-1);
   border: var(--border-width) solid var(--color-border-subtle);
   color: var(--color-primary);
   background: var(--color-surface-lowest);
@@ -450,18 +509,6 @@
 
 .task-filters button:active {
   transform: translateY(var(--border-width));
-}
-
-.filter-select {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 .delete-error {
@@ -557,8 +604,14 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .editable-display:hover {
+  .editable-display:hover,
+  .target-date-chip:hover:not(:disabled) {
     background: var(--color-surface-soft);
+  }
+
+  .target-date-chip:hover:not(:disabled) {
+    border-color: var(--color-hairline);
+    color: var(--color-primary);
   }
 
   .breadcrumb a:hover {

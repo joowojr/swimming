@@ -5,6 +5,7 @@ import com.swimming.backend.place.domain.City;
 import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.place.dto.CityResponse;
 import com.swimming.backend.place.service.PlaceService;
+import com.swimming.backend.place.service.PlaceVideoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,12 +19,14 @@ import static org.mockito.Mockito.when;
 class PlaceUseCaseTest {
 
     private PlaceService placeService;
+    private PlaceVideoService placeVideoService;
     private PlaceUseCase placeUseCase;
 
     @BeforeEach
     void setUp() {
         placeService = mock(PlaceService.class);
-        placeUseCase = new PlaceUseCase(placeService);
+        placeVideoService = mock(PlaceVideoService.class);
+        placeUseCase = new PlaceUseCase(placeService, placeVideoService);
     }
 
     @Test
@@ -37,6 +40,10 @@ class PlaceUseCaseTest {
                 place(11L, 1L, "Alfama Cafe", "places/lisbon/alfama.mp4"),
                 place(21L, 2L, "Shibuya Rooftop", "places/tokyo/shibuya.mp4")
         ));
+        when(placeVideoService.resolveBackgroundUrl("places/lisbon/alfama.mp4"))
+                .thenReturn("https://cdn.example.com/places/lisbon/alfama.mp4");
+        when(placeVideoService.resolveBackgroundUrl("places/tokyo/shibuya.mp4"))
+                .thenReturn("https://cdn.example.com/places/tokyo/shibuya.mp4");
 
         List<CityResponse> response = placeUseCase.getPlaces();
 
@@ -47,7 +54,24 @@ class PlaceUseCaseTest {
                     assertThat(place.id()).isEqualTo(11L);
                     assertThat(place.name()).isEqualTo("Alfama Cafe");
                     assertThat(place.defaultMusicUrl()).isEqualTo("https://youtu.be/default");
+                    assertThat(place.backgroundAsset().type()).isEqualTo(BackgroundAssetType.VIDEO);
+                    assertThat(place.backgroundAsset().key()).isEqualTo("places/lisbon/alfama.mp4");
+                    assertThat(place.backgroundAsset().url())
+                            .isEqualTo("https://cdn.example.com/places/lisbon/alfama.mp4");
                 });
+    }
+
+    @Test
+    @DisplayName("배경 에셋 키가 없는 공간은 배경 URL 없이 반환한다")
+    void returnsPlaceWithoutBackgroundUrl() {
+        when(placeService.getCitiesAndPlaces()).thenReturn(List.of(city(1L, "Lisbon", "PT")));
+        when(placeService.getPlaces()).thenReturn(List.of(place(11L, 1L, "Alfama Cafe", null)));
+        when(placeVideoService.resolveBackgroundUrl(null)).thenReturn(null);
+
+        List<CityResponse> response = placeUseCase.getPlaces();
+
+        assertThat(response.getFirst().places()).singleElement()
+                .satisfies(place -> assertThat(place.backgroundAsset().url()).isNull());
     }
 
     @Test

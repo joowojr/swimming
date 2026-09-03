@@ -1,6 +1,8 @@
 package com.swimming.backend.place.controller;
 
 import com.swimming.backend.common.security.AuthUser;
+import com.swimming.backend.place.domain.BackgroundAssetType;
+import com.swimming.backend.place.dto.BackgroundAssetResponse;
 import com.swimming.backend.place.dto.CityResponse;
 import com.swimming.backend.place.dto.PlaceResponse;
 import com.swimming.backend.place.usecase.PlaceUseCase;
@@ -51,6 +53,11 @@ class PlaceControllerTest {
                 List.of(new PlaceResponse(
                         11L,
                         "Alfama Cafe",
+                        new BackgroundAssetResponse(
+                                BackgroundAssetType.VIDEO,
+                                "places/lisbon/alfama.mp4",
+                                "https://cdn.example.com/places/lisbon/alfama.mp4"
+                        ),
                         "https://youtu.be/default"
                 ))
         )));
@@ -61,7 +68,10 @@ class PlaceControllerTest {
                 .andExpect(jsonPath("$[0].places[0].id").value(11))
                 .andExpect(jsonPath("$[0].places[0].name").value("Alfama Cafe"))
                 .andExpect(jsonPath("$[0].places[0].defaultMusicUrl")
-                        .value("https://youtu.be/default"));
+                        .value("https://youtu.be/default"))
+                .andExpect(jsonPath("$[0].places[0].backgroundAsset.type").value("VIDEO"))
+                .andExpect(jsonPath("$[0].places[0].backgroundAsset.url")
+                        .value("https://cdn.example.com/places/lisbon/alfama.mp4"));
 
         verify(placeUseCase).getPlaces();
     }

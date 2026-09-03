@@ -3,7 +3,7 @@
 > **Theme:** light
 > **Reference:** warm parchment workspace where color marks identity, never urgency
 
-Swimming is a workspace for people who work alone. The interface stays quiet so the work can be loud: warm off-whites carry every surface, charcoal rather than black carries the text, and Camera Plain Variable keeps display and body in one compact voice — the Lovable foundation this system is built on. Two things are ours. First, **surfaces separate by fill, not by border**: white at rest, light gray on hover, ink when active. Second, **color is reserved for identity** — a project's tone — while state is expressed by how heavily a chip is filled. Progress accumulates rather than runs out, so warning colors never appear on a task, a project, or a date. The immersive session screen is the single deliberate exception, where a full-bleed backdrop carries translucent widgets in the corners.
+Swimming is a workspace for people who work alone. The interface stays quiet so the work can be loud: warm off-whites carry every surface, charcoal rather than black carries the text, and Camera Plain Variable keeps display and body in one compact voice — the Lovable foundation this system is built on. Two things are ours. First, **surfaces separate by fill, not by border**: white at rest, light gray on hover, ink when active. Second, **color is reserved for identity** — a folder's tone — while state is expressed by how heavily a chip is filled. Progress accumulates rather than runs out, so warning colors never appear on a task, a folder, or a date. The immersive session screen is the single deliberate exception, where a full-bleed backdrop carries translucent widgets in the corners.
 
 Values live in `frontend/src/styles/tokens.css`. That file is authoritative; update this document alongside it.
 
@@ -29,7 +29,7 @@ Values live in `frontend/src/styles/tokens.css`. That file is authoritative; upd
 
 ### Project tones
 
-Four tones cycle to tell projects apart. They sit at matched lightness so no project outranks another, and each carries a tint for backgrounds.
+Four tones cycle to tell folders apart. They sit at matched lightness so no folder outranks another, and each carries a tint for backgrounds.
 
 | Token | Value | Tint |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ Four tones cycle to tell projects apart. They sit at matched lightness so no pro
 | `--color-tone-wild-willow` | `#BCC95D` | `#f1f4ea` |
 | `--color-tone-bay-leaf` | `#79B089` | `#e9f5eb` |
 
-Pick the tone with `project.id % 4`; every screen must use the same key, or one project changes color as the user moves around. Bay leaf stays out of the rotation — it belongs to the in-progress chip. Use the base tone for fills such as dots and bars, the tint for backgrounds, and keep small text on `--color-mute`, which clears 5.2:1 on every tint.
+Pick the tone with `folder.id % 4`; every screen must use the same key, or one folder changes color as the user moves around. Bay leaf stays out of the rotation — it belongs to the in-progress chip. Use the base tone for fills such as dots and bars, the tint for backgrounds, and keep small text on `--color-mute`, which clears 5.2:1 on every tint.
 
 ### Task status
 
@@ -56,7 +56,7 @@ Read them through `--chip-todo-*`, `--chip-doing-*`, `--chip-done-*`, `--chip-ho
 
 ### Error
 
-`--color-error` `#EF4444` and its container are for **form validation only**. Red never marks a task, a project, a date, or a session.
+`--color-error` `#EF4444` and its container are for **form validation only**. Red never marks a task, a folder, a date, or a session.
 
 ### Accent
 
@@ -161,11 +161,11 @@ A pill using the status tokens. Where the status is editable, build it as a `<se
 
 ### Tag chip
 
-`8px` radius on `--project-tone-tint`, mute text, preceded by an `8px` dot in `--project-tone` drawn with `::before`.
+`8px` radius on `--folder-tone-tint`, mute text, preceded by an `8px` dot in `--folder-tone` drawn with `::before`.
 
 ### Project card
 
-White with a `4px` tone bar across the top (`--progress-height`). Set `--project-tone` and `--project-tone-tint` at card level so the bar, the tag, and anything else inherit one identity.
+White with a `4px` tone bar across the top (`--progress-height`). Set `--folder-tone` and `--folder-tone-tint` at card level so the bar, the tag, and anything else inherit one identity.
 
 ### Session widget
 
@@ -186,17 +186,17 @@ The backdrop image or video runs full-bleed; widgets float in the corners as tra
 ### Avoid
 
 - Pressure language such as "지연 위험" or "3일 늦음".
-- Red or amber on any task, project, date, or session.
+- Red or amber on any task, folder, date, or session.
 - Deficit framing — "남은 task 8" instead of "task 12/20 완료".
 - Softened euphemisms such as "마음속 목표" or "소프트 목표".
 - Heavy travel theming; keep the layout of a productivity tool and remove only the pressure signals.
 - Numbered step badges in a form.
 - A shadow and a border stacked on the same modal.
-- Choosing a project tone from list position rather than project identity.
+- Choosing a folder tone from list position rather than folder identity.
 
 ## Known gaps
 
 - `--color-ink-soft`, `--color-body`, `--color-charcoal`, and `--color-success-deep` all resolve to `#1c1c1c`; distinct roles are pointing at one value.
 - `--color-primary-container`, `--color-surface-tint`, `--color-inverse-primary`, and `--color-accent-purple-deep` all resolve to `#3451b2`.
-- `project.id % 4` still collides for ids four apart. Storing a tone on the project, or deriving it from the tag, is the real fix.
+- `folder.id % 4` still collides for ids four apart. Storing a tone on the folder, or deriving it from the tag, is the real fix.
 - `--font-family-mono` is not a monospace stack.

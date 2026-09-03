@@ -8,6 +8,7 @@ import com.swimming.backend.common.config.llm.OllamaChatOptionsFactory;
 import com.swimming.backend.common.config.llm.OpenAiChatOptionsFactory;
 import com.swimming.backend.note.dto.out.FolderContext;
 import com.swimming.backend.note.dto.out.TaskContext;
+import com.swimming.backend.note.dto.out.TaskExtractResult;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.common.prompt.PromptKey;
@@ -96,6 +97,15 @@ class TaskOrganizerServiceTest {
     /** 비교할 프롬프트 버전. key 는 리포트에 남는 라벨이다. */
     /** 프롬프트 버전 비교의 반복 횟수. reasoning 모델은 temperature 0 에서도 결정적이지 않다. */
     private static final int PROMPT_VERSION_RUNS = 3;
+    /**
+     * 추출 평가 반복 횟수와 통과 기준.
+     *
+     * <p>reasoning 모델은 temperature 를 지원하지 않아 {@code temperature: 0.0} 이 전달되지
+     * 않는다. 같은 프롬프트로도 실행마다 결과가 달라지므로 1 회 실행은 게이트가 될 수 없다.
+     * 반복해서 통과율로 판정한다.
+     */
+    private static final int EXTRACT_RUNS = 5;
+    private static final double EXTRACT_MIN_PASS_RATE = 0.8;
 
     private static final Map<String, String> PROMPT_VERSIONS = Map.of(
             "v2", "classpath:prompts/task-organizer-v2.md",
@@ -111,7 +121,16 @@ class TaskOrganizerServiceTest {
     /** 한 프롬프트만 담은 저장소. 버전별로 나란히 비교할 때 쓴다. */
     private static PromptRepository promptRepository(String location) {
         return new ResourcePromptRepository(
-                new PromptProperties(Map.of(PromptKey.TASK_ORGANIZER.configName(), location)),
+                new PromptProperties(
+                        Map.of(
+                                PromptKey.TASK_ORGANIZER.configName(), location,
+                                PromptKey.TASK_EXTRACTOR.configName(), location
+                        ),
+                        Map.of(
+                                "splitting", "classpath:prompts/task-organizer/_splitting.md",
+                                "titles", "classpath:prompts/task-organizer/_titles.md"
+                        )
+                ),
                 new DefaultResourceLoader()
         );
     }
@@ -305,6 +324,58 @@ class TaskOrganizerServiceTest {
     }
 
     @Test
+    @DisplayName("폴더가 정해진 추출 경로가 비행동을 Task 로 만들지 않는지 검증한다")
+    void extractKeepsNonActionableOutOfTasks() throws Exception {
+        List<ExtractScenarioResult> results = new ArrayList<>();
+
+        Map<String, Integer> passCount = new LinkedHashMap<>();
+
+        for (TaskExtractTestScenario scenario : extractScenarios()) {
+            for (String model : MODELS) {
+                TaskOrganizerService service = services.get(model);
+                String key = scenario.id() + " [" + model + "]";
+                passCount.putIfAbsent(key, 0);
+
+                for (int run = 1; run <= EXTRACT_RUNS; run++) {
+                    long startedAt = System.nanoTime();
+                    TaskExtractResult output = null;
+                    String error = null;
+
+                    try {
+                        output = service.extract(scenario.input());
+                        assertStructurallyValid(scenario.input(), output);
+                        assertBucketLabels(scenario, output);
+                        passCount.merge(key, 1, Integer::sum);
+                    } catch (Exception | AssertionError failure) {
+                        error = failure.getClass().getSimpleName() + ": " + failure.getMessage();
+                    }
+
+                    results.add(new ExtractScenarioResult(
+                            scenario.id(),
+                            scenario.name(),
+                            scenario.evaluationCriteria(),
+                            model,
+                            run,
+                            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt),
+                            usageRecorder.drain(),
+                            scenario.input(),
+                            output,
+                            error
+                    ));
+                }
+            }
+        }
+
+        // 리포트는 실패 실행까지 남긴다. 게이트는 통과율로 판정한다.
+        writeExtractReport(results);
+
+        assertThat(passCount).allSatisfy((key, passes) ->
+                assertThat(passes / (double) EXTRACT_RUNS)
+                        .as("%s — %d회 중 %d회 통과", key, EXTRACT_RUNS, passes)
+                        .isGreaterThanOrEqualTo(EXTRACT_MIN_PASS_RATE));
+    }
+
+    @Test
     @DisplayName("프롬프트 버전별 분류 결과와 토큰 사용량을 나란히 리포트로 생성한다")
     void generatesPromptVersionComparisonReport() throws Exception {
         List<ScenarioResult> results = new ArrayList<>();
@@ -345,7 +416,7 @@ class TaskOrganizerServiceTest {
             String filePrefix,
             String persona,
             List<String> models,
-            List<ScenarioResult> results
+            List<? extends EvalResult> results
     ) throws Exception {
         Instant generatedAt = Instant.now();
         Path reportPath = reportPath(filePrefix, generatedAt);
@@ -367,6 +438,24 @@ class TaskOrganizerServiceTest {
                         .as("scenario=%s, model=%s", result.scenarioId(), result.model())
                         .isNull()
         );
+    }
+
+    /** 실행별 실패를 리포트에 남기고 통과율로 판정하므로, error 가 있어도 여기서 막지 않는다. */
+    private void writeExtractReport(List<ExtractScenarioResult> results) throws Exception {
+        Instant generatedAt = Instant.now();
+        Path reportPath = reportPath("task-extractor-results", generatedAt);
+        Files.createDirectories(REPORT_DIRECTORY);
+        new ObjectMapper()
+                .findAndRegisterModules()
+                .writerWithDefaultPrettyPrinter()
+                .writeValue(reportPath.toFile(), new EvaluationReport(
+                        generatedAt.toString(),
+                        "폴더를 직접 고른 사용자",
+                        MODELS,
+                        results
+                ));
+
+        assertThat(reportPath).isRegularFile();
     }
 
     private Path reportPath(String filePrefix, Instant generatedAt) {
@@ -420,6 +509,39 @@ class TaskOrganizerServiceTest {
         );
     }
 
+    /**
+     * 추출 결과의 구조 검증. 분류가 없으므로 folderId 검사가 빠지고, 대신 한 원문이 두
+     * 바구니에 동시에 들어가지 않는지를 본다. 프롬프트의 "exactly one of" 규칙이다.
+     */
+    private void assertStructurallyValid(TaskOrganizerInput input, TaskExtractResult output) {
+        assertThat(output).isNotNull();
+        assertThat(output.tasks()).isNotNull().allSatisfy(task -> {
+            assertThat(task.title()).isNotBlank();
+            assertThat(task.sourceText()).isNotBlank();
+            task.sourceText().lines().forEach(sourcePart ->
+                    assertThat(input.memo()).contains(sourcePart)
+            );
+        });
+        assertThat(output.unclassified()).isNotNull().allSatisfy(item -> {
+            assertThat(item.title()).isNotBlank();
+            assertThat(item.sourceText()).isNotBlank();
+            item.sourceText().lines().forEach(sourcePart ->
+                    assertThat(input.memo()).contains(sourcePart)
+            );
+        });
+
+        List<String> taskSources = output.tasks().stream()
+                .map(TaskExtractResult.ExtractedTask::sourceText)
+                .toList();
+        List<String> unclassifiedSources = output.unclassified().stream()
+                .map(TaskExtractResult.UnclassifiedItem::sourceText)
+                .toList();
+
+        assertThat(taskSources)
+                .as("같은 원문이 tasks 와 unclassified 에 동시에 들어가면 안 된다")
+                .noneMatch(unclassifiedSources::contains);
+    }
+
     private void assertStructurallyValid(TaskOrganizerInput input, TaskOrganizeResult output) {
         Set<Long> folderIds = input.folders().stream()
                 .map(FolderContext::id)
@@ -443,6 +565,105 @@ class TaskOrganizerServiceTest {
                         assertThat(input.memo()).contains(sourcePart)
             );
         });
+    }
+
+    /**
+     * 폴더가 하나로 정해진 추출 시나리오.
+     *
+     * <p>분류 시나리오에서 폴더 하나만 남긴 변형이다. 같은 메모로 돌리면 분류 프롬프트가
+     * 미분류로 밀어냈던 항목이 추출에서는 Task 가 되는지를 직접 대조할 수 있다.
+     */
+    private List<TaskExtractTestScenario> extractScenarios() {
+        return List.of(
+                extractScenario(
+                        "extract-unrelated-item",
+                        "지정된 Folder 주제와 무관한 개인 용무",
+                        "폴더 밖의 행동은 unclassified 로 가는지 평가. 사용자가 직접 옮길 수 있도록"
+                                + " 버리지 않고 보존하는 것이 핵심이다",
+                        "엄마 생신 케이크 예약해야 하는데 날짜 카톡에서 먼저 찾아봐야겠다",
+                        List.of(PORTFOLIO),
+                        List.of(task(21L, PORTFOLIO, "프로젝트 소개 작성")),
+                        List.of(),
+                        List.of("엄마 생신 케이크 예약해야 하는데 날짜 카톡에서 먼저 찾아봐야겠다")
+                ),
+                extractScenario(
+                        "extract-on-off-topic-mix",
+                        "주제 유관·무관 행동만 섞인 메모",
+                        "전부 명확한 행동이라 '행동인가' 축이 제거된다. 폴더 안의 행동만 Task 가 되고"
+                                + " 폴더 밖의 행동은 unclassified 로 가는지 본다",
+                        """
+                                이번 달 러닝 거리 기록 정리
+                                내일 PT 예약 시간 옮기기
+                                전세 계약서 특약 조항 다시 확인
+                                수영앱 배포 롤백 절차 문서화
+                                """,
+                        List.of(HEALTH),
+                        List.of(task(51L, HEALTH, "주간 운동 기록")),
+                        List.of("이번 달 러닝 거리 기록 정리", "내일 PT 예약 시간 옮기기"),
+                        List.of("전세 계약서 특약 조항 다시 확인", "수영앱 배포 롤백 절차 문서화")
+                ),
+                extractScenario(
+                        "extract-actions-vs-thoughts",
+                        "행동과 감상·막연한 생각 혼합",
+                        "감상과 막연한 생각을 Task 로 만들지 않으면서, 폴더 안의 행동은 놓치지 않는지 평가",
+                        """
+                                요즘 뛰고 나면 무릎이 좀 뻐근한 느낌
+                                이번주 운동 기록 밀린거 정리
+                                영어 발표 주제 아직 고민중 그냥 여행 얘기?
+                                아 수영앱 에러 응답 문서 업데이트해야지
+                                다음주쯤 뭔가 하나 해야될듯 기억이 안남
+                                """,
+                        List.of(HEALTH),
+                        List.of(task(51L, HEALTH, "주간 운동 기록")),
+                        List.of("이번주 운동 기록 밀린거 정리"),
+                        List.of(
+                                "요즘 뛰고 나면 무릎이 좀 뻐근한 느낌",
+                                "다음주쯤 뭔가 하나 해야될듯 기억이 안남",
+                                "아 수영앱 에러 응답 문서 업데이트해야지"
+                        )
+                )
+        );
+    }
+
+    private static TaskExtractTestScenario extractScenario(
+            String id,
+            String name,
+            String evaluationCriteria,
+            String memo,
+            List<FolderContext> folders,
+            List<TaskContext> tasks,
+            List<String> neverActionable,
+            List<String> mustBeTask
+    ) {
+        return new TaskExtractTestScenario(
+                id, name, evaluationCriteria, input(memo, folders, tasks), neverActionable, mustBeTask
+        );
+    }
+
+    /**
+     * 두 바구니 배정을 양방향으로 검증한다.
+     *
+     * <p>{@code mustBeTask} 만 보면 "전부 tasks 로 보내기"로 통과하고,
+     * {@code mustBeUnclassified} 만 보면 그 반대가 통과한다. 둘이 서로를 견제한다.
+     */
+    private void assertBucketLabels(TaskExtractTestScenario scenario, TaskExtractResult output) {
+        assertBucket(scenario, "tasks", output.tasks().stream()
+                .map(TaskExtractResult.ExtractedTask::sourceText).toList(), scenario.mustBeTask());
+        assertBucket(scenario, "unclassified", output.unclassified().stream()
+                .map(TaskExtractResult.UnclassifiedItem::sourceText).toList(), scenario.mustBeUnclassified());
+    }
+
+    private void assertBucket(
+            TaskExtractTestScenario scenario,
+            String bucket,
+            List<String> actualSources,
+            List<String> expected
+    ) {
+        expected.forEach(source ->
+                assertThat(actualSources)
+                        .as("scenario=%s — '%s' 가 %s 에 없다", scenario.id(), source, bucket)
+                        .anySatisfy(actual -> assertThat(actual).contains(source))
+        );
     }
 
     private List<TaskOrganizerTestScenario> scenarios() {
@@ -628,6 +849,15 @@ class TaskOrganizerServiceTest {
         return new TaskContext(id, folder.id(), title, TaskStatus.TODO);
     }
 
+    /** 리포트가 분류·추출 결과를 함께 담기 위한 최소 공통면. */
+    private interface EvalResult {
+        String scenarioId();
+
+        String model();
+
+        String error();
+    }
+
     private record ScenarioResult(
             String scenarioId,
             String scenarioName,
@@ -639,14 +869,28 @@ class TaskOrganizerServiceTest {
             TaskOrganizerInput input,
             TaskOrganizeResult output,
             String error
-    ) {
+    ) implements EvalResult {
+    }
+
+    private record ExtractScenarioResult(
+            String scenarioId,
+            String scenarioName,
+            String evaluationCriteria,
+            String model,
+            int run,
+            long latencyMillis,
+            TokenUsage tokens,
+            TaskOrganizerInput input,
+            TaskExtractResult output,
+            String error
+    ) implements EvalResult {
     }
 
     private record EvaluationReport(
             String generatedAt,
             String persona,
             List<String> models,
-            List<ScenarioResult> results
+            List<? extends EvalResult> results
     ) {
     }
 }

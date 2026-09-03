@@ -9,6 +9,7 @@ export interface BackgroundAsset {
 export interface Place {
   id: number
   name: string
+  backgroundAsset: BackgroundAsset
   defaultMusicUrl: string | null
 }
 
@@ -19,7 +20,11 @@ export interface City {
   places: Place[]
 }
 
-export interface SessionPlace extends Place {
+// 세션 목록 응답에는 배경이 없다. 배경은 세션 상세에서만 내려온다.
+export interface SessionPlace {
+  id: number
+  name: string
+  defaultMusicUrl: string | null
   cityId: number
   cityName: string
 }

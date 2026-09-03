@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { IconArrowRight, IconClock, IconPlayerPlay } from '@tabler/icons-react'
+import { useEffect, useMemo, useState } from 'react'
+import { IconArrowRight, IconClock, IconMapPin, IconPlayerPlay } from '@tabler/icons-react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
@@ -7,9 +7,8 @@ import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { getTodayPlanItems } from '../plans/todayPlan'
 import CreateSessionModal from './CreateSessionModal'
 import { useActiveSessionStore } from '../../store/activeSessionStore'
+import { pickRandomPlace, usePlaceStore } from '../../store/placeStore'
 import styles from './ContinueSessionWidget.module.css'
-
-const DEFAULT_THUMBNAIL_URL = '/lisbon_1.mp4'
 
 type ContinueSessionWidgetVariant = 'home' | 'empty-session'
 
@@ -28,6 +27,10 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
   const status = useActiveSessionStore((state) => state.status)
   const loadActiveSession = useActiveSessionStore((state) => state.load)
   const markSessionCreated = useActiveSessionStore((state) => state.markCreated)
+  const cities = usePlaceStore((state) => state.cities)
+  const loadPlaces = usePlaceStore((state) => state.load)
+  // 마운트 시 한 번 정해 두고, 카탈로그가 늦게 도착해도 같은 배경을 유지한다.
+  const [backgroundSeed] = useState(() => Math.random())
   const [todayTasks, setTodayTasks] = useState<DailyPlanItem[] | null>(null)
   const [isPreparingStart, setIsPreparingStart] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
@@ -38,6 +41,14 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
 
   const isLoading = status === 'idle' || status === 'loading'
   const isEmpty = status === 'ready' && !session
+
+  const sessionBackground = session?.place.backgroundAsset
+  const hasSessionBackground = Boolean(sessionBackground?.url?.trim())
+
+  // 진행 중인 세션의 배경이 없을 때만 카탈로그가 필요하다.
+  useEffect(() => {
+    if (status === 'ready' && !hasSessionBackground) void loadPlaces()
+  }, [status, hasSessionBackground, loadPlaces])
 
   const openStartModal = async () => {
     setIsPreparingStart(true)
@@ -54,9 +65,13 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
     }
   }
 
-  const backgroundAsset = session?.place.backgroundAsset
-  const thumbnailUrl = backgroundAsset?.url?.trim() || DEFAULT_THUMBNAIL_URL
-  const isVideo = !backgroundAsset?.url?.trim() || backgroundAsset.type === 'VIDEO'
+  const fallbackPlace = useMemo(
+    () => pickRandomPlace(cities, backgroundSeed),
+    [cities, backgroundSeed],
+  )
+  const background = hasSessionBackground
+    ? sessionBackground
+    : fallbackPlace?.place.backgroundAsset
   const currentTask = session?.tasks[0]
 
   return (
@@ -65,11 +80,11 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
           aria-labelledby="continue-session-title"
       >
         <div className={styles.thumbnail} aria-hidden="true">
-          {isVideo ? (
-              <video src={thumbnailUrl} autoPlay muted loop playsInline preload="metadata" />
+          {background?.url && (background.type === 'VIDEO' ? (
+              <video src={background.url} autoPlay muted loop playsInline preload="metadata" />
           ) : (
-              <img src={thumbnailUrl} alt="" />
-          )}
+              <img src={background.url} alt="" />
+          ))}
         </div>
 
         <div className={styles.content}>
@@ -97,9 +112,16 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
               <p className={styles.status}>세션을 확인하지 못했습니다.</p>
           ) : (
               <>
-                <strong className={styles.task}>
-                  {variant === 'empty-session' ? '나만의 첫 집중 시간' : '오늘의 다이브 세션'}
-                </strong>
+                {fallbackPlace ? (
+                    <strong className={`${styles.task} ${styles['task-location']}`}>
+                      <IconMapPin aria-hidden="true" />
+                      <span>{fallbackPlace.cityName} · {fallbackPlace.place.name}</span>
+                    </strong>
+                ) : (
+                    <strong className={styles.task}>
+                      {variant === 'empty-session' ? '나만의 첫 집중 시간' : '오늘의 다이브 세션'}
+                    </strong>
+                )}
                 <p className={styles['invite-copy']}>
                   {variant === 'empty-session'
                     ? '아직 진행한 세션이 없습니다. 첫 다이브 세션을 시작해 보세요.'

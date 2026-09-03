@@ -9,6 +9,7 @@ import com.swimming.backend.note.dto.in.TaskOrganizeConfirmRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeConfirmResponse;
 import com.swimming.backend.note.dto.in.TaskOrganizeRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeResponse;
+import com.swimming.backend.note.dto.out.TaskExtractResult;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.service.TaskOrganizerService;
@@ -19,6 +20,7 @@ import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.task.service.TaskOrderingService;
+import com.swimming.backend.session.service.SessionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -43,6 +46,7 @@ class TaskOrganizerUseCaseTest {
     private TaskOrganizerService taskOrganizerService;
     private NoteService noteService;
     private FolderService folderService;
+    private SessionService sessionService;
     private TaskOrganizerUseCase taskOrganizerUseCase;
 
     @BeforeEach
@@ -52,12 +56,14 @@ class TaskOrganizerUseCaseTest {
         taskOrganizerService = mock(TaskOrganizerService.class);
         noteService = mock(NoteService.class);
         folderService = mock(FolderService.class);
+        sessionService = mock(SessionService.class);
         taskOrganizerUseCase = new TaskOrganizerUseCase(
                 taskService,
                 taskOrderingService,
                 taskOrganizerService,
                 noteService,
-                folderService
+                folderService,
+                sessionService
         );
     }
 
@@ -85,7 +91,7 @@ class TaskOrganizerUseCaseTest {
 
         TaskOrganizeResponse response = taskOrganizerUseCase.preview(
                 1L,
-                new TaskOrganizeRequest("할 일 정리 버튼 연결\n운동화 주문")
+                new TaskOrganizeRequest("할 일 정리 버튼 연결\n운동화 주문", null, null)
         );
 
         ArgumentCaptor<TaskOrganizerInput> inputCaptor =
@@ -150,7 +156,7 @@ class TaskOrganizerUseCaseTest {
 
         TaskOrganizeResponse response = taskOrganizerUseCase.preview(
                 1L,
-                new TaskOrganizeRequest("정상 원문\n잘못된 ID 원문\nID 없는 원문\n미분류 원문")
+                new TaskOrganizeRequest("정상 원문\n잘못된 ID 원문\nID 없는 원문\n미분류 원문", null, null)
         );
 
         assertThat(response.suggestions()).containsExactly(
@@ -411,5 +417,103 @@ class TaskOrganizerUseCaseTest {
                 null,
                 null
         );
+    }
+
+    private static TaskOrganizerContextRow row(long folderId, String folderName) {
+        return new TaskOrganizerContextRow(
+                folderId, folderName, null, 10L + folderId, "task", TaskStatus.TODO
+        );
+    }
+
+    @Test
+    @DisplayName("FOLDER 컨텍스트는 분류 대신 추출을 쓰고 모든 결과를 그 폴더로 확정한다")
+    void folder_컨텍스트는_추출_경로를_쓴다() {
+        when(taskService.getTaskOrganizerContext(1L, List.of(7L)))
+                .thenReturn(List.of(row(7L, "사이드 프로젝트")));
+        when(taskOrganizerService.extract(any())).thenReturn(new TaskExtractResult(
+                List.of(new TaskExtractResult.ExtractedTask("우유 사기", "우유 구매")),
+                List.of(new TaskExtractResult.UnclassifiedItem("무릎이 뻐근함", "무릎 상태"))
+        ));
+
+        TaskOrganizeResponse response = taskOrganizerUseCase.preview(
+                1L, new TaskOrganizeRequest("메모", NoteContextType.FOLDER, 7L));
+
+        verify(folderService).validateOwnership(1L, 7L);
+        verify(taskService).getTaskOrganizerContext(1L, List.of(7L));
+        verify(taskService, never()).getTaskOrganizerContext(anyLong());
+        // 폴더가 정해졌으므로 분류 프롬프트를 태우지 않는다
+        verify(taskOrganizerService, never()).organize(any());
+
+        assertThat(response.suggestions())
+                .extracting("folderId", "folderName", "title")
+                .containsExactly(tuple(7L, "사이드 프로젝트", "우유 구매"));
+        assertThat(response.unclassified())
+                .extracting("title")
+                .containsExactly("무릎 상태");
+
+        ArgumentCaptor<TaskOrganizerInput> captor =
+                ArgumentCaptor.forClass(TaskOrganizerInput.class);
+        verify(taskOrganizerService).extract(captor.capture());
+        assertThat(captor.getValue().folders()).extracting("id").containsExactly(7L);
+    }
+
+    @Test
+    @DisplayName("SESSION 컨텍스트는 세션 task 가 속한 폴더만 참조한다")
+    void session_컨텍스트는_세션_task_의_폴더만_참조한다() {
+        when(sessionService.getTaskIds(1L, 50L)).thenReturn(List.of(101L, 102L));
+        when(taskService.getFolderIds(1L, List.of(101L, 102L))).thenReturn(List.of(3L, 4L));
+        when(taskService.getTaskOrganizerContext(1L, List.of(3L, 4L)))
+                .thenReturn(List.of(row(3L, "폴더3"), row(4L, "폴더4")));
+        when(taskOrganizerService.organize(any()))
+                .thenReturn(new TaskOrganizeResult(List.of(), List.of()));
+
+        taskOrganizerUseCase.preview(
+                1L, new TaskOrganizeRequest("메모", NoteContextType.SESSION, 50L));
+
+        verify(sessionService).getTaskIds(1L, 50L);
+        // 폴더가 여럿이므로 분류 경로를 그대로 쓴다
+        verify(taskOrganizerService, never()).extract(any());
+        verify(taskService).getTaskOrganizerContext(1L, List.of(3L, 4L));
+
+        ArgumentCaptor<TaskOrganizerInput> captor =
+                ArgumentCaptor.forClass(TaskOrganizerInput.class);
+        verify(taskOrganizerService).organize(captor.capture());
+        assertThat(captor.getValue().folders())
+                .extracting("id")
+                .containsExactly(3L, 4L);
+    }
+
+    @Test
+    @DisplayName("FOLDER·SESSION 인데 contextId 가 없으면 400 이다")
+    void contextId_가_없으면_거절한다() {
+        assertThatThrownBy(() -> taskOrganizerUseCase.preview(
+                1L, new TaskOrganizeRequest("메모", NoteContextType.FOLDER, null)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TASK_ORGANIZER_CONTEXT);
+
+        verify(taskOrganizerService, never()).organize(any());
+    }
+
+    @Test
+    @DisplayName("DEFAULT 인데 contextId 가 오면 400 이다")
+    void default_에_contextId_가_오면_거절한다() {
+        assertThatThrownBy(() -> taskOrganizerUseCase.preview(
+                1L, new TaskOrganizeRequest("메모", NoteContextType.DEFAULT, 7L)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TASK_ORGANIZER_CONTEXT);
+    }
+
+    @Test
+    @DisplayName("참조할 폴더가 하나도 없으면 400 이다 - LLM 을 부르지 않는다")
+    void 참조할_폴더가_없으면_거절한다() {
+        when(sessionService.getTaskIds(1L, 50L)).thenReturn(List.of(101L));
+        when(taskService.getFolderIds(1L, List.of(101L))).thenReturn(List.of());
+
+        assertThatThrownBy(() -> taskOrganizerUseCase.preview(
+                1L, new TaskOrganizeRequest("메모", NoteContextType.SESSION, 50L)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMPTY_TASK_ORGANIZER_CONTEXT);
+
+        verify(taskOrganizerService, never()).organize(any());
     }
 }

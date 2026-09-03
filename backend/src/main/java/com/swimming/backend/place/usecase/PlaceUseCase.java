@@ -4,6 +4,7 @@ import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.place.dto.CityResponse;
 import com.swimming.backend.place.dto.PlaceResponse;
 import com.swimming.backend.place.service.PlaceService;
+import com.swimming.backend.place.service.PlaceVideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 public class PlaceUseCase {
 
     private final PlaceService placeService;
+    private final PlaceVideoService placeVideoService;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<CityResponse> getPlaces() {
@@ -31,7 +33,12 @@ public class PlaceUseCase {
                         city,
                         placesByCityId.getOrDefault(city.getId(), List.of())
                                 .stream()
-                                .map(PlaceResponse::from)
+                                .map(place -> PlaceResponse.from(
+                                        place,
+                                        placeVideoService.resolveBackgroundUrl(
+                                                place.getBackgroundAssetKey()
+                                        )
+                                ))
                                 .toList()
                 ))
                 .toList();

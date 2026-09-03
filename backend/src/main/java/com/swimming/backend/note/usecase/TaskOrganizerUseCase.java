@@ -3,11 +3,13 @@ package com.swimming.backend.note.usecase;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.note.domain.Note;
+import com.swimming.backend.note.domain.NoteContextType;
 import com.swimming.backend.note.domain.NoteStatus;
 import com.swimming.backend.note.dto.in.TaskOrganizeConfirmRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeConfirmResponse;
 import com.swimming.backend.note.dto.in.TaskOrganizeRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeResponse;
+import com.swimming.backend.note.dto.out.TaskExtractResult;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.dto.out.FolderContext;
@@ -19,6 +21,7 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.task.service.TaskOrderingService;
+import com.swimming.backend.session.service.SessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -33,18 +36,23 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskOrganizerUseCase {
 
+    private static final int MAX_TASKS_PER_FOLDER = 10;
+
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
     private final TaskOrganizerService taskOrganizerService;
     private final NoteService noteService;
     private final FolderService folderService;
+    private final SessionService sessionService;
 
     public TaskOrganizeResponse preview(
             Long userId,
             TaskOrganizeRequest request
     ) {
+        NoteContextType contextType = request.contextTypeOrDefault();
+
         List<TaskOrganizerContextRow> contextRows =
-                taskService.getTaskOrganizerContext(userId);
+                contextRowsFor(userId, request, contextType);
 
         Map<Long, FolderContext> foldersById = contextRows.stream()
                 .collect(Collectors.toMap(
@@ -61,18 +69,16 @@ public class TaskOrganizerUseCase {
         TaskOrganizerInput input = new TaskOrganizerInput(
                 request.memo(),
                 List.copyOf(foldersById.values()),
-                contextRows.stream()
-                        .filter(row -> row.taskId() != null)
-                        .map(row ->
-                                new TaskContext(
-                                        row.taskId(),
-                                        row.folderId(),
-                                        row.taskTitle(),
-                                        row.taskStatus()
-                                )
-                        )
-                        .toList()
+                recentTasksByFolder(contextRows)
         );
+
+        // 폴더가 하나로 정해져 있으면 분류를 시키지 않는다. 추출만 하고 그 폴더로 확정한다.
+        if (contextType == NoteContextType.FOLDER) {
+            return toResponse(
+                    foldersById.get(request.contextId()),
+                    taskOrganizerService.extract(input)
+            );
+        }
 
         TaskOrganizeResult result =
                 taskOrganizerService.organize(input);
@@ -111,6 +117,66 @@ public class TaskOrganizerUseCase {
 
         return new TaskOrganizeConfirmResponse(createdTasks);
     }
+    
+    /**
+     * 참조 범위를 컨텍스트에 맞춰 좁힌다.
+     *
+     */
+    private List<TaskOrganizerContextRow> contextRowsFor(
+            Long userId,
+            TaskOrganizeRequest request,
+            NoteContextType contextType
+    ) {
+        if (contextType == NoteContextType.DEFAULT) {
+            if (request.contextId() != null) {
+                throw new BusinessException(ErrorCode.INVALID_TASK_ORGANIZER_CONTEXT);
+            }
+            return taskService.getTaskOrganizerContext(userId);
+        }
+
+        Long contextId = request.contextId();
+        if (contextId == null) {
+            throw new BusinessException(ErrorCode.INVALID_TASK_ORGANIZER_CONTEXT);
+        }
+
+        List<Long> folderIds = switch (contextType) {
+            case FOLDER -> {
+                folderService.validateOwnership(userId, contextId);
+                yield List.of(contextId);
+            }
+            case SESSION -> taskService.getFolderIds(
+                    userId,
+                    sessionService.getTaskIds(userId, contextId)
+            );
+            case DEFAULT -> throw new IllegalStateException("unreachable");
+        };
+
+        if (folderIds.isEmpty()) {
+            throw new BusinessException(ErrorCode.EMPTY_TASK_ORGANIZER_CONTEXT);
+        }
+
+        return taskService.getTaskOrganizerContext(userId, folderIds);
+    }
+
+    private List<TaskContext> recentTasksByFolder(List<TaskOrganizerContextRow> contextRows) {
+        return contextRows.stream()
+                .filter(row -> row.taskId() != null)
+                .collect(Collectors.groupingBy(
+                        TaskOrganizerContextRow::folderId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values()
+                .stream()
+                .flatMap(rows -> rows.stream().limit(MAX_TASKS_PER_FOLDER))
+                .map(row -> new TaskContext(
+                        row.taskId(),
+                        row.folderId(),
+                        row.taskTitle(),
+                        row.taskStatus()
+                ))
+                .toList();
+    }
 
     private TaskOrganizeResponse toResponse(
             Map<Long, FolderContext> foldersById,
@@ -132,6 +198,33 @@ public class TaskOrganizerUseCase {
                             suggestion.title()
                     );
                 })
+                .toList();
+
+        return new TaskOrganizeResponse(
+                suggestions,
+                result.unclassified()
+                        .stream()
+                        .map(item -> new TaskOrganizeResponse.UnclassifiedResponse(
+                                item.sourceText(),
+                                item.title()
+                        ))
+                        .toList()
+        );
+    }
+
+    /** 추출 결과는 폴더가 이미 정해져 있으므로 모든 항목이 그 폴더로 간다. */
+    private TaskOrganizeResponse toResponse(
+            FolderContext folder,
+            TaskExtractResult result
+    ) {
+        var suggestions = result.tasks()
+                .stream()
+                .map(task -> new TaskOrganizeResponse.TaskSuggestionResponse(
+                        task.sourceText(),
+                        folder.id(),
+                        folder.name(),
+                        task.title()
+                ))
                 .toList();
 
         return new TaskOrganizeResponse(

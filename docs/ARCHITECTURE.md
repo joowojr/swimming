@@ -7,9 +7,9 @@
 ## 0. 용어 규칙
 
 - 제품 UI와 사용자 관점의 설명에서는 프로젝트 도메인의 기능명을 `폴더`로 표기한다.
-- 프론트엔드 라우트는 제품 용어에 맞춰 `/folders`, `/folders/:projectId`를 사용한다.
-- 백엔드 패키지·클래스와 API 경로·필드에는 `project` 식별자를 유지한다. 물리 DB에서는 제품 용어에 맞춰 `folders`, `folder_tags`, `folder_id`, `folder_tag_id`를 사용한다.
-- 문서에서 구현 요소를 직접 설명할 때는 `ProjectUseCase`, `/api/projects`, `projectId`처럼 실제 코드와 일치하는 이름을 사용한다.
+- 프론트엔드 라우트는 제품 용어에 맞춰 `/folders`, `/folders/:folderId`를 사용한다.
+- 백엔드 패키지·클래스와 API 경로·필드에는 `folder` 식별자를 유지한다. 물리 DB에서는 제품 용어에 맞춰 `folders`, `folder_tags`, `folder_id`, `folder_tag_id`를 사용한다.
+- 문서에서 구현 요소를 직접 설명할 때는 `ProjectUseCase`, `/api/folders`, `projectId`처럼 실제 코드와 일치하는 이름을 사용한다.
 - 폴더가 연결되지 않은 Task는 제품에서 `미분류`, 데이터 계약에서는 `projectId=null`로 표현한다.
 
 ---
@@ -35,7 +35,7 @@
 └───────────────┬─────────────────────────────────────────┘
                 │
         ┌───────▼────────┐        ┌──────────────────┐
-        │    MySQL       │        │  Object Storage  │
+        │   PostgreSQL   │        │  Object Storage  │
         │  (도메인 데이터) │        │  + CDN (배경/음원) │
         └────────────────┘        └──────────────────┘
 ```
@@ -140,7 +140,7 @@ com.swimming.backend
 ├── auth        인증·JWT
 ├── health      애플리케이션·DB 상태 확인
 ├── user        사용자
-├── project     폴더
+├── folder     폴더
 ├── task        task
 ├── plan        데일리 플랜
 ├── session     세션·기록
@@ -167,15 +167,15 @@ com.swimming.backend
 common                              ← 모든 도메인이 참조
 health                              ← 독립 인프라 점검
 auth → user
-project → task
-plan → project, task
+folder → task
+plan → folder, task
 session → user, place, plan, task
-note → project, session, task
+note → folder, session, task
 group → user, place, session, task
-stats → project, task, session, place
+stats → folder, task, session, place
 ```
 
-화살표는 Service 호출 방향이다. `/projects/{projectId}/tasks`처럼 폴더 소유권 확인과 Task 동작이 함께 필요한 사용자 행동은 `ProjectUseCase`가 조율해 `project → task` 방향을 유지한다. 반대 방향 호출은 두지 않는다.
+화살표는 Service 호출 방향이다. `/folders/{folderId}/tasks`처럼 폴더 소유권 확인과 Task 동작이 함께 필요한 사용자 행동은 `FolderUseCase`가 조율해 `folder → task` 방향을 유지한다. 반대 방향 호출은 두지 않는다.
 
 ### 엔티티 연관관계
 JPA 엔티티끼리는 패키지가 달라도 연관관계를 맺을 수 있다. 다른 도메인 Entity 타입 참조는 Entity 매핑과 자기 Repository에 저장할 reference 조립에만 허용한다. Entity를 Service 입출력으로 전달하거나 상대 Repository를 직접 호출하는 것은 금지한다. 이 영속성 참조는 위 Service 호출 방향에 포함하지 않는다.
@@ -246,7 +246,7 @@ WebSocket 위에 STOMP를 얹는다. 여러 참가자가 같은 룸을 구독하
 
 ## 6. 데이터 계층
 
-DB는 MySQL이며, 실제 DDL의 정본은 `backend/src/main/resources/db/migration/*.sql`, 관계도는 `docs/erd.mmd`를 따른다.
+DB는 PostgreSQL이며, 실제 DDL의 정본은 `backend/src/main/resources/db/migration/*.sql`, 관계도는 `docs/erd.mmd`를 따른다.
 최초 스키마는 `V1__initial_schema.sql`이며, 이후 스키마 변경은 기존 파일을 수정하지 않고 `V2__...`, `V3__...`처럼 새 Flyway 버전 마이그레이션으로 추가한다. 로컬과 운영 모두 Hibernate는 `validate`만 수행하고, 스키마 생성과 변경은 Flyway가 담당한다.
 Flyway 이력이 없는 기존 로컬 DB만 local 프로파일의 `baseline-on-migrate`로 V1 기준선을 기록한다. 운영에서는 자동 baseline을 허용하지 않으며 빈 DB에 V1부터 적용한다.
 
@@ -289,7 +289,7 @@ cities ── places ─────────────┴─ group_rooms
 | 층위 | 산출물 | 원천 |
 |---|---|---|
 | task | 누적 세션 수, 완료 상태 | session_tasks, tasks.status |
-| project | 완료 task 비율 | tasks.status |
+| folder | 완료 task 비율 | tasks.status |
 | 사용자·일자 | 하루 세션 수·몰입 시간, 주간 통계, streak | sessions.started_at 기준 그룹핑 |
 
 세션 이력 조회는 `(user_id, started_at)` 인덱스를 타므로 초기 규모에서는 실시간 집계로 충분하다. 데이터가 쌓여 통계 조회가 무거워지면 일별 집계 테이블이나 캐시 계층을 추가한다. 이때 원천 데이터(`sessions`, `session_tasks`)는 그대로 두고 파생 테이블만 얹는다.
@@ -303,7 +303,7 @@ cities ── places ─────────────┴─ group_rooms
 ```
 frontend/src/
 ├── pages/        라우트 단위 화면 (홈, 폴더 상세, 세션, 그룹)
-├── features/     도메인별 로직 (project, task, session, group, stats)
+├── features/     도메인별 로직 (folder, task, session, group, stats)
 ├── components/   공용 UI
 ├── api/          REST 클라이언트
 ├── ws/           STOMP 연결·구독 관리
@@ -346,7 +346,7 @@ DB에는 오브젝트 키만 저장하고(`places.background_asset_key`), 응답
 
 - 백엔드: Jar 빌드 후 컨테이너로 배포
 - 프론트: 정적 빌드 산출물을 CDN 또는 정적 호스팅으로 배포
-- DB: 관리형 MySQL 또는 컨테이너
+- DB: 관리형 PostgreSQL 또는 컨테이너
 - 로컬 개발: `docker compose`로 DB를 띄우고 백엔드·프론트는 각각 실행
 
 ---

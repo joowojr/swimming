@@ -86,6 +86,20 @@
   white-space: nowrap;
 }
 
+.task-location {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.task-location svg { width: 1rem; flex: 0 0 auto; }
+
+.task-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .content p {
   overflow: hidden;
   margin: var(--space-1) 0 0;

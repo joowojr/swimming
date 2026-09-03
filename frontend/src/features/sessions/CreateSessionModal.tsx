@@ -1,5 +1,5 @@
 import type {FormEvent, MouseEvent} from 'react'
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
 import {IconUser, IconUsers, IconX,} from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
 import ChecklistCard from '../../components/ChecklistCard'
@@ -7,8 +7,8 @@ import ModeToggle from '../../components/ModeToggle'
 import type {DailyPlanItem} from '../plans/dailyPlanTypes'
 import {TASK_STATUS_LABEL} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
-import {getPlaces} from '../places/placeApi'
 import type {City, Place} from '../places/placeTypes'
+import {usePlaceStore} from '../../store/placeStore'
 import {startPersonalSession} from './sessionApi'
 import {GROUP_ROOM_MOCK} from './sessionMocks'
 import type {SessionDetailResponse} from './sessionTypes'
@@ -26,7 +26,6 @@ interface CreateSessionModalProps {
 type SessionMode = 'personal' | 'group'
 type DurationPreset = 25 | 45 | 60 | 'custom'
 type BreakPreset = 5 | 10 | 15 | 'custom'
-type PlacesStatus = 'loading' | 'ready' | 'error'
 
 // 지금 하는 일을 먼저, 끝난 일을 마지막에 둔다.
 const TASK_STATUS_ORDER: Record<TaskStatus, number> = {
@@ -79,8 +78,9 @@ export default function CreateSessionModal({
     initialTaskId !== undefined ? [initialTaskId] : [],
   )
   const [mode, setMode] = useState<SessionMode>('personal')
-  const [cities, setCities] = useState<City[]>([])
-  const [placesStatus, setPlacesStatus] = useState<PlacesStatus>('loading')
+  const cities = usePlaceStore((state) => state.cities)
+  const placesStatus = usePlaceStore((state) => state.status)
+  const loadPlaces = usePlaceStore((state) => state.load)
   const [placeId, setPlaceId] = useState<number | null>(null)
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(45)
   const [customMinutes, setCustomMinutes] = useState('')
@@ -100,21 +100,8 @@ export default function CreateSessionModal({
     return () => { document.body.style.overflow = previousOverflow }
   }, [])
 
-  const loadPlaces = useCallback(() => {
-    void getPlaces()
-      .then((response) => {
-        const firstPlace = response.flatMap((city) => city.places)[0]
-        setCities(response)
-        setPlaceId((current) => current ?? firstPlace?.id ?? null)
-        setPlacesStatus('ready')
-      })
-      .catch(() => {
-        setPlacesStatus('error')
-      })
-  }, [])
-
   useEffect(() => {
-    loadPlaces()
+    void loadPlaces()
   }, [loadPlaces])
 
   const durationMinutes = durationPreset === 'custom' ? Number(customMinutes) : durationPreset
@@ -128,7 +115,9 @@ export default function CreateSessionModal({
     () => cities.flatMap((city) => city.places.map((place) => ({ city, place }))),
     [cities],
   )
-  const selectedPlace = placeOptions.find(({ place }) => place.id === placeId)
+  // 고르기 전에는 카탈로그의 첫 공간을 기본 선택으로 본다.
+  const selectedPlaceId = placeId ?? placeOptions[0]?.place.id ?? null
+  const selectedPlace = placeOptions.find(({ place }) => place.id === selectedPlaceId)
   const selectedTaskTitles = useMemo(
     () => selectedTaskIds.map(
       (taskId) => linkedTasks.find((task) => task.taskId === taskId)?.title,
@@ -277,15 +266,14 @@ export default function CreateSessionModal({
                 <fieldset className={styles.fieldset}>
                   <legend>어디서 할까요 <span>(공간 선택)</span></legend>
 
-                  {placesStatus === 'loading' && <p className={styles.empty} role="status">공간을 불러오는 중…</p>}
+                  {(placesStatus === 'idle' || placesStatus === 'loading') && <p className={styles.empty} role="status">공간을 불러오는 중…</p>}
                   {placesStatus === 'error' && (
                     <div className={styles['load-error']} role="alert">
                       <p className={styles.empty}>공간을 불러오지 못했습니다.</p>
                       <button
                         type="button"
                         onClick={() => {
-                          setPlacesStatus('loading')
-                          loadPlaces()
+                          void loadPlaces()
                         }}
                         disabled={isSubmitting}
                       >
@@ -298,7 +286,7 @@ export default function CreateSessionModal({
                     <div className={styles['place-grid']}>
                       {placeOptions.map(({ city, place }) => (
                         <label className={styles['place-choice']} key={place.id}>
-                          <input type="radio" name="session-place" checked={placeId === place.id} onChange={() => setPlaceId(place.id)} disabled={isSubmitting} />
+                          <input type="radio" name="session-place" checked={selectedPlaceId === place.id} onChange={() => setPlaceId(place.id)} disabled={isSubmitting} />
                           <span className={styles['place-mark']} aria-hidden="true">{city.name.slice(0, 1)}</span>
                           <span className={styles['place-name']}>
                             <span className="sr-only">{city.name} </span>{place.name}

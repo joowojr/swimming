@@ -7,12 +7,15 @@ import { confirmTaskOrganization, previewTaskOrganization } from './taskOrganize
 import type { TaskOrganizeResponse } from './taskOrganizerTypes'
 import type { ProjectOption } from './noteViewTypes'
 import styles from './NoteCard.module.css'
+import type { NoteContextType } from './noteTypes'
 
 /** 역할: AI 미리보기, Task 등록, 계획 연결의 2~3단계 흐름과 API 호출을 독립적으로 관리한다. */
 interface TaskOrganizerPanelProps {
   source: {
     noteId: number
     memo: string
+    contextType: NoteContextType
+    contextId?: number
   }
   folders: ProjectOption[]
   onCancel: () => void
@@ -110,7 +113,11 @@ export default function TaskOrganizerPanel({
   useEffect(() => {
     let cancelled = false
 
-    void previewTaskOrganization({ memo: source.memo })
+    void previewTaskOrganization({
+      memo: source.memo,
+      contextType: source.contextType,
+      contextId: source.contextId,
+    })
       .then((preview) => {
         if (!cancelled) {
           setState({
@@ -129,7 +136,7 @@ export default function TaskOrganizerPanel({
     return () => {
       cancelled = true
     }
-  }, [onFinish, source.memo])
+  }, [onFinish, source.memo, source.contextType, source.contextId])
 
   useEffect(() => {
     if (state.kind !== 'loading') return

@@ -20,7 +20,7 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import { useAuthStore } from '../../store/authStore'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { useActiveSessionStore } from '../../store/activeSessionStore'
-import { getPlaces } from '../places/placeApi'
+import { pickRandomPlace, usePlaceStore } from '../../store/placeStore'
 import { getSession, updateSessionFocusDuration, updateSessionMusicUrl } from './sessionApi'
 import type { SessionDetailResponse } from './sessionTypes'
 import EndSessionModal from './EndSessionModal'
@@ -52,7 +52,6 @@ const INITIAL_WIDGET_VISIBILITY: WidgetVisibility = {
   music: true,
 }
 
-const DEFAULT_SESSION_BACKGROUND_URL = '/lisbon_1.mp4'
 
 function timerPhase(session: SessionDetailResponse) {
   const elapsed = Math.max(0, Math.floor((Date.now() - Date.parse(session.startedAt)) / 1000))
@@ -114,7 +113,10 @@ export default function PersonalSessionPage() {
   const [widgets, setWidgets] = useState<WidgetVisibility>(INITIAL_WIDGET_VISIBILITY)
   const [isLayoutSwapped, setIsLayoutSwapped] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
-  const [musicOptions, setMusicOptions] = useState<SessionMusicOption[]>([])
+  const cities = usePlaceStore((state) => state.cities)
+  const loadPlaces = usePlaceStore((state) => state.load)
+  // 마운트 시 한 번 정해 두고, 카탈로그가 늦게 도착해도 같은 배경을 유지한다.
+  const [backgroundSeed] = useState(() => Math.random())
   const [backgroundErrorSessionId, setBackgroundErrorSessionId] = useState<number | null>(null)
 
   // 진행 중인 세션은 store가 단일 출처다. 방금 시작한 세션도 여기로 들어와 재조회가 없다.
@@ -145,23 +147,18 @@ export default function PersonalSessionPage() {
   }, [activeSession, requestKey, validSessionId])
 
   useEffect(() => {
-    let active = true
-    void getPlaces()
-      .then((cities) => {
-        if (!active) return
-        const urls = new Set<string>()
-        setMusicOptions(cities.flatMap((city) => city.places.flatMap((place) => {
-          const url = place.defaultMusicUrl
-          if (!url || urls.has(url)) return []
-          urls.add(url)
-          return [{ id: place.id, label: `${city.name} · ${place.name}`, url }]
-        })))
-      })
-      .catch(() => {
-        if (active) setMusicOptions([])
-      })
-    return () => { active = false }
-  }, [])
+    void loadPlaces()
+  }, [loadPlaces])
+
+  const musicOptions = useMemo<SessionMusicOption[]>(() => {
+    const urls = new Set<string>()
+    return cities.flatMap((city) => city.places.flatMap((place) => {
+      const url = place.defaultMusicUrl
+      if (!url || urls.has(url)) return []
+      urls.add(url)
+      return [{ id: place.id, label: `${city.name} · ${place.name}`, url }]
+    }))
+  }, [cities])
 
   useEffect(() => {
     if (state.status !== 'ready') return
@@ -193,12 +190,16 @@ export default function PersonalSessionPage() {
   // 배경 로딩 실패는 그 세션에만 적용한다. 다른 세션으로 옮기면 자연히 풀린다.
   const hasBackgroundError = session !== null && backgroundErrorSessionId === session.id
   const configuredBackgroundUrl = backgroundAsset?.url?.trim() || null
-  const backgroundUrl = configuredBackgroundUrl && !hasBackgroundError
-    ? configuredBackgroundUrl
-    : DEFAULT_SESSION_BACKGROUND_URL
-  const backgroundType = configuredBackgroundUrl && !hasBackgroundError
-    ? backgroundAsset?.type
-    : 'VIDEO'
+  // 세션 배경이 없거나 로딩에 실패하면 카탈로그의 다른 공간 배경으로 채운다.
+  const fallbackBackground = useMemo(
+    () => pickRandomPlace(cities, backgroundSeed)?.place.backgroundAsset ?? null,
+    [cities, backgroundSeed],
+  )
+  const background = configuredBackgroundUrl && !hasBackgroundError
+    ? backgroundAsset
+    : fallbackBackground
+  const backgroundUrl = background?.url ?? null
+  const backgroundType = backgroundUrl ? background?.type : null
 
   const handleBackgroundError = () => setBackgroundErrorSessionId(session?.id ?? null)
 
@@ -286,7 +287,7 @@ export default function PersonalSessionPage() {
     return (
       <main className={`${styles.page} ${styles['is-ended']}`}>
         <div className={styles.scene} aria-hidden="true"><span /><span /><span /></div>
-        {backgroundType === 'IMAGE' ? (
+        {backgroundUrl && (backgroundType === 'IMAGE' ? (
           <img
             className={styles['background-asset']}
             src={backgroundUrl}
@@ -304,7 +305,7 @@ export default function PersonalSessionPage() {
             playsInline
             onError={handleBackgroundError}
           />
-        )}
+        ))}
         <div className={styles['background-shade']} aria-hidden="true" />
         <section className={styles['ended-card']} aria-labelledby="session-ended-title">
           <span className={styles['ended-icon']}><IconCheck aria-hidden="true" /></span>
@@ -320,7 +321,7 @@ export default function PersonalSessionPage() {
   return (
     <main className={`${styles.page} ${focusMode ? styles['is-focus-mode'] : ''} ${isLayoutSwapped ? styles['is-layout-swapped'] : ''}`} aria-label="개인 세션 진행">
       <div className={styles.scene} aria-hidden="true"><span /><span /><span /></div>
-      {backgroundType === 'IMAGE' && (
+      {backgroundUrl && backgroundType === 'IMAGE' && (
         <img
           className={styles['background-asset']}
           src={backgroundUrl}
@@ -328,7 +329,7 @@ export default function PersonalSessionPage() {
           onError={handleBackgroundError}
         />
       )}
-      {backgroundType === 'VIDEO' && (
+      {backgroundUrl && backgroundType === 'VIDEO' && (
         <video
           className={styles['background-asset']}
           src={backgroundUrl}

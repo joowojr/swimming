@@ -35,6 +35,8 @@ interface NoteCardProps {
 interface OrganizerSource {
   noteId: number
   memo: string
+  contextType: NoteContextType
+  contextId?: number
 }
 
 const AUTO_SAVE_DELAY_MS = 700
@@ -316,7 +318,17 @@ export default function NoteCard({
     const content = memoRef.current
     const saved = await saveContent(content)
     const noteId = noteIdRef.current
-    if (saved && noteId !== null) setOrganizerSource({ noteId, memo: content })
+    if (saved && noteId !== null) {
+      // 노트가 속한 범위를 그대로 넘겨 그 폴더(또는 세션의 폴더들)만 참조하게 한다.
+      setOrganizerSource({
+        noteId,
+        memo: content,
+        contextType: sessionId !== undefined
+            ? 'SESSION'
+            : folderId !== undefined ? 'FOLDER' : 'DEFAULT',
+        contextId: sessionId ?? folderId,
+      })
+    }
   }
 
   const handleArchive = async () => {

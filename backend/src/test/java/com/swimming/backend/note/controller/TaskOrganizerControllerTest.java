@@ -44,7 +44,7 @@ class TaskOrganizerControllerTest {
     @Test
     @DisplayName("Task Organizer Preview 응답에 confidence를 노출하지 않는다")
     void returnsPreviewWithoutConfidence() throws Exception {
-        TaskOrganizeRequest request = new TaskOrganizeRequest("메모");
+        TaskOrganizeRequest request = new TaskOrganizeRequest("메모", null, null);
         when(taskOrganizerUseCase.preview(1L, request)).thenReturn(
                 new TaskOrganizeResponse(
                         List.of(new TaskOrganizeResponse.TaskSuggestionResponse(

@@ -29,6 +29,19 @@ public class SessionService {
         return getOwnedEntity(userId, sessionId).toDomain();
     }
 
+    /**
+     * 세션에 담긴 task id. 소유권을 먼저 확인한다.
+     *
+     * <p>session_tasks 를 아는 코드는 이 도메인 안에만 둔다. task 쪽에서 조인하면
+     * folder → task → session 단방향 의존이 뒤집힌다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Long> getTaskIds(Long userId, Long sessionId) {
+        getOwned(userId, sessionId);
+
+        return sessionTaskRepository.findTaskIdsBySessionId(sessionId);
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<SessionWithPlaceRow> getActiveRows(Long userId) {
         return sessionRepository.findActiveRows(

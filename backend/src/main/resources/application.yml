@@ -33,6 +33,14 @@ spring:
       # spring.config.import 로 끌어다 쓰고, 그 파일이 유일한 출처가 된다.
 
 app:
+  prompt:
+    locations:
+      task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer/classify.md}
+      task-extractor: ${TASK_EXTRACTOR_PROMPT_PATH:classpath:prompts/task-organizer/extract.md}
+    # 골격의 <!-- fragment: 이름 --> 줄에 끼워 넣는다.
+    fragments:
+      splitting: classpath:prompts/task-organizer/_splitting.md
+      titles: classpath:prompts/task-organizer/_titles.md
   place:
     background:
       cdn-base-url: ${PLACE_CDN_BASE_URL}

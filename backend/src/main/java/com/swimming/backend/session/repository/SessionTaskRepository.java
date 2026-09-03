@@ -11,6 +11,13 @@ import java.util.List;
 
 public interface SessionTaskRepository extends JpaRepository<SessionTaskEntity, SessionTaskId> {
 
+    @Query("""
+            select sessionTask.id.taskId
+            from SessionTaskEntity sessionTask
+            where sessionTask.session.id = :sessionId
+            """)
+    List<Long> findTaskIdsBySessionId(@Param("sessionId") Long sessionId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update SessionTaskEntity sessionTask

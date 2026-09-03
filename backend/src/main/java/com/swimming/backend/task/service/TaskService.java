@@ -147,6 +147,26 @@ public class TaskService {
         );
     }
 
+    /** 지정된 폴더만 대상으로 하는 컨텍스트. ARCHIVED 도 포함한다. */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskOrganizerContextRow> getTaskOrganizerContext(Long userId, List<Long> folderIds) {
+        if (folderIds.isEmpty()) {
+            return List.of();
+        }
+
+        return taskRepository.findTaskOrganizerContextByFolderIds(userId, folderIds);
+    }
+
+    /** task 들이 속한 폴더 id. 폴더가 없는 task 는 빠진다. */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Long> getFolderIds(Long userId, List<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return List.of();
+        }
+
+        return taskRepository.findFolderIdsByTaskIds(userId, taskIds);
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskSummaryResponse> getSummaries(Long folderId) {
         return getByFolder(folderId)

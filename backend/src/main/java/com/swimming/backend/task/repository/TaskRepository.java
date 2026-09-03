@@ -146,6 +146,47 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             @Param("excludedStatus") FolderStatus excludedStatus
     );
 
+    /**
+     * 명시적으로 지정된 폴더만 대상으로 하는 컨텍스트.
+     *
+     * <p>전체 조회와 달리 ARCHIVED 를 걸러내지 않는다. 사용자가 그 폴더를 직접
+     * 골랐거나 세션이 그 폴더의 task 를 담고 있는 상황이라, 상태를 이유로 빼면
+     * 참조 대상이 사라진다.
+     */
+    @Query("""
+            SELECT new com.swimming.backend.task.dto.projection.TaskOrganizerContextRow(
+                folder.id,
+                folder.name,
+                folder.description,
+                task.id,
+                task.title,
+                task.status
+            )
+            FROM FolderEntity folder
+            LEFT JOIN TaskEntity task ON task.folder = folder AND task.deleted = false
+            WHERE folder.user.id = :userId
+              AND folder.id IN :folderIds
+              AND folder.deleted = false
+            ORDER BY folder.createdAt DESC, task.createdAt DESC
+            """)
+    List<TaskOrganizerContextRow> findTaskOrganizerContextByFolderIds(
+            @Param("userId") Long userId,
+            @Param("folderIds") List<Long> folderIds
+    );
+
+    @Query("""
+            SELECT DISTINCT task.folder.id
+            FROM TaskEntity task
+            WHERE task.user.id = :userId
+              AND task.id IN :taskIds
+              AND task.folder IS NOT NULL
+              AND task.deleted = false
+            """)
+    List<Long> findFolderIdsByTaskIds(
+            @Param("userId") Long userId,
+            @Param("taskIds") List<Long> taskIds
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update TaskEntity task

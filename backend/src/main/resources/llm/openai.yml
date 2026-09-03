@@ -1,0 +1,18 @@
+# OpenAI 공식 API.
+# application-*.yml 에서 spring.config.import 로 끌어다 쓴다.
+spring:
+  ai:
+    model:
+      chat: openai
+    openai:
+      api-key: ${OPENAI_API_KEY}
+
+app:
+  llm:
+    provider: openai
+    model: ${LLM_MODEL:gpt-5.6-luna}
+    max-tokens: 4000
+    temperature: 0.0
+    openai:
+      # reasoning 모델 전용. 비우면 일반 모델로 보고 max-tokens/temperature를 쓴다.
+      reasoning-effort: ${LLM_REASONING_EFFORT:low}

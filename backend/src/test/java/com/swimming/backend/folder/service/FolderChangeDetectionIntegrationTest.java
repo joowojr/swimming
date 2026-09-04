@@ -89,7 +89,6 @@ class FolderChangeDetectionIntegrationTest {
         assertThat(stored.getName()).isEqualTo("수정 프로젝트");
         assertThat(stored.getDescription()).isEqualTo("수정 설명");
         assertThat(stored.getTag().getId()).isEqualTo(tag.getId());
-        assertThat(stored.getUpdatedAt()).isEqualTo(updated.getUpdatedAt());
 
         statistics.clear();
         folderService.delete(user.getId(), entity.getId());

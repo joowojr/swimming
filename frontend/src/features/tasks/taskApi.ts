@@ -2,14 +2,17 @@ import { client } from '../../api/client'
 import type {
   CreateTaskRequest,
   DeleteTasksRequest,
-  TaskListMode,
   TaskResponse,
   UpdateTaskStatusRequest,
+  UpdateTaskInfoRequest,
+  UpdateTaskInfoResponse,
   UpdateTaskTitleRequest,
   UpdateTaskPriorityRequest,
   UpdateTaskUrgentRequest,
   TaskMatrixPageResponse,
   TaskMatrixSection,
+  TaskSort,
+  TaskStatus,
   TaskPlacementRequest,
   TaskPlacementResponse,
 } from './taskTypes'
@@ -43,11 +46,11 @@ export async function getTasks(folderId: number): Promise<TaskResponse[]> {
 }
 
 export async function getTaskList(
-  mode: TaskListMode,
+  sort: TaskSort,
   signal?: AbortSignal,
 ): Promise<TaskResponse[]> {
   const response = await client.get<TaskResponse[]>('/tasks', {
-    params: { mode },
+    params: { sort },
     signal,
   })
   return response.data
@@ -55,13 +58,15 @@ export async function getTaskList(
 
 export async function getTaskMatrixPage(
   section: TaskMatrixSection,
-  options: { cursor?: string | null; size?: number; signal?: AbortSignal } = {},
+  options: { cursor?: string | null; size?: number; status?: TaskStatus; signal?: AbortSignal } = {},
 ): Promise<TaskMatrixPageResponse> {
   const response = await client.get<TaskMatrixPageResponse>('/tasks/matrix', {
     params: {
       section,
       size: options.size ?? 6,
       ...(options.cursor ? { cursor: options.cursor } : {}),
+      // 상태 필터는 커서 윈도잉 앞에서 걸려야 페이지네이션이 성립한다.
+      ...(options.status ? { status: options.status } : {}),
     },
     signal: options.signal,
   })
@@ -92,6 +97,7 @@ export async function updateTaskStatus(
   return response.data
 }
 
+/** @deprecated updateTaskInfo(taskId, { priority })를 쓴다. */
 export async function updateTaskPriority(
   taskId: number,
   request: UpdateTaskPriorityRequest,
@@ -100,11 +106,20 @@ export async function updateTaskPriority(
   return response.data
 }
 
+/** @deprecated updateTaskInfo(taskId, { urgent })를 쓴다. */
 export async function updateTaskUrgent(
   taskId: number,
   request: UpdateTaskUrgentRequest,
 ): Promise<TaskResponse> {
   const response = await client.patch<TaskResponse>(`/tasks/${taskId}/urgent`, request)
+  return response.data
+}
+
+export async function updateTaskInfo(
+  taskId: number,
+  request: UpdateTaskInfoRequest,
+): Promise<UpdateTaskInfoResponse> {
+  const response = await client.patch<UpdateTaskInfoResponse>(`/tasks/${taskId}/info`, request)
   return response.data
 }
 

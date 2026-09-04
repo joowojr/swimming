@@ -14,6 +14,12 @@ interface TaskFilterMenuProps {
   triggerClassName?: string
   triggerTitle?: string
   iconSize?: number
+  /**
+   * 중요·즉시 조건 노출 여부. 매트릭스는 이 두 값이 곧 구간이라 필터로 좁힐 것이 없어 끈다.
+   */
+  showFlags?: boolean
+  /** 미분류만 보기. 폴더 페이지의 '전체 / 미분류' 화면 구분을 대신한다. */
+  showFolderScope?: boolean
 }
 
 export default function TaskFilterMenu({
@@ -23,6 +29,8 @@ export default function TaskFilterMenu({
   triggerClassName,
   triggerTitle = '할 일 필터',
   iconSize = 17,
+  showFlags = true,
+  showFolderScope = false,
 }: TaskFilterMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -86,22 +94,36 @@ export default function TaskFilterMenu({
               ))}
             </select>
           </label>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={value.priority}
-              onChange={(event) => onChange({ ...value, priority: event.target.checked })}
-            />
-            📌 중요
-          </label>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={value.urgent}
-              onChange={(event) => onChange({ ...value, urgent: event.target.checked })}
-            />
-            ⚡️ 즉시
-          </label>
+          {showFlags && (
+            <>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={value.priority}
+                  onChange={(event) => onChange({ ...value, priority: event.target.checked })}
+                />
+                📌 중요
+              </label>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={value.urgent}
+                  onChange={(event) => onChange({ ...value, urgent: event.target.checked })}
+                />
+                ⚡️ 즉시
+              </label>
+            </>
+          )}
+          {showFolderScope && (
+            <label className={styles.check}>
+              <input
+                type="checkbox"
+                checked={value.unclassifiedOnly}
+                onChange={(event) => onChange({ ...value, unclassifiedOnly: event.target.checked })}
+              />
+              🗂 미분류만
+            </label>
+          )}
           <button
             type="button"
             className={styles.reset}

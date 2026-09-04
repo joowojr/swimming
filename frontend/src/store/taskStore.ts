@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { getTaskList } from '../features/tasks/taskApi'
-import type { TaskCacheEntry } from '../features/tasks/taskTypes'
+import type { TaskCacheEntry, TaskSort } from '../features/tasks/taskTypes'
 
 /**
  * 역할: task의 단일 출처. 제목·상태·중요·즉시를 한곳에서 들고 있어,
@@ -17,7 +17,7 @@ interface TaskStoreState {
   // 목록 멤버십이 바뀐 횟수. 페이징된 목록(매트릭스)은 로컬 패치가 안 되어 이 값을 보고 다시 받는다.
   listRevision: number
 
-  loadAll: () => Promise<void>
+  loadAll: (sort?: TaskSort) => Promise<void>
   add: (task: TaskCacheEntry) => void
   upsert: (tasks: TaskCacheEntry[]) => void
   remove: (taskIds: number[]) => void
@@ -41,12 +41,12 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
   status: 'idle',
   listRevision: 0,
 
-  loadAll: async () => {
+  loadAll: async (sort = 'desc') => {
     const requestId = ++latestRequestId
     set({ status: 'loading' })
 
     try {
-      const tasks = await getTaskList('all')
+      const tasks = await getTaskList(sort)
       if (requestId !== latestRequestId) return
       set((current) => ({
         byId: { ...current.byId, ...toById(tasks) },

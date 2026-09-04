@@ -11,6 +11,7 @@ import type {
 } from './folderTypes.ts'
 import styles from './CreateFolder.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
+import { formatLocalDate } from '../../lib/date'
 
 interface CreateProjectModalProps {
   onClose: () => void
@@ -31,13 +32,6 @@ function validateName(value: string) {
 function validateDescription(value: string) {
   if (!value.trim()) return '폴더 설명을 입력해 주세요.'
   return undefined
-}
-
-function formatLocalDate(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function validateTargetDate(value: string, minimumDate: string) {

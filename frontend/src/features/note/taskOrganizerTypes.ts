@@ -1,3 +1,4 @@
+import type { TaskStatus } from '../tasks/taskTypes'
 import type { NoteContextType } from './noteTypes'
 
 export interface TaskOrganizeRequest {
@@ -40,6 +41,9 @@ export interface CreatedTaskResponse {
   id: number
   folderId: number | null
   title: string
+  status: TaskStatus
+  priority: boolean
+  urgent: boolean
 }
 
 export interface TaskOrganizeConfirmResponse {

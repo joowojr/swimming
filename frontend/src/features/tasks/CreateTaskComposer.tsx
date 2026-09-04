@@ -3,6 +3,7 @@ import type { FormEvent, RefObject } from 'react'
 import type { ApiError } from '../../api/client'
 import AddItemButton from '../../components/AddItemButton'
 import { createTaskWithOptionalPlan } from './taskApi'
+import { useTaskStore } from '../../store/taskStore'
 import styles from './CreateTaskComposer.module.css'
 
 interface CreateTaskComposerProps {
@@ -50,10 +51,10 @@ export default function CreateTaskComposer({
     setIsSubmitting(true)
     let created = false
     try {
-      await createTaskWithOptionalPlan({
+      useTaskStore.getState().add(await createTaskWithOptionalPlan({
         title: title.trim(),
         folderId,
-      })
+      }))
       setTitle('')
       setIsTouched(false)
       setFieldError(undefined)

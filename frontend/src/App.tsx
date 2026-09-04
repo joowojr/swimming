@@ -15,6 +15,8 @@ import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
 import { useFolderStore } from './store/folderStore.ts'
 import { useActiveSessionStore } from './store/activeSessionStore'
+import { useDailyPlanStore } from './store/dailyPlanStore'
+import { useTaskStore } from './store/taskStore'
 import styles from './App.module.css'
 
 interface HealthResponse {
@@ -47,6 +49,8 @@ function App() {
   const removeFolder = useFolderStore((state) => state.remove)
   const resetFolders = useFolderStore((state) => state.reset)
   const clearActiveSession = useActiveSessionStore((state) => state.clear)
+  const resetTasks = useTaskStore((state) => state.reset)
+  const resetDailyPlans = useDailyPlanStore((state) => state.reset)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
@@ -75,6 +79,8 @@ function App() {
     if (auth.status === 'unauthenticated') {
       resetFolders()
       clearActiveSession()
+      resetTasks()
+      resetDailyPlans()
       return
     }
 
@@ -82,7 +88,7 @@ function App() {
     if (auth.status !== 'authenticated' || userId === undefined) return
 
     void loadFolders(userId)
-  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetFolders])
+  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetDailyPlans, resetFolders, resetTasks])
 
   if (auth.status === 'checking') {
     return (

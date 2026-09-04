@@ -8,7 +8,7 @@ import {
 } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { IconDots, IconLoader2, IconPlayerPlay } from '@tabler/icons-react'
+import { IconDots, IconLoader2, IconPencil, IconPlayerPlay } from '@tabler/icons-react'
 import DeleteIconButton from './DeleteIconButton'
 import ModalTriggerButton from './ModalTriggerButton'
 import styles from './TaskMenu.module.css'
@@ -26,6 +26,8 @@ interface TaskFlagMenuItemsProps {
     dialogId?: string
     isOpen?: boolean
   }
+  /** 수정 항목. 날짜·폴더·표시를 모달에서 함께 고친다. */
+  onMove?: () => void
   /** 삭제 항목. 문구는 모든 화면에서 '삭제하기'로 통일한다. */
   onDelete?: () => void
 }
@@ -38,6 +40,7 @@ export function TaskFlagMenuItems({
   onTogglePriority,
   onToggleUrgent,
   session,
+  onMove,
   onDelete,
 }: TaskFlagMenuItemsProps) {
   return (
@@ -73,6 +76,12 @@ export function TaskFlagMenuItems({
             다이브 세션
           </button>
         ))}
+      {onMove && (
+        <button type="button" disabled={disabled} onClick={onMove}>
+          <IconPencil size={14} aria-hidden="true" />
+          수정하기
+        </button>
+      )}
       {onDelete && (
         <DeleteIconButton label="삭제하기" iconSize={14} disabled={disabled} onClick={onDelete}>
           삭제하기

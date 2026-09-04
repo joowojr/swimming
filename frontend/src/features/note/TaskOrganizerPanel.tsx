@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { IconCalendar, IconMinus, IconPlus } from '@tabler/icons-react'
 import ActionButton from '../../components/ActionButton'
 import InlineEditableText from '../../components/InlineEditableText'
-import { addDailyPlanItems } from '../plans/dailyPlanApi'
+import { formatLocalDate } from '../../lib/date'
+import { useDailyPlanStore } from '../../store/dailyPlanStore'
+import { useTaskStore } from '../../store/taskStore'
 import { confirmTaskOrganization, previewTaskOrganization } from './taskOrganizerApi'
 import type { TaskOrganizeResponse } from './taskOrganizerTypes'
 import type { ProjectOption } from './noteViewTypes'
@@ -86,13 +88,6 @@ function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
   ]
 }
 
-function formatLocalDate(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 function formatPlanDate(planDate: string) {
   const [, month, day] = planDate.split('-')
   return month && day ? `${month}/${day}` : planDate
@@ -105,6 +100,8 @@ export default function TaskOrganizerPanel({
   onFinish,
 }: TaskOrganizerPanelProps) {
   const [state, setState] = useState<OrganizerState>({ kind: 'loading', messageIndex: 0 })
+  const addPlanItems = useDailyPlanStore((store) => store.addItems)
+  const addTask = useTaskStore((store) => store.add)
   const planDateInputRef = useRef<HTMLInputElement>(null)
   const editingPlanDateTaskId = state.kind === 'plan-link'
     ? state.editingPlanDateTaskId
@@ -214,6 +211,8 @@ export default function TaskOrganizerPanel({
           title: item.title.trim(),
         })),
       })
+      // 응답 순서를 목록 맨 앞에 그대로 두려면 역순으로 넣는다.
+      response.createdTasks.slice().reverse().forEach(addTask)
       const today = formatLocalDate(new Date())
       setState({
         kind: 'plan-link',
@@ -258,7 +257,7 @@ export default function TaskOrganizerPanel({
 
     try {
       for (const [planDate, taskIds] of taskIdsByDate) {
-        await addDailyPlanItems(planDate, { taskIds })
+        await addPlanItems(planDate, { taskIds })
         const linkedTaskIds = new Set(taskIds)
         remainingItems = remainingItems.filter((item) => !linkedTaskIds.has(item.id))
         linkedCount += taskIds.length

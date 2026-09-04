@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import ModeToggle from '../../components/ModeToggle'
+import TaskFilterMenu from '../../components/TaskFilterMenu'
+import { EMPTY_TASK_FILTER } from '../tasks/taskFilter'
+import type { TaskFilter } from '../tasks/taskFilter'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
@@ -34,6 +37,7 @@ export default function PinBoard({
   onRetry,
 }: PinBoardProps) {
   const [plannerView, setPlannerView] = useState<PlannerView>('daily')
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -92,16 +96,26 @@ export default function PinBoard({
                 <div className={styles['home-main']}>
                   <ContinueSessionWidget/>
                   <div className={styles['planner-area']}>
-                    <ModeToggle
-                      className={styles['planner-toggle']}
-                      ariaLabel="Task 보기 방식"
-                      options={PLANNER_VIEW_OPTIONS}
-                      value={plannerView}
-                      onChange={setPlannerView}
-                    />
+                    <div className={styles['planner-controls']}>
+                      <ModeToggle
+                        className={styles['planner-toggle']}
+                        ariaLabel="Task 보기 방식"
+                        options={PLANNER_VIEW_OPTIONS}
+                        value={plannerView}
+                        onChange={setPlannerView}
+                      />
+                      {plannerView === 'matrix' && (
+                        <TaskFilterMenu
+                          value={taskFilter}
+                          onChange={setTaskFilter}
+                          showFlags={false}
+                          triggerClassName={styles['planner-filter']}
+                        />
+                      )}
+                    </div>
                     {plannerView === 'daily'
                       ? <DailyPlanner/>
-                      : <TaskMatrix/>}
+                      : <TaskMatrix statusFilter={taskFilter.status}/>}
                   </div>
                 </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
+import { IconArrowsSort, IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
 import { useSearchParams } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
@@ -12,8 +12,9 @@ import {
   matchesTaskFilter,
 } from '../tasks/taskFilter'
 import type { TaskFilter } from '../tasks/taskFilter'
-import { deleteTasks, getTaskList } from '../tasks/taskApi'
-import type { TaskListMode, TaskResponse } from '../tasks/taskTypes'
+import type { TaskSort } from '../tasks/taskTypes'
+import { deleteTasks } from '../tasks/taskApi'
+import { useTaskStore } from '../../store/taskStore'
 import FolderCard from './FolderCard.tsx'
 import TaskList from './TaskList'
 import type { Folder } from './folderTypes.ts'
@@ -28,18 +29,11 @@ interface ProjectListPageProps {
   onOpenTagManage: () => void
 }
 
-type ProjectView = 'folders' | 'all' | 'unclassified'
-
-interface TaskListState {
-  mode: TaskListMode | null
-  status: FolderLoadStatus
-  tasks: TaskResponse[]
-}
+type ProjectView = 'folders' | 'tasks'
 
 const PROJECT_VIEWS: { value: ProjectView; label: string }[] = [
   { value: 'folders', label: '폴더' },
-  { value: 'all', label: '전체' },
-  { value: 'unclassified', label: '미분류' },
+  { value: 'tasks', label: '할 일' },
 ]
 
 export default function FolderListPage({
@@ -51,17 +45,16 @@ export default function FolderListPage({
 }: ProjectListPageProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const viewParam = searchParams.get('view')
-  const activeView: ProjectView = viewParam === 'all' || viewParam === 'unclassified'
-    ? viewParam
-    : 'folders'
-  const taskMode: TaskListMode | null = activeView === 'folders' ? null : activeView
-  const [taskListState, setTaskListState] = useState<TaskListState>({
-    mode: null,
-    status: 'idle',
-    tasks: [],
-  })
+  const activeView: ProjectView = viewParam === 'tasks' ? 'tasks' : 'folders'
+  const isTaskView = activeView === 'tasks'
+  const tasksById = useTaskStore((state) => state.byId)
+  const allTaskIds = useTaskStore((state) => state.allIds)
+  const taskStatus = useTaskStore((state) => state.status)
+  const loadAllTasks = useTaskStore((state) => state.loadAll)
+  const removeTasksFromStore = useTaskStore((state) => state.remove)
   const [taskReloadKey, setTaskReloadKey] = useState(0)
   const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
+  const [taskSort, setTaskSort] = useState<TaskSort>('desc')
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
@@ -76,25 +69,18 @@ export default function FolderListPage({
     setSelectedTaskIds(new Set())
     setDeleteError(null)
     setTaskFilter(EMPTY_TASK_FILTER)
-  }, [taskMode])
+  }, [activeView])
 
+  // 정렬은 서버가 정하므로 바뀌면 다시 받는다. 미분류 여부는 받아둔 목록에서 거른다.
   useEffect(() => {
-    if (taskMode === null) return
+    if (!isTaskView) return
+    void loadAllTasks(taskSort)
+  }, [isTaskView, taskSort, taskReloadKey, loadAllTasks])
 
-    const controller = new AbortController()
-    setTaskListState({ mode: taskMode, status: 'loading', tasks: [] })
-
-    void getTaskList(taskMode, controller.signal)
-      .then((tasks) => {
-        setTaskListState({ mode: taskMode, status: 'ready', tasks })
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return
-        setTaskListState({ mode: taskMode, status: 'error', tasks: [] })
-      })
-
-    return () => controller.abort()
-  }, [taskMode, taskReloadKey])
+  const modeTasks = useMemo(() => {
+    if (!isTaskView || allTaskIds === null) return []
+    return allTaskIds.flatMap((taskId) => tasksById[taskId] ?? [])
+  }, [isTaskView, allTaskIds, tasksById])
 
   const changeView = (view: ProjectView) => {
     setIsDeleteMode(false)
@@ -126,8 +112,8 @@ export default function FolderListPage({
     setDeleteError(null)
     try {
       await deleteTasks({ taskIds: [...selectedTaskIds] })
+      removeTasksFromStore([...selectedTaskIds])
       leaveDeleteMode()
-      setTaskReloadKey((key) => key + 1)
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message
@@ -140,8 +126,8 @@ export default function FolderListPage({
 
   const activeFilterCount = countActiveFilters(taskFilter)
   const visibleTasks = useMemo(
-    () => taskListState.tasks.filter((task) => matchesTaskFilter(task, taskFilter)),
-    [taskListState.tasks, taskFilter],
+    () => modeTasks.filter((task) => matchesTaskFilter(task, taskFilter)),
+    [modeTasks, taskFilter],
   )
 
   return (
@@ -174,25 +160,37 @@ export default function FolderListPage({
           value={activeView}
           onChange={changeView}
         />
-        <TaskFilterMenu
-          value={taskFilter}
-          onChange={setTaskFilter}
-          disabled={taskMode === null}
-          triggerClassName={`${styles.secondary} ${styles['filter-button']}`}
-          triggerTitle={taskMode === null ? '할 일 화면에서 쓸 수 있어요' : '할 일 필터'}
-        />
+        <div className={styles['task-tools']}>
+          <TaskFilterMenu
+            value={taskFilter}
+            onChange={setTaskFilter}
+            showFolderScope
+            disabled={!isTaskView}
+            triggerClassName={`${styles.secondary} ${styles['filter-button']}`}
+            triggerTitle={isTaskView ? '할 일 필터' : '할 일 화면에서 쓸 수 있어요'}
+          />
+          <button
+            type="button"
+            className={`${styles.secondary} ${styles['filter-button']}`}
+            disabled={!isTaskView}
+            title={isTaskView ? '정렬 바꾸기' : '할 일 화면에서 쓸 수 있어요'}
+            aria-label={taskSort === 'desc' ? '오래된순으로 정렬' : '최신순으로 정렬'}
+            onClick={() => setTaskSort((current) => current === 'desc' ? 'asc' : 'desc')}
+          >
+            <IconArrowsSort size={17} aria-hidden="true" />
+            {taskSort === 'desc' ? '최신순' : '오래된순'}
+          </button>
+        </div>
       </div>
 
-      {taskMode !== null ? (
+      {isTaskView ? (
         <div className={styles['task-content']}>
-          {taskListState.mode !== taskMode
-          || taskListState.status === 'loading'
-          || taskListState.status === 'idle' ? (
+          {taskStatus === 'loading' || taskStatus === 'idle' ? (
             <div className={styles.state} role="status">
               <span className={styles['state-mark']} aria-hidden="true" />
               <p>할 일을 불러오고 있습니다.</p>
             </div>
-          ) : taskListState.status === 'error' ? (
+          ) : taskStatus === 'error' ? (
             <div className={styles.state}>
               <p>할 일 목록을 불러오지 못했습니다.</p>
               <button type="button" onClick={() => setTaskReloadKey((key) => key + 1)}>
@@ -202,12 +200,12 @@ export default function FolderListPage({
           ) : (
             <>
               <div className={styles['section-heading']}>
-                <h2>{taskMode === 'all' ? '최신 할 일' : '미분류 할 일'}</h2>
+                <h2>{taskFilter.unclassifiedOnly ? '미분류 할 일' : '할 일'}</h2>
                 <div className={styles['task-list-actions']}>
                   <span>
                     {activeFilterCount > 0
-                      ? `${visibleTasks.length} / ${taskListState.tasks.length}개`
-                      : `${taskListState.tasks.length}개`}
+                      ? `${visibleTasks.length} / ${modeTasks.length}개`
+                      : `${modeTasks.length}개`}
                   </span>
                   <DeleteIconButton
                     label={isDeleteMode ? '할 일 삭제 선택 취소' : '할 일 삭제 선택'}
@@ -236,12 +234,10 @@ export default function FolderListPage({
                 tasks={visibleTasks}
                 emptyTitle={activeFilterCount > 0
                   ? '조건에 맞는 할 일이 없어요.'
-                  : taskMode === 'all' ? '등록된 할 일이 없어요.' : '미분류 할 일이 없어요.'}
+                  : '등록된 할 일이 없어요.'}
                 emptyDescription={activeFilterCount > 0
                   ? '필터 조건을 바꾸면 다른 할 일을 볼 수 있어요.'
-                  : taskMode === 'all'
-                    ? '할 일을 만들면 최신순으로 이곳에 표시됩니다.'
-                    : '폴더에 연결되지 않은 할 일이 이곳에 표시됩니다.'}
+                  : '할 일을 만들면 이곳에 표시됩니다.'}
                 getMetaText={(task) => task.folderId === null
                   ? '미분류'
                   : folderNameById.get(task.folderId ?? -1) ?? '폴더'}

@@ -79,7 +79,7 @@ Never commit `tfplan`.
 
 ## State backend
 
-State lives in `s3://swimming-prod-tfstate-223910471789/prod/terraform.tfstate`
+State lives in `s3://swimming-prod-tfstate/prod/terraform.tfstate`
 in `ap-northeast-2`. The bucket was created with the AWS CLI rather than
 Terraform, because a backend cannot bootstrap the bucket holding its own state.
 It has versioning, SSE-S3, a full public access block, a TLS-only bucket policy,
@@ -88,6 +88,47 @@ and a 90-day expiry for noncurrent versions.
 Locking uses the S3 `use_lockfile` option, so there is no DynamoDB table to
 manage. Do not delete the bucket or disable its versioning; state history is the
 only recovery path if an apply corrupts state.
+
+The bucket name deliberately carries no AWS account id, so this repository can
+be made public without exposing one. If the name is taken in another account,
+pick a different suffix and update `versions.tf`, `variables.tf`, and this file
+together.
+
+### Creating the bucket
+
+```bash
+BUCKET=swimming-prod-tfstate
+REGION=ap-northeast-2
+
+aws s3api create-bucket --bucket "$BUCKET" --region "$REGION" \
+  --create-bucket-configuration LocationConstraint="$REGION"
+
+aws s3api put-bucket-versioning --bucket "$BUCKET" \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-encryption --bucket "$BUCKET" \
+  --server-side-encryption-configuration \
+  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+
+aws s3api put-public-access-block --bucket "$BUCKET" \
+  --public-access-block-configuration \
+  'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
+
+aws s3api put-bucket-lifecycle-configuration --bucket "$BUCKET" \
+  --lifecycle-configuration \
+  '{"Rules":[{"ID":"expire-noncurrent","Status":"Enabled","Filter":{},"NoncurrentVersionExpiration":{"NoncurrentDays":90}}]}'
+```
+
+Add the TLS-only bucket policy (`aws:SecureTransport` deny) as on the previous
+bucket, then move the state:
+
+```bash
+terraform init -migrate-state
+```
+
+Terraform asks whether to copy the existing state to the new backend. Answer
+`yes`. Keep the old bucket until a plan against the new backend comes back
+clean, then empty and delete it.
 
 ## Populate the runtime secret
 

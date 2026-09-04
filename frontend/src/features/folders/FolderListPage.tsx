@@ -64,12 +64,16 @@ export default function FolderListPage({
     [folders],
   )
 
-  useEffect(() => {
+  // 화면이 바뀌면 삭제 선택과 필터를 초기화한다. 효과가 아니라 렌더 중에 이전 값과
+  // 비교해 맞춘다. 효과로 처리하면 초기화 전 상태로 한 번 그린 뒤 다시 그리게 된다.
+  const [renderedView, setRenderedView] = useState(activeView)
+  if (renderedView !== activeView) {
+    setRenderedView(activeView)
     setIsDeleteMode(false)
     setSelectedTaskIds(new Set())
     setDeleteError(null)
     setTaskFilter(EMPTY_TASK_FILTER)
-  }, [activeView])
+  }
 
   // 정렬은 서버가 정하므로 바뀌면 다시 받는다. 미분류 여부는 받아둔 목록에서 거른다.
   useEffect(() => {

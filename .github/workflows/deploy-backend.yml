@@ -48,7 +48,27 @@ jobs:
         # running image traceable back to a commit.
         run: echo "uri=$REGISTRY/$REPOSITORY:$GITHUB_SHA" >>"$GITHUB_OUTPUT"
 
+      # Re-running this workflow on a commit that was already deployed - to pick
+      # up a changed Secrets Manager value, or to retry a failed release - would
+      # otherwise fail: pushing an existing tag to an IMMUTABLE repository is
+      # rejected. Skipping the build turns a re-run into "re-render the runtime
+      # environment and restart", which is what deploy-backend.sh does anyway.
+      - name: Check whether the image already exists
+        id: exists
+        env:
+          REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          if aws ecr describe-images \
+               --repository-name "$REPOSITORY" \
+               --image-ids imageTag="$GITHUB_SHA" >/dev/null 2>&1; then
+            echo "found=true" >>"$GITHUB_OUTPUT"
+            echo "::notice::$GITHUB_SHA is already in ECR; redeploying it without rebuilding"
+          else
+            echo "found=false" >>"$GITHUB_OUTPUT"
+          fi
+
       - uses: docker/build-push-action@v6
+        if: steps.exists.outputs.found == 'false'
         with:
           context: ./backend
           push: true

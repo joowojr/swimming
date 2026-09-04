@@ -1,0 +1,34 @@
+name: swimming-production
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be set to an immutable image tag}
+    restart: unless-stopped
+    # Path is relative to this file, which lives in /opt/swimming on the host.
+    # render-backend-env writes the rendered secret to /opt/swimming/config/backend.env.
+    env_file:
+      - path: ./config/backend.env
+        required: true
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-768m}
+    cpus: ${BACKEND_CPU_LIMIT:-1.0}
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

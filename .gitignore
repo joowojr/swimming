@@ -19,7 +19,10 @@ frontend/.env.*.local
 *.tfstate
 *.tfstate.*
 *.tfvars
-!*.tfvars.example
+# The only deployment's variable values. No secrets: the DB password and JWT
+# secret live in Secrets Manager, not in Terraform variables. Committing them
+# is what lets CI run the same plan the local machine does.
+!/infra/terraform/prod.auto.tfvars
 crash.log
 crash.*.log
 override.tf

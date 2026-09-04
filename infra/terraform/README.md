@@ -48,14 +48,15 @@ apply from running Flyway while a table-name migration is still in progress.
 
 ## Configure
 
-Create a local variable file; it is ignored by Git:
+Variable values live in `prod.auto.tfvars`, which is committed. Terraform loads
+any `*.auto.tfvars` file without being told to, so there is nothing to copy or
+create. It is committed rather than kept local because the plan workflow has to
+produce the same diff CI sees as the one this machine sees; a variable that
+exists only here shows up as a phantom change in CI. The file holds no secrets —
+the database password and the JWT secret are in Secrets Manager and never pass
+through a Terraform variable.
 
-```bash
-cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars
-```
-
-At minimum, replace `owner`. Review the VPC CIDRs against existing networks and
+Review the VPC CIDRs against existing networks and
 decide whether production needs `db_multi_az = true` before the first apply.
 `10.0.11.0/24` and `10.0.12.0/24` are reserved for the private application
 subnets described in `infra/architecture.md` section 12; do not reuse them.
@@ -74,7 +75,7 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-Never commit `terraform.tfvars` or `tfplan`.
+Never commit `tfplan`.
 
 ## State backend
 

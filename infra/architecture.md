@@ -195,7 +195,7 @@ sudo /opt/swimming/bin/enable-tls <API 호스트명> <이메일>
 
 이 AWS 계정은 Free plan 이라 RDS 백업 보존 기간에 상한이 있습니다. 코드 기본값
 7일로 만들면 `CreateDBInstance` 가 `FreeTierRestrictionError` 로 거절합니다.
-그래서 `terraform.tfvars` 에서 `db_backup_retention_days = 1` 로 낮춰 둡니다.
+그래서 `prod.auto.tfvars` 에서 `db_backup_retention_days = 1` 로 낮춰 둡니다.
 **계정 플랜을 올린 뒤 7일로 되돌리는 것이 맞습니다.** 1일 보존은 하루 전
 시점으로만 복구할 수 있다는 뜻입니다.
 

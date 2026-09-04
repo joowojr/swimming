@@ -1,0 +1,88 @@
+name: Terraform plan
+
+on:
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform.yml'
+
+# A plan takes the S3 state lock (use_lockfile = true), so runs are serialised.
+concurrency:
+  group: terraform-plan
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.0
+          terraform_wrapper: false
+
+      - run: terraform fmt -check -recursive
+      - run: terraform init -input=false
+      - run: terraform validate
+
+      # This role is read-only, so apply is a local operation on purpose.
+      # The plan exists to show the diff before the change is merged - above
+      # all a "must be replaced" on aws_instance.app, which would take
+      # /etc/letsencrypt and the rendered backend.env with it.
+      - name: Plan
+        id: plan
+        run: |
+          set -o pipefail
+          terraform plan -input=false -no-color -lock-timeout=5m 2>&1 | tee plan.txt
+
+      - name: Comment plan on the pull request
+        if: always() && steps.plan.outcome != 'skipped'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'infra/terraform/plan.txt';
+            let body;
+            if (fs.existsSync(path)) {
+              let plan = fs.readFileSync(path, 'utf8');
+              // A pull request comment is capped at 65536 characters.
+              const limit = 60000;
+              if (plan.length > limit) {
+                plan = plan.slice(-limit);
+                plan = '... output truncated, see the job log for the full plan ...\n' + plan;
+              }
+              body = `#### Terraform plan \`${{ steps.plan.outcome }}\`\n\n<details><summary>Show plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n\n</details>`;
+            } else {
+              body = `#### Terraform plan \`${{ steps.plan.outcome }}\`\n\nThe plan produced no output. See the job log.`;
+            }
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const marker = '#### Terraform plan';
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.data.find(
+              (c) => c.user.type === 'Bot' && c.body.startsWith(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

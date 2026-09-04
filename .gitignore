@@ -14,5 +14,23 @@ frontend/.env.*.local
 .DS_Store
 *.log
 
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+# The only deployment's variable values. No secrets: the DB password and JWT
+# secret live in Secrets Manager, not in Terraform variables. Committing them
+# is what lets CI run the same plan the local machine does.
+!/infra/terraform/prod.auto.tfvars
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
 # Local documentation subdirectories
 /docs/*/

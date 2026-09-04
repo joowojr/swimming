@@ -1,0 +1,302 @@
+#!/bin/bash
+set -euo pipefail
+
+exec > >(tee /var/log/swimming-bootstrap.log | logger -t swimming-user-data -s 2>/dev/console) 2>&1
+
+dnf update -y
+# curl is deliberately absent: Amazon Linux 2023 ships curl-minimal, which
+# already provides /usr/bin/curl, and installing the full curl package fails
+# with a file conflict that aborts this whole script.
+dnf install -y docker nginx amazon-cloudwatch-agent jq certbot
+
+systemctl enable --now docker
+systemctl enable amazon-ssm-agent
+systemctl restart amazon-ssm-agent
+
+# Webroot for the ACME HTTP-01 challenge. It stays reachable on port 80 after
+# TLS is enabled so that renewals keep working.
+install -d -m 0755 -o root -g root /var/www/certbot
+
+install -d -m 0750 -o root -g docker /opt/swimming
+install -d -m 0750 -o root -g root /opt/swimming/bin
+install -d -m 0750 -o root -g root /opt/swimming/config
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl --fail --silent --show-error --location \
+  "https://github.com/docker/compose/releases/download/${docker_compose_version}/docker-compose-linux-x86_64" \
+  --output /usr/local/lib/docker/cli-plugins/docker-compose
+chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+docker compose version
+
+cat >/etc/nginx/nginx.conf <<'NGINX'
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log notice;
+pid /run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log /var/log/nginx/access.log main;
+    sendfile on;
+    keepalive_timeout 65;
+    server_tokens off;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+NGINX
+
+# Plain HTTP only. enable-tls replaces this file once a certificate exists;
+# issuing one at boot is impossible because DNS does not point at the Elastic
+# IP yet.
+cat >/etc/nginx/conf.d/swimming.conf <<'SITE'
+server {
+    listen 80 default_server;
+    server_name ${api_server_name};
+
+    client_max_body_size 2m;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+    }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+    }
+
+    location = /infra-health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location / {
+        return 404;
+    }
+}
+SITE
+
+nginx -t
+systemctl enable --now nginx
+
+cat >/opt/swimming/bin/render-backend-env <<'SCRIPT'
+#!/bin/bash
+set -euo pipefail
+umask 077
+
+secret_arn="$${1:?usage: render-backend-env <secret-arn> <output-path>}"
+output_path="$${2:?usage: render-backend-env <secret-arn> <output-path>}"
+tmp_path="$(mktemp /opt/swimming/config/backend.env.XXXXXX)"
+trap 'rm -f "$tmp_path"' EXIT
+
+aws secretsmanager get-secret-value \
+  --region "${aws_region}" \
+  --secret-id "$secret_arn" \
+  --query SecretString \
+  --output text \
+  | jq -r 'to_entries[] | "\(.key)=\(.value|tostring)"' >"$tmp_path"
+
+chmod 0600 "$tmp_path"
+mv "$tmp_path" "$output_path"
+trap - EXIT
+SCRIPT
+chmod 0750 /opt/swimming/bin/render-backend-env
+
+cat >/opt/swimming/config/runtime-secret-arn <<'EOF_SECRET'
+${runtime_secret_arn}
+EOF_SECRET
+chmod 0600 /opt/swimming/config/runtime-secret-arn
+
+cat >/etc/systemd/system/certbot-renew.service <<'UNIT'
+[Unit]
+Description=Renew Let's Encrypt certificates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"
+UNIT
+
+cat >/etc/systemd/system/certbot-renew.timer <<'UNIT'
+[Unit]
+Description=Run certbot renew twice a day
+
+[Timer]
+OnCalendar=*-*-* 03,15:00:00
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+
+# Run this once, after the API hostname resolves to this instance's Elastic IP.
+# HTTP-01 validation fails at boot because DNS does not point here yet, so the
+# certificate cannot be issued from user data.
+cat >/opt/swimming/bin/enable-tls <<'TLSSCRIPT'
+#!/bin/bash
+set -euo pipefail
+
+domain="$${1:?usage: enable-tls <domain> <email>}"
+email="$${2:?usage: enable-tls <domain> <email>}"
+
+certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d "$domain" \
+  -m "$email" \
+  --agree-tos \
+  --no-eff-email \
+  --non-interactive \
+  --keep-until-expiring
+
+cat >/etc/nginx/conf.d/swimming.conf <<SITE
+server {
+    listen 80 default_server;
+    server_name $domain;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    http2 on;
+    server_name $domain;
+
+    ssl_certificate     /etc/letsencrypt/live/$domain/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$domain/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    client_max_body_size 2m;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+    }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 3600s;
+    }
+
+    location = /infra-health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location / {
+        return 404;
+    }
+}
+SITE
+
+nginx -t
+systemctl reload nginx
+systemctl enable --now certbot-renew.timer
+TLSSCRIPT
+chmod 0750 /opt/swimming/bin/enable-tls
+
+cat >/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWAGENT'
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/swimming-bootstrap.log",
+            "log_group_name": "${log_group_name}",
+            "log_stream_name": "{instance_id}/bootstrap"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "${log_group_name}",
+            "log_stream_name": "{instance_id}/nginx-error"
+          }
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "namespace": "Swimming/EC2",
+    "append_dimensions": {
+      "InstanceId": "$${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "disk": {
+        "drop_device": true,
+        "measurement": ["used_percent"],
+        "metrics_collection_interval": 60,
+        "resources": ["/"]
+      },
+      "mem": {
+        "measurement": ["mem_used_percent"],
+        "metrics_collection_interval": 60
+      }
+    }
+  }
+}
+CWAGENT
+
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config \
+  -m ec2 \
+  -s \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+dnf clean all

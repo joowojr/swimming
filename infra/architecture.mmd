@@ -1,0 +1,79 @@
+flowchart TD
+
+    USER["Internet Users"]
+    DNS["External DNS Provider<br/>내도메인.한국 (kro.kr)<br/><br/>swimming-now.kro.kr → CloudFront<br/>API 호스트명(미정) → EC2 EIP"]
+
+    subgraph EDGE["AWS Edge"]
+        CF["CloudFront Distribution<br/>swimming-prod-web-cdn<br/>OAC + SPA fallback"]
+        ACM["ACM Certificate<br/>swimming-prod-web-cert<br/>us-east-1 · DNS 검증 수동"]
+    end
+
+    S3["S3 Bucket<br/>swimming-prod-web<br/>Block Public Access = ON<br/>ACL 비활성"]
+
+    subgraph VPC["VPC<br/>swimming-prod-vpc<br/>10.0.0.0/16"]
+
+        IGW["Internet Gateway<br/>swimming-prod-igw"]
+
+        S3VPCE["S3 Gateway Endpoint<br/>swimming-prod-s3-vpce"]
+
+        subgraph PUBLIC["Public Subnet A<br/>swimming-prod-public-a<br/>10.0.1.0/24"]
+
+            APP_EIP["Elastic IP<br/>swimming-prod-app-eip"]
+
+            APP["EC2<br/>swimming-prod-app<br/>Nginx :443 · Let's Encrypt<br/>Spring Boot :8080 (loopback)"]
+
+            APP_ROLE["IAM Instance Role<br/>swimming-prod-ec2-role"]
+        end
+
+        subgraph DBNET["Private DB Subnets<br/>인터넷 경로 없음"]
+
+            DBA["DB Subnet A<br/>swimming-prod-db-a<br/>10.0.21.0/24"]
+
+            DBB["DB Subnet B<br/>swimming-prod-db-b<br/>10.0.22.0/24"]
+
+            RDS["RDS PostgreSQL<br/>swimming-prod-db<br/>Public Access = false<br/>Encrypted"]
+        end
+
+        subgraph FUTURE["향후 · 미생성"]
+
+            APPNET["Private App Subnet<br/>swimming-prod-app-a<br/>10.0.11.0/24 예약"]
+
+            NAT["EC2 NAT Instance<br/>swimming-prod-nat<br/>Source/Dest Check = OFF<br/>+ ip_forward · MASQUERADE"]
+
+            BRVPCE["Interface VPC Endpoint<br/>swimming-prod-bedrock-runtime-vpce<br/>Private DNS = ON"]
+
+        end
+    end
+
+    ECR["ECR<br/>swimming-prod-backend"]
+
+    EXTERNAL["Google OAuth · LLM API<br/>External HTTPS"]
+
+    BEDROCK["Amazon Bedrock Runtime"]
+
+    USER --> DNS
+
+    DNS -->|"swimming-now.kro.kr"| CF
+    CF -->|"OAC signed request"| S3
+    ACM -.->|"attach_web_domain = true"| CF
+
+    DNS -->|"API 호스트명 → EIP"| APP_EIP
+    APP_EIP --> APP
+
+    IGW --- PUBLIC
+
+    APP_ROLE --- APP
+
+    APP -->|"TCP 5432<br/>db-sg only"| RDS
+
+    APP -->|"TCP 443"| S3VPCE
+    S3VPCE -->|"AWS 내부 경로"| ECR
+
+    APP -->|"TCP 443/80"| IGW
+    IGW --> EXTERNAL
+
+    APPNET -.-> NAT
+    NAT -.-> IGW
+
+    APP -.->|"HTTPS 443"| BRVPCE
+    BRVPCE -.->|"AWS PrivateLink"| BEDROCK

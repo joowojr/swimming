@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Link} from 'react-router-dom'
 import {IconSearch,} from '@tabler/icons-react'
 import styles from './TopBar.module.css'
+import logoUrl from '../assets/logo.svg'
 
 interface TopBarProps {
   userEmail: string | null
@@ -29,7 +30,7 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
       <div className={styles['top-bar-primary']}>
         <Link className={styles.brand} to="/pinboard" aria-label="Swimming 핀보드">
           <span className={styles['brand-mark']} aria-hidden="true">
-            <img src="/logo.svg" alt=""/>
+            <img src={logoUrl} alt=""/>
           </span>
           {/*<span className={styles['brand-name']}>swimming</span>*/}
         </Link>

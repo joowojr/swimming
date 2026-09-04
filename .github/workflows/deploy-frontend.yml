@@ -1,0 +1,86 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      # frontend/.env.production is committed and holds API_BASE_URL=/api plus
+      # the public Google client id, so the build needs no CI secrets.
+      - run: npm run build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Hashed assets go up first and the unhashed root files last. Reversing
+      # the order would publish a shell pointing at files the bucket does not
+      # have yet.
+      - name: Upload hashed assets
+        env:
+          BUCKET: ${{ vars.WEB_BUCKET_NAME }}
+        run: |
+          aws s3 sync dist/assets/ "s3://$BUCKET/assets/" \
+            --delete \
+            --cache-control 'public, max-age=31536000, immutable'
+
+      # Everything Vite emits outside assets/ - index.html today, plus anything
+      # dropped into public/ later such as robots.txt or a favicon - carries no
+      # content hash in its name and must revalidate on every request. The
+      # immutable header would freeze those files in the edge cache for a year.
+      - name: Upload unhashed root files
+        env:
+          BUCKET: ${{ vars.WEB_BUCKET_NAME }}
+        run: |
+          aws s3 sync dist/ "s3://$BUCKET/" \
+            --delete \
+            --exclude 'assets/*' \
+            --cache-control 'no-cache'
+
+      # The CloudFront function rewrites every extensionless path to
+      # /index.html before the cache lookup, so that one path covers all
+      # client-side routes. Hashed assets change name when their content
+      # changes and never need invalidating, which is why the paths are read
+      # from the build output instead of being hardcoded.
+      - name: Invalidate unhashed paths
+        env:
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          mapfile -t paths < <(find dist -maxdepth 1 -type f -printf '/%f\n')
+          echo "invalidating: ${paths[*]}"
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION_ID" \
+            --paths "${paths[@]}" \
+            --query 'Invalidation.Id' --output text

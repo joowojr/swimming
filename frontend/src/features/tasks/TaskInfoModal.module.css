@@ -1,0 +1,123 @@
+.dialog {
+    width: min(calc(100% - var(--space-8)), 24rem);
+}
+
+.modal {
+    width: 100%;
+}
+
+.header h2, .header p {
+    margin: 0;
+}
+
+.header p {
+    margin-top: var(--space-1);
+    overflow: hidden;
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: transparent;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-container-high);
+}
+
+.body {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6) var(--space-2);
+    overflow-y: auto;
+}
+
+.field {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.field > span {
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+}
+
+.field select, .field input {
+    min-width: 0;
+    min-height: var(--button-height);
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-default);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
+    font: inherit;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.chips > span {
+    min-width: 0;
+    flex: 0 0 auto;
+}
+
+.chips button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex: 0 0 auto;
+    min-height: var(--space-10);
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--color-hairline);
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: var(--color-surface-container-lowest);
+    font-size: var(--text-label-caps-size);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        border-color var(--transition-short) var(--ease-in-out),
+        color var(--transition-short) var(--ease-in-out),
+        background-color var(--transition-short) var(--ease-in-out);
+}
+
+.chips button[aria-pressed='true'] {
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+    background: var(--color-primary);
+}
+
+.chips button:active:not(:disabled):not([aria-pressed='true']) {
+    background: var(--color-surface-container-highest);
+}
+
+.message {
+    margin: 0;
+    color: var(--color-error);
+    font-size: var(--text-body-sm-size);
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-6) var(--space-6);
+}

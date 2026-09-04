@@ -12,6 +12,7 @@ import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
+import org.springframework.data.domain.Sort;
 import com.swimming.backend.user.domain.User;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -114,16 +115,8 @@ public class TaskService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Task> getAll(Long userId) {
-        return taskRepository.findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(TaskEntity::toDomain)
-                .toList();
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Task> getUnclassified(Long userId) {
-        return taskRepository.findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(userId)
+    public List<Task> getAll(Long userId, Sort sort) {
+        return taskRepository.findAllByUser_IdAndDeletedFalse(userId, sort)
                 .stream()
                 .map(TaskEntity::toDomain)
                 .toList();
@@ -178,6 +171,35 @@ public class TaskService {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Task getOne(Long userId, Long taskId) {
         return getOwnedEntity(userId, taskId).toDomain();
+    }
+
+    /**
+     * 제목·폴더·중요·즉시를 한 번에 바꾼다. 엔티티를 한 번만 읽고 변경 감지로 반영한다.
+     * matrixRank는 중요·즉시가 바뀔 때만 필요하고 그 판단과 계산은 유스케이스가 한다.
+     * null이면 순서를 건드리지 않는다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Task updateInfo(
+            Long userId,
+            Long taskId,
+            String title,
+            Long folderId,
+            boolean priority,
+            boolean urgent,
+            Long matrixRank
+    ) {
+        TaskEntity entity = getOwnedEntity(userId, taskId);
+        entity.updateTitle(title.trim());
+        entity.updateFolder(folderId == null
+                ? null
+                : entityManager.getReference(FolderEntity.class, folderId));
+        entity.updatePriority(priority);
+        entity.updateUrgent(urgent);
+        if (matrixRank != null) {
+            entity.updateMatrixRank(matrixRank);
+        }
+        taskRepository.flush();
+        return entity.toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

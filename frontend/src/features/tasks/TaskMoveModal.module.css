@@ -1,0 +1,124 @@
+.dialog {
+    width: min(calc(100% - var(--space-8)), 24rem);
+}
+
+.modal {
+    width: 100%;
+}
+
+.header p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: transparent;
+    cursor: pointer;
+}
+
+.body {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6) var(--space-2);
+}
+
+.field {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.field > span {
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+}
+
+.field select,
+.field input {
+    min-width: 0;
+    min-height: var(--button-height);
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-default);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
+    font: inherit;
+}
+
+.message {
+    margin: 0;
+    color: var(--color-error);
+    font-size: var(--text-body-sm-size);
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-6) var(--space-6);
+}
+
+.footer button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: var(--button-height);
+    padding: 0 var(--space-4);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-default);
+    color: var(--color-primary);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.footer button:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.submit {
+    border-color: transparent;
+    color: var(--color-on-primary);
+    background: var(--color-primary);
+}
+
+.spinner {
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.flags {
+    display: flex;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.flags legend {
+    padding: 0 0 var(--space-2);
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+}
+
+.flags label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-primary);
+    cursor: pointer;
+}

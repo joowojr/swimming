@@ -36,6 +36,7 @@ public class TaskOrderingUseCase {
                 query.section(),
                 cursor == null ? null : cursor.matrixRank(),
                 cursor == null ? null : cursor.taskId(),
+                query.status(),
                 query.size() + 1
         );
         boolean hasNext = fetched.size() > query.size();

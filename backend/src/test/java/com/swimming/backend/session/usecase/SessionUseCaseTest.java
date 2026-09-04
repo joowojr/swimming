@@ -120,8 +120,8 @@ class SessionUseCaseTest {
     }
 
     @Test
-    @DisplayName("개인 세션을 시작하면 대상 Task가 모두 DOING으로 바뀐다")
-    void marksSessionTasksAsDoingOnStart() {
+    @DisplayName("개인 세션 시작은 Task 상태를 바꾸지 않는다")
+    void keepsTaskStatusOnStart() {
         StartPersonalSessionRequest request = new StartPersonalSessionRequest(
                 List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
@@ -146,10 +146,7 @@ class SessionUseCaseTest {
 
         sessionUseCase.startPersonal(1L, request);
 
-        verify(taskService).updateStatuses(
-                1L,
-                Map.of(10L, TaskStatus.DOING, 11L, TaskStatus.DOING)
-        );
+        verify(taskService, never()).updateStatuses(any(), any());
     }
 
     @Test

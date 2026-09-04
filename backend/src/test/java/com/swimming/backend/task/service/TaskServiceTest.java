@@ -12,7 +12,9 @@ import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
+import com.swimming.backend.task.dto.in.TaskSort;
 import com.swimming.backend.task.repository.entity.TaskEntity;
+import org.springframework.data.domain.Sort;
 import com.swimming.backend.user.domain.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -139,32 +141,18 @@ class TaskServiceTest {
     }
 
     @Test
-    @DisplayName("사용자의 모든 Task를 최신순 조회 결과대로 반환한다")
-    void returnsAllOwnedTasksInLatestOrder() {
+    @DisplayName("받은 정렬 조건을 그대로 리포지토리에 넘긴다")
+    void returnsAllOwnedTasksInRequestedOrder() {
         TaskEntity recent = taskEntity(2L, null, "최근 Task", 0);
         TaskEntity previous = taskEntity(1L, 10L, "이전 Task", 0);
-        when(taskRepository.findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(1L))
+        Sort sort = TaskSort.DESC.toSort();
+        when(taskRepository.findAllByUser_IdAndDeletedFalse(1L, sort))
                 .thenReturn(List.of(recent, previous));
 
-        List<Task> tasks = taskService.getAll(1L);
+        List<Task> tasks = taskService.getAll(1L, sort);
 
         assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
-        verify(taskRepository).findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(1L);
-    }
-
-    @Test
-    @DisplayName("사용자의 폴더 없는 Task를 최신순 조회 결과대로 반환한다")
-    void returnsUnclassifiedTasksInLatestOrder() {
-        TaskEntity recent = taskEntity(2L, null, "최근 미분류", 0);
-        TaskEntity previous = taskEntity(1L, null, "이전 미분류", 0);
-        when(taskRepository.findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(1L))
-                .thenReturn(List.of(recent, previous));
-
-        List<Task> tasks = taskService.getUnclassified(1L);
-
-        assertThat(tasks).extracting(Task::getId).containsExactly(2L, 1L);
-        assertThat(tasks).allMatch(task -> task.getFolderId() == null);
-        verify(taskRepository).findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(1L);
+        verify(taskRepository).findAllByUser_IdAndDeletedFalse(1L, sort);
     }
 
     @Test

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,9 +27,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             """)
     List<TaskEntity> findAllByFolderIdWithFolder(@Param("folderId") Long folderId);
 
-    List<TaskEntity> findAllByUser_IdAndDeletedFalseOrderByCreatedAtDesc(Long userId);
-
-    List<TaskEntity> findAllByUser_IdAndFolderIsNullAndDeletedFalseOrderByCreatedAtDesc(Long userId);
+    List<TaskEntity> findAllByUser_IdAndDeletedFalse(Long userId, Sort sort);
 
     Optional<TaskEntity> findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
             Long userId,
@@ -43,12 +42,14 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
               AND task.deleted = false
               AND task.priority = :priority
               AND task.urgent = :urgent
+              AND (:status IS NULL OR task.status = :status)
             ORDER BY task.matrixRank DESC, task.id DESC
             """)
     List<TaskEntity> findMatrixFirstPage(
             @Param("userId") Long userId,
             @Param("priority") boolean priority,
             @Param("urgent") boolean urgent,
+            @Param("status") TaskStatus status,
             Pageable pageable
     );
 
@@ -59,6 +60,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
               AND task.deleted = false
               AND task.priority = :priority
               AND task.urgent = :urgent
+              AND (:status IS NULL OR task.status = :status)
               AND (
                 task.matrixRank < :cursorRank
                 OR (task.matrixRank = :cursorRank AND task.id < :cursorTaskId)
@@ -69,6 +71,7 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             @Param("userId") Long userId,
             @Param("priority") boolean priority,
             @Param("urgent") boolean urgent,
+            @Param("status") TaskStatus status,
             @Param("cursorRank") long cursorRank,
             @Param("cursorTaskId") long cursorTaskId,
             Pageable pageable

@@ -140,6 +140,51 @@ class DailyPlanServiceTest {
         verify(repository, never()).countDistinctTaskIds(any(), any(), any());
     }
 
+    @Test
+    @DisplayName("계획 항목을 다른 날짜로 옮기고 옮기기 전 날짜를 돌려준다")
+    void movesItemToAnotherDate() {
+        LocalDate toDate = DATE.plusDays(4);
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+        when(repository.countDistinctTaskIds(1L, toDate, Set.of(20L))).thenReturn(0L);
+        when(repository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(1L, toDate))
+                .thenReturn(List.of(entity(8L, 21L, 0), entity(9L, 22L, 1)));
+
+        LocalDate fromDate = service.moveItemDate(1L, 7L, 20L, toDate);
+
+        assertThat(fromDate).isEqualTo(DATE);
+    }
+
+    @Test
+    @DisplayName("대상 날짜에 같은 Task가 이미 있으면 옮기지 않는다")
+    void rejectsMoveWhenTargetDateAlreadyHasTask() {
+        LocalDate toDate = DATE.plusDays(4);
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+        when(repository.countDistinctTaskIds(1L, toDate, Set.of(20L))).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.moveItemDate(1L, 7L, 20L, toDate))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_DAILY_PLAN_TASKS);
+    }
+
+    @Test
+    @DisplayName("다른 Task의 계획 항목은 옮길 수 없다")
+    void rejectsMoveWhenItemBelongsToAnotherTask() {
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+
+        assertThatThrownBy(() -> service.moveItemDate(1L, 7L, 99L, DATE.plusDays(1)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_DAILY_PLAN_ITEM);
+    }
+
+    @Test
+    @DisplayName("같은 날짜로 옮기면 아무것도 바꾸지 않는다")
+    void keepsItemWhenTargetDateIsSame() {
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+
+        assertThat(service.moveItemDate(1L, 7L, 20L, DATE)).isEqualTo(DATE);
+        verify(repository, never()).flush();
+    }
+
     private DailyPlanItemEntity entity(Long id, Long taskId, int orderIdx) {
         DailyPlanItemEntity entity = DailyPlanItemEntity.from(
                 1L, DATE, DailyPlanItem.restore(null, taskId, orderIdx, null, null));

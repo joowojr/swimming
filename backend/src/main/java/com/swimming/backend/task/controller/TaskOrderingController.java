@@ -30,9 +30,10 @@ public class TaskOrderingController {
             @AuthenticationPrincipal AuthUser authUser,
             @RequestParam(required = false) String section,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String cursor
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String status
     ) {
-        TaskMatrixPageQuery query = TaskMatrixPageQuery.from(section, size, cursor);
+        TaskMatrixPageQuery query = TaskMatrixPageQuery.from(section, size, cursor, status);
         return ResponseEntity.ok(taskOrderingUseCase.getMatrixPage(authUser.id(), query));
     }
 

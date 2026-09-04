@@ -257,7 +257,10 @@ public class TaskOrganizerUseCase {
         return new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                 task.getId(),
                 task.getFolderId(),
-                task.getTitle()
+                task.getTitle(),
+                task.getStatus(),
+                task.isPriority(),
+                task.isUrgent()
         );
     }
 

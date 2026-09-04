@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "github_deploy_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:ref:refs/heads/main"]
+      values   = ["repo:${local.github_oidc_repository}:ref:refs/heads/main"]
     }
   }
 }
@@ -155,15 +155,13 @@ data "aws_iam_policy_document" "github_terraform_assume_role" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # Pull requests opened inside this repository, plus main itself. Forked
-    # pull requests carry the fork's repository in the sub claim and are denied.
+    # Pull requests opened inside this repository. The plan workflow only runs
+    # on pull_request, and a forked pull request carries the fork's ids in the
+    # sub claim, so it is denied.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.github_repository}:pull_request",
-        # "repo:${var.github_repository}:ref:refs/heads/main"
-      ]
+      values   = ["repo:${local.github_oidc_repository}:pull_request"]
     }
   }
 }

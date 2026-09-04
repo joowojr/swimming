@@ -211,6 +211,33 @@ variable "github_repository" {
   }
 }
 
+# GitHub signs the OIDC subject with immutable numeric ids rather than the
+# names alone: repo:<owner>@<owner_id>/<name>@<repo_id>:<context>. Renaming the
+# account or the repository therefore does not silently hand the old name's
+# trust to whoever claims it next. Both ids are public and stable for the life
+# of the account and the repository.
+variable "github_repository_owner_id" {
+  description = "Numeric id of the GitHub account owning the repository, as it appears in the OIDC subject claim."
+  type        = string
+  default     = "85955988"
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_owner_id))
+    error_message = "github_repository_owner_id must be numeric."
+  }
+}
+
+variable "github_repository_id" {
+  description = "Numeric id of the GitHub repository, as it appears in the OIDC subject claim."
+  type        = string
+  default     = "1339074737"
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_id))
+    error_message = "github_repository_id must be numeric."
+  }
+}
+
 # The state bucket is created outside Terraform, so its name is repeated here
 # to grant the plan role access to it. It matches the backend block in versions.tf.
 variable "tfstate_bucket_name" {

@@ -173,7 +173,8 @@ export default function CreateSessionModal({
       onStarted(await startPersonalSession({
         taskIds: selectedTaskIds,
         placeId: selectedPlace.place.id,
-        plannedDurationSec: durationMinutes * 60,
+        // 계획 시간은 한 구간이 아니라 휴식까지 포함한 세션 전체 길이다.
+        plannedDurationSec: totalMinutes * 60,
         focusDurationSec: durationMinutes * 60,
         breakDurationSec: hasBreak ? breakMinutes * 60 : 0,
         repeatCount: repeat,

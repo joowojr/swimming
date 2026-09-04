@@ -100,9 +100,24 @@ export default function DiveSessionFeedPage() {
               <div className={styles['card-content']}>
                 <div className={styles['card-title-row']}>
                   <h2>{session.tasks[0]?.title ?? '할 일 없는 세션'}</h2>
-                  <span className={styles['task-count']}>
-                    <IconListCheck size={15} aria-hidden="true" />
-                    {session.tasks.length}
+                  <span className={styles['task-count-wrap']}>
+                    <span className={styles['task-count']}>
+                      <IconListCheck size={15} aria-hidden="true" />
+                      {session.tasks.length}
+                    </span>
+                    {session.tasks.length > 0 && (
+                      <span className={styles['task-tooltip']} role="tooltip">
+                        <span className="sr-only">이 세션의 할 일 </span>
+                        {session.tasks.map((task) => (
+                          <span className={styles['task-tooltip-item']} key={task.id}>
+                            <span className={styles['task-tooltip-title']}>{task.title}</span>
+                            {task.folderName && (
+                              <span className={styles['task-tooltip-folder']}>{task.folderName}</span>
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className={styles.meta}>

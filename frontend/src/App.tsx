@@ -6,6 +6,7 @@ import PinBoard from './features/folders/PinBoard.tsx'
 import FolderDetail from './features/folders/FolderDetail.tsx'
 import FolderListPage from './features/folders/FolderListPage.tsx'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
+import TasksPage from './features/tasks/TasksPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
 import type { Folder } from './features/folders/folderTypes.ts'
 import AppShell from './layout/AppShell'
@@ -99,7 +100,6 @@ function App() {
   return (
     <AppShell
       userEmail={auth.user?.email ?? null}
-      folderCount={auth.status === 'authenticated' ? folders.length : null}
       onLogin={() => navigate('/')}
     >
       {auth.status === 'unauthenticated' ? (
@@ -111,6 +111,7 @@ function App() {
         <Routes>
           <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
           <Route path="/sessions" element={<DiveSessionFeedPage />} />
+          <Route path="/tasks" element={<TasksPage folders={folders} />} />
           <Route
             path="/folders"
             element={(

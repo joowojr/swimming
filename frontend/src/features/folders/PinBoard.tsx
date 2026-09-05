@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
+import { useAuthStore } from '../../store/authStore'
 import { EMPTY_TASK_FILTER } from '../tasks/taskFilter'
 import type { TaskFilter } from '../tasks/taskFilter'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
@@ -36,6 +37,9 @@ export default function PinBoard({
   status,
   onRetry,
 }: PinBoardProps) {
+  const { user } = useAuthStore()
+  // 닉네임이 비어 있으면 이메일 아이디를 대신 부른다.
+  const displayName = user?.nickname || user?.email?.split('@')[0]
   const [plannerView, setPlannerView] = useState<PlannerView>('daily')
   const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
   /*
@@ -54,8 +58,10 @@ export default function PinBoard({
       <section className={styles['folder-dashboard']} aria-labelledby="folder-dashboard-title">
         <header className={styles['dashboard-heading']}>
           <div>
-            <h2 id="folder-dashboard-title">안녕하세요</h2>
-            <p>현재 진행 중인 폴더 현황입니다.</p>
+            <h2 id="folder-dashboard-title">
+              {displayName ? `안녕하세요 ${displayName}님` : '안녕하세요'}
+            </h2>
+            <p>오늘은 무엇부터 시작해볼까요?</p>
           </div>
           <div className={styles['dashboard-actions']}>
             {/*<div className={styles['mode-toggle']} aria-label="핀보드 보기 모드">*/}

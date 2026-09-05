@@ -91,7 +91,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
           <header>
             <h2 id="continue-session-title">
               {isEmpty
-                ? variant === 'empty-session' ? '첫 다이브를 시작해볼까요' : '오늘은 어디에서 집중할까요'
+                ? variant === 'empty-session' ? '첫 다이브를 시작해볼까요' : '몰입을 시작해보세요'
                 : '이어서 하기'}
             </h2>
             <span>{session ? '진행 중인 세션' : '오늘의 집중'}</span>
@@ -125,7 +125,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
                 <p className={styles['invite-copy']}>
                   {variant === 'empty-session'
                     ? '아직 진행한 세션이 없습니다. 첫 다이브 세션을 시작해 보세요.'
-                    : '오늘 계획에서 할 일을 골라 다이브 세션을 시작해 보세요.'}
+                    : '오늘 일정에서 할 일을 골라 다이브 세션을 시작해 보세요.'}
                 </p>
                 <ModalTriggerButton
                     className={`${styles.action} ${styles['action-primary']}`}

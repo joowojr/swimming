@@ -369,7 +369,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
                   <button type="button" className={styles.loadMore} onClick={() => void loadSection(section)}>다시 시도</button>
                 </div>
               ) : section.tasks.length === 0 ? (
-                <p className={styles.empty}>이 영역에는 Task가 없습니다.</p>
+                <p className={styles.empty}>할 일을 추가해주세요.</p>
               ) : (
                 <ol className={styles.list}>
                   {section.tasks.map((task) => {

@@ -7,6 +7,8 @@ interface DeleteIconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElem
   label: string
   active?: boolean
   iconSize?: number
+  /** 취소처럼 삭제가 아닌 동작을 이 버튼으로 표현할 때 쓰레기통을 숨긴다. */
+  hideIcon?: boolean
   children?: ReactNode
 }
 
@@ -14,6 +16,7 @@ export default function DeleteIconButton({
   label,
   active = false,
   iconSize = 16,
+  hideIcon = false,
   children,
   className,
   ...buttonProps
@@ -26,7 +29,7 @@ export default function DeleteIconButton({
       aria-label={label}
       aria-pressed={active || undefined}
     >
-      <IconTrash size={iconSize} aria-hidden="true" />
+      {!hideIcon && <IconTrash size={iconSize} aria-hidden="true" />}
       {children}
     </button>
   )

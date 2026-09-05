@@ -207,7 +207,7 @@
 .delete-control button,
 .delete-control:hover button {
   color: var(--color-tertiary);
-  background: var(--color-secondary-bg);
+  background: var(--color-surface-container-lowest);
 }
 
 .delete-control button:focus-visible {

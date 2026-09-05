@@ -134,6 +134,7 @@
 
     /* Component dimensions and motion */
     --control-height: 3rem;
+    --top-bar-height: 3.5rem;
     --button-height: 2rem;
     --button-padding-inline: 0.625rem;
     --content-width: var(--layout-container-max);

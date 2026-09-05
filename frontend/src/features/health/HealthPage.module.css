@@ -1,0 +1,59 @@
+.eyebrow {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.health-overview {
+  max-width: var(--form-width);
+  padding: var(--space-8);
+}
+
+.health-overview h1 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-headline-lg-size);
+  line-height: var(--text-headline-lg-line-height);
+}
+
+.description {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-lowest);
+}
+
+.connection-status strong {
+  margin-left: auto;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.status-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+@media (max-width: 48rem) {
+  .health-overview {
+    padding: var(--space-6) var(--space-4);
+  }
+}

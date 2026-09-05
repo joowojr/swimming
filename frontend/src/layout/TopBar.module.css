@@ -5,7 +5,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 3.5rem;
+  min-height: var(--top-bar-height);
   padding: var(--space-3) var(--space-6);
   border-bottom: var(--border-width) solid var(--color-border-subtle);
   background: var(--color-surface-container-lowest);

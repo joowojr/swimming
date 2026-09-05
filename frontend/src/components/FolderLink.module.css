@@ -1,0 +1,11 @@
+/* 감싼 설명 줄의 색·크기를 그대로 따르고, 누를 수 있다는 건 hover에서만 드러낸다. */
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--color-primary);
+  text-decoration: underline;
+}

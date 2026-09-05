@@ -1,7 +1,7 @@
 import { IconChartBar, IconSparkles, IconTargetArrow } from '@tabler/icons-react'
-import loginArt from '../assets/login.svg'
-import GoogleLoginButton from '../features/auth/GoogleLoginButton'
-import { authActions } from '../store/authStore'
+import loginArt from '../../assets/login.svg'
+import GoogleLoginButton from './GoogleLoginButton'
+import { authActions } from '../../store/authStore'
 import styles from './LoginPage.module.css'
 
 const FEATURES = [

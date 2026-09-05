@@ -8,7 +8,7 @@ import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
 import type { Folder, FolderLoadStatus } from './folderTypes.ts'
-import TaskMatrix from './TaskMatrix'
+import TaskMatrix from '../tasks/TaskMatrix'
 import styles from './PinBoard.module.css'
 
 interface PinBoardProps {

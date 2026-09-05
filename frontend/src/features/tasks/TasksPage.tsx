@@ -230,8 +230,8 @@ export default function TasksPage({ folders }: TasksPageProps) {
             emptyDescription={activeFilterCount > 0
               ? '필터 조건을 바꾸면 다른 할 일을 볼 수 있어요.'
               : '할 일을 만들면 이곳에 표시됩니다.'}
-            getMeta={(task) => task.folderId === null ? undefined : (
-              <FolderLink folderId={task.folderId} name={folderNameById.get(task.folderId)} />
+            getMeta={(task) => task.folderId == null ? undefined : (
+                <FolderLink folderId={task.folderId} name={folderNameById.get(task.folderId)} />
             )}
             isDeleteMode={isDeleteMode}
             selectedTaskIds={selectedTaskIds}

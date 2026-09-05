@@ -2,9 +2,8 @@ import { Link } from 'react-router-dom'
 import styles from './FolderLink.module.css'
 
 interface FolderLinkProps {
-  folderId: number
-  /** 폴더 이름. 아직 못 받아온 경우를 대비해 없으면 '폴더'로 부른다. */
-  name?: string
+  folderId?: number;
+  name?: string;
 }
 
 /** 역할: task에 붙는 폴더 이름을 그 폴더 화면으로 가는 링크로 보여준다. */

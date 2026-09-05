@@ -1,6 +1,7 @@
 .login {
   display: grid;
-  justify-content: start;
+  /* 구글이 iframe 안에 자기 버튼을 그린다. 폭·모양은 못 바꾸므로 자리만 맞춘다. */
+  justify-content: center;
   gap: var(--space-3);
   margin-top: var(--space-8);
 }

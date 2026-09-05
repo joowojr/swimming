@@ -34,9 +34,7 @@ export default function SideNavigation({ folderCount }: { folderCount: number | 
         <ul className={styles['navigation-list']}>
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const badge = item.label === '폴더' && folderCount !== null
-              ? String(folderCount)
-              : item.badge
+            const badge = item.badge
 
             return (
               <li key={item.label}>

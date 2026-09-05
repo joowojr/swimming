@@ -1,20 +1,55 @@
 .login-page {
   display: flex;
+  /* 일러스트와 로그인 영역을 한 덩어리로 묶어 화면 정중앙에 둔다. */
   align-items: center;
   justify-content: center;
+  gap: var(--space-12);
   /* 상단바를 뺀 화면 전체를 차지해야 세로 중앙이 화면 중앙이 된다. */
   min-height: calc(100svh - var(--top-bar-height));
   width: 100%;
   margin: 0;
-  padding: var(--space-8);
+  padding: var(--space-12) var(--space-8);
+  background: var(--color-surface-container-lowest);
+}
+
+.hero {
+  display: flex;
+  /* 로그인 영역보다 좁게 두되 화면이 줄면 먼저 양보한다. */
+  flex: 0 1 26rem;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.hero-art {
+  display: block;
+  width: 100%;
+  /* svg가 width/height를 100%로 갖고 있어 비율을 명시해야 높이가 잡힌다. */
+  aspect-ratio: 3 / 2;
+  height: auto;
+}
+
+.hero-caption {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-align: center;
 }
 
 .login-panel {
-  width: min(100%, var(--form-width));
-  padding: var(--space-8);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-lowest);
+  /* 구글 버튼이 320px 고정폭이라 내용 폭을 그 언저리로 맞춰야 한 덩어리로 읽힌다. */
+  flex: 0 1 24rem;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-primary-container);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+  letter-spacing: -0.02em;
+  line-height: var(--text-body-sm-line-height);
 }
 
 .login-panel h1 {
@@ -27,19 +62,99 @@
   overflow-wrap: anywhere;
 }
 
+.lead {
+  margin: var(--space-3) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-md-size);
+  font-weight: var(--text-body-md-weight);
+  line-height: var(--text-body-md-line-height);
+}
+
+.note {
+  margin: var(--space-4) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-align: center;
+}
+
+.features {
+  margin: var(--space-10) 0 0;
+  padding: var(--space-8) 0 0;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.feature {
+  display: flex;
+  /* 두 줄짜리 항목이라 아이콘은 첫 줄에 맞춘다. */
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.feature-title {
+  display: block;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+  letter-spacing: -0.01em;
+  line-height: var(--text-body-sm-line-height);
+}
+
+.feature-body {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.feature-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+}
+
+.feature-icon[data-tone='fountain'] {
+  background: var(--color-tone-fountain-tint);
+  color: var(--color-tone-fountain);
+}
+
+.feature-icon[data-tone='indigo'] {
+  background: var(--color-tone-indigo-tint);
+  color: var(--color-tone-indigo);
+}
+
+.feature-icon[data-tone='bay-leaf'] {
+  background: var(--color-tone-bay-leaf-tint);
+  color: var(--color-tone-bay-leaf);
+}
+
+/* 좌우로 나란히 두기엔 좁으면 인증 영역만 남긴다. */
+@media (max-width: 60rem) {
+  .hero {
+    display: none;
+  }
+}
+
 @media (max-width: 48rem) {
   .login-page {
-    padding: var(--space-6) var(--space-4);
-  }
-
-  .login-panel {
-    padding: var(--space-6);
+    padding: var(--space-8) var(--space-6);
   }
 }
 
 @media (max-width: 25.875rem) {
-  .login-panel {
-    padding: var(--space-5) var(--space-4);
+  .login-page {
+    padding: var(--space-6) var(--space-4);
   }
 }
-

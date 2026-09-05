@@ -1,6 +1,6 @@
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useRef} from 'react'
 import {Link} from 'react-router-dom'
-import {IconSearch,} from '@tabler/icons-react'
+// import {IconSearch,} from '@tabler/icons-react'
 import styles from './TopBar.module.css'
 import logoUrl from '../assets/logo.svg'
 
@@ -11,7 +11,7 @@ interface TopBarProps {
 
 export default function TopBar({ userEmail, onLogin }: TopBarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  // const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     const focusGlobalSearch = (event: KeyboardEvent) => {

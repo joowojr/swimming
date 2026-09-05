@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { IconCheck, IconLoader2, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
@@ -29,7 +30,8 @@ interface TaskListProps {
   isDeleting?: boolean
   onTaskSelectionChange?: (taskId: number) => void
   onTaskUpdated?: () => void
-  getMetaText?: (task: TaskListItem) => string
+  /** 카드 위에 붙일 보조 정보. 무엇을 보여줄지·어디로 보낼지는 부르는 쪽이 정한다. */
+  getMeta?: (task: TaskListItem) => ReactNode
 }
 
 // function getTaskMeta(status: TaskStatus, sessionCount: number) {
@@ -50,7 +52,7 @@ export default function TaskList({
   isDeleting = false,
   onTaskSelectionChange,
   onTaskUpdated,
-  getMetaText,
+  getMeta,
 }: TaskListProps) {
   const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
@@ -155,7 +157,7 @@ export default function TaskList({
                 ariaLabel={`${task.title} ${task.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
                 disabled={isPending || isDeleteMode}
                 onToggle={() => void changeTaskStatus(task, task.status === 'DONE' ? 'TODO' : 'DONE')}
-                description={task.folderId != null && getMetaText ? getMetaText(task) : undefined}
+                description={getMeta?.(task)}
                         title={(
                           <div className={styles.content}>
                             <h3>

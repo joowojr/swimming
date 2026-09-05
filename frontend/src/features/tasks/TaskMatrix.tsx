@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import AddItemButton from '../../components/AddItemButton'
 import ChecklistCard from '../../components/ChecklistCard'
+import FolderLink from '../../components/FolderLink'
 import InlineEditableText from '../../components/InlineEditableText'
 import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
@@ -432,7 +433,12 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
                               )}
                             </div>
                           )}
-                          description={task.folderId === null ? undefined : folderNameById.get(task.folderId) ?? '폴더'}
+                          description={task.folderId === null ? undefined : (
+                            <FolderLink
+                              folderId={task.folderId}
+                              name={folderNameById.get(task.folderId)}
+                            />
+                          )}
                           actions={(
                             <>
                               <select

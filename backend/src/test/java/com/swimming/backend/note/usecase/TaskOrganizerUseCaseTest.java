@@ -210,7 +210,10 @@ class TaskOrganizerUseCaseTest {
                 new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                         41L,
                         10L,
-                        "장소 조회 캐시 테스트"
+                        "장소 조회 캐시 테스트",
+                        TaskStatus.TODO,
+                        false,
+                        false
                 )
         );
         assertThat(note.getContent()).isEqualTo("장소조회 캐시 테스트 아직 못함\n운동화 주문");
@@ -254,7 +257,10 @@ class TaskOrganizerUseCaseTest {
                 new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                         42L,
                         null,
-                        "운동화 주문"
+                        "운동화 주문",
+                        TaskStatus.TODO,
+                        false,
+                        false
                 )
         );
         verify(folderService, never()).validateOwnership(any(), any());

@@ -22,16 +22,10 @@ import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
-
-function formatLocalDate(date: Date) {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-}
+import {formatLocalDate, parseLocalDate} from '../../lib/date'
 
 function addDays(value: string, amount: number) {
-    const date = new Date(`${value}T00:00:00`)
+    const date = parseLocalDate(value)
     date.setDate(date.getDate() + amount)
     return formatLocalDate(date)
 }

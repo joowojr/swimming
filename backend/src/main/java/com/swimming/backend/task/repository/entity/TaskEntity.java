@@ -82,6 +82,10 @@ public class TaskEntity extends BaseTimeEntity {
         return new TaskEntity(task, user, folder, sourceNote);
     }
 
+    public void updateFolder(FolderEntity folder) {
+        this.folder = folder;
+    }
+
     public void updateTitle(String title) {
         this.title = title;
     }

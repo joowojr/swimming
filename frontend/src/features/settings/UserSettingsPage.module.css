@@ -29,15 +29,18 @@
 
 .eyebrow {
     margin: 0 0 var(--space-1);
-    color: var(--color-text-muted);
-    font-size: var(--text-label-caps-size);
+    color: var(--color-on-tertiary-container);
+    font-size: var(--text-body-sm-size);
+    font-weight: var(--text-label-strong-weight);
+    letter-spacing: -0.02em;
+    line-height: var(--text-body-sm-line-height);
 }
 
 .header h1 {
     margin: 0;
     font-size: var(--text-headline-lg-size);
     font-weight: var(--text-headline-lg-weight);
-    letter-spacing: var(--text-headline-lg-letter-spacing);
+    letter-spacing: -0.02em;
 }
 
 .intro,
@@ -45,7 +48,7 @@
 .helper,
 .disabled-help,
 .feedback {
-    color: var(--color-text-muted);
+    color: var(--color-mute);
     font-size: var(--text-body-sm-size);
     line-height: var(--text-body-sm-line-height);
 }
@@ -57,8 +60,9 @@
 .card {
     margin-bottom: var(--space-6);
     padding: var(--space-8);
+    border: var(--border-width) solid var(--color-border-subtle);
     border-radius: var(--radius-panel);
-    background: var(--color-surface-card);
+    background: var(--color-surface-soft);
 }
 
 .section-heading h2 {
@@ -78,7 +82,7 @@
 }
 
 .heading-with-icon svg {
-    color: var(--color-text-muted);
+    color: var(--color-mute);
 }
 
 .divider {
@@ -99,7 +103,7 @@
 }
 
 .field label {
-    color: var(--color-text-secondary);
+    color: var(--color-mute);
     font-size: var(--text-body-sm-size);
 }
 
@@ -251,13 +255,20 @@
 }
 
 .integration-copy span:last-child {
-    color: var(--color-text-muted);
+    color: var(--color-mute);
     font-size: var(--text-body-sm-size);
 }
 
 .google-mark {
     display: inline-flex;
-    color: var(--color-text-muted);
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-10);
+    height: var(--space-10);
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: var(--color-surface-container-high);
 }
 
 .logout-section {
@@ -272,7 +283,7 @@
 }
 
 .secondary-button {
-    color: var(--color-text-secondary);
+    color: var(--color-primary);
     border-color: var(--color-border-subtle);
     background: transparent;
 }

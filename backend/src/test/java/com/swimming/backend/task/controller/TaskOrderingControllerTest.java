@@ -56,7 +56,7 @@ class TaskOrderingControllerTest {
     @Test
     @DisplayName("Matrix 영역의 첫 페이지와 다음 커서를 반환한다")
     void returnsMatrixPage() throws Exception {
-        TaskMatrixPageQuery query = TaskMatrixPageQuery.from("urgent", 2, null);
+        TaskMatrixPageQuery query = TaskMatrixPageQuery.from("urgent", 2, null, null);
         TaskMatrixItemResponse item = new TaskMatrixItemResponse(
                 2L,
                 10L,

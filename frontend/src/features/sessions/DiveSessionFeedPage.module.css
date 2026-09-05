@@ -321,3 +321,63 @@
         transform: none;
     }
 }
+
+/* 개수 위에 올리면 그 세션의 할 일 제목을 모두 보여준다. */
+.task-count-wrap {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.task-tooltip {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    right: 0;
+    z-index: var(--z-modal);
+    display: none;
+    width: max-content;
+    max-width: 16rem;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
+    box-shadow: var(--shadow-floating);
+    font-size: var(--text-body-sm-size);
+    text-align: left;
+}
+
+.task-count-wrap:hover .task-tooltip,
+.card:focus-visible .task-tooltip {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.task-tooltip-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+/* 체크리스트처럼 읽히도록 빈 체크박스 모양의 불릿을 둔다. */
+.task-tooltip-item::before {
+    content: '';
+    flex: 0 0 auto;
+    align-self: center;
+    width: 0.625rem;
+    height: 0.625rem;
+    border: var(--border-width) solid var(--color-mute);
+    border-radius: var(--radius-sm);
+}
+
+.task-tooltip-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-tooltip-folder {
+    flex: 0 0 auto;
+    color: var(--color-mute);
+    font-size: var(--text-label-caps-size);
+}

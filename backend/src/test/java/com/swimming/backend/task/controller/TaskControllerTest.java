@@ -8,7 +8,10 @@ import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.TaskListMode;
+import com.swimming.backend.task.dto.in.TaskSort;
+import com.swimming.backend.plan.dto.DailyPlanResponse;
+import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
@@ -26,6 +29,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -96,60 +100,42 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("전체 모드로 사용자의 모든 Task를 조회한다")
+    @DisplayName("정렬 없이 조회하면 최신순으로 반환한다")
     void returnsAllOwnedTasks() throws Exception {
-        when(taskUseCase.getList(1L, TaskListMode.ALL)).thenReturn(List.of(
+        when(taskUseCase.getList(1L, TaskSort.DESC)).thenReturn(List.of(
                 response(2L, "최근 Task", TaskStatus.DOING, 1),
                 response(1L, "이전 Task", TaskStatus.TODO, 0)
         ));
 
-        mockMvc.perform(get("/api/tasks").queryParam("mode", "all"))
+        mockMvc.perform(get("/api/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(2))
                 .andExpect(jsonPath("$[1].id").value(1));
 
-        verify(taskUseCase).getList(1L, TaskListMode.ALL);
+        verify(taskUseCase).getList(1L, TaskSort.DESC);
     }
 
     @Test
-    @DisplayName("미분류 모드로 폴더 없는 Task를 조회한다")
-    void returnsUnclassifiedTasks() throws Exception {
-        TaskResponse unclassified = new TaskResponse(
-                2L,
-                null,
-                "미분류 Task",
-                TaskStatus.TODO,
-                0,
-                Instant.parse("2026-08-20T10:00:00Z"),
-                Instant.parse("2026-08-20T10:00:00Z")
-        );
-        when(taskUseCase.getList(1L, TaskListMode.UNCLASSIFIED))
-                .thenReturn(List.of(unclassified));
+    @DisplayName("sort=asc면 오래된순으로 조회한다")
+    void returnsTasksInAscendingOrder() throws Exception {
+        when(taskUseCase.getList(1L, TaskSort.ASC)).thenReturn(List.of(
+                response(1L, "이전 Task", TaskStatus.TODO, 0)
+        ));
 
-        mockMvc.perform(get("/api/tasks").queryParam("mode", "unclassified"))
+        mockMvc.perform(get("/api/tasks").queryParam("sort", "asc"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(2))
-                .andExpect(jsonPath("$[0].folderId").doesNotExist());
+                .andExpect(jsonPath("$[0].id").value(1));
 
-        verify(taskUseCase).getList(1L, TaskListMode.UNCLASSIFIED);
+        verify(taskUseCase).getList(1L, TaskSort.ASC);
     }
 
     @Test
-    @DisplayName("지원하지 않는 Task 목록 모드는 ProblemDetail로 거부한다")
-    void rejectsUnsupportedTaskListMode() throws Exception {
-        mockMvc.perform(get("/api/tasks").queryParam("mode", "folder"))
+    @DisplayName("지원하지 않는 정렬 조건은 ProblemDetail로 거부한다")
+    void rejectsUnsupportedTaskSort() throws Exception {
+        mockMvc.perform(get("/api/tasks").queryParam("sort", "newest"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.code").value("INVALID_TASK_LIST_MODE"));
-    }
-
-    @Test
-    @DisplayName("Task 목록 모드가 없으면 ProblemDetail로 거부한다")
-    void rejectsMissingTaskListMode() throws Exception {
-        mockMvc.perform(get("/api/tasks"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.code").value("INVALID_TASK_LIST_MODE"));
+                .andExpect(jsonPath("$.code").value("INVALID_TASK_SORT"));
     }
 
     @Test
@@ -184,6 +170,39 @@ class TaskControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("API 구현"))
                 .andExpect(jsonPath("$.status").value("DOING"));
+    }
+
+    @Test
+    @DisplayName("수정하기는 Task와 바뀐 날짜의 계획을 함께 반환한다")
+    void updatesTaskInfo() throws Exception {
+        LocalDate date = LocalDate.of(2026, 9, 5);
+        UpdateTaskInfoRequest request = new UpdateTaskInfoRequest(
+                "API 구현", 10L, true, false, new UpdateTaskInfoRequest.PlanMove(7L, date));
+        when(taskUseCase.updateInfo(1L, 1L, request)).thenReturn(new UpdateTaskInfoResponse(
+                response(1L, "API 구현", TaskStatus.TODO, 0),
+                List.of(new DailyPlanResponse(date, List.of()))
+        ));
+
+        mockMvc.perform(patch("/api/tasks/1/info")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"API 구현","folderId":10,"priority":true,"urgent":false,"plan":{"itemId":7,"date":"2026-09-05"}}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.title").value("API 구현"))
+                .andExpect(jsonPath("$.plans[0].date").value("2026-09-05"));
+    }
+
+    @Test
+    @DisplayName("수정하기에 중요 여부가 없으면 필드 오류를 반환한다")
+    void returnsFieldErrorWhenPriorityMissing() throws Exception {
+        mockMvc.perform(patch("/api/tasks/1/info")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"API 구현","folderId":null,"urgent":false}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     @Test

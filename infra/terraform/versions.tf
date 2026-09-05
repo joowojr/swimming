@@ -15,7 +15,7 @@ terraform {
   # full public access block, a TLS-only policy, and a 90-day expiry for
   # noncurrent versions.
   backend "s3" {
-    bucket       = "swimming-prod-tfstate-223910471789"
+    bucket       = "swimming-prod-tfstate"
     key          = "prod/terraform.tfstate"
     region       = "ap-northeast-2"
     encrypt      = true

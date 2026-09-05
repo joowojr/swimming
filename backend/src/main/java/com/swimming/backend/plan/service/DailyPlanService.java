@@ -57,6 +57,44 @@ public class DailyPlanService {
         dailyPlanItemRepository.saveAll(items);
     }
 
+    /**
+     * 아직 계획에 없는 Task를 그 날짜의 맨 뒤에 담는다. 이미 있으면 아무것도 하지 않는다.
+     * 계획 항목 id를 모르는 화면(폴더 목록)에서 날짜를 고를 때 쓴다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void addTaskIfAbsent(Long userId, LocalDate planDate, Long taskId) {
+        if (containsAnyTasks(userId, planDate, List.of(taskId))) {
+            return;
+        }
+        save(userId, planDate, DailyPlanItem.restore(null, taskId, getItems(userId, planDate).size(), null, null));
+    }
+
+    /**
+     * 계획 항목을 다른 날짜로 옮기고 옮기기 전 날짜를 돌려준다.
+     * 대상 날짜의 맨 뒤에 붙인다. 같은 날짜에 같은 Task를 두 번 담을 수 없다는 규칙은 여기에도 적용된다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public LocalDate moveItemDate(Long userId, Long itemId, Long taskId, LocalDate toDate) {
+        DailyPlanItemEntity item = dailyPlanItemRepository
+                .findByIdAndUserId(itemId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND));
+        if (!item.toDomain().getTaskId().equals(taskId)) {
+            throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM);
+        }
+
+        LocalDate fromDate = item.getPlanDate();
+        if (fromDate.equals(toDate)) {
+            return fromDate;
+        }
+        if (containsAnyTasks(userId, toDate, List.of(taskId))) {
+            throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_TASKS);
+        }
+
+        item.updateDate(toDate, getItems(userId, toDate).size());
+        dailyPlanItemRepository.flush();
+        return fromDate;
+    }
+
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, LocalDate planDate, Long itemId) {
         DailyPlanItemEntity item = dailyPlanItemRepository

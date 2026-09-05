@@ -5,7 +5,9 @@ import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
-import com.swimming.backend.task.dto.in.TaskListMode;
+import com.swimming.backend.task.dto.in.TaskSort;
+import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
+import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
@@ -75,9 +77,9 @@ public class TaskController {
     @GetMapping("/tasks")
     public ResponseEntity<List<TaskResponse>> getList(
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestParam(required = false) String mode
+            @RequestParam(required = false) String sort
     ) {
-        return ResponseEntity.ok(taskUseCase.getList(authUser.id(), TaskListMode.fromQuery(mode)));
+        return ResponseEntity.ok(taskUseCase.getList(authUser.id(), TaskSort.fromQuery(sort)));
     }
 
     @PatchMapping("/tasks/{taskId}/title")
@@ -98,6 +100,17 @@ public class TaskController {
         return ResponseEntity.ok(taskUseCase.updateStatus(authUser.id(), taskId, request));
     }
 
+    @PatchMapping("/tasks/{taskId}/info")
+    public ResponseEntity<UpdateTaskInfoResponse> updateInfo(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long taskId,
+            @Valid @RequestBody UpdateTaskInfoRequest request
+    ) {
+        return ResponseEntity.ok(taskUseCase.updateInfo(authUser.id(), taskId, request));
+    }
+
+    /** @deprecated PATCH /tasks/{taskId}/info 의 priority를 쓴다. */
+    @Deprecated
     @PatchMapping("/tasks/{taskId}/priority")
     public ResponseEntity<TaskResponse> updatePriority(
             @AuthenticationPrincipal AuthUser authUser,
@@ -107,6 +120,8 @@ public class TaskController {
         return ResponseEntity.ok(taskUseCase.updatePriority(authUser.id(), taskId, request));
     }
 
+    /** @deprecated PATCH /tasks/{taskId}/info 의 urgent를 쓴다. */
+    @Deprecated
     @PatchMapping("/tasks/{taskId}/urgent")
     public ResponseEntity<TaskResponse> updateUrgent(
             @AuthenticationPrincipal AuthUser authUser,

@@ -134,6 +134,7 @@
 
     /* Component dimensions and motion */
     --control-height: 3rem;
+    --top-bar-height: 3.5rem;
     --button-height: 2rem;
     --button-padding-inline: 0.625rem;
     --content-width: var(--layout-container-max);
@@ -145,6 +146,7 @@
     --shadow-floating: oklab(0 0 0 / 0.08) 0px 0px 0px 1px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px,
     rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
     --shadow-control: oklch(0 0 0 / 0.25) 0px 0px 0px 0.5px inset;
+    --shadow-card: rgba(0, 0, 0, 0.06) 0px 1px 2px 0px, rgba(0, 0, 0, 0.04) 0px 2px 8px -2px;
     --overlay-scrim: rgb(28 28 28 / 40%);
     --overlay-blur: 4px;
     --progress-height: 0.25rem;

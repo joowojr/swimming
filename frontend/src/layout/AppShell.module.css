@@ -6,7 +6,7 @@
 .app-shell-body {
   display: grid;
   grid-template-columns: clamp(10rem, 14vw, 15rem) minmax(0, 1fr);
-  min-height: calc(100svh - 3.5rem);
+  min-height: calc(100svh - var(--top-bar-height));
 }
 
 .app-content {

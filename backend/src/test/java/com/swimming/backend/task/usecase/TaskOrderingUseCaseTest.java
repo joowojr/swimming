@@ -39,6 +39,23 @@ class TaskOrderingUseCaseTest {
     }
 
     @Test
+    @DisplayName("상태 파라미터를 주면 조회 조건으로 함께 넘긴다")
+    void passesStatusFilterToMatrixQuery() {
+        when(taskService.getMatrixPage(
+                1L,
+                TaskMatrixSection.URGENT,
+                null,
+                null,
+                TaskStatus.DOING,
+                21
+        )).thenReturn(List.of());
+
+        taskOrderingUseCase.getMatrixPage(1L, TaskMatrixPageQuery.from("urgent", 20, null, "doing"));
+
+        verify(taskService).getMatrixPage(1L, TaskMatrixSection.URGENT, null, null, TaskStatus.DOING, 21);
+    }
+
+    @Test
     @DisplayName("Matrix 첫 페이지는 size보다 하나 더 조회해 다음 커서를 계산한다")
     void returnsFirstMatrixPageWithNextCursor() {
         Task first = matrixTask(3L, "첫째", false, true, 3072L);
@@ -49,12 +66,13 @@ class TaskOrderingUseCaseTest {
                 TaskMatrixSection.URGENT,
                 null,
                 null,
+                null,
                 3
         )).thenReturn(List.of(first, second, lookAhead));
 
         TaskMatrixPageResponse response = taskOrderingUseCase.getMatrixPage(
                 1L,
-                TaskMatrixPageQuery.from("urgent", 2, null)
+                TaskMatrixPageQuery.from("urgent", 2, null, null)
         );
 
         assertThat(response.section()).isEqualTo(TaskMatrixSection.URGENT);
@@ -78,12 +96,13 @@ class TaskOrderingUseCaseTest {
                 TaskMatrixSection.STANDARD,
                 2048L,
                 2L,
+                null,
                 21
         )).thenReturn(List.of(matrixTask(1L, "마지막", false, false, 1024L)));
 
         TaskMatrixPageResponse response = taskOrderingUseCase.getMatrixPage(
                 1L,
-                TaskMatrixPageQuery.from("standard", 20, cursor)
+                TaskMatrixPageQuery.from("standard", 20, cursor, null)
         );
 
         assertThat(response.items()).singleElement().satisfies(item ->
@@ -95,6 +114,7 @@ class TaskOrderingUseCaseTest {
                 TaskMatrixSection.STANDARD,
                 2048L,
                 2L,
+                null,
                 21
         );
     }

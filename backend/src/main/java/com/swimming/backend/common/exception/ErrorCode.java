@@ -20,7 +20,8 @@ public enum ErrorCode {
     FOLDER_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 폴더 태그가 이미 있습니다"),
 
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task를 찾을 수 없습니다"),
-    INVALID_TASK_LIST_MODE(HttpStatus.BAD_REQUEST, "Task 목록 조회 모드가 올바르지 않습니다"),
+    INVALID_TASK_STATUS(HttpStatus.BAD_REQUEST, "Task 상태가 올바르지 않습니다"),
+    INVALID_TASK_SORT(HttpStatus.BAD_REQUEST, "Task 정렬 조건이 올바르지 않습니다"),
     INVALID_MATRIX_SECTION(HttpStatus.BAD_REQUEST, "Matrix 영역이 올바르지 않습니다"),
     INVALID_MATRIX_CURSOR(HttpStatus.BAD_REQUEST, "Matrix 조회 커서가 올바르지 않습니다"),
     INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기가 올바르지 않습니다"),

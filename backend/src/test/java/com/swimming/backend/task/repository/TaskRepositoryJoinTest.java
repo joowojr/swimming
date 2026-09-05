@@ -145,12 +145,14 @@ class TaskRepositoryJoinTest {
                 user.getId(),
                 false,
                 true,
+                null,
                 PageRequest.of(0, 2)
         );
         List<TaskEntity> nextPage = taskRepository.findMatrixNextPage(
                 user.getId(),
                 false,
                 true,
+                null,
                 second.getMatrixRank(),
                 second.getId(),
                 PageRequest.of(0, 2)

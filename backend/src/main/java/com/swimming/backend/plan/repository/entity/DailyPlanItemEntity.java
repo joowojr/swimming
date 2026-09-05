@@ -57,6 +57,11 @@ public class DailyPlanItemEntity extends BaseTimeEntity {
         this.orderIdx = item.getOrderIdx();
     }
 
+    public void updateDate(LocalDate planDate, int orderIdx) {
+        this.planDate = planDate;
+        this.orderIdx = orderIdx;
+    }
+
     public void changeOrder(int orderIdx) {
         this.orderIdx = orderIdx;
     }

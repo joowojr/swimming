@@ -1,6 +1,6 @@
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useRef} from 'react'
 import {Link} from 'react-router-dom'
-import {IconSearch,} from '@tabler/icons-react'
+// import {IconSearch,} from '@tabler/icons-react'
 import styles from './TopBar.module.css'
 import logoUrl from '../assets/logo.svg'
 
@@ -11,7 +11,7 @@ interface TopBarProps {
 
 export default function TopBar({ userEmail, onLogin }: TopBarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  // const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     const focusGlobalSearch = (event: KeyboardEvent) => {
@@ -39,34 +39,23 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
       </div>
 
       <div className={styles['top-bar-tools']}>
-        <label className={styles['global-search']}>
-          <span className="sr-only">전체 검색</span>
-          <IconSearch className={styles['global-search-icon']} size={16} aria-hidden="true" />
-          <input
-            ref={searchInputRef}
-            type="search"
-            value={searchQuery}
-            placeholder="검색어를 입력하세요"
-            aria-label="전체 검색"
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-          <span className={styles['search-shortcut']} aria-hidden="true">
-            <kbd>⌘</kbd>
-            <kbd>K</kbd>
-          </span>
-        </label>
+        {/*<label className={styles['global-search']}>*/}
+        {/*  <span className="sr-only">전체 검색</span>*/}
+        {/*  <IconSearch className={styles['global-search-icon']} size={16} aria-hidden="true" />*/}
+        {/*  <input*/}
+        {/*    ref={searchInputRef}*/}
+        {/*    type="search"*/}
+        {/*    value={searchQuery}*/}
+        {/*    placeholder="검색어를 입력하세요"*/}
+        {/*    aria-label="전체 검색"*/}
+        {/*    onChange={(event) => setSearchQuery(event.target.value)}*/}
+        {/*  />*/}
+        {/*  <span className={styles['search-shortcut']} aria-hidden="true">*/}
+        {/*    <kbd>⌘</kbd>*/}
+        {/*    <kbd>K</kbd>*/}
+        {/*  </span>*/}
+        {/*</label>*/}
 
-        <div className={styles['global-actions']} aria-label="전역 도구">
-          {/*<button type="button" aria-label="알림 — 준비 중" title="알림 · 준비 중" disabled>*/}
-          {/*  <IconBell size={18} aria-hidden="true" />*/}
-          {/*</button>*/}
-          {/*<button type="button" aria-label="도움말 — 준비 중" title="도움말 · 준비 중" disabled>*/}
-          {/*  <IconHelpCircle size={18} aria-hidden="true" />*/}
-          {/*</button>*/}
-          {/*<button type="button" aria-label="설정 — 준비 중" title="설정 · 준비 중" disabled>*/}
-          {/*  <IconSettings size={18} aria-hidden="true" />*/}
-          {/*</button>*/}
-        </div>
 
         <div className={styles['account-menu']}>
           {userEmail ? (

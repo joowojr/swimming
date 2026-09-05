@@ -108,19 +108,6 @@
   background: var(--color-primary-soft);
 }
 
-.navigation-badge {
-  min-width: 1.75rem;
-  margin-left: auto;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
-  font-family: var(--font-family-mono);
-  font-size: var(--text-label-caps-size);
-  line-height: 1.25rem;
-  text-align: center;
-  background: var(--color-surface-highest);
-}
-
 .navigation-item {
   display: flex;
   align-items: center;

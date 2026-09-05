@@ -44,7 +44,7 @@ public class DailyPlanUseCase {
         for (LocalDate date = fromDate; !date.isAfter(toDate); date = date.plusDays(1)) {
             List<DailyPlanItemResponse> items = rowsByDate.getOrDefault(date, List.of())
                     .stream()
-                    .map(this::toItemResponse)
+                    .map(DailyPlanItemResponse::from)
                     .toList();
             responses.add(new DailyPlanResponse(date, items));
         }
@@ -115,23 +115,8 @@ public class DailyPlanUseCase {
     private DailyPlanResponse loadPlanResponse(Long userId, LocalDate date) {
         List<DailyPlanItemResponse> items = dailyPlanService.getRows(userId, date, date)
                 .stream()
-                .map(this::toItemResponse)
+                .map(DailyPlanItemResponse::from)
                 .toList();
         return new DailyPlanResponse(date, items);
-    }
-
-    private DailyPlanItemResponse toItemResponse(DailyPlanItemQueryRow row) {
-        return new DailyPlanItemResponse(
-                row.id(),
-                row.taskId(),
-                (row.folderId() == null || row.folderIsDeleted())? DailyPlanItemType.AD_HOC : DailyPlanItemType.TASK,
-                row.folderId(),
-                row.folderName(),
-                row.title(),
-                row.status(),
-                row.priority(),
-                row.urgent(),
-                row.orderIdx()
-        );
     }
 }

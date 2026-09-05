@@ -19,7 +19,7 @@ import {deleteTasks} from '../tasks/taskApi'
 import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
 import {useFolderStore} from '../../store/folderStore.ts'
 import type {FolderDetail as FolderDetailData, FolderStatus} from './folderTypes.ts'
-import TaskList from './TaskList'
+import TaskList from '../tasks/TaskList'
 import NoteCard from '../note/NoteCard'
 import styles from './FolderDetail.module.css'
 

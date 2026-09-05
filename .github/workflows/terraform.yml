@@ -52,13 +52,26 @@ jobs:
           set -o pipefail
           terraform plan -input=false -no-color -lock-timeout=5m 2>&1 | tee plan.txt
 
+      # The pull request comment is readable by anyone who can read the
+      # repository, so it must not carry an inventory of the account. Refresh
+      # noise says nothing about the diff, and the account id is masked because
+      # comments survive both a history rewrite and a switch to public.
+      - name: Redact the plan for the comment
+        if: always() && steps.plan.outcome != 'skipped'
+        run: |
+          # grep exits 1 when it filters everything out, which must not fail the job.
+          if [ -f plan.txt ]; then
+            grep -vE 'Refreshing state\.\.\.|: Reading\.\.\.|: Read complete after' plan.txt \
+              | sed -E 's/[0-9]{12}/<account-id>/g' > plan-comment.txt || true
+          fi
+
       - name: Comment plan on the pull request
         if: always() && steps.plan.outcome != 'skipped'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const path = 'infra/terraform/plan.txt';
+            const path = 'infra/terraform/plan-comment.txt';
             let body;
             if (fs.existsSync(path)) {
               let plan = fs.readFileSync(path, 'utf8');

@@ -6,6 +6,7 @@ import com.swimming.backend.note.dto.in.TaskOrganizeResponse;
 import com.swimming.backend.note.dto.in.TaskOrganizeConfirmRequest;
 import com.swimming.backend.note.dto.in.TaskOrganizeConfirmResponse;
 import com.swimming.backend.note.usecase.TaskOrganizerUseCase;
+import com.swimming.backend.task.domain.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,10 @@ class TaskOrganizerControllerTest {
                         List.of(new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                                 41L,
                                 10L,
-                                "정리된 Task"
+                                "정리된 Task",
+                                TaskStatus.TODO,
+                                false,
+                                false
                         ))
                 )
         );
@@ -123,7 +127,10 @@ class TaskOrganizerControllerTest {
                         List.of(new TaskOrganizeConfirmResponse.CreatedTaskResponse(
                                 42L,
                                 null,
-                                "운동화 주문"
+                                "운동화 주문",
+                                TaskStatus.TODO,
+                                false,
+                                false
                         ))
                 )
         );

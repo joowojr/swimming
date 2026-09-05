@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
-import { IconCheck, IconFolder, IconLoader2, IconTrash } from '@tabler/icons-react'
+import { IconCheck, IconLoader2, IconTrash } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ChecklistCard from '../../components/ChecklistCard'
@@ -8,16 +9,16 @@ import InlineEditableText from '../../components/InlineEditableText'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
-import { updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent } from '../tasks/taskApi'
-import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
-import type { TaskResponse, TaskStatus, TaskSummaryResponse } from '../tasks/taskTypes'
+import TaskInfoModal from './TaskInfoModal'
+import { updateTaskStatus, updateTaskTitle } from './taskApi'
+import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from './taskLabels'
+import type { TaskResponse, TaskStatus, TaskSummaryResponse } from './taskTypes'
+import { useTaskStore } from '../../store/taskStore'
 import styles from './TaskList.module.css'
 
 interface TaskListItem extends TaskSummaryResponse {
   folderId?: number | null
 }
-
-type TaskFlagOverride = Pick<TaskResponse, 'status' | 'priority' | 'urgent'>
 
 interface TaskListProps {
   tasks: TaskListItem[]
@@ -29,11 +30,8 @@ interface TaskListProps {
   isDeleting?: boolean
   onTaskSelectionChange?: (taskId: number) => void
   onTaskUpdated?: () => void
-  getMetaText?: (task: TaskListItem) => string
-}
-
-function isApiError(error: unknown): error is ApiError {
-  return typeof error === 'object' && error !== null
+  /** 카드 위에 붙일 보조 정보. 무엇을 보여줄지·어디로 보낼지는 부르는 쪽이 정한다. */
+  getMeta?: (task: TaskListItem) => ReactNode
 }
 
 // function getTaskMeta(status: TaskStatus, sessionCount: number) {
@@ -54,28 +52,24 @@ export default function TaskList({
   isDeleting = false,
   onTaskSelectionChange,
   onTaskUpdated,
-  getMetaText,
+  getMeta,
 }: TaskListProps) {
   const navigate = useNavigate()
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
-  const [taskFlagOverrides, setTaskFlagOverrides] = useState<Record<number, TaskFlagOverride>>({})
+  const [moveTarget, setMoveTarget] = useState<TaskListItem | null>(null)
+  const tasksById = useTaskStore((state) => state.byId)
+  const upsertTasks = useTaskStore((state) => state.upsert)
 
+  // 목록은 부모가 내려주지만 최신 값은 taskStore가 갖는다. 다른 화면에서 고친 것도 여기 반영된다.
   const applyTaskFlagOverride = (task: TaskListItem): TaskListItem => ({
     ...task,
-    ...taskFlagOverrides[task.id],
+    ...tasksById[task.id],
   })
 
   const updateTaskFlags = (updatedTask: TaskResponse) => {
-    setTaskFlagOverrides((current) => ({
-      ...current,
-      [updatedTask.id]: {
-        status: updatedTask.status,
-        priority: updatedTask.priority,
-        urgent: updatedTask.urgent,
-      },
-    }))
+    upsertTasks([updatedTask])
   }
 
   const changeTaskStatus = async (task: TaskSummaryResponse, status: TaskStatus) => {
@@ -126,36 +120,6 @@ export default function TaskList({
     }
   }
 
-  const changeTaskPriority = async (task: TaskListItem) => {
-    setPendingTaskId(task.id)
-    setUpdateError(null)
-    try {
-      updateTaskFlags(await updateTaskPriority(task.id, { priority: !task.priority }))
-    } catch (error: unknown) {
-      const message = isApiError(error) && error.message
-        ? error.message
-        : '중요 표시를 변경하지 못했습니다.'
-      setUpdateError({ taskId: task.id, message })
-    } finally {
-      setPendingTaskId(null)
-    }
-  }
-
-  const changeTaskUrgent = async (task: TaskListItem) => {
-    setPendingTaskId(task.id)
-    setUpdateError(null)
-    try {
-      updateTaskFlags(await updateTaskUrgent(task.id, { urgent: !task.urgent }))
-    } catch (error: unknown) {
-      const message = isApiError(error) && error.message
-        ? error.message
-        : '즉시 표시를 변경하지 못했습니다.'
-      setUpdateError({ taskId: task.id, message })
-    } finally {
-      setPendingTaskId(null)
-    }
-  }
-
   const getTaskTitleError = (error: unknown) => {
     const apiError = typeof error === 'object' && error !== null
       ? error as ApiError
@@ -193,7 +157,7 @@ export default function TaskList({
                 ariaLabel={`${task.title} ${task.status === 'DONE' ? '완료 취소' : '완료 처리'}`}
                 disabled={isPending || isDeleteMode}
                 onToggle={() => void changeTaskStatus(task, task.status === 'DONE' ? 'TODO' : 'DONE')}
-                description={task.folderId != null && getMetaText ? getMetaText(task) : undefined}
+                description={getMeta?.(task)}
                         title={(
                           <div className={styles.content}>
                             <h3>
@@ -255,22 +219,10 @@ export default function TaskList({
                     ) : (
                       <TaskMenu inline label={`${task.title} 카드 메뉴`}>
                       <TaskFlagMenuItems
-                          priority={task.priority}
-                          urgent={task.urgent}
                           disabled={isPending}
-                          onTogglePriority={() => void changeTaskPriority(task)}
-                          onToggleUrgent={() => void changeTaskUrgent(task)}
                           session={{ onStart: () => void startSession(task), isPending }}
+                          onMove={() => setMoveTarget(task)}
                         />
-                        <button
-                          type="button"
-                          disabled
-                          title="폴더 이동 · 준비 중"
-                          aria-label={`${task.title} 다른 폴더로 이동 · 준비 중`}
-                        >
-                          <IconFolder size={14} aria-hidden="true"/>
-                          이동하기
-                        </button>
                       </TaskMenu>
                     )}
                   </>
@@ -281,6 +233,17 @@ export default function TaskList({
         )
       })}
       </ol>
+      {moveTarget && (
+        <TaskInfoModal
+          taskId={moveTarget.id}
+          taskTitle={moveTarget.title}
+          currentFolderId={moveTarget.folderId ?? null}
+          currentPriority={moveTarget.priority}
+          currentUrgent={moveTarget.urgent}
+          plan={{ date: '' }}
+          onClose={() => setMoveTarget(null)}
+        />
+      )}
       {sessionDraft && (
         <CreateSessionModal
           todayTasks={sessionDraft.todayTasks}

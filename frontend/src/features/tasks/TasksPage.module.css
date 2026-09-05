@@ -1,0 +1,144 @@
+.page {
+  min-height: calc(100svh - var(--top-bar-height));
+  padding: var(--space-8) var(--layout-page-padding-inline);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.heading h1 {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-headline-lg-size);
+  font-weight: var(--text-headline-lg-weight);
+  letter-spacing: -.02em;
+  line-height: var(--text-headline-lg-line-height);
+}
+
+.heading p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-md-size);
+}
+
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+/* 필터와 정렬은 한 묶음으로 오른쪽 끝에 붙인다. */
+.task-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.filter-button,
+.state button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--button-height);
+  gap: var(--space-2);
+  padding: 0 var(--button-padding-inline);
+  border-radius: var(--radius-default);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  white-space: nowrap;
+}
+
+.filter-button {
+  flex: 0 0 auto;
+}
+
+.secondary,
+.state button {
+  border: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.section-heading h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-body-lg-size);
+  font-weight: var(--text-button-weight);
+}
+
+.section-heading span {
+  color: var(--color-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+}
+
+.task-list-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.matrix-area {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  --matrix-quadrant-height: 23rem;
+  /* TaskMatrix의 4분면(2열) 규칙이 이 컨테이너 이름에 걸려 있다. */
+  container-name: planner-area;
+  container-type: inline-size;
+}
+
+.task-content {
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.delete-error {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+}
+
+.state {
+  display: grid;
+  justify-items: center;
+  padding: var(--space-16) var(--space-6);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  color: var(--color-mute);
+  text-align: center;
+  background: var(--color-surface-container-lowest);
+}
+
+.state-mark {
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-ash);
+}
+
+.state p {
+  margin: var(--space-3) 0 0;
+}
+
+.state button {
+  margin-top: var(--space-4);
+}

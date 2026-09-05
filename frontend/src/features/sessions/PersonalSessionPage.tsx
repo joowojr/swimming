@@ -60,14 +60,15 @@ function timerPhase(session: SessionDetailResponse) {
   const repeats = session.repeatCount || 1
   let cursor = elapsed
   for (let index = 0; index < repeats; index += 1) {
-    if (cursor < focus) return { kind: 'focus' as const, remaining: focus - cursor, index: index + 1, repeats, elapsed }
+    if (cursor < focus) return { kind: 'focus' as const, remaining: focus - cursor, overtime: 0, index: index + 1, repeats, elapsed }
     cursor -= focus
     if (index < repeats - 1 && rest > 0) {
-      if (cursor < rest) return { kind: 'break' as const, remaining: rest - cursor, index: index + 1, repeats, elapsed }
+      if (cursor < rest) return { kind: 'break' as const, remaining: rest - cursor, overtime: 0, index: index + 1, repeats, elapsed }
       cursor -= rest
     }
   }
-  return { kind: 'complete' as const, remaining: 0, index: repeats, repeats, elapsed }
+  // 구간을 모두 소진하고 남은 cursor가 곧 계획을 넘겨 더 진행한 시간이다.
+  return { kind: 'complete' as const, remaining: 0, overtime: cursor, index: repeats, repeats, elapsed }
 }
 
 function formatTimer(totalSeconds: number) {
@@ -173,7 +174,7 @@ export default function PersonalSessionPage() {
 
   const session = state.status === 'ready' || state.status === 'ended' ? state.session : null
   const phase = useMemo(
-    () => session ? timerPhase(session) : { kind: 'complete' as const, remaining: 0, index: 1, repeats: 1, elapsed: 0 },
+    () => session ? timerPhase(session) : { kind: 'complete' as const, remaining: 0, overtime: 0, index: 1, repeats: 1, elapsed: 0 },
     // nowKey intentionally triggers calculation from the absolute start time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [session, nowKey],
@@ -402,7 +403,10 @@ export default function PersonalSessionPage() {
               <circle className={styles['ring-progress']} data-phase={phase.kind} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
             </svg>
             <div className={styles['timer-value']}>
-              <h2 id="session-timer-title">{formatTimer(remaining)}</h2>
+              {/* 계획한 시간을 넘기면 남은 시간 대신 더 진행한 시간을 센다. */}
+              <h2 id="session-timer-title">
+                {phase.kind === 'complete' ? `+${formatTimer(phase.overtime)}` : formatTimer(remaining)}
+              </h2>
               <p>{phase.kind === 'complete' ? '세션 종료' : `${phase.index}/${phase.repeats}회 · 총 ${formatMinutes(state.session.plannedDurationSec)}`}</p>
             </div>
           </div>

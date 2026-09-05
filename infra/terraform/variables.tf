@@ -243,7 +243,7 @@ variable "github_repository_id" {
 variable "tfstate_bucket_name" {
   description = "S3 bucket holding the Terraform state, matching the backend block in versions.tf."
   type        = string
-  default     = "swimming-prod-tfstate-223910471789"
+  default     = "swimming-prod-tfstate"
 }
 
 variable "tfstate_key" {

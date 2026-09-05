@@ -6,6 +6,7 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskMatrixSection;
 import com.swimming.backend.task.domain.TaskPlacement;
 import com.swimming.backend.task.domain.TaskPlacementChange;
+import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.TaskPlacementResult;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
@@ -56,6 +57,7 @@ public class TaskOrderingService {
             TaskMatrixSection section,
             Long cursorRank,
             Long cursorTaskId,
+            TaskStatus status,
             int limit
     ) {
         List<TaskEntity> entities = cursorRank == null
@@ -63,12 +65,14 @@ public class TaskOrderingService {
                         userId,
                         section.isPriority(),
                         section.isUrgent(),
+                        status,
                         PageRequest.of(0, limit)
                 )
                 : taskRepository.findMatrixNextPage(
                         userId,
                         section.isPriority(),
                         section.isUrgent(),
+                        status,
                         cursorRank,
                         cursorTaskId,
                         PageRequest.of(0, limit)

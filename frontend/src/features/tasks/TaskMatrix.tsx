@@ -4,17 +4,22 @@ import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import AddItemButton from '../../components/AddItemButton'
 import ChecklistCard from '../../components/ChecklistCard'
+import FolderLink from '../../components/FolderLink'
 import InlineEditableText from '../../components/InlineEditableText'
 import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import type { DailyPlanItem } from '../plans/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../plans/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
+import TaskInfoModal from './TaskInfoModal'
 import TaskPickerModal from '../plans/TaskPickerModal'
 import { useFolderStore } from '../../store/folderStore.ts'
-import { createTaskWithOptionalPlan } from '../tasks/taskApi'
-import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from '../tasks/taskApi'
-import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from '../tasks/taskLabels'
-import type { TaskMatrixItem, TaskMatrixSection, TaskResponse, TaskStatus } from '../tasks/taskTypes'
+import { useDailyPlanStore } from '../../store/dailyPlanStore'
+import { useTaskStore } from '../../store/taskStore'
+import { createTaskWithOptionalPlan } from './taskApi'
+import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from './taskApi'
+import type { TaskFilter } from './taskFilter'
+import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from './taskLabels'
+import type { TaskMatrixItem, TaskMatrixSection, TaskResponse, TaskStatus } from './taskTypes'
 import styles from './TaskMatrix.module.css'
 
 type MatrixStatus = 'loading' | 'ready' | 'error'
@@ -67,7 +72,12 @@ function autoScrollDuringDrag(container: HTMLElement, clientY: number) {
   }
 }
 
-export default function TaskMatrix() {
+interface TaskMatrixProps {
+  /** 상태 필터. 서버 조회 조건으로 넘어간다. 중요·즉시는 구간 자체라 필터로 받지 않는다. */
+  statusFilter?: TaskFilter['status']
+}
+
+export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
   const navigate = useNavigate()
   const folders = useFolderStore((state) => state.folders)
   const folderNameById = useMemo(
@@ -81,16 +91,24 @@ export default function TaskMatrix() {
   const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
+  const [moveTarget, setMoveTarget] = useState<TaskMatrixItem | null>(null)
   const [addDraft, setAddDraft] = useState<{ priority: boolean; urgent: boolean } | null>(null)
   const [dragState, setDragState] = useState<{ taskId: number; sourceSection: string } | null>(null)
   const [dropTarget, setDropTarget] = useState<{ sectionId: string; taskId: number | null } | null>(null)
 
   const loadingSections = useRef(new Set<string>())
   const sectionsRef = useRef(sections)
+  // loadSection이 필터 때문에 새로 만들어지면 스크롤 핸들러까지 매번 바뀌므로 ref로 읽는다.
+  // 아래 재조회 effect보다 먼저 선언해 두어야 최신 필터로 조회한다.
+  const statusFilterRef = useRef(statusFilter)
 
   useEffect(() => {
     sectionsRef.current = sections
   }, [sections])
+
+  useEffect(() => {
+    statusFilterRef.current = statusFilter
+  }, [statusFilter])
 
   const loadSection = useCallback(async (section: MatrixSection, reset = false, signal?: AbortSignal) => {
     const current = sectionsRef.current[section.id] ?? initialSectionState()
@@ -101,6 +119,7 @@ export default function TaskMatrix() {
       if (!reset) await new Promise((resolve) => window.setTimeout(resolve, 400))
       const page = await getTaskMatrixPage(section.apiSection, {
         cursor: reset ? null : current.nextCursor,
+        status: statusFilterRef.current === 'ALL' ? undefined : statusFilterRef.current,
         signal,
       })
       setSections((value) => {
@@ -126,7 +145,15 @@ export default function TaskMatrix() {
     void loadTasks()
   }
 
+  const tasksById = useTaskStore((state) => state.byId)
+  const taskListRevision = useTaskStore((state) => state.listRevision)
+  const upsertTasks = useTaskStore((state) => state.upsert)
+  const removeTasks = useTaskStore((state) => state.remove)
+  const invalidatePlanDate = useDailyPlanStore((state) => state.invalidateDate)
+
   const replaceTask = (updatedTask: TaskResponse) => {
+    // 다른 화면도 같은 task를 보고 있으므로 단일 출처를 먼저 갱신한다.
+    upsertTasks([updatedTask])
     setSections((current) => Object.fromEntries(Object.entries(current).map(([key, section]) => [
       key,
       { ...section, items: section.items.map((task) => task.id === updatedTask.id ? { ...task, ...updatedTask } : task) },
@@ -166,6 +193,7 @@ export default function TaskMatrix() {
     setUpdateError(null)
     try {
       await deleteTasks({ taskIds: [task.id] })
+      removeTasks([task.id])
       setSections((current) => Object.fromEntries(Object.entries(current).map(([key, section]) => [
         key,
         { ...section, items: section.items.filter((item) => item.id !== task.id) },
@@ -255,11 +283,30 @@ export default function TaskMatrix() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 상태 필터가 바뀌면 커서가 무의미해지므로 모든 구간을 처음부터 다시 받는다.
+  const seenStatusFilter = useRef(statusFilter)
+  useEffect(() => {
+    if (seenStatusFilter.current === statusFilter) return
+    seenStatusFilter.current = statusFilter
+    void loadTasks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter])
+
+  // 다른 화면에서 할 일이 만들어지면 섹션 페이지를 다시 받는다. 커서를 모르면 끼워 넣을 수 없다.
+  const seenTaskListRevision = useRef(taskListRevision)
+  useEffect(() => {
+    if (seenTaskListRevision.current === taskListRevision) return
+    seenTaskListRevision.current = taskListRevision
+    void loadTasks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskListRevision])
+
   const groupedTasks = useMemo(() => matrixSections.map((section) => ({
     ...section,
-    tasks: sections[section.id]?.items ?? [],
+    // 목록 순서는 서버가 정하고, 값은 taskStore가 최신이다.
+    tasks: (sections[section.id]?.items ?? []).map((task) => ({ ...task, ...tasksById[task.id] })),
     sectionState: sections[section.id] ?? initialSectionState(),
-  })), [sections])
+  })), [sections, tasksById])
 
   return (
     <section className={styles.matrix} aria-labelledby="task-matrix-title">
@@ -323,7 +370,7 @@ export default function TaskMatrix() {
                   <button type="button" className={styles.loadMore} onClick={() => void loadSection(section)}>다시 시도</button>
                 </div>
               ) : section.tasks.length === 0 ? (
-                <p className={styles.empty}>이 영역에는 Task가 없습니다.</p>
+                <p className={styles.empty}>할 일을 추가해주세요.</p>
               ) : (
                 <ol className={styles.list}>
                   {section.tasks.map((task) => {
@@ -386,7 +433,12 @@ export default function TaskMatrix() {
                               )}
                             </div>
                           )}
-                          description={task.folderId === null ? undefined : folderNameById.get(task.folderId) ?? '폴더'}
+                          description={task.folderId === null ? undefined : (
+                            <FolderLink
+                              folderId={task.folderId}
+                              name={folderNameById.get(task.folderId)}
+                            />
+                          )}
                           actions={(
                             <>
                               <select
@@ -404,6 +456,7 @@ export default function TaskMatrix() {
                                 <TaskFlagMenuItems
                                   disabled={isPending}
                                   session={{ onStart: () => void startSession(task), isPending }}
+                                  onMove={() => setMoveTarget(task)}
                                   onDelete={() => void deleteTask(task)}
                                 />
                               </TaskMenu>
@@ -428,6 +481,18 @@ export default function TaskMatrix() {
             </section>
           ))}
         </div>
+      )}
+      {moveTarget && (
+        <TaskInfoModal
+          taskId={moveTarget.id}
+          taskTitle={moveTarget.title}
+          currentFolderId={moveTarget.folderId}
+          currentPriority={moveTarget.priority}
+          currentUrgent={moveTarget.urgent}
+          canEditFlags={false}
+          plan={{ date: '' }}
+          onClose={() => setMoveTarget(null)}
+        />
       )}
       {sessionDraft && (
         <CreateSessionModal
@@ -454,6 +519,8 @@ export default function TaskMatrix() {
               folderId,
               planDate,
             })
+            // 생성 응답에 계획 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
+            if (planDate) invalidatePlanDate(planDate)
             await loadTasks()
           }}
           onClose={() => setAddDraft(null)}

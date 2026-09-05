@@ -35,7 +35,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
               and task.user.id = :userId
               and task.deleted = false
               and item.planDate between :fromDate and :toDate
-            order by item.planDate asc, item.orderIdx asc
+            order by item.planDate asc, item.createdAt desc
             """)
     List<DailyPlanItemQueryRow> findRows(@Param("userId") Long userId,
                                          @Param("fromDate") LocalDate fromDate,
@@ -50,6 +50,8 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
     long countDistinctTaskIds(@Param("userId") Long userId,
                               @Param("planDate") LocalDate planDate,
                               @Param("taskIds") Set<Long> taskIds);
+
+    Optional<DailyPlanItemEntity> findByIdAndUserId(Long id, Long userId);
 
     Optional<DailyPlanItemEntity> findByIdAndUserIdAndPlanDate(
             Long itemId,

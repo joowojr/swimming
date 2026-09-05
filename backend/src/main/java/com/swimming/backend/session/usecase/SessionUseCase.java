@@ -69,9 +69,6 @@ public class SessionUseCase {
         }
         Place place = placeService.getOne(request.placeId());
 
-        taskService.updateStatuses(userId, taskIds.stream()
-                .collect(Collectors.toMap(Function.identity(), taskId -> TaskStatus.DOING)));
-
         Session session = Session.createPersonal(
                 userId,
                 place.getId(),

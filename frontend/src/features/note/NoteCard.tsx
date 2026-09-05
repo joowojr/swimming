@@ -14,7 +14,7 @@ import NoteList from './NoteList'
 import type { NoteListFilter } from './NoteList'
 import { useNoteEditorStore } from './noteEditorStore'
 import TaskOrganizerPanel from './TaskOrganizerPanel'
-import type { NoteResponse } from './noteTypes'
+import type { NoteContextType, NoteResponse } from './noteTypes'
 import type { LoadStatus, ProjectOption, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
 

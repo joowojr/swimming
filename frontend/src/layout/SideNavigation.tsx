@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import type { IconProps } from '@tabler/icons-react'
 import {
   IconCalendar,
+  IconChecklist,
   IconFolder,
   IconLayoutDashboard,
   IconUsers,
@@ -14,18 +15,18 @@ interface NavigationItem {
   icon: ComponentType<IconProps>
   href?: string
   end?: boolean
-  badge?: string
   disabled?: boolean
 }
 
 const navigationItems: NavigationItem[] = [
   { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
+  { label: '할 일', icon: IconChecklist, href: '/tasks', end: true },
   { label: '폴더', icon: IconFolder, href: '/folders', end: true },
   { label: '다이브 세션', icon: IconUsers, href: '/sessions', end: true },
   { label: '캘린더', icon: IconCalendar, disabled: true },
 ]
 
-export default function SideNavigation({ folderCount }: { folderCount: number | null }) {
+export default function SideNavigation() {
   return (
     <aside className={styles['side-navigation']}>
 
@@ -34,9 +35,6 @@ export default function SideNavigation({ folderCount }: { folderCount: number | 
         <ul className={styles['navigation-list']}>
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const badge = item.label === '폴더' && folderCount !== null
-              ? String(folderCount)
-              : item.badge
 
             return (
               <li key={item.label}>
@@ -50,11 +48,6 @@ export default function SideNavigation({ folderCount }: { folderCount: number | 
                   >
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>
-                    {badge && (
-                      <span className={styles['navigation-badge']} aria-label={`폴더 ${badge}개`}>
-                        {badge}
-                      </span>
-                    )}
                   </NavLink>
                 ) : (
                   <button
@@ -65,11 +58,6 @@ export default function SideNavigation({ folderCount }: { folderCount: number | 
                   >
                     <Icon size={19} stroke={1.8} aria-hidden="true" />
                     <span>{item.label}</span>
-                    {badge && (
-                      <span className={styles['navigation-badge']} aria-label={`폴더 ${badge}개`}>
-                        {badge}
-                      </span>
-                    )}
                   </button>
                 )}
               </li>

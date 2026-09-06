@@ -19,7 +19,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
-@Tag(name = "메모", description = "폴더 상세와 핀보드, 개인 세션 화면의 메모 카드.")
+@Tag(name = "노트", description = "폴더 상세와 핀보드, 개인 세션 화면의 노트 카드.")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/notes")

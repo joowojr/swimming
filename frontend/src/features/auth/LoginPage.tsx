@@ -41,7 +41,7 @@ export default function LoginPage() {
           </p>
 
           <GoogleLoginButton onSuccess={authActions.completeLogin} />
-          <p className={styles.note}>비밀번호 없이 Google 계정으로 바로 시작합니다.</p>
+          <p className={styles.note}>Google 계정으로 바로 시작합니다.</p>
 
           <ul className={styles.features}>
             {FEATURES.map(({ Icon, tone, title, body }) => (

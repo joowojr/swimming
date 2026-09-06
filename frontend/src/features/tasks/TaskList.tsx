@@ -167,6 +167,7 @@ export default function TaskList({
                           task.priority && styles['is-priority'],
                           task.urgent && styles['is-urgent'],
                         ].filter(Boolean).join(' ')}
+                        wrap
                         value={task.title}
                         ariaLabel={`${task.urgent ? '즉시 ' : ''}${task.priority ? '중요 ' : ''}Task 제목`}
                         maxLength={255}

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react'
+import {useEffect, useMemo, useState, useSyncExternalStore} from 'react'
 import {
     IconChevronLeft,
     IconChevronRight,
@@ -29,11 +29,58 @@ import styles from './DailyPlanner.module.css'
 
 const dateFormatter = new Intl.DateTimeFormat('ko-KR', {year: 'numeric', month: 'long'})
 const selectedDateFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'long'})
+const monthDayFormatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric'})
+const dayOnlyFormatter = new Intl.DateTimeFormat('ko-KR', {day: 'numeric'})
 const dayLabels = ['일', '월', '화', '수', '목', '금', '토']
+
+// 좁은 화면에서는 달 전체 대신 2주 창만 보여준다. AppShell과 같은 경계를 쓴다.
+const COMPACT_QUERY = '(max-width: 48rem)'
+const FORTNIGHT_DAYS = 14
 
 
 function startOfMonth(date: Date) {
     return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+function startOfWeek(date: Date) {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    start.setDate(start.getDate() - start.getDay())
+    return start
+}
+
+/**
+ * 기준 날짜가 속한 주부터 2주. 달 보기와 마찬가지로 그 달을 벗어나는 칸은 비운다.
+ * 창이 달을 걸쳐도 보이는 날짜는 항상 한 달 안에 머무른다.
+ */
+function fortnightDays(anchor: Date, month: Date) {
+    const start = startOfWeek(anchor)
+    return Array.from({length: FORTNIGHT_DAYS}, (_, index) => {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index)
+        const sameMonth = date.getFullYear() === month.getFullYear()
+            && date.getMonth() === month.getMonth()
+        return sameMonth ? date : null
+    })
+}
+
+/** 실제로 보이는 날짜만 표기한다. 한 달 안이므로 "9월 7일 – 20일" 형태다. */
+function formatDayRange(days: (Date | null)[]) {
+    const visible = days.filter((date): date is Date => date !== null)
+    const first = visible[0]
+    const last = visible[visible.length - 1]
+    if (!first || !last) return ''
+    return first.getTime() === last.getTime()
+        ? monthDayFormatter.format(first)
+        : `${monthDayFormatter.format(first)} – ${dayOnlyFormatter.format(last)}`
+}
+
+function subscribeToCompact(onChange: () => void) {
+    const query = window.matchMedia(COMPACT_QUERY)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+}
+
+function useIsCompact() {
+    return useSyncExternalStore(subscribeToCompact, () => window.matchMedia(COMPACT_QUERY).matches)
 }
 
 function monthDays(month: Date) {
@@ -48,6 +95,7 @@ function monthDays(month: Date) {
 
 export default function DailyPlanner() {
     const navigate = useNavigate()
+    const isCompact = useIsCompact()
     const today = useMemo(() => formatLocalDate(new Date()), [])
     const [selectedDate, setSelectedDate] = useState(today)
     const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(parseLocalDate(today)))
@@ -67,6 +115,18 @@ export default function DailyPlanner() {
     const upsertTasks = useTaskStore((state) => state.upsert)
     const folders = useFolderStore((state) => state.folders)
 
+    // 2주 창은 선택한 날짜가 속한 주에서 시작한다. 주가 바뀌지 않으면 창도 그대로다.
+    const weekStart = useMemo(
+        () => formatLocalDate(startOfWeek(parseLocalDate(selectedDate))),
+        [selectedDate],
+    )
+    const calendarDays = useMemo(
+        () => (isCompact
+            ? fortnightDays(parseLocalDate(weekStart), visibleMonth)
+            : monthDays(visibleMonth)),
+        [isCompact, weekStart, visibleMonth],
+    )
+
     const {fromDate, toDate} = useMemo(() => monthRange(visibleMonth), [visibleMonth])
     const visibleMonthKey = fromDate.slice(0, 7)
 
@@ -85,7 +145,6 @@ export default function DailyPlanner() {
         () => joinPlanItems(entriesByDate[today] ?? [], tasksById, folders),
         [entriesByDate, today, tasksById, folders],
     )
-    const calendarDays = useMemo(() => monthDays(visibleMonth), [visibleMonth])
     const isLoading = status === 'idle' || status === 'loading'
 
     const selectDate = (date: string) => {
@@ -104,6 +163,26 @@ export default function DailyPlanner() {
         setVisibleMonth(nextMonth)
         setSelectedDate(fromDate)
         setMessage(null)
+    }
+
+    // 선택 날짜를 통째로 2주 옮긴다. 창은 선택 날짜를 따라가므로 요일은 그대로 유지된다.
+    // 창을 달 안으로 제한하는 탓에 2주를 그냥 더하면 이웃 달의 앞부분을 건너뛴다.
+    // 달을 넘어갈 때는 이웃 달의 첫날·마지막 날로 이어 붙여 빠지는 날짜가 없게 한다.
+    const moveFortnight = (amount: number) => {
+        const current = parseLocalDate(selectedDate)
+        const shifted = new Date(
+            current.getFullYear(),
+            current.getMonth(),
+            current.getDate() + amount * FORTNIGHT_DAYS,
+        )
+        const leftMonth = shifted.getFullYear() !== current.getFullYear()
+            || shifted.getMonth() !== current.getMonth()
+        const next = leftMonth
+            ? (amount > 0
+                ? new Date(current.getFullYear(), current.getMonth() + 1, 1)
+                : new Date(current.getFullYear(), current.getMonth(), 0))
+            : shifted
+        selectDate(formatLocalDate(next))
     }
 
     const addTasks = async (tasks: FolderDetail['tasks']) => {
@@ -155,12 +234,24 @@ export default function DailyPlanner() {
         <section className={styles.widget} aria-labelledby="daily-planner-title">
             <div className={styles.calendarPanel}>
                 <header className={styles.calendarHeader}>
-                    <h2>{dateFormatter.format(visibleMonth)}</h2>
+                    <h2>
+                        {isCompact
+                            ? formatDayRange(calendarDays)
+                            : dateFormatter.format(visibleMonth)}
+                    </h2>
                     <div className={styles.calendarNav}>
-                        <button type="button" aria-label="이전 달" onClick={() => moveMonth(-1)}>
+                        <button
+                            type="button"
+                            aria-label={isCompact ? '이전 2주' : '이전 달'}
+                            onClick={() => (isCompact ? moveFortnight(-1) : moveMonth(-1))}
+                        >
                             <IconChevronLeft size={18} aria-hidden="true" />
                         </button>
-                        <button type="button" aria-label="다음 달" onClick={() => moveMonth(1)}>
+                        <button
+                            type="button"
+                            aria-label={isCompact ? '다음 2주' : '다음 달'}
+                            onClick={() => (isCompact ? moveFortnight(1) : moveMonth(1))}
+                        >
                             <IconChevronRight size={18} aria-hidden="true" />
                         </button>
                     </div>
@@ -196,13 +287,11 @@ export default function DailyPlanner() {
                 <ModalTriggerButton className={`${styles.addTask} ${styles.calendarAddTask}`} dialogId="task-picker-dialog" variant="plain" icon={<IconPlus size={17} aria-hidden="true" />} onClick={() => setIsPickerOpen(true)}>
                     할 일 추가
                 </ModalTriggerButton>
-                <p className={styles.calendarHint}>날짜를 선택하면 해당 날짜의 계획을 확인할 수 있습니다.</p>
             </div>
 
             <div className={styles.todoPanel}>
                 <header className={styles.todoHeader}>
                     <div>
-                        <p className={styles.eyebrow}>오늘의 계획</p>
                         <h1 id="daily-planner-title">{selectedDateFormatter.format(parseLocalDate(selectedDate))}</h1>
                     </div>
                     <span className={styles.taskCount}>{items.length}개</span>
@@ -222,6 +311,7 @@ export default function DailyPlanner() {
                                         status={item.status}
                                         title={
                                             <InlineEditableText
+                                                wrap
                                                 value={item.title}
                                                 ariaLabel={`${item.urgent ? '즉시 ' : ''}${item.priority ? '중요 ' : ''}Task 제목`}
                                                 maxLength={255}

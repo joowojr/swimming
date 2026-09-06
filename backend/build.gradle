@@ -52,6 +52,9 @@ dependencies {
     // aws
 //	implementation 'software.amazon.awssdk:s3:2.53.3'
 
+    // API 문서 (OpenAPI 3 + Swagger UI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
     // dotenv
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 

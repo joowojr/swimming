@@ -1,5 +1,6 @@
 package com.swimming.backend.task.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.TaskMatrixPageQuery;
 import com.swimming.backend.task.dto.in.TaskPlacementRequest;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "할 일 매트릭스", description = "할 일 화면(`/tasks`)의 매트릭스 뷰. 중요·긴급 사분면 조회와 이동.")
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor

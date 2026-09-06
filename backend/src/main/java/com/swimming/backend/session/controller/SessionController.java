@@ -1,5 +1,6 @@
 package com.swimming.backend.session.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.session.dto.web.EndSessionRequest;
 import com.swimming.backend.session.dto.web.SessionResponse;
@@ -24,6 +25,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "세션", description = "세션 피드(`/sessions`)와 개인 세션 진행 화면(`/sessions/{sessionId}`).")
 @RestController
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor

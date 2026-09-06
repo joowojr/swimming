@@ -1,5 +1,6 @@
 package com.swimming.backend.task.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
@@ -33,6 +34,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "할 일", description = "폴더 상세(`/folders/{folderId}`)의 할 일 목록과 할 일 화면(`/tasks`)의 목록 뷰. 데일리 플래너의 `할 일 담기` 모달도 이 목록을 쓴다.")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor

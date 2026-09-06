@@ -1,16 +1,17 @@
+import type { TaskSummaryResponse } from '../tasks/taskTypes'
 import { useEffect, useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlus, IconX } from '@tabler/icons-react'
 import type { MouseEvent } from 'react'
 import ModeToggle from '../../components/ModeToggle'
-import { getFolder } from '../folders/folderApi.ts'
-import type { FolderDetail } from '../folders/folderTypes.ts'
+import { getFolderTasks } from '../tasks/taskApi'
+import type { CursorPage } from '../../api/types'
 import { useFolderStore } from '../../store/folderStore.ts'
 import styles from './TaskPickerModal.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
 
 interface TaskPickerModalProps {
   selectedTaskIds: ReadonlySet<number>
-  onAdd: (tasks: FolderDetail['tasks']) => Promise<void>
+  onAdd: (tasks: TaskSummaryResponse[]) => Promise<void>
   onAddTask: (title: string, folderId: number | null, priority: boolean, urgent: boolean, planDate: string | null) => Promise<void>
   onClose: () => void
   initialPriority?: boolean
@@ -65,8 +66,9 @@ export default function TaskPickerModal({
 }: TaskPickerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const folders = useFolderStore((state) => state.folders)
-  // 한 번 불러온 폴더 상세는 모달이 닫힐 때까지 재사용한다.
-  const [detailCache, setDetailCache] = useState<Record<number, FolderDetail>>({})
+  // 한 번 불러온 폴더의 할 일은 모달이 닫힐 때까지 재사용한다. 폴더 이름은 스토어에
+  // 이미 있으므로 폴더 상세를 부르지 않고 목록만 받는다.
+  const [taskCache, setTaskCache] = useState<Record<number, CursorPage<TaskSummaryResponse>>>({})
   const [failedFolderIds, setFailedFolderIds] = useState<ReadonlySet<number>>(new Set())
   const [addMode, setAddMode] = useState<AddMode>('direct')
   const [title, setTitle] = useState('')
@@ -75,12 +77,13 @@ export default function TaskPickerModal({
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null)
+  const [isLoadingMoreTasks, setIsLoadingMoreTasks] = useState(false)
   const [selectedPriority, setSelectedPriority] = useState<string | null>(initialPriority ? '중요' : null)
   const [selectedUrgent, setSelectedUrgent] = useState(initialUrgent)
   const [planDate, setPlanDate] = useState(initialPlanDate)
 
   const activeFolderId = taskProjectId ? Number(taskProjectId) : null
-  const activeProject = activeFolderId === null ? undefined : detailCache[activeFolderId]
+  const activeProject = activeFolderId === null ? undefined : taskCache[activeFolderId]
   const detailStatus: DetailStatus = activeFolderId === null
     ? 'idle'
     : activeProject
@@ -88,9 +91,10 @@ export default function TaskPickerModal({
       : failedFolderIds.has(activeFolderId)
         ? 'error'
         : 'loading'
-  const pendingTasks = Object.values(detailCache).flatMap((detail) => detail.tasks
+  const folderNameById = new Map(folders.map((folder) => [folder.id, folder.name]))
+  const pendingTasks = Object.entries(taskCache).flatMap(([id, page]) => page.items
     .filter((task) => pendingTaskIds.has(task.id))
-    .map((task) => ({ task, folderName: detail.name })))
+    .map((task) => ({ task, folderName: folderNameById.get(Number(id)) ?? '' })))
   const totalTaskCount = addMode === 'direct'
     ? (title.trim() ? 1 : 0)
     : pendingTaskIds.size
@@ -106,18 +110,46 @@ export default function TaskPickerModal({
 
   useEffect(() => {
     if (activeFolderId === null) return
-    if (detailCache[activeFolderId] || failedFolderIds.has(activeFolderId)) return
+    if (taskCache[activeFolderId] || failedFolderIds.has(activeFolderId)) return
 
     let active = true
-    void getFolder(activeFolderId)
-      .then((detail) => {
-        if (active) setDetailCache((current) => ({ ...current, [detail.id]: detail }))
+    void getFolderTasks(activeFolderId)
+      .then((page) => {
+        if (active) setTaskCache((current) => ({ ...current, [activeFolderId]: page }))
       })
       .catch(() => {
         if (active) setFailedFolderIds((current) => new Set(current).add(activeFolderId))
       })
     return () => { active = false }
-  }, [activeFolderId, detailCache, failedFolderIds])
+  }, [activeFolderId, taskCache, failedFolderIds])
+
+  /** 고른 폴더의 다음 할 일 페이지를 캐시에 이어 붙인다. */
+  const loadMoreTasks = async () => {
+    const cursor = activeProject?.nextCursor
+    if (activeFolderId === null || !cursor || isLoadingMoreTasks) return
+
+    setIsLoadingMoreTasks(true)
+    try {
+      const page = await getFolderTasks(activeFolderId, { cursor })
+      setTaskCache((current) => {
+        const cached = current[activeFolderId]
+        if (!cached) return current
+
+        return {
+          ...current,
+          [activeFolderId]: {
+            items: [...cached.items, ...page.items],
+            nextCursor: page.nextCursor,
+            hasNext: page.hasNext,
+          },
+        }
+      })
+    } catch {
+      // 다음 장을 못 가져와도 이미 고른 것과 보이는 목록은 그대로 둔다.
+    } finally {
+      setIsLoadingMoreTasks(false)
+    }
+  }
 
   const requestClose = () => {
     if (!isSubmitting) dialogRef.current?.close()
@@ -308,12 +340,12 @@ export default function TaskPickerModal({
                 <p className={styles.state} role="alert">작업을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
               ) : !taskProjectId ? (
                 <p className={styles.state}>폴더를 선택하면 할 일을 확인할 수 있습니다.</p>
-              ) : !activeProject || activeProject.tasks.length === 0 ? (
+              ) : !activeProject || activeProject.items.length === 0 ? (
                 <p className={styles.state}>이 폴더에는 선택할 할 일이 없습니다.</p>
               ) : (
                 <div className={styles.group}>
                   <ul>
-                    {activeProject.tasks.map((task) => {
+                    {activeProject.items.map((task) => {
                       const alreadyAdded = selectedTaskIds.has(task.id)
                       const pending = pendingTaskIds.has(task.id)
                       return (
@@ -340,6 +372,16 @@ export default function TaskPickerModal({
                       )
                     })}
                   </ul>
+                  {activeProject.hasNext && (
+                    <button
+                      type="button"
+                      className={styles['load-more']}
+                      disabled={isLoadingMoreTasks || isSubmitting}
+                      onClick={() => void loadMoreTasks()}
+                    >
+                      {isLoadingMoreTasks ? '불러오는 중' : '더 보기'}
+                    </button>
+                  )}
                 </div>
               )}
             </section>

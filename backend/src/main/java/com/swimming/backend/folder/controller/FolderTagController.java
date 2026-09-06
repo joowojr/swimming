@@ -1,5 +1,6 @@
 package com.swimming.backend.folder.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.folder.dto.FolderTagNameRequest;
 import com.swimming.backend.folder.dto.FolderTagResponse;
@@ -21,6 +22,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "폴더 태그", description = "폴더 생성·수정 모달과 핀보드(`/pinboard`)의 태그 관리 모달.")
 @RestController
 @RequestMapping("/api/folder-tags")
 @RequiredArgsConstructor

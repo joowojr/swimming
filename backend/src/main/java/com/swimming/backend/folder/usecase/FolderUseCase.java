@@ -6,14 +6,11 @@ import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
-import com.swimming.backend.folder.dto.FolderProgressResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.in.TaskSummaryResponse;
-import com.swimming.backend.task.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,7 +24,6 @@ public class FolderUseCase {
 
     private final FolderService folderService;
     private final FolderTagService folderTagService;
-    private final TaskService taskService;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public FolderResponse create(Long userId, CreateFolderRequest request) {
@@ -61,20 +57,8 @@ public class FolderUseCase {
 
     public FolderDetailResponse getOne(Long userId, Long folderId) {
         var folder = folderService.getOne(userId, folderId);
-        List<TaskSummaryResponse> tasks = taskService.getSummaries(folder.getId());
-        int totalTaskCount = tasks.size();
-        int completedTaskCount = (int) tasks.stream()
-                .filter(task -> task.status() == TaskStatus.DONE)
-                .count();
-        int completionPct = totalTaskCount == 0
-                ? 0
-                : completedTaskCount * 100 / totalTaskCount;
-        FolderProgressResponse progress = new FolderProgressResponse(
-                totalTaskCount,
-                completedTaskCount,
-                completionPct
-        );
-        return FolderDetailResponse.from(folder, progress, tasks);
+
+        return FolderDetailResponse.from(folder);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

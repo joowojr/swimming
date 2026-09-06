@@ -1,10 +1,13 @@
 package com.swimming.backend.task.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
@@ -31,6 +34,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "할 일", description = "폴더 상세(`/folders/{folderId}`)의 할 일 목록과 할 일 화면(`/tasks`)의 목록 뷰. 데일리 플래너의 `할 일 담기` 모달도 이 목록을 쓴다.")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -66,12 +70,17 @@ public class TaskController {
         return ResponseEntity.created(location).body(response);
     }
 
+    /** size / cursor로 이어 읽는다. 폴더 정보는 GET /api/folders/{folderId}가 따로 준다. */
     @GetMapping("/folders/{folderId}/tasks")
-    public ResponseEntity<List<TaskResponse>> getByFolder(
+    public ResponseEntity<CursorPage<TaskSummaryResponse>> getByFolder(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable("folderId") Long folderId
+            @PathVariable("folderId") Long folderId,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String cursor
     ) {
-        return ResponseEntity.ok(taskUseCase.getByFolder(authUser.id(), folderId));
+        return ResponseEntity.ok(taskUseCase.getPageByFolder(
+                authUser.id(), folderId, CursorPage.validateSize(size), cursor
+        ));
     }
 
     @GetMapping("/tasks")

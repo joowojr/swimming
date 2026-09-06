@@ -1,4 +1,3 @@
-import type { TaskSummaryResponse } from '../tasks/taskTypes'
 
 export type FolderStatus = 'IN_PROGRESS' | 'ARCHIVED'
 
@@ -24,12 +23,6 @@ export interface Folder {
   updatedAt: string
 }
 
-export interface FolderProgress {
-  totalTaskCount: number
-  completedTaskCount: number
-  completionPct: number
-}
-
 export interface FolderDetail {
   id: number
   name: string
@@ -37,8 +30,6 @@ export interface FolderDetail {
   targetDate: string | null
   status: FolderStatus
   tag: FolderTag | null
-  progress: FolderProgress
-  tasks: TaskSummaryResponse[]
 }
 
 export interface CreateFolderRequest {

@@ -1,5 +1,7 @@
 package com.swimming.backend.auth.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import com.swimming.backend.auth.dto.AuthResponse;
 import com.swimming.backend.auth.dto.GoogleLoginRequest;
 import com.swimming.backend.auth.dto.LoginResult;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@SecurityRequirements
+@Tag(name = "인증", description = "로그인 화면(`/`). 구글 로그인과 토큰 재발급.")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

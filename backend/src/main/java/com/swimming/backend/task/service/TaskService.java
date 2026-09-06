@@ -12,6 +12,7 @@ import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import com.swimming.backend.user.domain.User;
 import jakarta.persistence.EntityManager;
@@ -165,6 +166,24 @@ public class TaskService {
         return getByFolder(folderId)
                 .stream()
                 .map(TaskSummaryResponse::from)
+                .toList();
+    }
+
+    /**
+     * 폴더의 할 일을 최근 순으로 한 페이지 읽는다.
+     *
+     * @return 요청한 만큼. 다음 장이 있는지는 부르는 쪽이 한 건 더 요청해 판단한다
+     */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Task> getPageByFolder(Long folderId, TaskCursorCodec.Decoded cursor, int size) {
+        List<TaskEntity> entities = cursor == null
+                ? taskRepository.findFolderTaskFirstPage(folderId, PageRequest.of(0, size))
+                : taskRepository.findFolderTaskNextPage(
+                        folderId, cursor.createdAt(), cursor.taskId(), PageRequest.of(0, size)
+                );
+
+        return entities.stream()
+                .map(TaskEntity::toDomain)
                 .toList();
     }
 

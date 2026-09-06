@@ -7,7 +7,6 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
-import com.swimming.backend.folder.dto.FolderProgressResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.FolderTagResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
@@ -205,34 +204,16 @@ class FolderControllerTest {
                 "설명",
                 null,
                 FolderStatus.ARCHIVED,
-                null,
-                new FolderProgressResponse(2, 1, 50),
-                List.of(
-                        new TaskSummaryResponse(
-                                1L,
-                                "완료 Task",
-                                TaskStatus.DONE,
-                                0
-                        ),
-                        new TaskSummaryResponse(
-                                2L,
-                                "진행 Task",
-                                TaskStatus.DOING,
-                                1
-                        )
-                )
+                null
         ));
 
         mockMvc.perform(get("/api/folders/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.name").value("프로젝트"))
                 .andExpect(jsonPath("$.status").value("ARCHIVED"))
-                .andExpect(jsonPath("$.progress.totalTaskCount").value(2))
-                .andExpect(jsonPath("$.progress.completedTaskCount").value(1))
-                .andExpect(jsonPath("$.progress.completionPct").value(50))
-                .andExpect(jsonPath("$.tasks[0].id").value(1))
-                .andExpect(jsonPath("$.tasks[0].status").value("DONE"))
-                .andExpect(jsonPath("$.tasks[1].orderIdx").value(1));
+                .andExpect(jsonPath("$.tasks").doesNotExist())
+                .andExpect(jsonPath("$.progress").doesNotExist());
     }
 
     @Test

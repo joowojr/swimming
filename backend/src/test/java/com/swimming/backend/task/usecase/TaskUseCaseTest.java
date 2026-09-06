@@ -5,6 +5,8 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.plan.service.DailyPlanService;
+import com.swimming.backend.common.dto.CursorPage;
+import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -68,22 +71,6 @@ class TaskUseCaseTest {
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.folderId()).isEqualTo(10L);
-    }
-
-    @Test
-    @DisplayName("소유한 폴더의 Task를 저장된 순서대로 반환한다")
-    void returnsTasksFromOwnedFolder() {
-        when(folderService.getReference(1L, 10L))
-                .thenReturn(new FolderReference(10L, "폴더", null));
-        when(taskService.getByFolder(10L)).thenReturn(List.of(
-                task(1L, 10L, "첫째", 0),
-                task(2L, 10L, "둘째", 1)
-        ));
-
-        List<TaskResponse> responses = taskUseCase.getByFolder(1L, 10L);
-
-        assertThat(responses).extracting(TaskResponse::title)
-                .containsExactly("첫째", "둘째");
     }
 
     @Test
@@ -283,9 +270,67 @@ class TaskUseCaseTest {
         assertThat(response.plans().get(0).date()).isEqualTo(date);
     }
 
+    @Test
+    @DisplayName("폴더의 할 일을 최근 순으로 한 페이지 준다")
+    void returnsFolderTaskPage() {
+        when(folderService.getReference(1L, 10L))
+                .thenReturn(new FolderReference(10L, "폴더", null));
+        when(taskService.getPageByFolder(10L, null, 21)).thenReturn(List.of(
+                taskAt(2L, "둘째", 1),
+                taskAt(1L, "첫째", 0)
+        ));
+
+        CursorPage<TaskSummaryResponse> page = taskUseCase.getPageByFolder(1L, 10L, 20, null);
+
+        assertThat(page.items()).extracting(TaskSummaryResponse::title)
+                .containsExactly("둘째", "첫째");
+        assertThat(page.hasNext()).isFalse();
+        assertThat(page.nextCursor()).isNull();
+    }
+
+    @Test
+    @DisplayName("한 페이지를 넘으면 마지막 항목까지만 주고 다음 커서를 남긴다")
+    void givesNextCursorWhenFolderHasMoreTasks() {
+        when(folderService.getReference(1L, 10L))
+                .thenReturn(new FolderReference(10L, "폴더", null));
+        when(taskService.getPageByFolder(10L, null, 3)).thenReturn(List.of(
+                taskAt(3L, "셋째", 2),
+                taskAt(2L, "둘째", 1),
+                taskAt(1L, "첫째", 0)
+        ));
+
+        CursorPage<TaskSummaryResponse> page = taskUseCase.getPageByFolder(1L, 10L, 2, null);
+
+        assertThat(page.items()).extracting(TaskSummaryResponse::title)
+                .containsExactly("셋째", "둘째");
+        assertThat(page.hasNext()).isTrue();
+        assertThat(page.nextCursor()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("남의 폴더의 할 일은 조회할 수 없다")
+    void rejectsOtherUsersFolder() {
+        when(folderService.getReference(1L, 10L))
+                .thenThrow(new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
+
+        assertThatThrownBy(() -> taskUseCase.getPageByFolder(1L, 10L, 20, null))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.FOLDER_NOT_FOUND);
+    }
+
     private DailyPlanItemQueryRow row(Long itemId, LocalDate planDate, Long taskId) {
         return new DailyPlanItemQueryRow(
                 itemId, planDate, taskId, null, null, null, "Task", TaskStatus.TODO, 0);
+    }
+
+    /** 커서를 만들려면 생성 시각이 있어야 한다. */
+    private Task taskAt(Long id, String title, int orderIdx) {
+        return Task.restore(
+                id, 1L, 10L, null, title, TaskStatus.TODO, orderIdx,
+                Instant.parse("2026-03-01T00:00:00Z").plusSeconds(id),
+                Instant.parse("2026-03-01T00:00:00Z").plusSeconds(id)
+        );
     }
 
     private Task task(Long id, Long folderId, String title, int orderIdx) {

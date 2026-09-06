@@ -419,6 +419,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
                               <h4>
                                 <InlineEditableText
                                   className={styles['task-title']}
+                                  wrap
                                   value={task.title}
                                   ariaLabel={`${task.urgent ? '즉시 ' : ''}${task.priority ? '중요 ' : ''}Task 제목`}
                                   maxLength={255}

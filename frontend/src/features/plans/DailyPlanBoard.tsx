@@ -294,6 +294,7 @@ export default function DailyPlanBoard() {
                                                         )}
                                                         <strong>
                                                             <InlineEditableText
+                                                                wrap
                                                                 value={item.title}
                                                                 ariaLabel={`${item.urgent ? '즉시 ' : ''}${item.priority ? '중요 ' : ''}Task 제목`}
                                                                 maxLength={255}

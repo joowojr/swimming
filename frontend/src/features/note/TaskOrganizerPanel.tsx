@@ -393,7 +393,7 @@ export default function TaskOrganizerPanel({
                   : item.folderId === null ? styles['organize-task-row-unclassified'] : styles['organize-task-row']} key={item.id}>
                   <div className={styles['organize-task-fields']}>
                     <InlineEditableText className={styles['organize-title-edit']} errorClassName={styles['organize-title-error']}
-                      value={item.title} ariaLabel="할 일 제목" maxLength={255} disabled={state.isConfirming}
+                      wrap value={item.title} ariaLabel="할 일 제목" maxLength={255} disabled={state.isConfirming}
                       requiredMessage="할 일 제목을 입력해 주세요."
                       onSave={(title) => {
                         updatePreviewItem(item.id, (current) => ({ ...current, title }))

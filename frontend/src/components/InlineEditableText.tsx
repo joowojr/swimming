@@ -11,6 +11,8 @@ interface InlineEditableTextProps {
   className?: string
   errorClassName?: string
   disabled?: boolean
+  /** 보기 모드에서 제목을 두 줄까지 감싼다. 기본은 한 줄 말줄임. */
+  wrap?: boolean
   onSave: (value: string) => Promise<void>
   getErrorMessage?: (error: unknown) => string
 }
@@ -24,6 +26,7 @@ export default function InlineEditableText({
   className,
   errorClassName,
   disabled = false,
+  wrap = false,
   onSave,
   getErrorMessage,
 }: InlineEditableTextProps) {
@@ -120,7 +123,7 @@ export default function InlineEditableText({
       ) : (
         <button
           type="button"
-          className={styles.display}
+          className={`${styles.display} ${wrap ? styles['display-wrap'] : ''}`}
           title={`더블 클릭하여 ${ariaLabel} 수정`}
           disabled={disabled}
           onDoubleClick={startEditing}

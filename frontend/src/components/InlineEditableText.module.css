@@ -37,6 +37,17 @@
   cursor: text;
 }
 
+/* task 제목처럼 폭이 좁은 카드 안에서 쓰는 보기 모드.
+   좁은 화면에서 한 줄에 다 못 담을 때 두 줄까지 감싼 뒤 말줄임한다. */
+.display-wrap {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .display:active:not(:disabled) {
   background: var(--color-surface-container-high);
 }

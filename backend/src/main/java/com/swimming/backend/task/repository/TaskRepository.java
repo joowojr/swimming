@@ -68,14 +68,6 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             Pageable pageable
     );
 
-    /**
-     * 폴더 진척은 화면에 보이는 페이지가 아니라 폴더 전체를 기준으로 센다.
-     * 목록을 한 장씩 끊어 읽어도 "12/20 완료"는 그대로여야 한다.
-     */
-    long countByFolder_IdAndDeletedFalse(Long folderId);
-
-    long countByFolder_IdAndDeletedFalseAndStatus(Long folderId, TaskStatus status);
-
     List<TaskEntity> findAllByUser_IdAndDeletedFalse(Long userId, Sort sort);
 
     Optional<TaskEntity> findTopByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(

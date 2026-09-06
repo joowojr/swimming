@@ -1,6 +1,5 @@
 package com.swimming.backend.folder.controller;
 
-import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
@@ -52,17 +51,12 @@ public class FolderController {
         return ResponseEntity.ok(folderUseCase.getAll(authUser.id()));
     }
 
-    /** size / cursor는 폴더에 딸린 할 일 목록의 페이지를 가리킨다. */
     @GetMapping("/{folderId}")
     public ResponseEntity<FolderDetailResponse> getOne(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long folderId,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String cursor
+            @PathVariable Long folderId
     ) {
-        return ResponseEntity.ok(
-                folderUseCase.getOne(authUser.id(), folderId, CursorPage.validateSize(size), cursor)
-        );
+        return ResponseEntity.ok(folderUseCase.getOne(authUser.id(), folderId));
     }
 
     @PatchMapping("/{folderId}")

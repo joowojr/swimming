@@ -8,7 +8,10 @@ import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.plan.domain.DailyPlanItem;
 import com.swimming.backend.plan.service.DailyPlanService;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
+import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.TaskSummaryResponse;
+import com.swimming.backend.task.service.TaskCursorCodec;
 import com.swimming.backend.task.dto.in.TaskSort;
 import com.swimming.backend.plan.dto.DailyPlanItemResponse;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
@@ -22,6 +25,7 @@ import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.task.service.TaskOrderingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +68,34 @@ public class TaskUseCase {
         long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
         return TaskResponse.from(taskService.create(
                 userId, folder.id(), request.title(), request.priority(), request.urgent(), matrixRank));
+    }
+
+    /**
+     * 폴더에 담긴 할 일을 최근 순으로 한 페이지 읽는다.
+     *
+     * <p>폴더 정보와 나누어 둔다. 목록은 이어 읽으며 여러 번 부르는데, 한 응답에 묶으면
+     * 다음 페이지를 받을 때마다 폴더 정보까지 다시 실려 온다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public CursorPage<TaskSummaryResponse> getPageByFolder(
+            Long userId,
+            Long folderId,
+            int size,
+            String cursor
+    ) {
+        FolderReference folder = folderService.getReference(userId, folderId);
+
+        // 한 건 더 읽어 다음 장이 있는지 본다. 총 개수를 세지 않아도 된다.
+        return CursorPage.of(
+                taskService.getPageByFolder(
+                        folder.id(),
+                        StringUtils.hasText(cursor) ? TaskCursorCodec.decode(cursor) : null,
+                        size + 1
+                ),
+                size,
+                TaskSummaryResponse::from,
+                last -> TaskCursorCodec.encode(last.getCreatedAt(), last.getId())
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

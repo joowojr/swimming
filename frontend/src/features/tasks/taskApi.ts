@@ -1,4 +1,5 @@
 import { client } from '../../api/client'
+import type { CursorPage, CursorPageQuery } from '../../api/types'
 import type {
   CreateTaskRequest,
   DeleteTasksRequest,
@@ -13,6 +14,7 @@ import type {
   TaskMatrixSection,
   TaskSort,
   TaskStatus,
+  TaskSummaryResponse,
   TaskPlacementRequest,
   TaskPlacementResponse,
 } from './taskTypes'
@@ -37,6 +39,18 @@ export async function createTaskWithOptionalPlan(request: {
   planDate?: string | null
 }): Promise<TaskResponse> {
   const response = await client.post<TaskResponse>('/tasks', request)
+  return response.data
+}
+
+/** 폴더에 담긴 할 일. 폴더 정보는 getFolder가 따로 준다. */
+export async function getFolderTasks(
+  folderId: number,
+  query: CursorPageQuery = {},
+): Promise<CursorPage<TaskSummaryResponse>> {
+  const response = await client.get<CursorPage<TaskSummaryResponse>>(
+    `/folders/${folderId}/tasks`,
+    { params: query },
+  )
   return response.data
 }
 

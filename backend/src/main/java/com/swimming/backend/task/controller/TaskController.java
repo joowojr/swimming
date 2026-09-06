@@ -1,10 +1,12 @@
 package com.swimming.backend.task.controller;
 
+import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
+import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
@@ -64,6 +66,19 @@ public class TaskController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    /** size / cursor로 이어 읽는다. 폴더 정보는 GET /api/folders/{folderId}가 따로 준다. */
+    @GetMapping("/folders/{folderId}/tasks")
+    public ResponseEntity<CursorPage<TaskSummaryResponse>> getByFolder(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable("folderId") Long folderId,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String cursor
+    ) {
+        return ResponseEntity.ok(taskUseCase.getPageByFolder(
+                authUser.id(), folderId, CursorPage.validateSize(size), cursor
+        ));
     }
 
     @GetMapping("/tasks")

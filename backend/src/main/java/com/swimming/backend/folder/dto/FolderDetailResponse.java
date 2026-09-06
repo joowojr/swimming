@@ -2,16 +2,15 @@ package com.swimming.backend.folder.dto;
 
 import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderStatus;
-import com.swimming.backend.common.dto.CursorPage;
-import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 
 import java.time.LocalDate;
 
 /**
- * 폴더 하나와 그 안의 할 일 첫 페이지.
+ * 폴더 하나.
  *
- * <p>{@code progress}는 페이지가 아니라 폴더 전체를 센다. 목록을 끊어 읽어도 "12/20 완료"는
- * 그대로여야 한다.
+ * <p>할 일 목록은 담지 않는다. 목록은 페이지 단위로 이어 읽어야 해서 폴더 정보와 갱신 시점이
+ * 다르다. 한 응답에 묶으면 다음 페이지를 받을 때마다 폴더 정보까지 다시 실려 온다.
+ * {@code GET /api/folders/{folderId}/tasks}가 따로 맡는다.
  */
 public record FolderDetailResponse(
         Long id,
@@ -19,15 +18,9 @@ public record FolderDetailResponse(
         String description,
         LocalDate targetDate,
         FolderStatus status,
-        FolderTagResponse tag,
-        FolderProgressResponse progress,
-        CursorPage<TaskSummaryResponse> tasks
+        FolderTagResponse tag
 ) {
-    public static FolderDetailResponse from(
-            Folder folder,
-            FolderProgressResponse progress,
-            CursorPage<TaskSummaryResponse> tasks
-    ) {
+    public static FolderDetailResponse from(Folder folder) {
         return new FolderDetailResponse(
                 folder.getId(),
                 folder.getName(),
@@ -36,9 +29,7 @@ public record FolderDetailResponse(
                 folder.getStatus(),
                 folder.getTag() == null
                         ? null
-                        : FolderTagResponse.from(folder.getTag()),
-                progress,
-                tasks
+                        : FolderTagResponse.from(folder.getTag())
         );
     }
 }

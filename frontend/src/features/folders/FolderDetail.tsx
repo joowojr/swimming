@@ -15,7 +15,8 @@ import {
 } from '../tasks/taskFilter'
 import type { TaskFilter } from '../tasks/taskFilter'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
-import {deleteTasks} from '../tasks/taskApi'
+import {deleteTasks, getFolderTasks} from '../tasks/taskApi'
+import type { TaskSummaryResponse } from '../tasks/taskTypes'
 import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
 import {useFolderStore} from '../../store/folderStore.ts'
 import type {FolderDetail as FolderDetailData, FolderStatus} from './folderTypes.ts'
@@ -32,6 +33,12 @@ type DetailState =
   | { status: 'loading' }
   | { status: 'ready'; folder: FolderDetailData }
   | { status: 'error'; notFound: boolean }
+
+/** 할 일은 폴더와 따로 불러 이어 읽는다. 커서는 이 화면이 소유한다. */
+type TaskPageState =
+  | { status: 'loading' }
+  | { status: 'ready'; items: TaskSummaryResponse[]; nextCursor: string | null; hasNext: boolean }
+  | { status: 'error' }
 
 type EditableFolderTextField = 'name' | 'description'
 
@@ -76,6 +83,15 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
   const [isLoadingMoreTasks, setIsLoadingMoreTasks] = useState(false)
+  const [tasks, setTasks] = useState<TaskPageState>({ status: 'loading' })
+
+  // 폴더가 바뀌면 이전 폴더의 할 일이 남지 않게 렌더 중에 되돌린다. 효과로 처리하면
+  // 이전 목록을 한 번 그린 뒤 다시 그리게 된다.
+  const [renderedFolderId, setRenderedFolderId] = useState(folderId)
+  if (renderedFolderId !== folderId) {
+    setRenderedFolderId(folderId)
+    setTasks({ status: 'loading' })
+  }
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isConfirmingFolderDelete, setIsConfirmingFolderDelete] = useState(false)
   const [isDeletingFolder, setIsDeletingFolder] = useState(false)
@@ -102,29 +118,24 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   }
 
   /**
-   * 폴더 상세를 커서와 함께 다시 불러 할 일만 이어 붙인다. 진척과 폴더 정보는 새 응답으로
-   * 갱신한다. 목록을 넘기는 사이에 다른 데서 바뀌었을 수 있어서다.
+   * 다음 페이지를 이어 붙인다. 폴더 정보는 다시 부르지 않는다 — 할 일 목록과 갱신 시점이
+   * 다르기 때문에 API가 나뉘어 있다.
    */
   const loadMoreTasks = async () => {
-    if (state.status !== 'ready') return
+    if (folderId === null || tasks.status !== 'ready') return
 
-    const cursor = state.folder.tasks.nextCursor
+    const cursor = tasks.nextCursor
     if (!cursor || isLoadingMoreTasks) return
 
     setIsLoadingMoreTasks(true)
     try {
-      const next = await getFolder(state.folder.id, { cursor })
-      setState((current) => current.status === 'ready'
+      const page = await getFolderTasks(folderId, { cursor })
+      setTasks((current) => current.status === 'ready'
         ? {
           status: 'ready',
-          folder: {
-            ...next,
-            tasks: {
-              items: [...current.folder.tasks.items, ...next.tasks.items],
-              nextCursor: next.tasks.nextCursor,
-              hasNext: next.tasks.hasNext,
-            },
-          },
+          items: [...current.items, ...page.items],
+          nextCursor: page.nextCursor,
+          hasNext: page.hasNext,
         }
         : current)
     } catch {
@@ -142,31 +153,12 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setDeleteError(null)
     try {
       await deleteTasks({ taskIds: [...taskIdsToDelete] })
-      setState((current) => {
+      setTasks((current) => {
         if (current.status !== 'ready') return current
 
-        const removed = current.folder.tasks.items.filter((task) => taskIdsToDelete.has(task.id))
-        const items = current.folder.tasks.items.filter((task) => !taskIdsToDelete.has(task.id))
-
-        // 진척은 폴더 전체 기준이다. 지금 보이는 페이지에서 다시 세면 안 되고,
-        // 방금 지운 만큼만 덜어낸다.
-        const totalTaskCount = current.folder.progress.totalTaskCount - removed.length
-        const completedTaskCount = current.folder.progress.completedTaskCount
-          - removed.filter((task) => task.status === 'DONE').length
-
         return {
-          status: 'ready',
-          folder: {
-            ...current.folder,
-            tasks: { ...current.folder.tasks, items },
-            progress: {
-              totalTaskCount,
-              completedTaskCount,
-              completionPct: totalTaskCount === 0
-                ? 0
-                : Math.floor(completedTaskCount * 100 / totalTaskCount),
-            },
-          },
+          ...current,
+          items: current.items.filter((task) => !taskIdsToDelete.has(task.id)),
         }
       })
       leaveDeleteMode()
@@ -311,12 +303,29 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
     let active = true
 
+    // 폴더 정보와 할 일 목록은 별개의 API다. 목록만 이어 읽어도 폴더 정보를 다시 받지
+    // 않도록 나뉘어 있고, 화면에서도 각자 상태로 둔다.
     void getFolder(folderId)
       .then((folder) => {
         if (active) setState({ status: 'ready', folder })
       })
       .catch((error: unknown) => {
         if (active) setState({ status: 'error', notFound: isNotFound(error) })
+      })
+
+    void getFolderTasks(folderId)
+      .then((page) => {
+        if (active) {
+          setTasks({
+            status: 'ready',
+            items: page.items,
+            nextCursor: page.nextCursor,
+            hasNext: page.hasNext,
+          })
+        }
+      })
+      .catch(() => {
+        if (active) setTasks({ status: 'error' })
       })
 
     return () => { active = false }
@@ -357,7 +366,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
   const { folder } = state
   const activeFilterCount = countActiveFilters(taskFilter)
-  const visibleTasks = folder.tasks.items.filter((task) => matchesTaskFilter(task, taskFilter))
+  const taskItems = tasks.status === 'ready' ? tasks.items : []
+  const visibleTasks = taskItems.filter((task) => matchesTaskFilter(task, taskFilter))
   const emptyCopy = activeFilterCount > 0
     ? {
       title: '조건에 맞는 할 일이 없어요.',
@@ -540,8 +550,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             <h2 id="folder-tasks-title">할 일</h2>
             <span>
               {activeFilterCount > 0
-                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${folder.tasks.items.length}개`
-                : `총 ${folder.progress.totalTaskCount}개의 할 일이 있어요`}
+                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${taskItems.length}개`
+                : `할 일 ${taskItems.length}개`}
             </span>
           </div>
           <div className={styles['task-actions']}>
@@ -599,7 +609,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             onTaskSelectionChange={toggleTaskSelection}
             onTaskUpdated={() => setRequestKey((key) => key + 1)}
           />
-          {folder.tasks.hasNext && (
+          {tasks.status === 'ready' && tasks.hasNext && (
             <button
               type="button"
               className={styles['load-more']}

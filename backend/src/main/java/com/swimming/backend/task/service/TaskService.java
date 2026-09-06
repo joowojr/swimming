@@ -187,18 +187,6 @@ public class TaskService {
                 .toList();
     }
 
-    /** 진척은 페이지가 아니라 폴더 전체를 센다. */
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public TaskCounts countByFolder(Long folderId) {
-        return new TaskCounts(
-                taskRepository.countByFolder_IdAndDeletedFalse(folderId),
-                taskRepository.countByFolder_IdAndDeletedFalseAndStatus(folderId, TaskStatus.DONE)
-        );
-    }
-
-    public record TaskCounts(long total, long completed) {
-    }
-
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Task getOne(Long userId, Long taskId) {
         return getOwnedEntity(userId, taskId).toDomain();

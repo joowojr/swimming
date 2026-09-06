@@ -14,7 +14,6 @@ import com.swimming.backend.folder.service.FolderTagService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
-import com.swimming.backend.task.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,18 +43,11 @@ class FolderUseCaseTest {
     @Mock
     private FolderTagService folderTagService;
 
-    @Mock
-    private TaskService taskService;
-
     private FolderUseCase folderUseCase;
 
     @BeforeEach
     void setUp() {
-        folderUseCase = new FolderUseCase(
-                folderService,
-                folderTagService,
-                taskService
-        );
+        folderUseCase = new FolderUseCase(folderService, folderTagService);
     }
 
     @Test
@@ -154,89 +147,16 @@ class FolderUseCaseTest {
     }
 
     @Test
-    @DisplayName("프로젝트 상세에 Task 목록과 완료 Task 비율을 포함한다")
+    @DisplayName("프로젝트 상세에 폴더 정보만 담고 할 일은 담지 않는다")
     void returnsFolderDetailAsResponse() {
         when(folderService.getOne(1L, 10L))
                 .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getPageByFolder(10L, null, 21)).thenReturn(List.of(
-                task(1L, "첫째", TaskStatus.DONE, 0),
-                task(2L, "둘째", TaskStatus.DOING, 1)
-        ));
-        when(taskService.countByFolder(10L))
-                .thenReturn(new TaskService.TaskCounts(2, 1));
 
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 20, null);
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
 
         assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.name()).isEqualTo("프로젝트");
         assertThat(response.description()).isEqualTo("설명");
-        assertThat(response.progress().totalTaskCount()).isEqualTo(2);
-        assertThat(response.progress().completedTaskCount()).isEqualTo(1);
-        assertThat(response.progress().completionPct()).isEqualTo(50);
-        assertThat(response.tasks().items()).extracting(TaskSummaryResponse::title)
-                .containsExactly("첫째", "둘째");
-        assertThat(response.tasks().hasNext()).isFalse();
-        assertThat(response.tasks().nextCursor()).isNull();
-    }
-
-    @Test
-    @DisplayName("할 일이 한 페이지를 넘으면 다음 커서를 준다")
-    void givesNextCursorWhenFolderHasMoreTasks() {
-        when(folderService.getOne(1L, 10L))
-                .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getPageByFolder(10L, null, 3)).thenReturn(List.of(
-                task(1L, "첫째", TaskStatus.TODO, 0),
-                task(2L, "둘째", TaskStatus.TODO, 1),
-                task(3L, "셋째", TaskStatus.TODO, 2)
-        ));
-        when(taskService.countByFolder(10L))
-                .thenReturn(new TaskService.TaskCounts(3, 0));
-
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 2, null);
-
-        assertThat(response.tasks().items()).extracting(TaskSummaryResponse::title)
-                .containsExactly("첫째", "둘째");
-        assertThat(response.tasks().hasNext()).isTrue();
-        assertThat(response.tasks().nextCursor()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("진척은 읽어 온 페이지가 아니라 폴더 전체를 센다")
-    void countsProgressAcrossWholeFolder() {
-        when(folderService.getOne(1L, 10L))
-                .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getPageByFolder(10L, null, 3)).thenReturn(List.of(
-                task(1L, "첫째", TaskStatus.DONE, 0),
-                task(2L, "둘째", TaskStatus.TODO, 1),
-                task(3L, "셋째", TaskStatus.TODO, 2)
-        ));
-        when(taskService.countByFolder(10L))
-                .thenReturn(new TaskService.TaskCounts(20, 12));
-
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 2, null);
-
-        assertThat(response.tasks().items()).hasSize(2);
-        assertThat(response.progress().totalTaskCount())
-                .as("페이지가 2건이어도 폴더 전체를 센다")
-                .isEqualTo(20);
-        assertThat(response.progress().completedTaskCount()).isEqualTo(12);
-        assertThat(response.progress().completionPct()).isEqualTo(60);
-    }
-
-    @Test
-    @DisplayName("Task가 없는 프로젝트의 완료 비율은 0이다")
-    void returnsZeroProgressWhenFolderHasNoTasks() {
-        when(folderService.getOne(1L, 10L))
-                .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getPageByFolder(10L, null, 21)).thenReturn(List.of());
-        when(taskService.countByFolder(10L))
-                .thenReturn(new TaskService.TaskCounts(0, 0));
-
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 20, null);
-
-        assertThat(response.progress().totalTaskCount()).isZero();
-        assertThat(response.progress().completedTaskCount()).isZero();
-        assertThat(response.progress().completionPct()).isZero();
-        assertThat(response.tasks().items()).isEmpty();
     }
 
     @Test

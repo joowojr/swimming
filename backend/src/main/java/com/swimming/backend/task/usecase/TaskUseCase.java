@@ -67,15 +67,6 @@ public class TaskUseCase {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<TaskResponse> getByFolder(Long userId, Long folderId) {
-        FolderReference folder = folderService.getReference(userId, folderId);
-        return taskService.getByFolder(folder.id())
-                .stream()
-                .map(TaskResponse::from)
-                .toList();
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskResponse> getList(Long userId, TaskSort sort) {
         return taskService.getAll(userId, sort.toSort()).stream()
                 .map(TaskResponse::from)

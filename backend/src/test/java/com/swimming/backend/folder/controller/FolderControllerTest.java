@@ -1,5 +1,6 @@
 package com.swimming.backend.folder.controller;
 
+import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.common.exception.GlobalExceptionHandler;
@@ -199,7 +200,7 @@ class FolderControllerTest {
     @Test
     @DisplayName("인증 사용자가 소유한 프로젝트 상세를 반환한다")
     void returnsOwnedFolderDetail() throws Exception {
-        when(folderUseCase.getOne(1L, 10L)).thenReturn(new FolderDetailResponse(
+        when(folderUseCase.getOne(1L, 10L, 20, null)).thenReturn(new FolderDetailResponse(
                 10L,
                 "프로젝트",
                 "설명",
@@ -207,19 +208,13 @@ class FolderControllerTest {
                 FolderStatus.ARCHIVED,
                 null,
                 new FolderProgressResponse(2, 1, 50),
-                List.of(
-                        new TaskSummaryResponse(
-                                1L,
-                                "완료 Task",
-                                TaskStatus.DONE,
-                                0
+                new CursorPage<>(
+                        List.of(
+                                new TaskSummaryResponse(1L, "완료 Task", TaskStatus.DONE, 0),
+                                new TaskSummaryResponse(2L, "진행 Task", TaskStatus.DOING, 1)
                         ),
-                        new TaskSummaryResponse(
-                                2L,
-                                "진행 Task",
-                                TaskStatus.DOING,
-                                1
-                        )
+                        null,
+                        false
                 )
         ));
 
@@ -230,9 +225,11 @@ class FolderControllerTest {
                 .andExpect(jsonPath("$.progress.totalTaskCount").value(2))
                 .andExpect(jsonPath("$.progress.completedTaskCount").value(1))
                 .andExpect(jsonPath("$.progress.completionPct").value(50))
-                .andExpect(jsonPath("$.tasks[0].id").value(1))
-                .andExpect(jsonPath("$.tasks[0].status").value("DONE"))
-                .andExpect(jsonPath("$.tasks[1].orderIdx").value(1));
+                .andExpect(jsonPath("$.tasks.items[0].id").value(1))
+                .andExpect(jsonPath("$.tasks.items[0].status").value("DONE"))
+                .andExpect(jsonPath("$.tasks.items[1].orderIdx").value(1))
+                .andExpect(jsonPath("$.tasks.hasNext").value(false))
+                .andExpect(jsonPath("$.tasks.nextCursor").isEmpty());
     }
 
     @Test
@@ -270,7 +267,7 @@ class FolderControllerTest {
     @Test
     @DisplayName("소유하지 않은 프로젝트는 찾을 수 없음으로 반환한다")
     void returnsNotFoundWithoutRevealingOwnership() throws Exception {
-        when(folderUseCase.getOne(1L, 10L))
+        when(folderUseCase.getOne(1L, 10L, 20, null))
                 .thenThrow(new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
 
         mockMvc.perform(get("/api/folders/10"))

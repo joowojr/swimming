@@ -40,11 +40,6 @@ export async function createTaskWithOptionalPlan(request: {
   return response.data
 }
 
-export async function getTasks(folderId: number): Promise<TaskResponse[]> {
-  const response = await client.get<TaskResponse[]>(`/folders/${folderId}/tasks`)
-  return response.data
-}
-
 export async function getTaskList(
   sort: TaskSort,
   signal?: AbortSignal,

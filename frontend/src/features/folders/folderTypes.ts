@@ -1,3 +1,4 @@
+import type { CursorPage } from '../../api/types'
 import type { TaskSummaryResponse } from '../tasks/taskTypes'
 
 export type FolderStatus = 'IN_PROGRESS' | 'ARCHIVED'
@@ -38,7 +39,7 @@ export interface FolderDetail {
   status: FolderStatus
   tag: FolderTag | null
   progress: FolderProgress
-  tasks: TaskSummaryResponse[]
+  tasks: CursorPage<TaskSummaryResponse>
 }
 
 export interface CreateFolderRequest {

@@ -71,22 +71,6 @@ class TaskUseCaseTest {
     }
 
     @Test
-    @DisplayName("소유한 폴더의 Task를 저장된 순서대로 반환한다")
-    void returnsTasksFromOwnedFolder() {
-        when(folderService.getReference(1L, 10L))
-                .thenReturn(new FolderReference(10L, "폴더", null));
-        when(taskService.getByFolder(10L)).thenReturn(List.of(
-                task(1L, 10L, "첫째", 0),
-                task(2L, 10L, "둘째", 1)
-        ));
-
-        List<TaskResponse> responses = taskUseCase.getByFolder(1L, 10L);
-
-        assertThat(responses).extracting(TaskResponse::title)
-                .containsExactly("첫째", "둘째");
-    }
-
-    @Test
     @DisplayName("전체 모드는 사용자가 소유한 모든 Task를 반환한다")
     void returnsAllOwnedTasks() {
         when(taskService.getAll(1L, TaskSort.DESC.toSort())).thenReturn(List.of(

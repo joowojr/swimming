@@ -84,22 +84,6 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("폴더 Task 목록을 저장된 순서대로 반환한다")
-    void returnsFolderTasks() throws Exception {
-        when(taskUseCase.getByFolder(1L, 10L)).thenReturn(List.of(
-                response(2L, "첫째", TaskStatus.DOING, 0),
-                response(1L, "둘째", TaskStatus.TODO, 1)
-        ));
-
-        mockMvc.perform(get("/api/folders/10/tasks"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(2))
-                .andExpect(jsonPath("$[0].orderIdx").value(0))
-                .andExpect(jsonPath("$[1].id").value(1))
-                .andExpect(jsonPath("$[1].orderIdx").value(1));
-    }
-
-    @Test
     @DisplayName("정렬 없이 조회하면 최신순으로 반환한다")
     void returnsAllOwnedTasks() throws Exception {
         when(taskUseCase.getList(1L, TaskSort.DESC)).thenReturn(List.of(

@@ -75,6 +75,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
+  const [isLoadingMoreTasks, setIsLoadingMoreTasks] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isConfirmingFolderDelete, setIsConfirmingFolderDelete] = useState(false)
   const [isDeletingFolder, setIsDeletingFolder] = useState(false)
@@ -100,6 +101,39 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setDeleteError(null)
   }
 
+  /**
+   * 폴더 상세를 커서와 함께 다시 불러 할 일만 이어 붙인다. 진척과 폴더 정보는 새 응답으로
+   * 갱신한다. 목록을 넘기는 사이에 다른 데서 바뀌었을 수 있어서다.
+   */
+  const loadMoreTasks = async () => {
+    if (state.status !== 'ready') return
+
+    const cursor = state.folder.tasks.nextCursor
+    if (!cursor || isLoadingMoreTasks) return
+
+    setIsLoadingMoreTasks(true)
+    try {
+      const next = await getFolder(state.folder.id, { cursor })
+      setState((current) => current.status === 'ready'
+        ? {
+          status: 'ready',
+          folder: {
+            ...next,
+            tasks: {
+              items: [...current.folder.tasks.items, ...next.tasks.items],
+              nextCursor: next.tasks.nextCursor,
+              hasNext: next.tasks.hasNext,
+            },
+          },
+        }
+        : current)
+    } catch {
+      // 다음 장을 못 가져와도 이미 보이는 목록은 그대로 둔다.
+    } finally {
+      setIsLoadingMoreTasks(false)
+    }
+  }
+
   const removeSelectedTasks = async () => {
     if (selectedTaskIds.size === 0) return
 
@@ -111,15 +145,20 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       setState((current) => {
         if (current.status !== 'ready') return current
 
-        const tasks = current.folder.tasks.filter((task) => !taskIdsToDelete.has(task.id))
-        const completedTaskCount = tasks.filter((task) => task.status === 'DONE').length
-        const totalTaskCount = tasks.length
+        const removed = current.folder.tasks.items.filter((task) => taskIdsToDelete.has(task.id))
+        const items = current.folder.tasks.items.filter((task) => !taskIdsToDelete.has(task.id))
+
+        // 진척은 폴더 전체 기준이다. 지금 보이는 페이지에서 다시 세면 안 되고,
+        // 방금 지운 만큼만 덜어낸다.
+        const totalTaskCount = current.folder.progress.totalTaskCount - removed.length
+        const completedTaskCount = current.folder.progress.completedTaskCount
+          - removed.filter((task) => task.status === 'DONE').length
 
         return {
           status: 'ready',
           folder: {
             ...current.folder,
-            tasks,
+            tasks: { ...current.folder.tasks, items },
             progress: {
               totalTaskCount,
               completedTaskCount,
@@ -318,7 +357,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
   const { folder } = state
   const activeFilterCount = countActiveFilters(taskFilter)
-  const visibleTasks = folder.tasks.filter((task) => matchesTaskFilter(task, taskFilter))
+  const visibleTasks = folder.tasks.items.filter((task) => matchesTaskFilter(task, taskFilter))
   const emptyCopy = activeFilterCount > 0
     ? {
       title: '조건에 맞는 할 일이 없어요.',
@@ -501,8 +540,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             <h2 id="folder-tasks-title">할 일</h2>
             <span>
               {activeFilterCount > 0
-                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${folder.tasks.length}개`
-                : `총 ${visibleTasks.length}개의 할 일이 있어요`}
+                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${folder.tasks.items.length}개`
+                : `총 ${folder.progress.totalTaskCount}개의 할 일이 있어요`}
             </span>
           </div>
           <div className={styles['task-actions']}>
@@ -560,6 +599,16 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             onTaskSelectionChange={toggleTaskSelection}
             onTaskUpdated={() => setRequestKey((key) => key + 1)}
           />
+          {folder.tasks.hasNext && (
+            <button
+              type="button"
+              className={styles['load-more']}
+              disabled={isLoadingMoreTasks}
+              onClick={() => void loadMoreTasks()}
+            >
+              {isLoadingMoreTasks ? '불러오는 중' : '더 보기'}
+            </button>
+          )}
         </div>
       </section>
         </div>

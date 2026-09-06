@@ -11,6 +11,7 @@ import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
+import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.service.TaskService;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -156,20 +158,68 @@ class FolderUseCaseTest {
     void returnsFolderDetailAsResponse() {
         when(folderService.getOne(1L, 10L))
                 .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getSummaries(10L)).thenReturn(List.of(
-                new TaskSummaryResponse(1L, "첫째", TaskStatus.DONE, 0),
-                new TaskSummaryResponse(2L, "둘째", TaskStatus.DOING, 1)
+        when(taskService.getPageByFolder(10L, null, 21)).thenReturn(List.of(
+                task(1L, "첫째", TaskStatus.DONE, 0),
+                task(2L, "둘째", TaskStatus.DOING, 1)
         ));
+        when(taskService.countByFolder(10L))
+                .thenReturn(new TaskService.TaskCounts(2, 1));
 
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 20, null);
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.description()).isEqualTo("설명");
         assertThat(response.progress().totalTaskCount()).isEqualTo(2);
         assertThat(response.progress().completedTaskCount()).isEqualTo(1);
         assertThat(response.progress().completionPct()).isEqualTo(50);
-        assertThat(response.tasks()).extracting(TaskSummaryResponse::title)
+        assertThat(response.tasks().items()).extracting(TaskSummaryResponse::title)
                 .containsExactly("첫째", "둘째");
+        assertThat(response.tasks().hasNext()).isFalse();
+        assertThat(response.tasks().nextCursor()).isNull();
+    }
+
+    @Test
+    @DisplayName("할 일이 한 페이지를 넘으면 다음 커서를 준다")
+    void givesNextCursorWhenFolderHasMoreTasks() {
+        when(folderService.getOne(1L, 10L))
+                .thenReturn(folder(10L, "프로젝트", "설명", null));
+        when(taskService.getPageByFolder(10L, null, 3)).thenReturn(List.of(
+                task(1L, "첫째", TaskStatus.TODO, 0),
+                task(2L, "둘째", TaskStatus.TODO, 1),
+                task(3L, "셋째", TaskStatus.TODO, 2)
+        ));
+        when(taskService.countByFolder(10L))
+                .thenReturn(new TaskService.TaskCounts(3, 0));
+
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 2, null);
+
+        assertThat(response.tasks().items()).extracting(TaskSummaryResponse::title)
+                .containsExactly("첫째", "둘째");
+        assertThat(response.tasks().hasNext()).isTrue();
+        assertThat(response.tasks().nextCursor()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("진척은 읽어 온 페이지가 아니라 폴더 전체를 센다")
+    void countsProgressAcrossWholeFolder() {
+        when(folderService.getOne(1L, 10L))
+                .thenReturn(folder(10L, "프로젝트", "설명", null));
+        when(taskService.getPageByFolder(10L, null, 3)).thenReturn(List.of(
+                task(1L, "첫째", TaskStatus.DONE, 0),
+                task(2L, "둘째", TaskStatus.TODO, 1),
+                task(3L, "셋째", TaskStatus.TODO, 2)
+        ));
+        when(taskService.countByFolder(10L))
+                .thenReturn(new TaskService.TaskCounts(20, 12));
+
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 2, null);
+
+        assertThat(response.tasks().items()).hasSize(2);
+        assertThat(response.progress().totalTaskCount())
+                .as("페이지가 2건이어도 폴더 전체를 센다")
+                .isEqualTo(20);
+        assertThat(response.progress().completedTaskCount()).isEqualTo(12);
+        assertThat(response.progress().completionPct()).isEqualTo(60);
     }
 
     @Test
@@ -177,14 +227,16 @@ class FolderUseCaseTest {
     void returnsZeroProgressWhenFolderHasNoTasks() {
         when(folderService.getOne(1L, 10L))
                 .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getSummaries(10L)).thenReturn(List.of());
+        when(taskService.getPageByFolder(10L, null, 21)).thenReturn(List.of());
+        when(taskService.countByFolder(10L))
+                .thenReturn(new TaskService.TaskCounts(0, 0));
 
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L, 20, null);
 
         assertThat(response.progress().totalTaskCount()).isZero();
         assertThat(response.progress().completedTaskCount()).isZero();
         assertThat(response.progress().completionPct()).isZero();
-        assertThat(response.tasks()).isEmpty();
+        assertThat(response.tasks().items()).isEmpty();
     }
 
     @Test
@@ -219,6 +271,15 @@ class FolderUseCaseTest {
         folderUseCase.delete(1L, 10L);
 
         verify(folderService).delete(1L, 10L);
+    }
+
+    /** 폴더 상세가 읽는 할 일 한 건. 커서를 만들려면 생성 시각과 id가 있어야 한다. */
+    private Task task(Long id, String title, TaskStatus status, int orderIdx) {
+        return Task.restore(
+                id, 1L, 10L, null, title, status, orderIdx,
+                Instant.parse("2026-03-01T00:00:00Z").plusSeconds(id),
+                Instant.parse("2026-03-01T00:00:00Z").plusSeconds(id)
+        );
     }
 
     private Folder folder(

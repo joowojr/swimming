@@ -24,6 +24,7 @@ public enum ErrorCode {
     INVALID_TASK_SORT(HttpStatus.BAD_REQUEST, "Task 정렬 조건이 올바르지 않습니다"),
     INVALID_MATRIX_SECTION(HttpStatus.BAD_REQUEST, "Matrix 영역이 올바르지 않습니다"),
     INVALID_MATRIX_CURSOR(HttpStatus.BAD_REQUEST, "Matrix 조회 커서가 올바르지 않습니다"),
+    INVALID_TASK_CURSOR(HttpStatus.BAD_REQUEST, "할 일 목록 조회 커서가 올바르지 않습니다"),
     INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기가 올바르지 않습니다"),
     INVALID_TASK_PLACEMENT(HttpStatus.BAD_REQUEST, "Task 이동 위치가 올바르지 않습니다"),
     TASK_PLACEMENT_CONFLICT(HttpStatus.CONFLICT, "Task 목록이 변경되어 이동 위치를 적용할 수 없습니다"),

@@ -66,14 +66,6 @@ public class TaskController {
         return ResponseEntity.created(location).body(response);
     }
 
-    @GetMapping("/folders/{folderId}/tasks")
-    public ResponseEntity<List<TaskResponse>> getByFolder(
-            @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable("folderId") Long folderId
-    ) {
-        return ResponseEntity.ok(taskUseCase.getByFolder(authUser.id(), folderId));
-    }
-
     @GetMapping("/tasks")
     public ResponseEntity<List<TaskResponse>> getList(
             @AuthenticationPrincipal AuthUser authUser,

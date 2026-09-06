@@ -9,7 +9,6 @@ import ModalTriggerButton from '../../components/ModalTriggerButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
-import type {FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskPriority, updateTaskStatus, updateTaskTitle, updateTaskUrgent} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
@@ -18,7 +17,7 @@ import {
     deleteDailyPlanItem,
     getDailyPlans,
 } from './dailyPlanApi'
-import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
+import type {TaskResponse, TaskStatus, TaskSummaryResponse} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
@@ -100,7 +99,7 @@ export default function DailyPlanBoard() {
         setDrafts((current) => ({...current, [savedPlan.date]: savedPlan.items}))
     }
 
-    const addTasks = async (tasks: FolderDetail['tasks']) => {
+    const addTasks = async (tasks: TaskSummaryResponse[]) => {
         if (tasks.length === 0) return
         replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
     }

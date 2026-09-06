@@ -1,4 +1,5 @@
 import { client } from '../../api/client'
+import type { CursorPageQuery } from '../../api/types'
 import type {
   CreateFolderRequest,
   Folder,
@@ -20,8 +21,14 @@ export async function createFolder(
   return response.data
 }
 
-export async function getFolder(folderId: number): Promise<FolderDetail> {
-  const response = await client.get<FolderDetail>(`/folders/${folderId}`)
+/** size·cursor는 폴더에 딸린 할 일 목록의 페이지를 가리킨다. */
+export async function getFolder(
+  folderId: number,
+  query: CursorPageQuery = {},
+): Promise<FolderDetail> {
+  const response = await client.get<FolderDetail>(`/folders/${folderId}`, {
+    params: query,
+  })
   return response.data
 }
 

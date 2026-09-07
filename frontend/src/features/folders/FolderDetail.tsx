@@ -1,13 +1,10 @@
-import type {KeyboardEvent} from 'react'
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {IconCalendarDue, IconChevronRight} from '@tabler/icons-react'
+import {IconChevronRight} from '@tabler/icons-react'
 import {Link, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
-import DdayChip from '../../components/DdayChip'
 import DeleteIconButton from '../../components/DeleteIconButton'
-import DeleteConfirmation from '../../components/DeleteConfirmation'
-import InlineEditableText from '../../components/InlineEditableText'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
+import FolderHeader from './FolderHeader'
 import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
@@ -17,9 +14,8 @@ import type { TaskFilter } from '../tasks/taskFilter'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks, getFolderTasks} from '../tasks/taskApi'
 import type { TaskSummaryResponse } from '../tasks/taskTypes'
-import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
-import {useFolderStore} from '../../store/folderStore.ts'
-import type {FolderDetail as FolderDetailData, FolderStatus} from './folderTypes.ts'
+import {getFolder} from './folderApi.ts'
+import type {FolderDetail as FolderDetailData} from './folderTypes.ts'
 import TaskList from '../tasks/TaskList'
 import NoteCard from '../note/NoteCard'
 import styles from './FolderDetail.module.css'
@@ -40,8 +36,6 @@ type TaskPageState =
   | { status: 'ready'; items: TaskSummaryResponse[]; nextCursor: string | null; hasNext: boolean }
   | { status: 'error' }
 
-type EditableFolderTextField = 'name' | 'description'
-
 // const taskFilters: Array<{ value: TaskFilter; label: string }> = [
 //   { value: 'ALL', label: '전체' },
 //   ...TASK_STATUS_VALUES.map((status) => ({
@@ -50,30 +44,12 @@ type EditableFolderTextField = 'name' | 'description'
 //   })),
 // ]
 
-const folderStatusLabel: Record<FolderStatus, string> = {
-  IN_PROGRESS: '진행 중',
-  ARCHIVED: '보관됨',
-}
-
-const targetDateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
-
-function formatTargetDate(targetDate: string | null) {
-  return targetDate
-    ? targetDateFormatter.format(new Date(`${targetDate}T00:00:00`))
-    : '설정하지 않음'
-}
-
 function isNotFound(error: unknown) {
   return typeof error === 'object' && error !== null && (error as ApiError).status === 404
 }
 
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
-  const applyFolderToStore = useFolderStore((state) => state.apply)
   const [requestKey, setRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     folderId === null ? { status: 'error', notFound: true } : { status: 'loading' },
@@ -93,13 +69,6 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setTasks({ status: 'loading' })
   }
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [isConfirmingFolderDelete, setIsConfirmingFolderDelete] = useState(false)
-  const [isDeletingFolder, setIsDeletingFolder] = useState(false)
-  const [folderDeleteError, setFolderDeleteError] = useState<string | null>(null)
-  const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
-  const [editValue, setEditValue] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-  const [isSavingFolder, setIsSavingFolder] = useState(false)
   const taskInputRef = useRef<HTMLInputElement>(null)
   const leaveDeleteMode = () => {
     setIsDeleteMode(false)
@@ -169,127 +138,6 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       setDeleteError(apiMessage ?? '선택한 작업을 삭제하지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsDeletingTasks(false)
-    }
-  }
-
-  const removeFolder = async (folder: FolderDetailData) => {
-    if (isDeletingFolder) return
-    setIsDeletingFolder(true)
-    setFolderDeleteError(null)
-    try {
-      await deleteFolder(folder.id)
-      onDeleted(folder.id)
-      navigate('/folders', { replace: true })
-    } catch (error: unknown) {
-      const apiMessage = typeof error === 'object' && error !== null
-        ? (error as ApiError).message
-        : undefined
-      setFolderDeleteError(apiMessage ?? '폴더를 삭제하지 못했습니다. 다시 시도해 주세요.')
-    } finally {
-      setIsDeletingFolder(false)
-    }
-  }
-
-  const startEditingTargetDate = (value: string | null) => {
-    if (isSavingFolder) return
-    setIsEditingTargetDate(true)
-    setEditValue(value ?? '')
-    setEditError(null)
-  }
-
-  const cancelEditingTargetDate = () => {
-    if (isSavingFolder) return
-    setIsEditingTargetDate(false)
-    setEditValue('')
-    setEditError(null)
-  }
-
-  const applyUpdatedFolder = (folder: FolderDetailData, updated: Awaited<ReturnType<typeof updateFolder>>) => {
-    applyFolderToStore(updated)
-    setState({
-      status: 'ready',
-      folder: {
-        ...folder,
-        name: updated.name,
-        description: updated.description,
-        targetDate: updated.targetDate,
-        status: updated.status,
-        tag: updated.tag,
-      },
-    })
-  }
-
-  const saveFolderTextField = async (
-    folder: FolderDetailData,
-    field: EditableFolderTextField,
-    value: string,
-  ) => {
-    setIsSavingFolder(true)
-    try {
-      const updated = await updateFolder(folder.id, {
-        name: field === 'name' ? value : folder.name,
-        description: field === 'description' ? value : folder.description,
-        targetDate: folder.targetDate,
-        status: folder.status,
-        tagId: folder.tag?.id ?? null,
-      })
-      applyUpdatedFolder(folder, updated)
-    } finally {
-      setIsSavingFolder(false)
-    }
-  }
-
-  const getFolderFieldError = (error: unknown, field: EditableFolderTextField) => {
-    const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
-    return apiError?.errors?.[field]
-      ?? apiError?.message
-      ?? '폴더 정보를 저장하지 못했습니다.'
-  }
-
-  const saveTargetDate = async (folder: FolderDetailData) => {
-    if (!isEditingTargetDate || isSavingFolder) return
-    const targetDate = editValue || null
-    if (targetDate === folder.targetDate) {
-      cancelEditingTargetDate()
-      return
-    }
-
-    setIsSavingFolder(true)
-    setEditError(null)
-    try {
-      const updated = await updateFolder(folder.id, {
-        name: folder.name,
-        description: folder.description,
-        targetDate,
-        status: folder.status,
-        tagId: folder.tag?.id ?? null,
-      })
-      applyUpdatedFolder(folder, updated)
-      setIsEditingTargetDate(false)
-      setEditValue('')
-    } catch (error: unknown) {
-      const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
-      setEditError(apiError?.errors?.targetDate ?? apiError?.message ?? '목표일을 저장하지 못했습니다.')
-    } finally {
-      setIsSavingFolder(false)
-    }
-  }
-
-  const handleTargetDateDisplayKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== 'Enter' && event.key !== 'F2') return
-    event.preventDefault()
-    startEditingTargetDate(state.status === 'ready' ? state.folder.targetDate : null)
-  }
-
-  const handleTargetDateEditorKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      cancelEditingTargetDate()
-      return
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      event.currentTarget.blur()
     }
   }
 
@@ -395,97 +243,18 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       <div className={styles['detail-layout']}>
         <div className={styles['detail-main']}>
 
-      <header className={styles.header}>
-        <div className={styles['header-top']}>
-          <div className={styles.badges} data-tone={folder.id % 4}>
-            {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
-            <span className={styles['folder-status']} data-status={folder.status}>{folderStatusLabel[folder.status]}</span>
-            <DdayChip targetDate={folder.targetDate} />
-          </div>
-          <DeleteIconButton
-            className={styles['compact-delete-button']}
-            iconSize={14}
-            label="폴더 삭제"
-            active={isConfirmingFolderDelete}
-            disabled={isDeletingFolder}
-            onClick={() => {
-              setIsConfirmingFolderDelete((current) => !current)
-              setFolderDeleteError(null)
-            }}
-          >
-            <span>{isConfirmingFolderDelete ? '취소' : '폴더 삭제'}</span>
-          </DeleteIconButton>
-        </div>
-        {isConfirmingFolderDelete && (
-          <DeleteConfirmation
-            message="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 메모는 유지됩니다."
-            ariaLabel="폴더 삭제 확인"
-            isDeleting={isDeletingFolder}
-            onCancel={() => setIsConfirmingFolderDelete(false)}
-            onConfirm={() => void removeFolder(folder)}
-          />
-        )}
-        {folderDeleteError && <p className={styles['delete-error']} role="alert">{folderDeleteError}</p>}
-        <div className={styles['editable-group']}>
-          <h1 id="folder-detail-title">
-            <InlineEditableText
-              value={folder.name}
-              ariaLabel="폴더 제목"
-              maxLength={255}
-              requiredMessage="폴더 이름을 입력해 주세요."
-              disabled={isSavingFolder}
-              onSave={(value) => saveFolderTextField(folder, 'name', value)}
-              getErrorMessage={(error) => getFolderFieldError(error, 'name')}
-            />
-          </h1>
-        </div>
-        <div className={styles['editable-group']}>
-          <p>
-            <InlineEditableText
-              value={folder.description}
-              emptyText="폴더 설명이 아직 없습니다."
-              ariaLabel="폴더 설명"
-              requiredMessage="폴더 설명을 입력해 주세요."
-              disabled={isSavingFolder}
-              onSave={(value) => saveFolderTextField(folder, 'description', value)}
-              getErrorMessage={(error) => getFolderFieldError(error, 'description')}
-            />
-          </p>
-        </div>
-        <div className={styles['header-bottom']}>
-          {isEditingTargetDate ? (
-            <span className={styles['date-editor']}>
-              <input
-                type="date"
-                value={editValue}
-                aria-label="폴더 목표일"
-                aria-invalid={Boolean(editError)}
-                disabled={isSavingFolder}
-                autoFocus
-                onChange={(event) => { setEditValue(event.target.value); setEditError(null) }}
-                onBlur={() => void saveTargetDate(folder)}
-                onKeyDown={handleTargetDateEditorKeyDown}
-              />
-            </span>
-          ) : (
-            <button
-              type="button"
-              className={styles['target-date-chip']}
-              title="더블 클릭하여 목표일 수정"
-              disabled={isSavingFolder}
-              onDoubleClick={() => startEditingTargetDate(folder.targetDate)}
-              onKeyDown={handleTargetDateDisplayKeyDown}
-            >
-              <IconCalendarDue size={14} stroke={1.8} aria-hidden="true" />
-              <span>
-                <span className="sr-only">목표일 </span>
-                {formatTargetDate(folder.targetDate)}
-              </span>
-            </button>
-          )}
-        </div>
-        {editError && <p className={styles['target-date-error']} role="alert">{editError}</p>}
-      </header>
+      <FolderHeader
+        folder={folder}
+        titleId="folder-detail-title"
+        deleteMessage="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 노트는 유지됩니다."
+        onUpdated={(updated) => setState((current) => current.status === 'ready'
+          ? { status: 'ready', folder: { ...current.folder, ...updated } }
+          : current)}
+        onDeleted={(deletedFolderId) => {
+          onDeleted(deletedFolderId)
+          navigate('/folders', { replace: true })
+        }}
+      />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}
@@ -623,7 +392,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       </section>
         </div>
 
-        <aside className={styles['detail-aside']} aria-label="폴더 메모">
+        <aside className={styles['detail-aside']} aria-label="폴더 노트">
           <NoteCard key={folder.id} folders={[folder]} folderId={folder.id} />
         </aside>
       </div>

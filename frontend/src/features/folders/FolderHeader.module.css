@@ -1,0 +1,210 @@
+/* Hallmark · component: folder-header · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · editing · saving · confirming-delete · error
+ * contrast: pass · responsive: code-pass
+ * FolderDetail에서 옮겨 왔다. 할 일 폴더와 링크 폴더가 같은 헤더를 쓴다.
+ */
+
+.header {
+  max-width: 48rem;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.header-top .badges {
+  margin-bottom: 0;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.tag,
+.folder-status {
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-label-caps-weight);
+  line-height: var(--text-label-caps-line-height);
+  white-space: nowrap;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-default);
+  color: var(--color-mute);
+  background: var(--project-tone-tint, var(--color-surface-container-highest));
+}
+
+.folder-status {
+  border: var(--border-width) solid var(--chip-doing-border);
+  border-radius: var(--radius-full);
+  color: var(--chip-doing-fg);
+  background: var(--chip-doing-bg);
+}
+
+.folder-status[data-status='ARCHIVED'] {
+  border-style: dashed;
+  border-color: var(--chip-hold-border);
+  color: var(--chip-hold-fg);
+  background: var(--chip-hold-bg);
+}
+
+.badges[data-tone='0'] { --project-tone: var(--color-tone-fountain); --project-tone-tint: var(--color-tone-fountain-tint); }
+.badges[data-tone='1'] { --project-tone: var(--color-tone-indigo); --project-tone-tint: var(--color-tone-indigo-tint); }
+.badges[data-tone='2'] { --project-tone: var(--color-tone-glorious); --project-tone-tint: var(--color-tone-glorious-tint); }
+.badges[data-tone='3'] { --project-tone: var(--color-tone-wild-willow); --project-tone-tint: var(--color-tone-wild-willow-tint); }
+
+.tag::before {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--project-tone, var(--color-mute));
+  content: '';
+}
+
+.compact-delete-button {
+  min-width: 1.875rem;
+  min-height: 1.875rem;
+  padding-inline: var(--space-2);
+  font-size: var(--text-label-caps-size);
+}
+
+.delete-error {
+  margin: var(--space-2) 0 0;
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+}
+
+.header h1 {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-headline-lg-size);
+  font-style: normal;
+  font-weight: var(--text-headline-lg-weight);
+  letter-spacing: var(--text-headline-xl-letter-spacing);
+  line-height: var(--text-headline-lg-line-height);
+  overflow-wrap: anywhere;
+}
+
+.header p {
+  max-width: 65ch;
+  margin: var(--space-2) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-lg-line-height);
+}
+
+.editable-group {
+  display: grid;
+  max-width: 100%;
+  min-width: 0;
+  justify-items: start;
+}
+
+.editable-group > h1,
+.editable-group > p {
+  width: 100%;
+  min-width: 0;
+}
+
+.header-bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.target-date-error {
+  margin: var(--space-2) 0 0;
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+  text-align: right;
+}
+
+.target-date-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 1.875rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  white-space: nowrap;
+  background: var(--color-secondary-bg);
+  cursor: text;
+}
+
+.target-date-chip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+.target-date-chip:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.date-editor {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.date-editor input {
+  field-sizing: content;
+  width: auto;
+  max-width: 100%;
+  min-height: var(--space-8);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  background: transparent;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+}
+
+.date-editor input:focus-visible {
+  border-color: transparent;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+  background: var(--color-surface-soft);
+}
+
+.date-editor input:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.date-editor input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .target-date-chip:hover:not(:disabled) {
+    border-color: var(--color-hairline);
+    color: var(--color-primary);
+    background: var(--color-surface-soft);
+  }
+}

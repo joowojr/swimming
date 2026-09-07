@@ -64,6 +64,12 @@ public class SourceCollectUseCase {
             saved.add(save(userId, folderId, result));
         }
 
+        // 이 Folder에 새로 만든 것이 있으면 링크가 있다는 뜻이다. 세어 볼 필요가 없다.
+        // ALREADY_SAVED는 근거가 못 된다. 같은 문서가 다른 Folder에 저장돼 있을 수 있다.
+        if (saved.stream().anyMatch(item -> item.result() == SourceCollectResponse.Result.CREATED)) {
+            folderService.updateHasSource(userId, folderId, true);
+        }
+
         return new SourceCollectResponse(toItems(userId, saved));
     }
 

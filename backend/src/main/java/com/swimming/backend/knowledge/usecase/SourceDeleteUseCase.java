@@ -1,5 +1,6 @@
 package com.swimming.backend.knowledge.usecase;
 
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -30,6 +31,7 @@ public class SourceDeleteUseCase {
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
     private final KnowledgeRelationService relationService;
+    private final FolderService folderService;
 
     /**
      * 딸린 Topic도 함께 지운다.
@@ -40,6 +42,8 @@ public class SourceDeleteUseCase {
      *
      * <p>Subject는 남긴다. 여러 문서가 공유하는 개념이고, 지웠다가 같은 개념을 다시 저장하면
      * 재사용이 끊겨 노드가 갈라진다.
+     *
+     * <p>마지막 링크였다면 폴더의 표시를 끈다. 켜진 채로 두면 지울 수 있는 폴더를 막는다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, UUID sourceId) {
@@ -50,6 +54,9 @@ public class SourceDeleteUseCase {
         }
 
         sourceService.delete(source);
+
+        Long folderId = source.getFolderId();
+        folderService.updateHasSource(userId, folderId, sourceService.existsInFolder(userId, folderId));
     }
 
     private List<KnowledgeNode> topicsOf(UUID sourceId) {

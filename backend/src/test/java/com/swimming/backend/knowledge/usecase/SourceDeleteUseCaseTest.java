@@ -27,6 +27,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SourceDeleteUseCaseTest {
@@ -40,6 +41,7 @@ class SourceDeleteUseCaseTest {
     private InMemoryKnowledgeRepositories.Relations relations;
 
     private KnowledgeRelationService relationService;
+    private FolderService folderService;
 
     private SourceDeleteUseCase useCase;
     private SourceListUseCase listUseCase;
@@ -59,11 +61,11 @@ class SourceDeleteUseCaseTest {
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
         SourceConceptReader conceptReader = new SourceConceptReader(relations, nodes);
 
-        FolderService folderService = mock(FolderService.class);
+        folderService = mock(FolderService.class);
         when(folderService.getReference(USER_ID, FOLDER_ID))
                 .thenReturn(new FolderReference(FOLDER_ID, "Spring AI 공부", "설명"));
 
-        useCase = new SourceDeleteUseCase(sourceService, nodeService, relationService);
+        useCase = new SourceDeleteUseCase(sourceService, nodeService, relationService, folderService);
         listUseCase = new SourceListUseCase(folderService, sourceService, conceptReader);
         detailUseCase = new SourceDetailUseCase(sourceService, conceptReader);
         nodeDetailUseCase = new NodeDetailUseCase(nodeService, relationService, sourceService);
@@ -176,6 +178,30 @@ class SourceDeleteUseCaseTest {
         assertThat(relations.findAllByFromNodeIdIn(
                 List.of(source.getId()), List.of(RelationType.values())
         )).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("마지막 링크를 지우면 폴더의 링크 표시를 끈다")
+    void clearsFolderFlagOnLastSource() {
+        KnowledgeSource source = givenSource("문서");
+        digest(source, givenNode(NodeType.TOPIC, "목적"), givenNode(NodeType.SUBJECT, "MCP"));
+
+        useCase.delete(USER_ID, source.getId());
+
+        verify(folderService).updateHasSource(USER_ID, FOLDER_ID, false);
+    }
+
+    @Test
+    @DisplayName("링크가 남아 있으면 폴더 표시를 켠 채로 둔다")
+    void keepsFolderFlagWhileSourcesRemain() {
+        // 켜진 채로 둬야 링크가 남은 폴더의 삭제를 계속 막는다.
+        givenSource("남길 문서");
+        KnowledgeSource removed = givenSource("지울 문서");
+        digest(removed, givenNode(NodeType.TOPIC, "목적"), givenNode(NodeType.SUBJECT, "MCP"));
+
+        useCase.delete(USER_ID, removed.getId());
+
+        verify(folderService).updateHasSource(USER_ID, FOLDER_ID, true);
     }
 
     @Test

@@ -55,6 +55,16 @@ public class FolderEntity extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
 
+    /**
+     * 이 폴더에 살아 있는 링크가 있는지. 링크 도메인이 갱신하는 파생 상태다.
+     *
+     * <p>도메인 {@link Folder}에 두지 않는다. 사용자가 편집하는 속성이 아니라서
+     * {@link #apply}가 지나가며 덮으면 안 된다.
+     */
+    @Getter(AccessLevel.NONE)
+    @Column(name = "has_source", nullable = false)
+    private boolean hasSource;
+
     private FolderEntity(Folder folder, User user, FolderTagEntity tag) {
         this.user = user;
         this.tag = tag;
@@ -84,6 +94,14 @@ public class FolderEntity extends BaseTimeEntity {
 
     public void delete() {
         this.deleted = true;
+    }
+
+    public boolean hasSource() {
+        return hasSource;
+    }
+
+    public void updateHasSource(boolean hasSource) {
+        this.hasSource = hasSource;
     }
 
     public Folder toDomain() {

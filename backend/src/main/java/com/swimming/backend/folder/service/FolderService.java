@@ -110,7 +110,24 @@ public class FolderService {
         if (folderRepository.countActiveTasks(userId, folderId) > 0) {
             throw new BusinessException(ErrorCode.FOLDER_HAS_TASKS);
         }
+        // 링크는 folder_id가 NOT NULL이라 폴더에서 떼어 둘 자리가 없다. 폴더만 지우면
+        // 삭제된 폴더를 가리키는 행이 남는다.
+        if (entity.hasSource()) {
+            throw new BusinessException(ErrorCode.FOLDER_HAS_SOURCES);
+        }
         entity.delete();
+        folderRepository.flush();
+    }
+
+    /**
+     * 이 폴더에 살아 있는 링크가 있는지 기록한다. 값은 링크 도메인이 정해 넘긴다.
+     *
+     * <p>folder는 왜 켜지고 꺼지는지 모른 채 자기 컬럼만 쓴다. folder가 knowledge에
+     * 물어보면 의존 방향이 뒤집힌다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updateHasSource(Long userId, Long folderId, boolean hasSource) {
+        getOwnedFolderEntity(userId, folderId).updateHasSource(hasSource);
         folderRepository.flush();
     }
 

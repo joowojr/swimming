@@ -32,7 +32,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -251,6 +253,27 @@ class SourceCollectUseCaseTest {
                 .getFolderId())
                 .as("처음 저장한 Folder를 그대로 둔다")
                 .isEqualTo(FOLDER_ID);
+    }
+
+    @Test
+    @DisplayName("링크를 저장하면 폴더에 링크가 있다고 기록한다")
+    void marksFolderHasSource() {
+        givenFetch(success("https://a.com/1", "https://a.com/1", "첫 문서"));
+
+        collect(FOLDER_ID, "https://a.com/1");
+
+        verify(folderService).updateHasSource(USER_ID, FOLDER_ID, true);
+    }
+
+    @Test
+    @DisplayName("한 링크도 저장되지 않으면 폴더 표시를 건드리지 않는다")
+    void leavesFolderFlagWhenNothingSaved() {
+        // 끄면 안 된다. 이 Folder에 전부터 있던 링크까지 없는 것으로 만든다.
+        givenFetch(SourceFetchResult.failure("https://a.com/1", SourceFetchResult.Failure.HTTP_ERROR, "404"));
+
+        collect(FOLDER_ID, "https://a.com/1");
+
+        verify(folderService, never()).updateHasSource(anyLong(), anyLong(), anyBoolean());
     }
 
     @Test

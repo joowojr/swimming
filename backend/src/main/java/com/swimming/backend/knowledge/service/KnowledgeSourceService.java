@@ -63,6 +63,14 @@ public class KnowledgeSourceService {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
+    public boolean existsInFolder(Long userId, Long folderId) {
+        return sourceRepository.existsInFolder(userId, folderId);
+    }
+
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
     public List<KnowledgeSource> findPage(SourcePageQuery query) {
         return sourceRepository.findPage(query);
     }

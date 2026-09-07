@@ -53,6 +53,7 @@ erDiagram
         date target_date "nullable"
         varchar status
         boolean is_deleted
+        boolean has_source "링크가 있으면 폴더 삭제를 막는다. 링크 도메인이 갱신한다"
         timestamp created_at
         timestamp updated_at
     }

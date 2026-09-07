@@ -80,6 +80,11 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
+    public boolean existsInFolder(Long userId, Long folderId) {
+        return sourceJpaRepository.existsInFolder(userId, folderId);
+    }
+
+    @Override
     public List<KnowledgeSource> findPage(SourcePageQuery query) {
         List<KnowledgeSourceEntity> sourceEntities = query.cursorCreatedAt() == null
                 ? sourceJpaRepository.findFirstPage(

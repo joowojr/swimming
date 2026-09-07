@@ -19,3 +19,21 @@ DROP INDEX uq_knowledge_node_normalized;
 CREATE UNIQUE INDEX uq_knowledge_node_normalized
   ON knowledge_node (user_id, node_type, normalized_title)
   WHERE node_type = 'SUBJECT' AND is_deleted = false;
+
+-- 폴더 삭제 가드. 링크가 남은 폴더를 지우면 knowledge_source가 없는 폴더를 가리킨 채 남는다.
+-- knowledge_source.folder_id는 NOT NULL이라 링크를 떼어 둘 자리도 없다.
+-- folder가 knowledge에 물어보면 의존 방향이 깨지므로, folder가 자기 컬럼만 보고 판단한다.
+ALTER TABLE folders
+  ADD COLUMN has_source boolean NOT NULL DEFAULT false;
+
+-- 이미 링크를 모아 둔 폴더가 있으면 켠 채로 시작한다. 꺼진 채로 두면 가드가 통과해
+-- 링크가 남은 폴더가 지워진다.
+UPDATE folders f
+   SET has_source = true
+ WHERE EXISTS (
+         SELECT 1
+           FROM knowledge_source s
+           JOIN knowledge_node n ON n.id = s.node_id
+          WHERE s.folder_id = f.id
+            AND n.is_deleted = false
+       );

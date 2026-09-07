@@ -119,14 +119,18 @@
 }
 
 .title {
+  display: -webkit-box;
   min-width: 0;
   margin: 0;
+  overflow: hidden;
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
   line-height: var(--text-body-sm-line-height);
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* 어디서 가져온 글인지 도메인 바로 옆에서 알린다. */

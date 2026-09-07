@@ -62,7 +62,7 @@ export default function NodeInspector({
             <IconX size={15} stroke={1.8} aria-hidden="true" />
           </button>
         </div>
-        <h4>{node.title}</h4>
+        <h4 className={node.type === 'SOURCE' ? styles['source-title'] : undefined}>{node.title}</h4>
         {node.type === 'SOURCE' && (selfSource?.domain || savedAt) && (
           <p className={styles.domain}>
             {sourceMark(selfSource?.domain ?? null, 16, styles.mark)}
@@ -93,7 +93,9 @@ export default function NodeInspector({
               return (
                 <li key={source.nodeId}>
                   <button type="button" onClick={() => onSelect(source.nodeId)}>
-                    <span className={styles['item-title']}>{source.title}</span>
+                    <span className={`${styles['item-title']} ${styles['source-title']}`}>
+                      {source.title}
+                    </span>
                     <span className={styles['item-meta']}>
                       {sourceMark(card?.domain ?? null, 15, styles.mark)}
                       {card?.domain}

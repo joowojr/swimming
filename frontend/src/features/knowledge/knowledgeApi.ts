@@ -1,6 +1,7 @@
 import { client } from '../../api/client'
 import type {
   SourceCollectResponse,
+  SourceDeleteResponse,
   SourceListQuery,
   SourceListResponse,
 } from './knowledgeTypes'
@@ -32,6 +33,7 @@ export async function collectSources(
 }
 
 /** 문서를 지운다. 딸린 목적도 함께 사라지고, 개념은 다른 문서가 쓰므로 남는다. */
-export async function deleteSource(sourceId: string): Promise<void> {
-  await client.delete(`/knowledge/sources/${sourceId}`)
+export async function deleteSource(sourceId: string): Promise<SourceDeleteResponse> {
+  const response = await client.delete<SourceDeleteResponse>(`/knowledge/sources/${sourceId}`)
+  return response.data
 }

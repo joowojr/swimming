@@ -7,6 +7,8 @@ import LinkComposer from './LinkComposer'
 import SourceFeedCard from './SourceFeedCard'
 import { getSources } from './knowledgeApi'
 import type { SourceCard } from './knowledgeTypes'
+import type { SourceDeleteResponse } from './knowledgeTypes'
+import { useFolderStore } from '../../store/folderStore'
 import styles from './LinkFolderView.module.css'
 
 interface LinkFolderViewProps {
@@ -45,6 +47,7 @@ function errorMessage(error: unknown) {
 
 /** 공통 폴더 정보 아래에서 이 폴더에 저장된 Source를 최근 순으로 보여준다. */
 export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
+  const updateFolderHasSource = useFolderStore((store) => store.updateHasSource)
   const [state, setState] = useState<ListState>({ status: 'loading' })
   const [view, setView] = useState<SourceView>('list')
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -81,10 +84,11 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
     }
   }, [folderId, isLoadingMore, state])
 
-  const removeSource = (sourceId: string) => {
+  const removeSource = (sourceId: string, response: SourceDeleteResponse) => {
     setState((current) => current.status === 'ready'
       ? { ...current, items: current.items.filter((item) => item.sourceId !== sourceId) }
       : current)
+    updateFolderHasSource(response.folderId, response.hasSource)
   }
 
   const prependSource = (source: SourceCard) => {

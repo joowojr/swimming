@@ -3,6 +3,7 @@ package com.swimming.backend.knowledge.controller;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.SourceDetailResponse;
+import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
 import com.swimming.backend.knowledge.usecase.NodeDeleteUseCase;
 import com.swimming.backend.knowledge.usecase.NodeDetailUseCase;
 import com.swimming.backend.knowledge.usecase.SourceDeleteUseCase;
@@ -55,12 +56,11 @@ public class KnowledgeNodeController {
 
     /** 딸린 목적도 함께 사라진다. 개념은 다른 문서가 쓰므로 남는다. */
     @DeleteMapping("/sources/{sourceId}")
-    public ResponseEntity<Void> deleteSource(
+    public ResponseEntity<SourceDeleteResponse> deleteSource(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable UUID sourceId
     ) {
-        sourceDeleteUseCase.delete(authUser.id(), sourceId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(sourceDeleteUseCase.delete(authUser.id(), sourceId));
     }
 
     /** 개념만 지운다. 그 개념을 다루던 문서는 그대로 남는다. */

@@ -19,14 +19,18 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
     List<KnowledgeSourceEntity> findAllByCanonicalUrl(String canonicalUrl);
 
     @Query("""
-            select count(s) > 0
+            select s
             from KnowledgeSourceEntity s, KnowledgeNodeEntity n
             where s.nodeId = n.id
               and n.userId = :userId
               and n.deleted = false
               and s.folderId = :folderId
             """)
-    boolean existsInFolder(@Param("userId") Long userId, @Param("folderId") Long folderId);
+    List<KnowledgeSourceEntity> findAnyActiveInFolder(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId,
+            Pageable pageable
+    );
 
     /**
      * 정렬 기준을 노드의 생성 시각으로 잡는다. 커서에 싣는 값과 같은 것을 써야 경계에서

@@ -56,3 +56,8 @@ export interface SourceCollectItem {
 export interface SourceCollectResponse {
   items: SourceCollectItem[]
 }
+
+export interface SourceDeleteResponse {
+  folderId: number
+  hasSource: boolean
+}

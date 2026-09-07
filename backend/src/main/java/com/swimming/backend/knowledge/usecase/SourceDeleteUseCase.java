@@ -5,6 +5,7 @@ import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.RelationType;
+import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
 import com.swimming.backend.knowledge.service.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.KnowledgeSourceService;
@@ -46,7 +47,7 @@ public class SourceDeleteUseCase {
      * <p>마지막 링크였다면 폴더의 표시를 끈다. 켜진 채로 두면 지울 수 있는 폴더를 막는다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void delete(Long userId, UUID sourceId) {
+    public SourceDeleteResponse delete(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
 
         for (KnowledgeNode topic : topicsOf(sourceId)) {
@@ -56,7 +57,9 @@ public class SourceDeleteUseCase {
         sourceService.delete(source);
 
         Long folderId = source.getFolderId();
-        folderService.updateHasSource(userId, folderId, sourceService.existsInFolder(userId, folderId));
+        boolean hasSource = sourceService.existsInFolder(userId, folderId);
+        folderService.updateHasSource(userId, folderId, hasSource);
+        return new SourceDeleteResponse(folderId, hasSource);
     }
 
     private List<KnowledgeNode> topicsOf(UUID sourceId) {

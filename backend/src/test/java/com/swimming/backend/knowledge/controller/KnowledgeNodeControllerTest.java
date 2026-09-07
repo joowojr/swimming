@@ -9,6 +9,7 @@ import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.dto.in.SourceDetailResponse;
+import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
 import com.swimming.backend.knowledge.usecase.NodeDeleteUseCase;
 import com.swimming.backend.knowledge.usecase.NodeDetailUseCase;
 import com.swimming.backend.knowledge.usecase.SourceDeleteUseCase;
@@ -137,10 +138,15 @@ class KnowledgeNodeControllerTest {
     }
 
     @Test
-    @DisplayName("링크를 지우면 204를 준다")
+    @DisplayName("링크를 지우면 폴더의 활성 링크 여부를 200으로 돌려준다")
     void deletesSource() throws Exception {
+        when(sourceDeleteUseCase.delete(1L, SOURCE_ID))
+                .thenReturn(new SourceDeleteResponse(10L, false));
+
         mockMvc.perform(delete("/api/knowledge/sources/" + SOURCE_ID))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.folderId").value(10))
+                .andExpect(jsonPath("$.hasSource").value(false));
 
         verify(sourceDeleteUseCase).delete(1L, SOURCE_ID);
     }

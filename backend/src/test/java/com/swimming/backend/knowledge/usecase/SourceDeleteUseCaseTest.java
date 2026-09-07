@@ -11,6 +11,7 @@ import com.swimming.backend.knowledge.domain.RelationOrigin;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.GraphResponse;
 import com.swimming.backend.knowledge.dto.in.SourceResponse;
+import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.KnowledgeGraphAssembler;
 import com.swimming.backend.knowledge.service.KnowledgeNodeService;
@@ -186,9 +187,10 @@ class SourceDeleteUseCaseTest {
         KnowledgeSource source = givenSource("문서");
         digest(source, givenNode(NodeType.TOPIC, "목적"), givenNode(NodeType.SUBJECT, "MCP"));
 
-        useCase.delete(USER_ID, source.getId());
+        SourceDeleteResponse response = useCase.delete(USER_ID, source.getId());
 
         verify(folderService).updateHasSource(USER_ID, FOLDER_ID, false);
+        assertThat(response).isEqualTo(new SourceDeleteResponse(FOLDER_ID, false));
     }
 
     @Test
@@ -199,9 +201,10 @@ class SourceDeleteUseCaseTest {
         KnowledgeSource removed = givenSource("지울 문서");
         digest(removed, givenNode(NodeType.TOPIC, "목적"), givenNode(NodeType.SUBJECT, "MCP"));
 
-        useCase.delete(USER_ID, removed.getId());
+        SourceDeleteResponse response = useCase.delete(USER_ID, removed.getId());
 
         verify(folderService).updateHasSource(USER_ID, FOLDER_ID, true);
+        assertThat(response).isEqualTo(new SourceDeleteResponse(FOLDER_ID, true));
     }
 
     @Test

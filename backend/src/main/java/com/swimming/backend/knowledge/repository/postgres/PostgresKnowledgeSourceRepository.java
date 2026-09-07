@@ -81,7 +81,7 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
 
     @Override
     public boolean existsInFolder(Long userId, Long folderId) {
-        return sourceJpaRepository.existsInFolder(userId, folderId);
+        return !sourceJpaRepository.findAnyActiveInFolder(userId, folderId, PageRequest.of(0, 1)).isEmpty();
     }
 
     @Override

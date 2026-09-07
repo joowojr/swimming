@@ -7,12 +7,12 @@ import { deleteSource } from './knowledgeApi'
 import { SOURCE_STATUS_LABEL } from './knowledgeLabels'
 import { sourceMark } from './sourceIcon'
 import { formatSavedAt } from './sourceTime'
-import type { SourceCard } from './knowledgeTypes'
+import type { SourceCard, SourceDeleteResponse } from './knowledgeTypes'
 import styles from './SourceFeedCard.module.css'
 
 interface SourceFeedCardProps {
   source: SourceCard
-  onDeleted: (sourceId: string) => void
+  onDeleted: (sourceId: string, response: SourceDeleteResponse) => void
 }
 
 function isDigesting(source: SourceCard) {
@@ -37,8 +37,8 @@ export default function SourceFeedCard({ source, onDeleted }: SourceFeedCardProp
     setIsDeleting(true)
     setDeleteError(null)
     try {
-      await deleteSource(source.sourceId)
-      onDeleted(source.sourceId)
+      const response = await deleteSource(source.sourceId)
+      onDeleted(source.sourceId, response)
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null
         ? (error as ApiError).message

@@ -11,6 +11,7 @@ interface FolderStoreState {
   load: (userId: number) => Promise<void>
   add: (folder: Folder) => void
   apply: (folder: Folder) => void
+  updateHasSource: (folderId: number, hasSource: boolean) => void
   remove: (folderId: number) => void
   reset: () => void
 }
@@ -48,6 +49,12 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
 
   apply: (folder) => set((current) => ({
     folders: current.folders.map((candidate) => candidate.id === folder.id ? folder : candidate),
+  })),
+
+  updateHasSource: (folderId, hasSource) => set((current) => ({
+    folders: current.folders.map((folder) => folder.id === folderId
+      ? { ...folder, hasSource }
+      : folder),
   })),
 
   remove: (folderId) => set((current) => ({

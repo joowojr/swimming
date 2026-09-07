@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
+import { useSearchParams } from 'react-router-dom'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
 import FolderCard from './FolderCard.tsx'
@@ -29,8 +29,10 @@ export default function FolderListPage({
   onOpenCreate,
   onOpenTagManage,
 }: ProjectListPageProps) {
-  const [section, setSection] = useState<FolderSection>('tasks')
-  const isLinkSection = section === 'links'
+  // 폴더에서 링크 화면으로 나갔다 돌아와도 보던 영역이 그대로여야 해서 주소에 남긴다.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const isLinkSection = searchParams.get('section') === 'links'
+  const section: FolderSection = isLinkSection ? 'links' : 'tasks'
 
   return (
     <section className={styles.page} aria-labelledby="folders-page-title">
@@ -58,15 +60,13 @@ export default function FolderListPage({
           ariaLabel="폴더 화면 영역 전환"
           options={FOLDER_SECTIONS}
           value={section}
-          onChange={setSection}
+          onChange={(next) => {
+            setSearchParams(next === 'links' ? { section: 'links' } : {}, { replace: true })
+          }}
         />
       </div>
 
-      {isLinkSection ? (
-        <div className={styles['link-placeholder']}>
-          <span>링크 폴더를 준비하고 있어요.</span>
-        </div>
-      ) : status === 'loading' || status === 'idle' ? (
+      {status === 'loading' || status === 'idle' ? (
         <div className={styles.state} role="status">
           <span className={styles['state-mark']} aria-hidden="true" />
           <p>폴더를 불러오고 있습니다.</p>
@@ -79,7 +79,7 @@ export default function FolderListPage({
       ) : (
         <>
           <div className={styles['section-heading']}>
-            <h2>전체 폴더</h2>
+            <h2>{isLinkSection ? '링크를 볼 폴더' : '전체 폴더'}</h2>
             <span>{folders.length}개</span>
           </div>
           {folders.length === 0 ? (
@@ -91,7 +91,7 @@ export default function FolderListPage({
           ) : (
             <div className={styles.grid}>
               {folders.map((folder) => (
-                <FolderCard key={folder.id} folder={folder} />
+                <FolderCard key={folder.id} folder={folder} variant={section} />
               ))}
             </div>
           )}

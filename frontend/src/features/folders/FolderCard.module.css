@@ -115,21 +115,6 @@
   gap: var(--space-2);
 }
 
-.target-date {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-mute);
-  font-family: var(--font-family-mono);
-  font-size: var(--text-label-caps-size);
-  white-space: nowrap;
-  background: var(--color-secondary-bg);
-}
-
 .description {
   display: -webkit-box;
   margin: 0;

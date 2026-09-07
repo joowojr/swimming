@@ -5,6 +5,7 @@ import FolderTagModal from './features/folders/FolderTagModal.tsx'
 import PinBoard from './features/folders/PinBoard.tsx'
 import FolderDetail from './features/folders/FolderDetail.tsx'
 import FolderListPage from './features/folders/FolderListPage.tsx'
+import LinkFolderPage from './features/knowledge/LinkFolderPage'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
 import TasksPage from './features/tasks/TasksPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
@@ -159,6 +160,16 @@ function App() {
           <Route
             path="/folders/:folderId"
             element={<ProjectDetailRoute onDeleted={removeFolder} />}
+          />
+          <Route
+            path="/folders/:folderId/links"
+            element={(
+              <LinkFolderPage
+                folders={folders}
+                status={folderStatus}
+                onDeleted={removeFolder}
+              />
+            )}
           />
           <Route path="/health" element={<HealthPage />} />
           <Route path="*" element={<Navigate to="/pinboard" replace />} />

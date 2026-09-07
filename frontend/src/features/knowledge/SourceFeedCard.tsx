@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconExternalLink, IconLoader2 } from '@tabler/icons-react'
+import { IconExternalLink, IconLoader2, IconPencil } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
@@ -102,7 +102,12 @@ export default function SourceFeedCard({ source, onDeleted }: SourceFeedCardProp
         </a>
       </h3>
 
-      {source.topic && <p className={styles.topic}>{source.topic.title}</p>}
+      {source.topic && (
+        <p className={styles.topic}>
+          <IconPencil className={styles['topic-icon']} size={12} stroke={1.8} aria-hidden="true" />
+          {source.topic.title}
+        </p>
+      )}
 
       {isDigesting(source) ? (
         <div className={styles.skeleton} aria-hidden="true">

@@ -195,19 +195,15 @@
   gap: var(--space-2);
   /* 제목과 한 덩어리로 읽히도록 카드 기본 간격보다 붙인다. */
   margin: calc(var(--space-1) * -1) 0 0;
-  color: var(--color-mute);
+  color: var(--color-primary);
   font-size: var(--text-label-caps-size);
   line-height: var(--text-label-caps-line-height);
   overflow-wrap: anywhere;
 }
 
-.topic::before {
-  width: var(--space-1);
-  height: var(--space-1);
+.topic-icon {
   flex: 0 0 auto;
-  border-radius: var(--radius-full);
-  background: var(--color-ash);
-  content: '';
+  color: var(--color-ash);
 }
 
 @keyframes source-card-spin {

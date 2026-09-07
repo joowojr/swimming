@@ -77,6 +77,7 @@ class FolderControllerTest {
                 LocalDate.of(2026, 9, 30),
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(3L, "취준"),
+                false,
                 Instant.parse("2026-08-19T10:00:00Z"),
                 Instant.parse("2026-08-19T10:00:00Z")
         ));
@@ -116,6 +117,7 @@ class FolderControllerTest {
                 null,
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(4L, "포트폴리오"),
+                false,
                 Instant.parse("2026-08-20T10:00:00Z"),
                 Instant.parse("2026-08-20T10:00:00Z")
         ));
@@ -192,7 +194,8 @@ class FolderControllerTest {
         mockMvc.perform(get("/api/folders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(10))
-                .andExpect(jsonPath("$[0].name").value("프로젝트"));
+                .andExpect(jsonPath("$[0].name").value("프로젝트"))
+                .andExpect(jsonPath("$[0].hasSource").value(false));
     }
 
     @Test
@@ -284,6 +287,7 @@ class FolderControllerTest {
                 targetDate,
                 status,
                 null,
+                false,
                 Instant.parse("2026-08-19T10:00:00Z"),
                 Instant.parse("2026-08-19T10:00:00Z")
         );

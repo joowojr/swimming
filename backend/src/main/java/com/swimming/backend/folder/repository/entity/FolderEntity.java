@@ -83,6 +83,7 @@ public class FolderEntity extends BaseTimeEntity {
         return new FolderEntity(folder, user, tag);
     }
 
+    /** hasSource는 옮기지 않는다. 폴더 수정이 링크 도메인의 값을 덮으면 안 된다. */
     public void apply(Folder folder, FolderTagEntity tag) {
         this.tag = tag;
         this.name = folder.getName();
@@ -114,6 +115,7 @@ public class FolderEntity extends BaseTimeEntity {
                 targetDate,
                 status,
                 deleted,
+                hasSource,
                 getCreatedAt(),
                 getUpdatedAt()
         );

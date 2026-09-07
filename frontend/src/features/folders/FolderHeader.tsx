@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { IconCalendarDue } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import DdayChip from '../../components/DdayChip'
@@ -24,10 +24,7 @@ export interface FolderHeaderFolder {
 interface FolderHeaderProps {
   folder: FolderHeaderFolder
   titleId: string
-  /** 폴더 삭제 시 무엇이 함께 사라지는지는 화면마다 다르다. */
   deleteMessage: string
-  /** 링크 폴더는 진행 상태를 다루지 않아 배지를 그리지 않는다. */
-  showStatus?: boolean
   onUpdated?: (folder: Folder) => void
   onDeleted: (folderId: number) => void
 }
@@ -61,11 +58,10 @@ function toApiError(error: unknown) {
  * 할 일 폴더와 링크 폴더가 같은 폴더를 서로 다른 화면에서 보는 것이라, 폴더를 다루는 자리는
  * 하나여야 한다. 한쪽에서 고친 수정 규칙이 다른 쪽에 반영되지 않는 일을 막는다.
  */
-export default function FolderHeader({
+const FolderHeader = memo(function FolderHeader({
   folder,
   titleId,
   deleteMessage,
-  showStatus = true,
   onUpdated,
   onDeleted,
 }: FolderHeaderProps) {
@@ -182,11 +178,9 @@ export default function FolderHeader({
       <div className={styles['header-top']}>
         <div className={styles.badges} data-tone={folder.id % 4}>
           {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
-          {showStatus && (
-            <span className={styles['folder-status']} data-status={folder.status}>
-              {folderStatusLabel[folder.status]}
-            </span>
-          )}
+          <span className={styles['folder-status']} data-status={folder.status}>
+            {folderStatusLabel[folder.status]}
+          </span>
           <DdayChip targetDate={folder.targetDate} />
         </div>
         <DeleteIconButton
@@ -277,4 +271,6 @@ export default function FolderHeader({
       {editError && <p className={styles['target-date-error']} role="alert">{editError}</p>}
     </header>
   )
-}
+})
+
+export default FolderHeader

@@ -5,7 +5,6 @@ import FolderTagModal from './features/folders/FolderTagModal.tsx'
 import PinBoard from './features/folders/PinBoard.tsx'
 import FolderDetail from './features/folders/FolderDetail.tsx'
 import FolderListPage from './features/folders/FolderListPage.tsx'
-import LinkFolderPage from './features/knowledge/LinkFolderPage'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
 import TasksPage from './features/tasks/TasksPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
@@ -23,11 +22,15 @@ import styles from './App.module.css'
 
 
 function ProjectDetailRoute({ onDeleted }: { onDeleted: (folderId: number) => void }) {
-  const { folderId: folderId } = useParams()
+  const { folderId, '*': childPath } = useParams()
   const parsedProjectId = Number(folderId)
   const validProjectId = Number.isSafeInteger(parsedProjectId) && parsedProjectId > 0
     ? parsedProjectId
     : null
+
+  if (childPath !== undefined && childPath !== 'links') {
+    return <Navigate to="/folders" replace />
+  }
 
   return <FolderDetail key={folderId ?? 'invalid'} folderId={validProjectId} onDeleted={onDeleted} />
 }
@@ -158,18 +161,8 @@ function App() {
             )}
           />
           <Route
-            path="/folders/:folderId"
+            path="/folders/:folderId/*"
             element={<ProjectDetailRoute onDeleted={removeFolder} />}
-          />
-          <Route
-            path="/folders/:folderId/links"
-            element={(
-              <LinkFolderPage
-                folders={folders}
-                status={folderStatus}
-                onDeleted={removeFolder}
-              />
-            )}
           />
           <Route path="/health" element={<HealthPage />} />
           <Route path="*" element={<Navigate to="/pinboard" replace />} />

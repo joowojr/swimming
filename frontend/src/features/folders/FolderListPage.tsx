@@ -33,6 +33,10 @@ export default function FolderListPage({
   const [searchParams, setSearchParams] = useSearchParams()
   const isLinkSection = searchParams.get('section') === 'links'
   const section: FolderSection = isLinkSection ? 'links' : 'tasks'
+  // 링크 탭은 링크를 저장한 폴더만 보여 준다. 목록 응답이 그 여부를 함께 주므로 다시 묻지 않는다.
+  const visibleFolders = isLinkSection
+    ? folders.filter((folder) => folder.hasSource)
+    : folders
 
   return (
     <section className={styles.page} aria-labelledby="folders-page-title">
@@ -79,18 +83,27 @@ export default function FolderListPage({
       ) : (
         <>
           <div className={styles['section-heading']}>
-            <h2>{isLinkSection ? '링크를 볼 폴더' : '전체 폴더'}</h2>
-            <span>{folders.length}개</span>
+            <h2>{isLinkSection ? '링크를 모은 폴더' : '전체 폴더'}</h2>
+            <span>{visibleFolders.length}개</span>
           </div>
-          {folders.length === 0 ? (
+          {visibleFolders.length === 0 ? (
             <div className={styles.empty}>
               <IconFolders size={28} stroke={1.5} aria-hidden="true" />
-              <h3>폴더를 시작할 준비가 되었습니다.</h3>
-              <p>새 폴더를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
+              {isLinkSection ? (
+                <>
+                  <h3>아직 링크를 모은 폴더가 없어요.</h3>
+                  <p>폴더 상세에서 링크를 저장하면 이곳에 모입니다.</p>
+                </>
+              ) : (
+                <>
+                  <h3>폴더를 시작할 준비가 되었습니다.</h3>
+                  <p>새 폴더를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
+                </>
+              )}
             </div>
           ) : (
             <div className={styles.grid}>
-              {folders.map((folder) => (
+              {visibleFolders.map((folder) => (
                 <FolderCard key={folder.id} folder={folder} variant={section} />
               ))}
             </div>

@@ -1,10 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { IconChevronRight } from '@tabler/icons-react'
-import { Link } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModeToggle from '../../components/ModeToggle'
-import FolderHeader from '../folders/FolderHeader'
-import type { Folder } from '../folders/folderTypes'
 import LinkComposer from './LinkComposer'
 import SourceFeedCard from './SourceFeedCard'
 import { getSources } from './knowledgeApi'
@@ -12,8 +8,7 @@ import type { SourceCard } from './knowledgeTypes'
 import styles from './LinkFolderView.module.css'
 
 interface LinkFolderViewProps {
-  folder: Folder
-  onDeleted: (folderId: number) => void
+  folderId: number
 }
 
 type SourceView = 'list' | 'graph'
@@ -38,8 +33,8 @@ function errorMessage(error: unknown) {
   return apiMessage ?? '저장된 링크를 불러오지 못했습니다.'
 }
 
-/** 폴더 하나에 저장된 Source를 최근 순으로 보여준다. 할 일 폴더 화면과 같은 뼈대를 쓴다. */
-export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProps) {
+/** 공통 폴더 정보 아래에서 이 폴더에 저장된 Source를 최근 순으로 보여준다. */
+export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
   const [state, setState] = useState<ListState>({ status: 'loading' })
   const [view, setView] = useState<SourceView>('list')
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -49,7 +44,7 @@ export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProp
   useEffect(() => {
     let active = true
 
-    void getSources(folder.id)
+    void getSources(folderId)
       .then((page) => {
         if (active) setState({ status: 'ready', items: page.items, nextCursor: page.nextCursor })
       })
@@ -58,14 +53,14 @@ export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProp
       })
 
     return () => { active = false }
-  }, [folder.id, requestKey])
+  }, [folderId, requestKey])
 
   const loadMore = useCallback(async () => {
     if (state.status !== 'ready' || !state.nextCursor || isLoadingMore) return
 
     setIsLoadingMore(true)
     try {
-      const page = await getSources(folder.id, { cursor: state.nextCursor })
+      const page = await getSources(folderId, { cursor: state.nextCursor })
       setState((current) => current.status === 'ready'
         ? { status: 'ready', items: [...current.items, ...page.items], nextCursor: page.nextCursor }
         : current)
@@ -74,7 +69,7 @@ export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProp
     } finally {
       setIsLoadingMore(false)
     }
-  }, [folder.id, isLoadingMore, state])
+  }, [folderId, isLoadingMore, state])
 
   const removeSource = (sourceId: string) => {
     setState((current) => current.status === 'ready'
@@ -95,31 +90,10 @@ export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProp
     : null
 
   return (
-    <article className={styles.view} aria-labelledby="link-folder-title">
-      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link to="/folders?section=links">폴더</Link>
-        {folder.tag && (
-          <>
-            <IconChevronRight size={14} aria-hidden="true" />
-            <span>{folder.tag.name}</span>
-          </>
-        )}
-        <IconChevronRight size={14} aria-hidden="true" />
-        <span aria-current="page">{folder.name}</span>
-      </nav>
-
-      <FolderHeader
-        folder={folder}
-        titleId="link-folder-title"
-        deleteMessage="폴더를 삭제하면 이 폴더에 저장한 링크도 함께 사라집니다."
-        showStatus={false}
-        onDeleted={onDeleted}
-      />
-
-      <section className={styles.sources} aria-labelledby="link-sources-title">
+    <section className={styles.sources} aria-labelledby="link-sources-title">
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
-            <h3 id="link-sources-title">저장된 링크</h3>
+            <h3 id="link-sources-title">링크</h3>
             <span>
               {savedCount
                 ? `Source ${savedCount}를 모았어요`
@@ -139,13 +113,13 @@ export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProp
             fallback={<div className={styles.state} role="status"><p>지식 그래프를 준비하고 있습니다.</p></div>}
           >
             <KnowledgeGraph
-              folderId={folder.id}
+              folderId={folderId}
               sources={state.status === 'ready' ? state.items : []}
             />
           </Suspense>
         ) : (
         <div className={styles['link-list-stack']}>
-          <LinkComposer folderId={folder.id} onSaved={prependSource} />
+          <LinkComposer folderId={folderId} onSaved={prependSource} />
 
           {state.status === 'loading' ? (
             <div className={styles.state} role="status">
@@ -194,7 +168,6 @@ export default function LinkFolderView({ folder, onDeleted }: LinkFolderViewProp
           )}
         </div>
         )}
-      </section>
-    </article>
+    </section>
   )
 }

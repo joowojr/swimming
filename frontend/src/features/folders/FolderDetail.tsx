@@ -1,10 +1,11 @@
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {memo, useCallback, useEffect, useRef, useState} from 'react'
 import {IconChevronRight} from '@tabler/icons-react'
-import {Link, useNavigate} from 'react-router-dom'
+import {Link, useMatch, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import FolderHeader from './FolderHeader'
+import FolderViewSwitch from './FolderViewSwitch'
 import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
@@ -15,9 +16,10 @@ import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import {deleteTasks, getFolderTasks} from '../tasks/taskApi'
 import type { TaskSummaryResponse } from '../tasks/taskTypes'
 import {getFolder} from './folderApi.ts'
-import type {FolderDetail as FolderDetailData} from './folderTypes.ts'
+import type {Folder, FolderDetail as FolderDetailData} from './folderTypes.ts'
 import TaskList from '../tasks/TaskList'
 import NoteCard from '../note/NoteCard'
+import LinkFolderView from '../knowledge/LinkFolderView'
 import styles from './FolderDetail.module.css'
 
 interface FolderDetailProps {
@@ -48,9 +50,31 @@ function isNotFound(error: unknown) {
   return typeof error === 'object' && error !== null && (error as ApiError).status === 404
 }
 
+const FOLDER_DELETE_MESSAGE = '폴더를 삭제하려면 연결된 할 일과 저장한 링크를 모두 삭제해야 합니다. 노트는 유지됩니다.'
+
+const FolderBreadcrumb = memo(function FolderBreadcrumb({ folder }: { folder: FolderDetailData }) {
+  return (
+    <nav className={styles.breadcrumb} aria-label="Breadcrumb">
+      <Link to="/folders">폴더</Link>
+      {folder.tag && (
+        <>
+          <IconChevronRight size={14} aria-hidden="true" />
+          <span aria-current="page">{folder.tag.name}</span>
+        </>
+      )}
+      <IconChevronRight size={14} aria-hidden="true" />
+      <span aria-current="page">{folder.name}</span>
+    </nav>
+  )
+})
+
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
-  const [requestKey, setRequestKey] = useState(0)
+  const isLinkView = useMatch('/folders/:folderId/links') !== null
+  const navigateRef = useRef(navigate)
+  const onDeletedRef = useRef(onDeleted)
+  const [folderRequestKey, setFolderRequestKey] = useState(0)
+  const [taskRequestKey, setTaskRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     folderId === null ? { status: 'error', notFound: true } : { status: 'loading' },
   )
@@ -70,11 +94,22 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   }
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const taskInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    navigateRef.current = navigate
+    onDeletedRef.current = onDeleted
+  }, [navigate, onDeleted])
+
   const leaveDeleteMode = () => {
     setIsDeleteMode(false)
     setSelectedTaskIds(new Set())
     setDeleteError(null)
   }
+
+  const reloadTasks = useCallback(() => {
+    setTasks({ status: 'loading' })
+    setTaskRequestKey((key) => key + 1)
+  }, [])
 
   const toggleTaskSelection = (taskId: number) => {
     setSelectedTaskIds((current) => {
@@ -143,7 +178,18 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
   const retry = useCallback(() => {
     setState({ status: 'loading' })
-    setRequestKey((key) => key + 1)
+    setFolderRequestKey((key) => key + 1)
+  }, [])
+
+  const handleFolderUpdated = useCallback((updated: Folder) => {
+    setState((current) => current.status === 'ready'
+      ? { status: 'ready', folder: { ...current.folder, ...updated } }
+      : current)
+  }, [])
+
+  const handleFolderDeleted = useCallback((deletedFolderId: number) => {
+    onDeletedRef.current(deletedFolderId)
+    navigateRef.current('/folders', { replace: true })
   }, [])
 
   useEffect(() => {
@@ -151,8 +197,6 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
     let active = true
 
-    // 폴더 정보와 할 일 목록은 별개의 API다. 목록만 이어 읽어도 폴더 정보를 다시 받지
-    // 않도록 나뉘어 있고, 화면에서도 각자 상태로 둔다.
     void getFolder(folderId)
       .then((folder) => {
         if (active) setState({ status: 'ready', folder })
@@ -160,6 +204,14 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       .catch((error: unknown) => {
         if (active) setState({ status: 'error', notFound: isNotFound(error) })
       })
+
+    return () => { active = false }
+  }, [folderId, folderRequestKey])
+
+  useEffect(() => {
+    if (folderId === null || isLinkView || tasks.status !== 'loading') return
+
+    let active = true
 
     void getFolderTasks(folderId)
       .then((page) => {
@@ -177,7 +229,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       })
 
     return () => { active = false }
-  }, [folderId, requestKey])
+  }, [folderId, isLinkView, taskRequestKey, tasks.status])
 
   if (state.status === 'loading') {
     return (
@@ -228,33 +280,20 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
   return (
     <article className={styles.page} aria-labelledby="folder-detail-title">
-      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link to="/folders">폴더</Link>
-        {folder.tag && (
-            <>
-              <IconChevronRight size={14} aria-hidden="true" />
-              <span aria-current="page">{folder.tag.name}</span>
-            </>
-        )}
-        <IconChevronRight size={14} aria-hidden="true"/>
-        <span aria-current="page">{folder.name}</span>
-      </nav>
+      <FolderBreadcrumb folder={folder} />
 
-      <div className={styles['detail-layout']}>
+      <div className={styles['detail-layout']} data-view={isLinkView ? 'links' : 'tasks'}>
         <div className={styles['detail-main']}>
 
       <FolderHeader
         folder={folder}
         titleId="folder-detail-title"
-        deleteMessage="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 노트는 유지됩니다."
-        onUpdated={(updated) => setState((current) => current.status === 'ready'
-          ? { status: 'ready', folder: { ...current.folder, ...updated } }
-          : current)}
-        onDeleted={(deletedFolderId) => {
-          onDeleted(deletedFolderId)
-          navigate('/folders', { replace: true })
-        }}
+        deleteMessage={FOLDER_DELETE_MESSAGE}
+        onUpdated={handleFolderUpdated}
+        onDeleted={handleFolderDeleted}
       />
+
+      <FolderViewSwitch folderId={folder.id} current={isLinkView ? 'links' : 'tasks'} />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}
@@ -313,7 +352,10 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       {/*  </dl>*/}
       {/*</section>*/}
 
-          <section className={styles.tasks} aria-labelledby="folder-tasks-title">
+          {isLinkView ? (
+            <LinkFolderView folderId={folder.id} />
+          ) : (
+            <section className={styles.tasks} aria-labelledby="folder-tasks-title">
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
             <h2 id="folder-tasks-title">할 일</h2>
@@ -364,7 +406,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
               variant="embedded"
               onCreated={() => {
                 setTaskFilter(EMPTY_TASK_FILTER)
-                setRequestKey((key) => key + 1)
+                reloadTasks()
               }}
           />
           <TaskList
@@ -376,7 +418,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             selectedTaskIds={selectedTaskIds}
             isDeleting={isDeletingTasks}
             onTaskSelectionChange={toggleTaskSelection}
-            onTaskUpdated={() => setRequestKey((key) => key + 1)}
+            onTaskUpdated={reloadTasks}
           />
           {tasks.status === 'ready' && tasks.hasNext && (
             <button
@@ -389,12 +431,15 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             </button>
           )}
         </div>
-      </section>
+            </section>
+          )}
         </div>
 
-        <aside className={styles['detail-aside']} aria-label="폴더 노트">
-          <NoteCard key={folder.id} folders={[folder]} folderId={folder.id} />
-        </aside>
+        {!isLinkView && (
+          <aside className={styles['detail-aside']} aria-label="폴더 노트">
+            <NoteCard key={folder.id} folders={[folder]} folderId={folder.id} />
+          </aside>
+        )}
       </div>
     </article>
   )

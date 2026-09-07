@@ -1,0 +1,167 @@
+name: Deploy page renderer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/lambda/page-renderer/**'
+      - '.github/workflows/deploy-page-renderer.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-page-renderer
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Resolve image tag
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPOSITORY: ${{ vars.PAGE_RENDERER_ECR_REPOSITORY }}
+        run: echo "uri=$REGISTRY/$REPOSITORY:$GITHUB_SHA" >>"$GITHUB_OUTPUT"
+
+      - name: Check whether the image already exists
+        id: exists
+        env:
+          REPOSITORY: ${{ vars.PAGE_RENDERER_ECR_REPOSITORY }}
+        run: |
+          if aws ecr describe-images \
+               --repository-name "$REPOSITORY" \
+               --image-ids imageTag="$GITHUB_SHA" >/dev/null 2>&1; then
+            echo "found=true" >>"$GITHUB_OUTPUT"
+            echo "::notice::$GITHUB_SHA is already in ECR; redeploying it without rebuilding"
+          else
+            echo "found=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      # Lambda rejects multi-architecture images. buildx attaches a manifest list
+      # by default through provenance and SBOM attestations, so both are turned
+      # off and the platform is pinned to the one the function declares.
+      - uses: docker/build-push-action@v6
+        if: steps.exists.outputs.found == 'false'
+        with:
+          context: ./infra/lambda/page-renderer
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.image.outputs.uri }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      - name: Verify the pushed image is single architecture
+        env:
+          REPOSITORY: ${{ vars.PAGE_RENDERER_ECR_REPOSITORY }}
+        run: |
+          media_type=$(aws ecr describe-images \
+            --repository-name "$REPOSITORY" \
+            --image-ids imageTag="$GITHUB_SHA" \
+            --query 'imageDetails[0].imageManifestMediaType' \
+            --output text)
+
+          echo "manifest: $media_type"
+          case "$media_type" in
+            *manifest.list*|*image.index*)
+              echo "::error::Lambda cannot deploy a manifest list image"
+              exit 1
+              ;;
+          esac
+
+      # Lambda validates image_uri when the function is created. The first run
+      # gives the immutable SHA image one stable bootstrap tag; later runs leave
+      # that tag untouched and deploy their own SHA directly.
+      - name: Ensure the bootstrap image tag exists
+        env:
+          REPOSITORY: ${{ vars.PAGE_RENDERER_ECR_REPOSITORY }}
+        run: |
+          if aws ecr describe-images \
+               --repository-name "$REPOSITORY" \
+               --image-ids imageTag=bootstrap >/dev/null 2>&1; then
+            echo "::notice::bootstrap image already exists"
+            exit 0
+          fi
+
+          manifest=$(aws ecr batch-get-image \
+            --repository-name "$REPOSITORY" \
+            --image-ids imageTag="$GITHUB_SHA" \
+            --query 'images[0].imageManifest' \
+            --output text)
+
+          aws ecr put-image \
+            --repository-name "$REPOSITORY" \
+            --image-tag bootstrap \
+            --image-manifest "$manifest" >/dev/null
+
+      - name: Check whether the function exists
+        id: function
+        env:
+          FUNCTION_NAME: ${{ vars.PAGE_RENDERER_FUNCTION_NAME }}
+        run: |
+          set +e
+          error=$(aws lambda get-function \
+            --function-name "$FUNCTION_NAME" \
+            --query 'Configuration.FunctionName' \
+            --output text 2>&1)
+          status=$?
+          set -e
+
+          if [[ $status -eq 0 ]]; then
+            echo "exists=true" >>"$GITHUB_OUTPUT"
+          elif [[ "$error" == *ResourceNotFoundException* ]]; then
+            echo "exists=false" >>"$GITHUB_OUTPUT"
+            echo "::notice::bootstrap image is ready; run the full Terraform apply to create $FUNCTION_NAME"
+          else
+            echo "$error" >&2
+            exit "$status"
+          fi
+
+      - name: Update the function code
+        if: steps.function.outputs.exists == 'true'
+        env:
+          FUNCTION_NAME: ${{ vars.PAGE_RENDERER_FUNCTION_NAME }}
+          IMAGE: ${{ steps.image.outputs.uri }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --image-uri "$IMAGE" >/dev/null
+
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+      - name: Summary
+        env:
+          FUNCTION_NAME: ${{ vars.PAGE_RENDERER_FUNCTION_NAME }}
+          IMAGE: ${{ steps.image.outputs.uri }}
+        run: |
+          {
+            echo "### Page renderer"
+            echo
+            echo "- function: \`$FUNCTION_NAME\`"
+            echo "- image: \`$IMAGE\`"
+            if [[ "${{ steps.function.outputs.exists }}" == "true" ]]; then
+              echo "- deployment: function updated"
+            else
+              echo "- deployment: bootstrap image ready; run the full Terraform apply"
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"

@@ -1,10 +1,13 @@
 package com.swimming.backend.knowledge.live;
 
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
-import com.swimming.backend.knowledge.service.crawl.RenderedPageFetcher;
+import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
 import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -33,6 +36,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @Tag("fetch-live")
 class SourceFetchPlaygroundTest {
+    /** 렌더링 폴백은 실제 Lambda를 부른다. AWS 자격증명이 있는 셸에서만 의미가 있다. */
+    private static final String RENDER_FUNCTION_NAME = System.getenv()
+            .getOrDefault("KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME", "swimming-prod-page-renderer");
+
+    private static LambdaClient lambdaClient(KnowledgeFetchProperties properties) {
+        return LambdaClient.builder()
+                .httpClient(UrlConnectionHttpClient.create())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        .apiCallTimeout(properties.render().timeout().plusSeconds(5))
+                        .build())
+                .build();
+    }
+
 
     private static final String DEFAULT_URL = "https://docs.spring.io/spring-ai/reference/api/chatclient.html";
 
@@ -109,14 +125,14 @@ class SourceFetchPlaygroundTest {
                 80_000,
                 300,
                 "SwimmingBot/0.1 (+https://swimming.app)",
-                new KnowledgeFetchProperties.Render(render, Duration.ofSeconds(20), 1000)
+                new KnowledgeFetchProperties.Render(render, RENDER_FUNCTION_NAME, Duration.ofSeconds(20), 1000)
         );
 
         return new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
                 render
-                        ? Optional.of(new RenderedPageFetcher(properties))
+                        ? Optional.of(new LambdaPageRendererClient(properties, lambdaClient(properties)))
                         : Optional.empty()
         );
     }

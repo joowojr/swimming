@@ -2,36 +2,48 @@ package com.swimming.backend.knowledge.service.crawl;
 
 import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
-import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
-import com.swimming.backend.knowledge.service.crawl.WebFetchService;
+import org.jsoup.Connection;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Answers.CALLS_REAL_METHODS;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class WebFetchServiceTest {
 
     private static final String URL = "https://example.com/article";
 
     private final WebFetchService service = new WebFetchService(
-            new KnowledgeFetchProperties(
-                    4,
-                    Duration.ofSeconds(15),
-                    4 * 1024 * 1024,
-                    50_000,
-                    300,
-                    "SwimmingBot/0.1",
-                    new KnowledgeFetchProperties.Render(false, Duration.ofSeconds(20), 1000)
-            ),
+            properties(),
             new HtmlToMarkdownConverter(),
             Optional.empty()
     );
+
+    private static KnowledgeFetchProperties properties() {
+        return new KnowledgeFetchProperties(
+                4,
+                Duration.ofSeconds(15),
+                4 * 1024 * 1024,
+                50_000,
+                300,
+                "SwimmingBot/0.1",
+                new KnowledgeFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
+        );
+    }
 
     private Document parse(String head) {
         return Jsoup.parse("<html><head>" + head + "</head><body><p>본문</p></body></html>", URL);
@@ -197,5 +209,82 @@ class WebFetchServiceTest {
 
         assertThat(result.document().markdown()).contains("실제 본문 내용이 충분히");
         assertThat(result.document().markdown()).doesNotContain("짧은 사이트 소개 문구");
+    }
+
+    @Test
+    @DisplayName("일반 HTTP 요청이 403이면 렌더러의 HTML로 다시 수집한다")
+    void recoversForbiddenResponseWithRenderer() throws Exception {
+        LambdaPageRendererClient renderer = mock(LambdaPageRendererClient.class);
+        when(renderer.render(URL)).thenReturn(Optional.of("""
+                <html><head><title>렌더링된 문서</title></head><body><main>
+                  <h1>렌더링된 문서</h1>
+                  <p>브라우저로 가져온 실제 본문입니다. 수집 결과가 유효한 문서로 남습니다.</p>
+                </main></body></html>
+                """));
+
+        WebFetchService serviceWithRenderer = new WebFetchService(
+                properties(), new HtmlToMarkdownConverter(), Optional.of(renderer)
+        );
+
+        try (MockedStatic<Jsoup> jsoup = forbiddenResponse(403)) {
+            SourceFetchResult result = serviceWithRenderer.fetch(URL);
+
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(result.document().title()).isEqualTo("렌더링된 문서");
+            assertThat(result.document().markdown()).contains("브라우저로 가져온 실제 본문");
+            verify(renderer).render(URL);
+        }
+    }
+
+    @Test
+    @DisplayName("403 렌더링도 실패하면 최초 HTTP 오류를 유지한다")
+    void keepsForbiddenFailureWhenRendererFails() throws Exception {
+        LambdaPageRendererClient renderer = mock(LambdaPageRendererClient.class);
+        when(renderer.render(URL)).thenReturn(Optional.empty());
+
+        WebFetchService serviceWithRenderer = new WebFetchService(
+                properties(), new HtmlToMarkdownConverter(), Optional.of(renderer)
+        );
+
+        try (MockedStatic<Jsoup> jsoup = forbiddenResponse(403)) {
+            SourceFetchResult result = serviceWithRenderer.fetch(URL);
+
+            assertThat(result.failure()).isEqualTo(SourceFetchResult.Failure.HTTP_ERROR);
+            assertThat(result.failureDetail()).isEqualTo("403");
+            verify(renderer).render(URL);
+        }
+    }
+
+    @Test
+    @DisplayName("403 이외의 HTTP 오류에는 렌더러를 호출하지 않는다")
+    void doesNotRenderOtherHttpErrors() throws Exception {
+        LambdaPageRendererClient renderer = mock(LambdaPageRendererClient.class);
+        WebFetchService serviceWithRenderer = new WebFetchService(
+                properties(), new HtmlToMarkdownConverter(), Optional.of(renderer)
+        );
+
+        try (MockedStatic<Jsoup> jsoup = forbiddenResponse(404)) {
+            SourceFetchResult result = serviceWithRenderer.fetch(URL);
+
+            assertThat(result.failure()).isEqualTo(SourceFetchResult.Failure.HTTP_ERROR);
+            assertThat(result.failureDetail()).isEqualTo("404");
+            verify(renderer, never()).render(URL);
+        }
+    }
+
+    private MockedStatic<Jsoup> forbiddenResponse(int statusCode) throws Exception {
+        Connection connection = mock(Connection.class);
+        when(connection.userAgent(org.mockito.ArgumentMatchers.anyString())).thenReturn(connection);
+        when(connection.timeout(anyInt())).thenReturn(connection);
+        when(connection.maxBodySize(anyInt())).thenReturn(connection);
+        when(connection.followRedirects(true)).thenReturn(connection);
+        when(connection.ignoreContentType(false)).thenReturn(connection);
+        when(connection.execute()).thenThrow(new HttpStatusException(
+                "HTTP error fetching URL", statusCode, URL
+        ));
+
+        MockedStatic<Jsoup> jsoup = mockStatic(Jsoup.class, CALLS_REAL_METHODS);
+        jsoup.when(() -> Jsoup.connect(URL)).thenReturn(connection);
+        return jsoup;
     }
 }

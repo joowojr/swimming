@@ -58,6 +58,14 @@ data "aws_iam_policy_document" "ec2_runtime" {
   }
 
   statement {
+    sid    = "RenderBlockedPages"
+    effect = "Allow"
+    # 일반 HTTP 클라이언트가 막히거나 본문이 비는 페이지만 브라우저로 다시 받는다.
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.page_renderer.arn]
+  }
+
+  statement {
     sid    = "WriteApplicationLogs"
     effect = "Allow"
     actions = [

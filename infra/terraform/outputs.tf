@@ -98,3 +98,18 @@ output "github_terraform_role_arn" {
   description = "Read-only role assumed by the terraform plan workflow. Set it as the AWS_TERRAFORM_ROLE_ARN repository variable."
   value       = aws_iam_role.github_terraform.arn
 }
+
+output "page_renderer_function_name" {
+  description = "Lambda function the backend invokes for the rendering fallback (KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME)."
+  value       = local.page_renderer_function_name
+}
+
+output "page_renderer_repository_name" {
+  description = "ECR repository name used by the page renderer deployment workflow (PAGE_RENDERER_ECR_REPOSITORY)."
+  value       = aws_ecr_repository.page_renderer.name
+}
+
+output "page_renderer_repository_url" {
+  description = "Full ECR repository URL for the page renderer image."
+  value       = aws_ecr_repository.page_renderer.repository_url
+}

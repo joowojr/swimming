@@ -46,7 +46,7 @@ data "aws_iam_policy_document" "github_deploy_assume_role" {
 
 resource "aws_iam_role" "github_deploy" {
   name               = "${local.name_prefix}-gha-deploy"
-  description        = "Assumed by GitHub Actions to push images and release the frontend"
+  description        = "Assumed by GitHub Actions to deploy application images and the frontend"
   assume_role_policy = data.aws_iam_policy_document.github_deploy_assume_role.json
 
   tags = {
@@ -135,6 +135,53 @@ resource "aws_iam_role_policy" "github_deploy" {
   policy = data.aws_iam_policy_document.github_deploy.json
 }
 
+# Kept separate from the application deployment policy so the renderer's ECR
+# repository and push permissions can be applied before its bootstrap image and
+# Lambda function exist. The function ARN may safely name a future resource.
+data "aws_iam_policy_document" "github_page_renderer_deploy" {
+  statement {
+    sid    = "PushPageRendererImages"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:CompleteLayerUpload",
+      "ecr:DescribeImages",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart"
+    ]
+    resources = [aws_ecr_repository.page_renderer.arn]
+  }
+
+  statement {
+    sid       = "GetPageRendererEcrAuthorizationToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "DeployPageRenderer"
+    effect = "Allow"
+    actions = [
+      "lambda:GetFunction",
+      "lambda:GetFunctionConfiguration",
+      "lambda:UpdateFunctionCode"
+    ]
+    resources = [
+      "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.page_renderer_function_name}"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "github_page_renderer_deploy" {
+  name   = "${local.name_prefix}-gha-page-renderer-deploy"
+  role   = aws_iam_role.github_deploy.id
+  policy = data.aws_iam_policy_document.github_page_renderer_deploy.json
+}
+
 # ---------------------------------------------------------------------------
 # Terraform role: reads the whole account to produce a plan. It never applies.
 # ---------------------------------------------------------------------------
@@ -220,3 +267,5 @@ resource "aws_iam_role_policy" "github_terraform_state" {
 }
 
 data "aws_partition" "current" {}
+
+data "aws_caller_identity" "current" {}

@@ -7,6 +7,11 @@ interface GoogleCredentialResponse {
   credential: string
 }
 
+interface GoogleIdentityState {
+  clientId: string
+  credentialHandler: ((response: GoogleCredentialResponse) => void) | null
+}
+
 declare global {
   interface Window {
     google?: {
@@ -20,6 +25,7 @@ declare global {
         }
       }
     }
+    swimmingGoogleIdentity?: GoogleIdentityState
   }
 }
 
@@ -39,24 +45,37 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       return
     }
 
+    const credentialHandler = async ({ credential }: GoogleCredentialResponse) => {
+      try {
+        setError(null)
+        onSuccess(await loginWithGoogle({ credential }))
+      } catch (requestError: unknown) {
+        setError(requestError instanceof Error && requestError.message
+          ? requestError.message
+          : 'Google 로그인에 실패했습니다. 다시 시도해 주세요.')
+      }
+    }
+
     const render = () => {
       if (!window.google) {
         setError('Google 로그인을 불러오지 못했습니다.')
         return
       }
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async ({ credential }) => {
-          try {
-            setError(null)
-            onSuccess(await loginWithGoogle({ credential }))
-          } catch (requestError: unknown) {
-            setError(requestError instanceof Error && requestError.message
-              ? requestError.message
-              : 'Google 로그인에 실패했습니다. 다시 시도해 주세요.')
-          }
-        },
-      })
+
+      if (!window.swimmingGoogleIdentity) {
+        const identityState: GoogleIdentityState = {
+          clientId,
+          credentialHandler,
+        }
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => identityState.credentialHandler?.(response),
+        })
+        window.swimmingGoogleIdentity = identityState
+      } else {
+        window.swimmingGoogleIdentity.credentialHandler = credentialHandler
+      }
+
       container.replaceChildren()
       window.google.accounts.id.renderButton(container, {
         theme: 'outline',
@@ -67,14 +86,24 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       })
     }
 
+    const handleScriptError = () => setError('Google 로그인을 불러오지 못했습니다.')
+
     if (window.google) {
       render()
-      return
+    } else {
+      const script = document.getElementById('google-identity-services')
+      script?.addEventListener('load', render, { once: true })
+      script?.addEventListener('error', handleScriptError, { once: true })
     }
+
     const script = document.getElementById('google-identity-services')
-    script?.addEventListener('load', render, { once: true })
-    script?.addEventListener('error', () => setError('Google 로그인을 불러오지 못했습니다.'), { once: true })
-    return () => script?.removeEventListener('load', render)
+    return () => {
+      script?.removeEventListener('load', render)
+      script?.removeEventListener('error', handleScriptError)
+      if (window.swimmingGoogleIdentity?.credentialHandler === credentialHandler) {
+        window.swimmingGoogleIdentity.credentialHandler = null
+      }
+    }
   }, [onSuccess])
 
   return (

@@ -41,7 +41,7 @@ class SourceFetchLiveTest {
                     80_000,
                     300,
                     "SwimmingBot/0.1 (+https://swimming.app)",
-                    new KnowledgeFetchProperties.Render(false, Duration.ofSeconds(20), 1000)
+                    new KnowledgeFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
             ),
             new HtmlToMarkdownConverter(),
             Optional.empty()

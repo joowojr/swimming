@@ -1,5 +1,6 @@
 locals {
-  name_prefix = "${var.project_name}-${var.environment}"
+  name_prefix                 = "${var.project_name}-${var.environment}"
+  page_renderer_function_name = "${local.name_prefix}-page-renderer"
 
   # The repository half of the GitHub OIDC subject claim, which carries the
   # immutable ids alongside the names. Trust policies match on this rather than

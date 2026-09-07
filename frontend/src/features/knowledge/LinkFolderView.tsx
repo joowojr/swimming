@@ -1,6 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import { IconList, IconTopologyStar3 } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import ModeToggle from '../../components/ModeToggle'
+import type { ModeToggleOption } from '../../components/ModeToggle'
 import LinkComposer from './LinkComposer'
 import SourceFeedCard from './SourceFeedCard'
 import { getSources } from './knowledgeApi'
@@ -13,9 +15,17 @@ interface LinkFolderViewProps {
 
 type SourceView = 'list' | 'graph'
 
-const SOURCE_VIEWS: { value: SourceView; label: string }[] = [
-  { value: 'list', label: '목록' },
-  { value: 'graph', label: '그래프' },
+const SOURCE_VIEWS: readonly ModeToggleOption<SourceView>[] = [
+  {
+    value: 'list',
+    label: <span className="sr-only">리스트</span>,
+    icon: <IconList stroke={1.8} />,
+  },
+  {
+    value: 'graph',
+    label: <span className="sr-only">그래프</span>,
+    icon: <IconTopologyStar3 stroke={1.8} />,
+  },
 ]
 
 // 그래프는 렌더링 라이브러리를 함께 받아 온다. 목록만 볼 때는 내려받지 않게 나눠 둔다.

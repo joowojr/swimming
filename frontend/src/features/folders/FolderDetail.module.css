@@ -39,10 +39,6 @@
   gap: var(--space-8);
 }
 
-.detail-layout[data-view='links'] {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .detail-main {
   min-width: 0;
 }

@@ -68,6 +68,14 @@ const FolderBreadcrumb = memo(function FolderBreadcrumb({ folder }: { folder: Fo
   )
 })
 
+const FolderNoteWidget = memo(function FolderNoteWidget({ folder }: { folder: FolderDetailData }) {
+  return (
+    <aside className={styles['detail-aside']} aria-label="폴더 노트">
+      <NoteCard folders={[folder]} folderId={folder.id} />
+    </aside>
+  )
+})
+
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
   const isLinkView = useMatch('/folders/:folderId/links') !== null
@@ -282,7 +290,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     <article className={styles.page} aria-labelledby="folder-detail-title">
       <FolderBreadcrumb folder={folder} />
 
-      <div className={styles['detail-layout']} data-view={isLinkView ? 'links' : 'tasks'}>
+      <div className={styles['detail-layout']}>
         <div className={styles['detail-main']}>
 
       <FolderHeader
@@ -435,11 +443,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
           )}
         </div>
 
-        {!isLinkView && (
-          <aside className={styles['detail-aside']} aria-label="폴더 노트">
-            <NoteCard key={folder.id} folders={[folder]} folderId={folder.id} />
-          </aside>
-        )}
+        <FolderNoteWidget folder={folder} />
       </div>
     </article>
   )

@@ -210,6 +210,52 @@ class FolderServiceTest {
         verify(folderRepository, never()).delete(entity);
     }
 
+    @Test
+    @DisplayName("링크가 남은 프로젝트는 삭제하지 않는다")
+    void rejectsDeleteWhileSourcesRemain() {
+        // 링크는 folder_id가 NOT NULL이라 폴더에서 떼어 둘 자리가 없다.
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
+        entity.updateHasSource(true);
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> folderService.delete(1L, 10L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_HAS_SOURCES));
+
+        assertThat(entity.isDeleted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("링크 유무는 프로젝트 수정이 덮지 않는다")
+    void keepsHasSourceThroughUpdate() {
+        // 사용자가 편집하는 속성이 아니다. 수정 경로가 지나가며 끄면 삭제 가드가 뚫린다.
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
+        entity.updateHasSource(true);
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Folder updated = folderService.update(
+                1L, 10L, null, "새 이름", "새 설명", null, FolderStatus.IN_PROGRESS
+        );
+
+        assertThat(entity.hasSource()).isTrue();
+        assertThat(updated.isHasSource())
+                .as("응답에 실릴 도메인도 그대로 들고 나온다")
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("링크 유무를 기록한다")
+    void updatesHasSource() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        folderService.updateHasSource(1L, 10L, true);
+        assertThat(entity.hasSource()).isTrue();
+
+        folderService.updateHasSource(1L, 10L, false);
+        assertThat(entity.hasSource()).isFalse();
+    }
+
     private FolderEntity folderEntity(
             Long userId,
             String name,

@@ -4,7 +4,7 @@ import styles from './NoteCard.module.css'
 
 export type NoteListFilter = NoteContextType | 'ALL' | 'ARCHIVED'
 
-/** 역할: 저장된 메모 목록을 표시하고, 선택 이벤트만 상위 컴포넌트에 전달한다. */
+/** 역할: 저장된 노트 목록을 표시하고, 선택 이벤트만 상위 컴포넌트에 전달한다. */
 interface NoteListProps {
   notes: NoteResponse[]
   selectedNoteId: number | null
@@ -22,7 +22,7 @@ const noteDateFormatter = new Intl.DateTimeFormat('ko-KR', {
 })
 
 function getNotePreview(content: string) {
-  return content.split(/\r?\n/, 1)[0].trim() || '메모'
+  return content.split(/\r?\n/, 1)[0].trim() || '노트'
 }
 
 function formatNoteDate(createdAt: string) {
@@ -46,7 +46,7 @@ export default function NoteList({
     <section className={styles['memo-list']} aria-labelledby="saved-memos-title">
       <div className={styles['memo-list-head']}>
         <label className={styles['memo-list-filter']}>
-          <span className="sr-only">메모 목록 컨텍스트</span>
+          <span className="sr-only">노트 목록 컨텍스트</span>
           <select id="saved-memos-title" value={filter} onChange={(event) => onFilterChange(event.target.value as NoteListFilter)}>
             <option value="DEFAULT">핀보드</option>
             <option value="SESSION">세션</option>
@@ -62,7 +62,7 @@ export default function NoteList({
         <ul className={styles['memo-list-items']}>
           {notes.map((note) => (
             <li key={note.id}>
-              {/** 현재 페이지 컨텍스트에 속한 메모인지 목록에서도 바로 구분한다. */}
+              {/** 현재 페이지 컨텍스트에 속한 노트인지 목록에서도 바로 구분한다. */}
               <button
                 type="button"
                 className={selectedNoteId === note.id
@@ -77,7 +77,7 @@ export default function NoteList({
                   || (sessionId !== undefined && note.sessionId === sessionId)
                   || (isPinboardScreen && note.contextType === 'DEFAULT')
                 ) && (
-                  <span className={styles['memo-list-context-dot']} role="img" aria-label="현재 페이지의 메모" />
+                  <span className={styles['memo-list-context-dot']} role="img" aria-label="현재 페이지의 노트" />
                 )}
                 <span>{getNotePreview(note.content)}</span>
                 <time dateTime={note.createdAt}>{formatNoteDate(note.createdAt)}</time>
@@ -86,7 +86,7 @@ export default function NoteList({
           ))}
         </ul>
       ) : (
-        <p className={styles['memo-list-empty']}>저장된 메모가 여기에 모여요.</p>
+        <p className={styles['memo-list-empty']}>저장된 노트가 여기에 모여요.</p>
       )}
     </section>
   )

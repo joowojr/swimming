@@ -19,7 +19,7 @@ import type { LoadStatus, ProjectOption, SaveStatus } from './noteViewTypes'
 import styles from './NoteCard.module.css'
 
 /**
- * 역할: 메모의 선택·자동 저장·보관·삭제를 관리하고, 각 화면 조각과 Task Organizer 흐름을 조합한다.
+ * 역할: 노트의 선택·자동 저장·보관·삭제를 관리하고, 각 화면 조각과 Task Organizer 흐름을 조합한다.
  * AI 정리와 계획 연결의 세부 상태는 TaskOrganizerPanel이 소유한다.
  */
 interface NoteCardProps {
@@ -27,7 +27,7 @@ interface NoteCardProps {
   folderId?: number
   sessionId?: number
   className?: string
-  // 방금 만들어진 세션처럼 메모가 없는 것이 확실할 때, 첫 조회를 건너뛴다.
+  // 방금 만들어진 세션처럼 노트가 없는 것이 확실할 때, 첫 조회를 건너뛴다.
   skipInitialLoad?: boolean
   onInitialLoadSkip?: () => void
 }
@@ -168,7 +168,7 @@ export default function NoteCard({
           setNotes(loadedNotes)
         })
         .catch(() => {
-          if (!cancelled) setActionMessage('메모 목록을 불러오지 못했어요')
+          if (!cancelled) setActionMessage('노트 목록을 불러오지 못했어요')
         })
 
     return () => {
@@ -343,7 +343,7 @@ export default function NoteCard({
       removeNoteFromList(noteId)
       setRecentlyArchivedId(noteId)
     } catch {
-      setActionMessage('메모를 보관하지 못했어요')
+      setActionMessage('노트를 보관하지 못했어요')
     } finally {
       if (isMountedRef.current) setIsArchiving(false)
     }
@@ -363,7 +363,7 @@ export default function NoteCard({
       setRecentlyArchivedId(null)
       openNote(restoredNote)
     } catch {
-      setActionMessage('메모를 복원하지 못했어요')
+      setActionMessage('노트를 복원하지 못했어요')
     } finally {
       if (isMountedRef.current) setIsArchiving(false)
     }
@@ -382,7 +382,7 @@ export default function NoteCard({
       setArchiveSuggestionNoteId(null)
       setIsConfirmingDelete(false)
     } catch {
-      setActionMessage('메모를 삭제하지 못했어요')
+      setActionMessage('노트를 삭제하지 못했어요')
     } finally {
       if (isMountedRef.current) setIsDeleting(false)
     }
@@ -418,7 +418,7 @@ export default function NoteCard({
       || notes.find((note) => note.id === selectedNoteId)?.status === 'ARCHIVED'
 
   return (
-      <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="메모">
+      <section className={`${styles['memo-card']} ${className ?? ''}`} aria-label="노트">
         {organizerSource ? (
             <TaskOrganizerPanel source={organizerSource} folders={folders} onCancel={closeOrganizer} onFinish={finishOrganizer} />
         ) : (

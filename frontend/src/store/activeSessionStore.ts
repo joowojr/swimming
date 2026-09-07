@@ -13,7 +13,7 @@ interface ActiveSessionStoreState {
   session: SessionDetailResponse | null
   status: ActiveSessionStatus
 
-  // 방금 생성된 세션인지. 새 세션에는 메모가 있을 수 없어 첫 진입의 메모 조회를 건너뛰는 데만 쓴다.
+  // 방금 생성된 세션인지. 새 세션에는 노트가 있을 수 없어 첫 진입의 노트 조회를 건너뛰는 데만 쓴다.
   isJustCreated: boolean
 
   load: () => Promise<void>

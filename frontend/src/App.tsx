@@ -22,11 +22,15 @@ import styles from './App.module.css'
 
 
 function ProjectDetailRoute({ onDeleted }: { onDeleted: (folderId: number) => void }) {
-  const { folderId: folderId } = useParams()
+  const { folderId, '*': childPath } = useParams()
   const parsedProjectId = Number(folderId)
   const validProjectId = Number.isSafeInteger(parsedProjectId) && parsedProjectId > 0
     ? parsedProjectId
     : null
+
+  if (childPath && childPath !== 'links') {
+    return <Navigate to="/folders" replace />
+  }
 
   return <FolderDetail key={folderId ?? 'invalid'} folderId={validProjectId} onDeleted={onDeleted} />
 }
@@ -157,7 +161,7 @@ function App() {
             )}
           />
           <Route
-            path="/folders/:folderId"
+            path="/folders/:folderId/*"
             element={<ProjectDetailRoute onDeleted={removeFolder} />}
           />
           <Route path="/health" element={<HealthPage />} />

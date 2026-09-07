@@ -4,11 +4,17 @@
   align-items: center;
   flex: 0 0 auto;
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-error);
+  border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  color: var(--color-error);
+  color: var(--color-primary);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-label-caps-weight);
   white-space: nowrap;
+}
+
+/* 목표일이 코앞일 때만 색이 붙는다. */
+.chip[data-near] {
+  border-color: var(--color-error);
+  color: var(--color-error);
 }

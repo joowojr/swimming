@@ -1,0 +1,123 @@
+/* Hallmark · component: link-composer · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · focus · disabled · loading · error · success
+ * contrast: pass
+ * 할 일 폴더의 CreateTaskComposer(embedded)와 같은 자리·같은 무게로 둔다.
+ */
+
+.composer {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+}
+
+.composer:has(input[aria-invalid='true']) {
+  border-color: var(--color-error);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: var(--space-3);
+  color: var(--color-mute);
+}
+
+.field input {
+  min-width: 0;
+  min-height: 2.5rem;
+  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-body-sm-size);
+  background: transparent;
+  outline: none;
+}
+
+.field input::placeholder {
+  color: var(--color-mute);
+}
+
+.field input:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: center;
+  min-height: 1.875rem;
+  gap: var(--space-1);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  white-space: nowrap;
+  background: transparent;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+  cursor: pointer;
+  transition: background-color var(--transition-short);
+}
+
+.submit:focus-visible {
+  outline-color: var(--focus-ring-color);
+}
+
+.submit:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+.submit:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.spinner {
+  animation: link-composer-spin calc(var(--dur-modal) * 3) linear infinite;
+}
+
+.message {
+  margin: var(--space-2) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+}
+
+.message[data-tone='error'] {
+  color: var(--color-error);
+}
+
+@keyframes link-composer-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .composer:hover {
+    border-color: var(--color-hairline);
+  }
+
+  .submit:hover:not(:disabled) {
+    background: var(--color-surface-container-high);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit { transition: none; }
+  .spinner { animation-duration: calc(var(--dur-modal) * 6); }
+}

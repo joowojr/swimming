@@ -12,7 +12,10 @@ public enum PromptKey {
     TASK_ORGANIZER("task-organizer"),
 
     /** 폴더가 이미 정해진 상태에서 메모에서 할 일만 뽑는다. */
-    TASK_EXTRACTOR("task-extractor");
+    TASK_EXTRACTOR("task-extractor"),
+
+    /** 저장한 문서 하나를 소화해 Summary·Topic·Subject를 뽑는다. */
+    SOURCE_DIGEST("source-digest");
 
     private final String configName;
 

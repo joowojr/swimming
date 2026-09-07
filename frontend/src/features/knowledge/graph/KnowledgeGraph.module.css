@@ -1,0 +1,210 @@
+/* Hallmark · component: knowledge-graph · genre: modern-minimal · theme: Purposeful Journey
+ * states: loading · ready · empty · error · node-selected
+ * contrast: pass · responsive: code-pass
+ */
+
+.wrapper {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.board {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-container-lowest);
+}
+
+.canvas {
+  position: relative;
+  min-width: 0;
+  height: 32rem;
+  flex: 1 1 auto;
+}
+
+.canvas :global(.react-flow__node) {
+  font-family: var(--font-family-sans);
+}
+
+/* 선택 표시는 노드 카드가 직접 그린다. 라이브러리 기본 테두리와 겹치지 않게 지운다. */
+.canvas :global(.react-flow__node.selected) {
+  box-shadow: none;
+  outline: none;
+}
+
+.canvas :global(.react-flow__controls) {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.canvas :global(.react-flow__controls-button) {
+  border-bottom-color: var(--color-border-subtle);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+}
+
+.canvas :global(.react-flow__attribution) {
+  background: transparent;
+  font-size: 0.625rem;
+}
+
+/* 클래스는 간선을 감싼 g에 붙고 실제로 그려지는 것은 그 안의 path다. */
+.edge :global(.react-flow__edge-path) {
+  stroke: var(--color-ash);
+  stroke-width: 1;
+  transition: stroke var(--transition-short), stroke-width var(--transition-short);
+}
+
+/* 소속은 화면에서만 잇는 선이라 관계선보다 뒤에 둔다. */
+.edge-belongs :global(.react-flow__edge-path) {
+  stroke: var(--color-border-subtle);
+}
+
+/* 문서가 어떤 목적에 쓰이는지는 개념을 다루는 것과 다른 관계라 선도 다르게 둔다. */
+.edge-used-for :global(.react-flow__edge-path) {
+  stroke: var(--color-tone-indigo);
+  stroke-dasharray: 4 4;
+  opacity: .55;
+}
+
+/* 고른 노드에 닿는 선. 이때만 선이 앞으로 나온다. */
+.edge-active :global(.react-flow__edge-path) {
+  stroke: var(--color-primary);
+  stroke-width: 1.6;
+  opacity: 1;
+}
+
+.edge-active.edge-used-for :global(.react-flow__edge-path) {
+  stroke: var(--color-tone-indigo);
+}
+
+.legend {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: 1rem;
+  background: var(--color-surface-container-lowest);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.legend span::before {
+  width: var(--space-2);
+  height: var(--space-2);
+  border: var(--border-width) solid var(--color-ash);
+  border-radius: var(--radius-sm);
+  content: '';
+}
+
+.legend span[data-type='FOLDER']::before {
+  border-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+
+.legend span[data-type='SOURCE']::before {
+  background: var(--color-surface-container-lowest);
+}
+
+.legend span[data-type='TOPIC']::before {
+  border-color: var(--color-tone-indigo);
+  background: var(--color-tone-indigo-tint);
+}
+
+.legend span[data-type='SUBJECT']::before {
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-high);
+}
+
+.truncated {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 5;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: 1rem;
+  background: var(--color-surface-container-lowest);
+}
+
+.state {
+  display: grid;
+  justify-items: center;
+  padding: var(--space-10) var(--space-6);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  text-align: center;
+  background: var(--color-surface-container-lowest);
+}
+
+.state p {
+  margin: 0;
+}
+
+.hint {
+  margin-top: var(--space-2);
+}
+
+.state button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.875rem;
+  margin-top: var(--space-4);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+}
+
+@media (min-width: 64rem) {
+  .board {
+    flex-direction: row;
+  }
+
+  .canvas {
+    height: 36rem;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .legend {
+    display: none;
+  }
+}

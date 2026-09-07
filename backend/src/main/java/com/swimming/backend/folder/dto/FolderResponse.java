@@ -13,6 +13,7 @@ public record FolderResponse(
         LocalDate targetDate,
         FolderStatus status,
         FolderTagResponse tag,
+        boolean hasSource,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -26,6 +27,7 @@ public record FolderResponse(
                 folder.getTag() == null
                         ? null
                         : FolderTagResponse.from(folder.getTag()),
+                folder.isHasSource(),
                 folder.getCreatedAt(),
                 folder.getUpdatedAt()
         );

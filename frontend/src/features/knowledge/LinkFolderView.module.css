@@ -1,0 +1,122 @@
+/* Hallmark · component: link-folder-view · genre: modern-minimal · theme: Purposeful Journey
+ * states: loading · ready · empty · error
+ * contrast: pass · responsive: code-pass
+ * 공통 폴더 정보 아래에서 링크 목록과 그래프 화면을 구성한다.
+ */
+
+.sources {
+  margin-top: var(--space-10);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.section-title {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.section-title h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-body-lg-size);
+  font-style: normal;
+  font-weight: var(--text-button-weight);
+}
+
+.section-title span {
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-label-caps-weight);
+  letter-spacing: var(--text-label-caps-letter-spacing);
+  white-space: nowrap;
+}
+
+.link-list-stack {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.feed {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.state {
+  display: grid;
+  justify-items: center;
+  padding: var(--space-10) var(--space-6);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  text-align: center;
+  background: var(--color-surface-container-lowest);
+}
+
+.state p {
+  margin: 0;
+}
+
+.hint {
+  margin-top: var(--space-2);
+}
+
+.state button,
+.more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.875rem;
+  gap: var(--space-1);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+}
+
+.state button {
+  margin-top: var(--space-4);
+}
+
+.more {
+  justify-self: center;
+}
+
+.state button:active,
+.more:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+.more:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .state button:hover,
+  .more:hover:not(:disabled) {
+    border-color: var(--color-hairline);
+    background: var(--color-surface-soft);
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

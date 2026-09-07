@@ -1,0 +1,6 @@
+/* 한 폴더의 할 일·링크 화면을 오가는 전환기. 폴더 정보 아래, 내용 위에 놓인다. */
+.switch {
+  display: flex;
+  align-items: center;
+  margin-top: var(--space-6);
+}

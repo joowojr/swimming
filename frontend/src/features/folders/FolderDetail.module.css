@@ -32,10 +32,6 @@
   white-space: nowrap;
 }
 
-.header {
-  max-width: 48rem;
-}
-
 .detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
@@ -51,18 +47,6 @@
   position: sticky;
   top: var(--space-6);
   min-width: 0;
-}
-
-.header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
-.header-top .badges {
-  margin-bottom: 0;
 }
 
 .project-delete-confirmation {
@@ -84,62 +68,6 @@
   font-size: var(--text-body-sm-size);
 }
 
-.badges {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-}
-
-.tag,
-.folder-status {
-  padding: var(--space-1) var(--space-2);
-  font-family: var(--font-family-mono);
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-label-caps-weight);
-  line-height: var(--text-label-caps-line-height);
-  white-space: nowrap;
-}
-
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-default);
-  color: var(--color-mute);
-  background: var(--project-tone-tint, var(--color-surface-container-highest));
-}
-
-.folder-status {
-  border: var(--border-width) solid var(--chip-doing-border);
-  border-radius: var(--radius-full);
-  color: var(--chip-doing-fg);
-  background: var(--chip-doing-bg);
-}
-
-.folder-status[data-status='ARCHIVED'] {
-  border-style: dashed;
-  border-color: var(--chip-hold-border);
-  color: var(--chip-hold-fg);
-  background: var(--chip-hold-bg);
-}
-
-.badges[data-tone='0'] { --project-tone: var(--color-tone-fountain); --project-tone-tint: var(--color-tone-fountain-tint); }
-.badges[data-tone='1'] { --project-tone: var(--color-tone-indigo); --project-tone-tint: var(--color-tone-indigo-tint); }
-.badges[data-tone='2'] { --project-tone: var(--color-tone-glorious); --project-tone-tint: var(--color-tone-glorious-tint); }
-.badges[data-tone='3'] { --project-tone: var(--color-tone-wild-willow); --project-tone-tint: var(--color-tone-wild-willow-tint); }
-
-.tag::before {
-  width: var(--space-2);
-  height: var(--space-2);
-  flex: 0 0 auto;
-  border-radius: var(--radius-full);
-  background: var(--project-tone, var(--color-mute));
-  content: '';
-}
-
-.header h1,
 .state-page h1 {
   min-width: 0;
   margin: 0;
@@ -150,27 +78,6 @@
   letter-spacing: var(--text-headline-xl-letter-spacing);
   line-height: var(--text-headline-lg-line-height);
   overflow-wrap: anywhere;
-}
-
-.header p {
-  max-width: 65ch;
-  margin: var(--space-2) 0 0;
-  color: var(--color-mute);
-  font-size: var(--text-body-md-size);
-  line-height: var(--text-body-lg-line-height);
-}
-
-.editable-group {
-  display: grid;
-  max-width: 100%;
-  min-width: 0;
-  justify-items: start;
-}
-
-.editable-group > h1,
-.editable-group > p {
-  width: 100%;
-  min-width: 0;
 }
 
 .editable-display {
@@ -189,96 +96,6 @@
   line-height: inherit;
   white-space: nowrap;
   cursor: text;
-}
-
-.header-bottom {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.target-date-error {
-  margin: var(--space-2) 0 0;
-  color: var(--color-error);
-  font-size: var(--text-body-sm-size);
-  text-align: right;
-}
-
-.target-date-chip {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  min-height: 1.875rem;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-mute);
-  font-family: var(--font-family-mono);
-  font-size: var(--text-label-caps-size);
-  white-space: nowrap;
-  background: var(--color-secondary-bg);
-  cursor: text;
-}
-
-.target-date-chip:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--border-width);
-}
-
-.target-date-chip:disabled {
-  cursor: wait;
-  opacity: .55;
-}
-
-.date-editor input {
-  max-width: 100%;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  color: var(--color-primary);
-  background: transparent;
-  outline: var(--focus-ring-width) solid transparent;
-  outline-offset: var(--border-width);
-}
-
-.date-editor {
-  display: grid;
-  min-width: 0;
-  gap: var(--space-1);
-}
-
-.date-editor > p {
-  margin: 0;
-  color: var(--color-error);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-}
-
-.date-editor input {
-  field-sizing: content;
-  width: auto;
-  min-height: var(--space-8);
-  padding: 0 var(--space-2);
-  font-size: var(--text-body-sm-size);
-}
-
-.date-editor input:focus-visible {
-  border-color: transparent;
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--border-width);
-  background: var(--color-surface-soft);
-}
-
-.date-editor input:disabled {
-  cursor: wait;
-  opacity: .55;
-}
-
-.date-editor input[aria-invalid='true'] {
-  border-color: var(--color-error);
 }
 
 .summary {
@@ -449,8 +266,7 @@
   gap: var(--space-2);
 }
 
-.task-actions .compact-delete-button,
-.header-top .compact-delete-button {
+.task-actions .compact-delete-button {
   min-width: 1.875rem;
   min-height: 1.875rem;
   padding-inline: var(--space-2);
@@ -487,6 +303,41 @@
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+
+/* 링크 폴더의 더 보기와 같은 모양을 쓴다. */
+.load-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin-inline: auto;
+  min-height: 1.875rem;
+  margin-block-start: var(--space-3);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+}
+
+.load-more:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.load-more:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .load-more:hover:not(:disabled) {
+    border-color: var(--color-hairline);
+    background: var(--color-surface-soft);
+  }
 }
 
 .task-list-toolbar {
@@ -604,14 +455,8 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .editable-display:hover,
-  .target-date-chip:hover:not(:disabled) {
+  .editable-display:hover {
     background: var(--color-surface-soft);
-  }
-
-  .target-date-chip:hover:not(:disabled) {
-    border-color: var(--color-hairline);
-    color: var(--color-primary);
   }
 
   .breadcrumb a:hover {

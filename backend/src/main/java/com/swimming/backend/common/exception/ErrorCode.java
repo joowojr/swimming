@@ -15,6 +15,7 @@ public enum ErrorCode {
     // FOLDER DOMAIN
     FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "폴더를 찾을 수 없습니다"),
     FOLDER_HAS_TASKS(HttpStatus.CONFLICT, "폴더의 할 일을 모두 삭제한 후 폴더를 삭제할 수 있습니다"),
+    FOLDER_HAS_SOURCES(HttpStatus.CONFLICT, "폴더의 링크를 모두 삭제한 후 폴더를 삭제할 수 있습니다"),
     FOLDER_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "폴더 태그를 찾을 수 없습니다"),
     FOLDER_TAG_SELECTION_CONFLICT(HttpStatus.BAD_REQUEST, "기존 태그와 새 태그를 동시에 선택할 수 없습니다"),
     FOLDER_TAG_ALREADY_EXISTS(HttpStatus.CONFLICT, "같은 이름의 폴더 태그가 이미 있습니다"),
@@ -24,6 +25,7 @@ public enum ErrorCode {
     INVALID_TASK_SORT(HttpStatus.BAD_REQUEST, "Task 정렬 조건이 올바르지 않습니다"),
     INVALID_MATRIX_SECTION(HttpStatus.BAD_REQUEST, "Matrix 영역이 올바르지 않습니다"),
     INVALID_MATRIX_CURSOR(HttpStatus.BAD_REQUEST, "Matrix 조회 커서가 올바르지 않습니다"),
+    INVALID_TASK_CURSOR(HttpStatus.BAD_REQUEST, "할 일 목록 조회 커서가 올바르지 않습니다"),
     INVALID_PAGE_SIZE(HttpStatus.BAD_REQUEST, "페이지 크기가 올바르지 않습니다"),
     INVALID_TASK_PLACEMENT(HttpStatus.BAD_REQUEST, "Task 이동 위치가 올바르지 않습니다"),
     TASK_PLACEMENT_CONFLICT(HttpStatus.CONFLICT, "Task 목록이 변경되어 이동 위치를 적용할 수 없습니다"),
@@ -54,6 +56,16 @@ public enum ErrorCode {
 
     // PLACE DOMAIN
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "공간을 찾을 수 없습니다"),
+
+    // KNOWLEDGE DOMAIN
+    KNOWLEDGE_NODE_NOT_FOUND(HttpStatus.NOT_FOUND, "지식 노드를 찾을 수 없습니다"),
+    INVALID_KNOWLEDGE_FOLDER(HttpStatus.BAD_REQUEST, "지식 폴더가 아닙니다"),
+    INVALID_KNOWLEDGE_RELATION(HttpStatus.BAD_REQUEST, "지식 관계의 연결 방향이 올바르지 않습니다"),
+    INVALID_KNOWLEDGE_CURSOR(HttpStatus.BAD_REQUEST, "목록 조회 커서가 올바르지 않습니다"),
+    INVALID_KNOWLEDGE_BRANCH(HttpStatus.BAD_REQUEST, "지식 구조의 연결이 올바르지 않습니다"),
+    INVALID_GRAPH_DEPTH(HttpStatus.BAD_REQUEST, "그래프 확장 단계가 올바르지 않습니다"),
+    KNOWLEDGE_TOPIC_NOT_DELETABLE(HttpStatus.CONFLICT, "목적은 문서를 삭제하면 함께 사라집니다"),
+    KNOWLEDGE_SOURCE_NOT_RETRYABLE(HttpStatus.CONFLICT, "본문 수집을 마치고 정리에 실패한 링크만 다시 분석할 수 있습니다"),
 
     // USER DOMAIN
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),

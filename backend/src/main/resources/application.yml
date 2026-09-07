@@ -37,10 +37,38 @@ app:
     locations:
       task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer/classify.md}
       task-extractor: ${TASK_EXTRACTOR_PROMPT_PATH:classpath:prompts/task-organizer/extract.md}
+      source-digest: ${SOURCE_DIGEST_PROMPT_PATH:classpath:prompts/knowledge/digest.md}
     # 골격의 <!-- fragment: 이름 --> 줄에 끼워 넣는다.
     fragments:
       splitting: classpath:prompts/task-organizer/_splitting.md
       titles: classpath:prompts/task-organizer/_titles.md
+  knowledge:
+    digest:
+      # LLM 입력 상한. 이보다 짧은 문서는 손대지 않고 통째로 넣는다.
+      max-input-length: 40000
+      # 헤딩 하나가 가져갈 최소 분량. 구간 수가 적어 예산이 남으면 이보다 늘려 상한을 채운다.
+      section-budget: 800
+    fetch:
+      # 사용자가 한 번에 여러 링크를 저장해도 상대 서버를 몰아치지 않는 선.
+      concurrency: 4
+      timeout: 15s
+      max-body-bytes: 4194304
+      # 측정 기준(마크다운 변환 후 전체 길이):
+      #   Spring AI ChatClient 47,686자 / Spring Data JPA Query Methods 56,711자
+      #   Wikipedia MCP 21,316자 / Spring Boot Externalized Configuration 123,835자
+      # 80,000이면 마지막 것 같은 대형 챕터 문서만 잘린다.
+      max-content-length: 80000
+      # 링크를 뺀 실제 문장이 이보다 짧으면 본문 추출 실패로 보고 og:description 으로 대체한다.
+      # 실측: 로그인 벽 페이지 183~271자 / 가장 짧은 정상 문서 2,154자.
+      min-meaningful-length: 300
+      user-agent: ${KNOWLEDGE_FETCH_USER_AGENT:SwimmingBot/0.1 (+https://swimming.app)}
+      render:
+        # JavaScript로 본문을 그리는 페이지(tech.kakao.com, d2.naver.com 등)만 대상.
+        # 브라우저를 띄우므로 켜기 전에 'playwright install chromium' 이 필요하다.
+        enabled: ${KNOWLEDGE_FETCH_RENDER_ENABLED:false}
+        timeout: 20s
+        # 실측: 렌더링이 필요했던 페이지가 74자·322자, 정상이지만 짧았던 페이지가 3,750자.
+        min-content-length: 1000
   place:
     background:
       cdn-base-url: ${PLACE_CDN_BASE_URL}

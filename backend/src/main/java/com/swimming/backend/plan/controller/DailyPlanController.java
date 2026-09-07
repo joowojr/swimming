@@ -1,5 +1,6 @@
 package com.swimming.backend.plan.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.plan.dto.CreateDailyPlanItemsRequest;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
@@ -24,6 +25,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 
+@Tag(name = "데일리 플랜", description = "핀보드(`/pinboard`)의 데일리 플래너.")
 @RestController
 @RequestMapping("/api/daily-plans")
 @RequiredArgsConstructor

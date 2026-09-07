@@ -63,7 +63,7 @@ const LOADING_MESSAGE_INTERVAL_MS = 1000
 const LOADING_MESSAGES = [
   '최근 폴더 목록을 조회하고 있어요',
   '최근 할 일 목록을 살펴보고 있어요',
-  '메모에서 할 일을 정리하고 있어요',
+  '노트에서 할 일을 정리하고 있어요',
   '정리 결과를 준비하고 있어요',
 ] as const
 
@@ -288,7 +288,7 @@ export default function TaskOrganizerPanel({
     return (
       <section className={styles['organize-loading']} aria-labelledby="organize-loading-title" aria-busy="true">
         <div className={styles['organize-loading-heading']}>
-          <h4 id="organize-loading-title">메모를 할 일로 정리하고 있어요</h4>
+          <h4 id="organize-loading-title">노트를 할 일로 정리하고 있어요</h4>
           <p className={styles['organize-loading-message']} key={state.messageIndex} role="status" aria-live="polite">
             {LOADING_MESSAGES[state.messageIndex]}
           </p>

@@ -32,7 +32,8 @@ class ResourcePromptRepositoryTest {
         return repository(
                 Map.of(
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md",
-                        PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md"
+                        PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md",
+                        PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md"
                 ),
                 FRAGMENTS
         );
@@ -88,7 +89,8 @@ class ResourcePromptRepositoryTest {
         assertThatThrownBy(() -> repository(
                 Map.of(
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md",
-                        PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md"
+                        PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md",
+                        PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md"
                 ),
                 Map.of("titles", FRAGMENTS.get("titles"))))
                 .isInstanceOf(IllegalStateException.class)
@@ -104,7 +106,8 @@ class ResourcePromptRepositoryTest {
         String prompt = repository(
                 Map.of(
                         PromptKey.TASK_ORGANIZER.configName(), "file:" + file,
-                        PromptKey.TASK_EXTRACTOR.configName(), "file:" + file
+                        PromptKey.TASK_EXTRACTOR.configName(), "file:" + file,
+                        PromptKey.SOURCE_DIGEST.configName(), "file:" + file
                 ),
                 Map.of()).get(PromptKey.TASK_ORGANIZER);
 
@@ -117,7 +120,8 @@ class ResourcePromptRepositoryTest {
         assertThatThrownBy(() -> repository(
                 Map.of(
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/does-not-exist.md",
-                        PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md"
+                        PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md",
+                        PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md"
                 ),
                 FRAGMENTS))
                 .isInstanceOf(IllegalStateException.class)
@@ -128,7 +132,10 @@ class ResourcePromptRepositoryTest {
     @DisplayName("프롬프트 위치 설정이 없으면 기동에서 실패한다")
     void 설정_누락은_기동에서_실패한다() {
         assertThatThrownBy(() -> repository(
-                Map.of(PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md"),
+                Map.of(
+                        PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md",
+                        PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md"
+                ),
                 FRAGMENTS))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("task-extractor");

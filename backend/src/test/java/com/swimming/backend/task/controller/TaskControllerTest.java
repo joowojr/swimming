@@ -7,6 +7,8 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
+import com.swimming.backend.common.dto.CursorPage;
+import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
 import com.swimming.backend.plan.dto.DailyPlanResponse;
@@ -81,22 +83,6 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.completionPct").doesNotExist())
                 .andExpect(jsonPath("$.orderIdx").value(0));
-    }
-
-    @Test
-    @DisplayName("폴더 Task 목록을 저장된 순서대로 반환한다")
-    void returnsFolderTasks() throws Exception {
-        when(taskUseCase.getByFolder(1L, 10L)).thenReturn(List.of(
-                response(2L, "첫째", TaskStatus.DOING, 0),
-                response(1L, "둘째", TaskStatus.TODO, 1)
-        ));
-
-        mockMvc.perform(get("/api/folders/10/tasks"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(2))
-                .andExpect(jsonPath("$[0].orderIdx").value(0))
-                .andExpect(jsonPath("$[1].id").value(1))
-                .andExpect(jsonPath("$[1].orderIdx").value(1));
     }
 
     @Test
@@ -277,6 +263,50 @@ class TaskControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("TASK_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("폴더의 할 일 목록을 커서 페이지로 반환한다")
+    void returnsFolderTaskPage() throws Exception {
+        when(taskUseCase.getPageByFolder(1L, 10L, 20, null)).thenReturn(new CursorPage<>(
+                List.of(
+                        new TaskSummaryResponse(2L, "첫째", TaskStatus.DOING, 0),
+                        new TaskSummaryResponse(1L, "둘째", TaskStatus.TODO, 1)
+                ),
+                "cursor-abc",
+                true
+        ));
+
+        mockMvc.perform(get("/api/folders/10/tasks"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(2))
+                .andExpect(jsonPath("$.items[0].orderIdx").value(0))
+                .andExpect(jsonPath("$.items[1].id").value(1))
+                .andExpect(jsonPath("$.nextCursor").value("cursor-abc"))
+                .andExpect(jsonPath("$.hasNext").value(true));
+    }
+
+    @Test
+    @DisplayName("폴더 할 일 목록은 size와 cursor를 그대로 전달한다")
+    void passesFolderTaskPageQuery() throws Exception {
+        when(taskUseCase.getPageByFolder(1L, 10L, 5, "cursor-abc"))
+                .thenReturn(new CursorPage<>(List.of(), null, false));
+
+        mockMvc.perform(get("/api/folders/10/tasks")
+                        .param("size", "5")
+                        .param("cursor", "cursor-abc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.hasNext").value(false));
+
+        verify(taskUseCase).getPageByFolder(1L, 10L, 5, "cursor-abc");
+    }
+
+    @Test
+    @DisplayName("허용 범위를 넘는 size는 400으로 거부한다")
+    void rejectsTooLargeSize() throws Exception {
+        mockMvc.perform(get("/api/folders/10/tasks").param("size", "500"))
+                .andExpect(status().isBadRequest());
     }
 
     private TaskResponse response(

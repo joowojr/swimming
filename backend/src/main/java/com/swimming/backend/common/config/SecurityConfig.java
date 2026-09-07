@@ -26,6 +26,14 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
+    /**
+     * API 문서는 인증 없이 연다. 문서를 보려면 토큰이 필요한 구조는 프런트가 계약을
+     * 확인하는 것을 막는다. 문서에는 경로와 스키마만 담기고 데이터는 담기지 않는다.
+     */
+    private static final String[] API_DOCS_PATHS = {
+            "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -41,6 +49,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/health", "/api/auth/**", "/api/public/**").permitAll()
+                        .requestMatchers(API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt

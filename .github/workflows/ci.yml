@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 # A superseded run on the same branch has nothing left to verify.
 concurrency:

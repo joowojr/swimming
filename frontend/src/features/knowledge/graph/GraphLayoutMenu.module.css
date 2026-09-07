@@ -1,0 +1,95 @@
+/* Hallmark · component: graph-layout-menu · genre: modern-minimal · theme: Purposeful Journey
+ * states: closed · open · selected
+ * contrast: pass
+ * 트리거+패널 모양은 할 일 필터(TaskFilterMenu)를 따른다.
+ */
+
+.wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  gap: var(--space-1);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+.panel {
+  position: absolute;
+  z-index: calc(var(--z-modal) - 1);
+  top: calc(100% + var(--space-2));
+  right: 0;
+  display: grid;
+  width: max-content;
+  min-width: 11rem;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-floating);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.group legend {
+  padding: 0 0 var(--space-1);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  letter-spacing: var(--text-label-caps-letter-spacing);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  cursor: pointer;
+}
+
+.choice span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.choice svg {
+  color: var(--color-mute);
+}
+
+.choice input {
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover {
+    border-color: var(--color-ash);
+    background: var(--color-surface-soft);
+  }
+}

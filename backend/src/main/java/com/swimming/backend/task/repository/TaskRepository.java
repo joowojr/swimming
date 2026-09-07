@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,46 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             ORDER BY task.createdAt DESC
             """)
     List<TaskEntity> findAllByFolderIdWithFolder(@Param("folderId") Long folderId);
+
+    /**
+     * 폴더의 할 일 첫 페이지. 커서에 싣는 값과 같은 (생성 시각, id) 순서를 써야 경계에서
+     * 행이 겹치거나 빠지지 않는다.
+     *
+     * <p>다음 페이지를 같은 쿼리로 합치지 않는다. {@code :cursor IS NULL} 로 묶으면 그
+     * 파라미터가 비교 없이 홀로 놓여 PostgreSQL이 타입을 정하지 못한다
+     * ({@code could not determine data type of parameter}).
+     */
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            JOIN FETCH task.folder folder
+            WHERE folder.id = :folderId
+              AND task.deleted = false
+            ORDER BY task.createdAt DESC, task.id DESC
+            """)
+    List<TaskEntity> findFolderTaskFirstPage(
+            @Param("folderId") Long folderId,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            JOIN FETCH task.folder folder
+            WHERE folder.id = :folderId
+              AND task.deleted = false
+              AND (
+                    task.createdAt < :cursorCreatedAt
+                 OR (task.createdAt = :cursorCreatedAt AND task.id < :cursorTaskId)
+              )
+            ORDER BY task.createdAt DESC, task.id DESC
+            """)
+    List<TaskEntity> findFolderTaskNextPage(
+            @Param("folderId") Long folderId,
+            @Param("cursorCreatedAt") Instant cursorCreatedAt,
+            @Param("cursorTaskId") Long cursorTaskId,
+            Pageable pageable
+    );
 
     List<TaskEntity> findAllByUser_IdAndDeletedFalse(Long userId, Sort sort);
 

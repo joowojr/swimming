@@ -11,11 +11,10 @@ import InlineEditableText from '../../components/InlineEditableText'
 import ChecklistCard from '../../components/ChecklistCard'
 import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
 import {useNavigate} from 'react-router-dom'
-import type {FolderDetail} from '../folders/folderTypes.ts'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
-import type {TaskStatus} from '../tasks/taskTypes'
+import type {TaskStatus, TaskSummaryResponse} from '../tasks/taskTypes'
 import type {DailyPlanItem} from './dailyPlanTypes'
 import {formatLocalDate, parseLocalDate} from '../../lib/date'
 import {monthRange} from './planDate'
@@ -185,7 +184,7 @@ export default function DailyPlanner() {
         selectDate(formatLocalDate(next))
     }
 
-    const addTasks = async (tasks: FolderDetail['tasks']) => {
+    const addTasks = async (tasks: TaskSummaryResponse[]) => {
         if (tasks.length === 0) return
         await addItems(selectedDate, {taskIds: tasks.map((task) => task.id)})
     }

@@ -5,6 +5,8 @@ interface DdayChipProps {
   targetDate: string | null
   /** 이 일수 이하로 남았을 때만 칩을 보여 준다. */
   thresholdDays?: number
+  /** 이 일수 이하로 남으면 색으로 알린다. 그 밖에는 담백하게 둔다. */
+  nearDays?: number
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -21,14 +23,18 @@ function formatDday(daysUntil: number) {
   return daysUntil > 0 ? `D-${daysUntil}` : `D+${-daysUntil}`
 }
 
-export default function DdayChip({ targetDate, thresholdDays = 7 }: DdayChipProps) {
+export default function DdayChip({
+  targetDate,
+  thresholdDays = 7,
+  nearDays = 7,
+}: DdayChipProps) {
   if (targetDate === null) return null
 
   const daysUntil = getDaysUntil(targetDate)
   if (daysUntil > thresholdDays) return null
 
   return (
-    <span className={styles.chip}>
+    <span className={styles.chip} data-near={daysUntil <= nearDays || undefined}>
       <span className="sr-only">목표일까지 </span>
       {formatDday(daysUntil)}
     </span>

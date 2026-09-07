@@ -1,13 +1,11 @@
-import type {KeyboardEvent} from 'react'
-import {useCallback, useEffect, useRef, useState} from 'react'
-import {IconCalendarDue, IconChevronRight} from '@tabler/icons-react'
-import {Link, useNavigate} from 'react-router-dom'
+import {memo, useCallback, useEffect, useRef, useState} from 'react'
+import {IconChevronRight} from '@tabler/icons-react'
+import {Link, useMatch, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
-import DdayChip from '../../components/DdayChip'
 import DeleteIconButton from '../../components/DeleteIconButton'
-import DeleteConfirmation from '../../components/DeleteConfirmation'
-import InlineEditableText from '../../components/InlineEditableText'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
+import FolderHeader from './FolderHeader'
+import FolderViewSwitch from './FolderViewSwitch'
 import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
@@ -15,12 +13,13 @@ import {
 } from '../tasks/taskFilter'
 import type { TaskFilter } from '../tasks/taskFilter'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
-import {deleteTasks} from '../tasks/taskApi'
-import {deleteFolder, getFolder, updateFolder} from './folderApi.ts'
-import {useFolderStore} from '../../store/folderStore.ts'
-import type {FolderDetail as FolderDetailData, FolderStatus} from './folderTypes.ts'
+import {deleteTasks, getFolderTasks} from '../tasks/taskApi'
+import type { TaskSummaryResponse } from '../tasks/taskTypes'
+import {getFolder} from './folderApi.ts'
+import type {Folder, FolderDetail as FolderDetailData} from './folderTypes.ts'
 import TaskList from '../tasks/TaskList'
 import NoteCard from '../note/NoteCard'
+import LinkFolderView from '../knowledge/LinkFolderView'
 import styles from './FolderDetail.module.css'
 
 interface FolderDetailProps {
@@ -33,7 +32,11 @@ type DetailState =
   | { status: 'ready'; folder: FolderDetailData }
   | { status: 'error'; notFound: boolean }
 
-type EditableFolderTextField = 'name' | 'description'
+/** 할 일은 폴더와 따로 불러 이어 읽는다. 커서는 이 화면이 소유한다. */
+type TaskPageState =
+  | { status: 'loading' }
+  | { status: 'ready'; items: TaskSummaryResponse[]; nextCursor: string | null; hasNext: boolean }
+  | { status: 'error' }
 
 // const taskFilters: Array<{ value: TaskFilter; label: string }> = [
 //   { value: 'ALL', label: '전체' },
@@ -43,31 +46,43 @@ type EditableFolderTextField = 'name' | 'description'
 //   })),
 // ]
 
-const folderStatusLabel: Record<FolderStatus, string> = {
-  IN_PROGRESS: '진행 중',
-  ARCHIVED: '보관됨',
-}
-
-const targetDateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
-
-function formatTargetDate(targetDate: string | null) {
-  return targetDate
-    ? targetDateFormatter.format(new Date(`${targetDate}T00:00:00`))
-    : '설정하지 않음'
-}
-
 function isNotFound(error: unknown) {
   return typeof error === 'object' && error !== null && (error as ApiError).status === 404
 }
 
+const FOLDER_DELETE_MESSAGE = '폴더를 삭제하려면 연결된 할 일과 저장한 링크를 모두 삭제해야 합니다. 노트는 유지됩니다.'
+
+const FolderBreadcrumb = memo(function FolderBreadcrumb({ folder }: { folder: FolderDetailData }) {
+  return (
+    <nav className={styles.breadcrumb} aria-label="Breadcrumb">
+      <Link to="/folders">폴더</Link>
+      {folder.tag && (
+        <>
+          <IconChevronRight size={14} aria-hidden="true" />
+          <span aria-current="page">{folder.tag.name}</span>
+        </>
+      )}
+      <IconChevronRight size={14} aria-hidden="true" />
+      <span aria-current="page">{folder.name}</span>
+    </nav>
+  )
+})
+
+const FolderNoteWidget = memo(function FolderNoteWidget({ folder }: { folder: FolderDetailData }) {
+  return (
+    <aside className={styles['detail-aside']} aria-label="폴더 노트">
+      <NoteCard folders={[folder]} folderId={folder.id} />
+    </aside>
+  )
+})
+
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
-  const applyFolderToStore = useFolderStore((state) => state.apply)
-  const [requestKey, setRequestKey] = useState(0)
+  const isLinkView = useMatch('/folders/:folderId/links') !== null
+  const navigateRef = useRef(navigate)
+  const onDeletedRef = useRef(onDeleted)
+  const [folderRequestKey, setFolderRequestKey] = useState(0)
+  const [taskRequestKey, setTaskRequestKey] = useState(0)
   const [state, setState] = useState<DetailState>(
     folderId === null ? { status: 'error', notFound: true } : { status: 'loading' },
   )
@@ -75,20 +90,34 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set())
   const [isDeletingTasks, setIsDeletingTasks] = useState(false)
+  const [isLoadingMoreTasks, setIsLoadingMoreTasks] = useState(false)
+  const [tasks, setTasks] = useState<TaskPageState>({ status: 'loading' })
+
+  // 폴더가 바뀌면 이전 폴더의 할 일이 남지 않게 렌더 중에 되돌린다. 효과로 처리하면
+  // 이전 목록을 한 번 그린 뒤 다시 그리게 된다.
+  const [renderedFolderId, setRenderedFolderId] = useState(folderId)
+  if (renderedFolderId !== folderId) {
+    setRenderedFolderId(folderId)
+    setTasks({ status: 'loading' })
+  }
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [isConfirmingFolderDelete, setIsConfirmingFolderDelete] = useState(false)
-  const [isDeletingFolder, setIsDeletingFolder] = useState(false)
-  const [folderDeleteError, setFolderDeleteError] = useState<string | null>(null)
-  const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
-  const [editValue, setEditValue] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-  const [isSavingFolder, setIsSavingFolder] = useState(false)
   const taskInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    navigateRef.current = navigate
+    onDeletedRef.current = onDeleted
+  }, [navigate, onDeleted])
+
   const leaveDeleteMode = () => {
     setIsDeleteMode(false)
     setSelectedTaskIds(new Set())
     setDeleteError(null)
   }
+
+  const reloadTasks = useCallback(() => {
+    setTasks({ status: 'loading' })
+    setTaskRequestKey((key) => key + 1)
+  }, [])
 
   const toggleTaskSelection = (taskId: number) => {
     setSelectedTaskIds((current) => {
@@ -100,6 +129,34 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setDeleteError(null)
   }
 
+  /**
+   * 다음 페이지를 이어 붙인다. 폴더 정보는 다시 부르지 않는다 — 할 일 목록과 갱신 시점이
+   * 다르기 때문에 API가 나뉘어 있다.
+   */
+  const loadMoreTasks = async () => {
+    if (folderId === null || tasks.status !== 'ready') return
+
+    const cursor = tasks.nextCursor
+    if (!cursor || isLoadingMoreTasks) return
+
+    setIsLoadingMoreTasks(true)
+    try {
+      const page = await getFolderTasks(folderId, { cursor })
+      setTasks((current) => current.status === 'ready'
+        ? {
+          status: 'ready',
+          items: [...current.items, ...page.items],
+          nextCursor: page.nextCursor,
+          hasNext: page.hasNext,
+        }
+        : current)
+    } catch {
+      // 다음 장을 못 가져와도 이미 보이는 목록은 그대로 둔다.
+    } finally {
+      setIsLoadingMoreTasks(false)
+    }
+  }
+
   const removeSelectedTasks = async () => {
     if (selectedTaskIds.size === 0) return
 
@@ -108,26 +165,12 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setDeleteError(null)
     try {
       await deleteTasks({ taskIds: [...taskIdsToDelete] })
-      setState((current) => {
+      setTasks((current) => {
         if (current.status !== 'ready') return current
 
-        const tasks = current.folder.tasks.filter((task) => !taskIdsToDelete.has(task.id))
-        const completedTaskCount = tasks.filter((task) => task.status === 'DONE').length
-        const totalTaskCount = tasks.length
-
         return {
-          status: 'ready',
-          folder: {
-            ...current.folder,
-            tasks,
-            progress: {
-              totalTaskCount,
-              completedTaskCount,
-              completionPct: totalTaskCount === 0
-                ? 0
-                : Math.floor(completedTaskCount * 100 / totalTaskCount),
-            },
-          },
+          ...current,
+          items: current.items.filter((task) => !taskIdsToDelete.has(task.id)),
         }
       })
       leaveDeleteMode()
@@ -141,130 +184,20 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     }
   }
 
-  const removeFolder = async (folder: FolderDetailData) => {
-    if (isDeletingFolder) return
-    setIsDeletingFolder(true)
-    setFolderDeleteError(null)
-    try {
-      await deleteFolder(folder.id)
-      onDeleted(folder.id)
-      navigate('/folders', { replace: true })
-    } catch (error: unknown) {
-      const apiMessage = typeof error === 'object' && error !== null
-        ? (error as ApiError).message
-        : undefined
-      setFolderDeleteError(apiMessage ?? '폴더를 삭제하지 못했습니다. 다시 시도해 주세요.')
-    } finally {
-      setIsDeletingFolder(false)
-    }
-  }
-
-  const startEditingTargetDate = (value: string | null) => {
-    if (isSavingFolder) return
-    setIsEditingTargetDate(true)
-    setEditValue(value ?? '')
-    setEditError(null)
-  }
-
-  const cancelEditingTargetDate = () => {
-    if (isSavingFolder) return
-    setIsEditingTargetDate(false)
-    setEditValue('')
-    setEditError(null)
-  }
-
-  const applyUpdatedFolder = (folder: FolderDetailData, updated: Awaited<ReturnType<typeof updateFolder>>) => {
-    applyFolderToStore(updated)
-    setState({
-      status: 'ready',
-      folder: {
-        ...folder,
-        name: updated.name,
-        description: updated.description,
-        targetDate: updated.targetDate,
-        status: updated.status,
-        tag: updated.tag,
-      },
-    })
-  }
-
-  const saveFolderTextField = async (
-    folder: FolderDetailData,
-    field: EditableFolderTextField,
-    value: string,
-  ) => {
-    setIsSavingFolder(true)
-    try {
-      const updated = await updateFolder(folder.id, {
-        name: field === 'name' ? value : folder.name,
-        description: field === 'description' ? value : folder.description,
-        targetDate: folder.targetDate,
-        status: folder.status,
-        tagId: folder.tag?.id ?? null,
-      })
-      applyUpdatedFolder(folder, updated)
-    } finally {
-      setIsSavingFolder(false)
-    }
-  }
-
-  const getFolderFieldError = (error: unknown, field: EditableFolderTextField) => {
-    const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
-    return apiError?.errors?.[field]
-      ?? apiError?.message
-      ?? '폴더 정보를 저장하지 못했습니다.'
-  }
-
-  const saveTargetDate = async (folder: FolderDetailData) => {
-    if (!isEditingTargetDate || isSavingFolder) return
-    const targetDate = editValue || null
-    if (targetDate === folder.targetDate) {
-      cancelEditingTargetDate()
-      return
-    }
-
-    setIsSavingFolder(true)
-    setEditError(null)
-    try {
-      const updated = await updateFolder(folder.id, {
-        name: folder.name,
-        description: folder.description,
-        targetDate,
-        status: folder.status,
-        tagId: folder.tag?.id ?? null,
-      })
-      applyUpdatedFolder(folder, updated)
-      setIsEditingTargetDate(false)
-      setEditValue('')
-    } catch (error: unknown) {
-      const apiError = typeof error === 'object' && error !== null ? error as ApiError : undefined
-      setEditError(apiError?.errors?.targetDate ?? apiError?.message ?? '목표일을 저장하지 못했습니다.')
-    } finally {
-      setIsSavingFolder(false)
-    }
-  }
-
-  const handleTargetDateDisplayKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== 'Enter' && event.key !== 'F2') return
-    event.preventDefault()
-    startEditingTargetDate(state.status === 'ready' ? state.folder.targetDate : null)
-  }
-
-  const handleTargetDateEditorKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      cancelEditingTargetDate()
-      return
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      event.currentTarget.blur()
-    }
-  }
-
   const retry = useCallback(() => {
     setState({ status: 'loading' })
-    setRequestKey((key) => key + 1)
+    setFolderRequestKey((key) => key + 1)
+  }, [])
+
+  const handleFolderUpdated = useCallback((updated: Folder) => {
+    setState((current) => current.status === 'ready'
+      ? { status: 'ready', folder: { ...current.folder, ...updated } }
+      : current)
+  }, [])
+
+  const handleFolderDeleted = useCallback((deletedFolderId: number) => {
+    onDeletedRef.current(deletedFolderId)
+    navigateRef.current('/folders', { replace: true })
   }, [])
 
   useEffect(() => {
@@ -281,7 +214,30 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       })
 
     return () => { active = false }
-  }, [folderId, requestKey])
+  }, [folderId, folderRequestKey])
+
+  useEffect(() => {
+    if (folderId === null || isLinkView || tasks.status !== 'loading') return
+
+    let active = true
+
+    void getFolderTasks(folderId)
+      .then((page) => {
+        if (active) {
+          setTasks({
+            status: 'ready',
+            items: page.items,
+            nextCursor: page.nextCursor,
+            hasNext: page.hasNext,
+          })
+        }
+      })
+      .catch(() => {
+        if (active) setTasks({ status: 'error' })
+      })
+
+    return () => { active = false }
+  }, [folderId, isLinkView, taskRequestKey, tasks.status])
 
   if (state.status === 'loading') {
     return (
@@ -318,7 +274,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
   const { folder } = state
   const activeFilterCount = countActiveFilters(taskFilter)
-  const visibleTasks = folder.tasks.filter((task) => matchesTaskFilter(task, taskFilter))
+  const taskItems = tasks.status === 'ready' ? tasks.items : []
+  const visibleTasks = taskItems.filter((task) => matchesTaskFilter(task, taskFilter))
   const emptyCopy = activeFilterCount > 0
     ? {
       title: '조건에 맞는 할 일이 없어요.',
@@ -331,112 +288,20 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
   return (
     <article className={styles.page} aria-labelledby="folder-detail-title">
-      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link to="/folders">폴더</Link>
-        {folder.tag && (
-            <>
-              <IconChevronRight size={14} aria-hidden="true" />
-              <span aria-current="page">{folder.tag.name}</span>
-            </>
-        )}
-        <IconChevronRight size={14} aria-hidden="true"/>
-        <span aria-current="page">{folder.name}</span>
-      </nav>
+      <FolderBreadcrumb folder={folder} />
 
       <div className={styles['detail-layout']}>
         <div className={styles['detail-main']}>
 
-      <header className={styles.header}>
-        <div className={styles['header-top']}>
-          <div className={styles.badges} data-tone={folder.id % 4}>
-            {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
-            <span className={styles['folder-status']} data-status={folder.status}>{folderStatusLabel[folder.status]}</span>
-            <DdayChip targetDate={folder.targetDate} />
-          </div>
-          <DeleteIconButton
-            className={styles['compact-delete-button']}
-            iconSize={14}
-            label="폴더 삭제"
-            active={isConfirmingFolderDelete}
-            disabled={isDeletingFolder}
-            onClick={() => {
-              setIsConfirmingFolderDelete((current) => !current)
-              setFolderDeleteError(null)
-            }}
-          >
-            <span>{isConfirmingFolderDelete ? '취소' : '폴더 삭제'}</span>
-          </DeleteIconButton>
-        </div>
-        {isConfirmingFolderDelete && (
-          <DeleteConfirmation
-            message="폴더를 삭제하려면 연결된 할 일을 모두 삭제해야 합니다. 메모는 유지됩니다."
-            ariaLabel="폴더 삭제 확인"
-            isDeleting={isDeletingFolder}
-            onCancel={() => setIsConfirmingFolderDelete(false)}
-            onConfirm={() => void removeFolder(folder)}
-          />
-        )}
-        {folderDeleteError && <p className={styles['delete-error']} role="alert">{folderDeleteError}</p>}
-        <div className={styles['editable-group']}>
-          <h1 id="folder-detail-title">
-            <InlineEditableText
-              value={folder.name}
-              ariaLabel="폴더 제목"
-              maxLength={255}
-              requiredMessage="폴더 이름을 입력해 주세요."
-              disabled={isSavingFolder}
-              onSave={(value) => saveFolderTextField(folder, 'name', value)}
-              getErrorMessage={(error) => getFolderFieldError(error, 'name')}
-            />
-          </h1>
-        </div>
-        <div className={styles['editable-group']}>
-          <p>
-            <InlineEditableText
-              value={folder.description}
-              emptyText="폴더 설명이 아직 없습니다."
-              ariaLabel="폴더 설명"
-              requiredMessage="폴더 설명을 입력해 주세요."
-              disabled={isSavingFolder}
-              onSave={(value) => saveFolderTextField(folder, 'description', value)}
-              getErrorMessage={(error) => getFolderFieldError(error, 'description')}
-            />
-          </p>
-        </div>
-        <div className={styles['header-bottom']}>
-          {isEditingTargetDate ? (
-            <span className={styles['date-editor']}>
-              <input
-                type="date"
-                value={editValue}
-                aria-label="폴더 목표일"
-                aria-invalid={Boolean(editError)}
-                disabled={isSavingFolder}
-                autoFocus
-                onChange={(event) => { setEditValue(event.target.value); setEditError(null) }}
-                onBlur={() => void saveTargetDate(folder)}
-                onKeyDown={handleTargetDateEditorKeyDown}
-              />
-            </span>
-          ) : (
-            <button
-              type="button"
-              className={styles['target-date-chip']}
-              title="더블 클릭하여 목표일 수정"
-              disabled={isSavingFolder}
-              onDoubleClick={() => startEditingTargetDate(folder.targetDate)}
-              onKeyDown={handleTargetDateDisplayKeyDown}
-            >
-              <IconCalendarDue size={14} stroke={1.8} aria-hidden="true" />
-              <span>
-                <span className="sr-only">목표일 </span>
-                {formatTargetDate(folder.targetDate)}
-              </span>
-            </button>
-          )}
-        </div>
-        {editError && <p className={styles['target-date-error']} role="alert">{editError}</p>}
-      </header>
+      <FolderHeader
+        folder={folder}
+        titleId="folder-detail-title"
+        deleteMessage={FOLDER_DELETE_MESSAGE}
+        onUpdated={handleFolderUpdated}
+        onDeleted={handleFolderDeleted}
+      />
+
+      <FolderViewSwitch folderId={folder.id} current={isLinkView ? 'links' : 'tasks'} />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}
@@ -495,14 +360,17 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       {/*  </dl>*/}
       {/*</section>*/}
 
-          <section className={styles.tasks} aria-labelledby="folder-tasks-title">
+          {isLinkView ? (
+            <LinkFolderView folderId={folder.id} />
+          ) : (
+            <section className={styles.tasks} aria-labelledby="folder-tasks-title">
         <div className={styles['section-heading']}>
           <div className={styles['section-title']}>
             <h2 id="folder-tasks-title">할 일</h2>
             <span>
               {activeFilterCount > 0
-                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${folder.tasks.length}개`
-                : `총 ${visibleTasks.length}개의 할 일이 있어요`}
+                ? `조건에 맞는 할 일 ${visibleTasks.length} / ${taskItems.length}개`
+                : `할 일 ${taskItems.length}개`}
             </span>
           </div>
           <div className={styles['task-actions']}>
@@ -546,7 +414,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
               variant="embedded"
               onCreated={() => {
                 setTaskFilter(EMPTY_TASK_FILTER)
-                setRequestKey((key) => key + 1)
+                reloadTasks()
               }}
           />
           <TaskList
@@ -558,15 +426,24 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             selectedTaskIds={selectedTaskIds}
             isDeleting={isDeletingTasks}
             onTaskSelectionChange={toggleTaskSelection}
-            onTaskUpdated={() => setRequestKey((key) => key + 1)}
+            onTaskUpdated={reloadTasks}
           />
+          {tasks.status === 'ready' && tasks.hasNext && (
+            <button
+              type="button"
+              className={styles['load-more']}
+              disabled={isLoadingMoreTasks}
+              onClick={() => void loadMoreTasks()}
+            >
+              {isLoadingMoreTasks ? '불러오는 중' : '더 보기'}
+            </button>
+          )}
         </div>
-      </section>
+            </section>
+          )}
         </div>
 
-        <aside className={styles['detail-aside']} aria-label="폴더 메모">
-          <NoteCard key={folder.id} folders={[folder]} folderId={folder.id} />
-        </aside>
+        <FolderNoteWidget folder={folder} />
       </div>
     </article>
   )

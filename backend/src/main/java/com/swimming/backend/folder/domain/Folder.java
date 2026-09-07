@@ -16,6 +16,13 @@ public class Folder {
     private LocalDate targetDate;
     private FolderStatus status;
     private boolean deleted;
+
+    /**
+     * 이 폴더에 살아 있는 링크가 있는지. 링크 도메인이 갱신하는 파생 상태라 여기서는
+     * 읽기만 한다. {@link #update}가 건드리지 않는다.
+     */
+    private final boolean hasSource;
+
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -28,6 +35,7 @@ public class Folder {
             LocalDate targetDate,
             FolderStatus status,
             boolean deleted,
+            boolean hasSource,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -39,6 +47,7 @@ public class Folder {
         this.targetDate = targetDate;
         this.status = status;
         this.deleted = deleted;
+        this.hasSource = hasSource;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -59,6 +68,7 @@ public class Folder {
                 targetDate,
                 FolderStatus.IN_PROGRESS,
                 false,
+                false,
                 null,
                 null
         );
@@ -73,6 +83,7 @@ public class Folder {
             LocalDate targetDate,
             FolderStatus status,
             boolean deleted,
+            boolean hasSource,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -85,6 +96,7 @@ public class Folder {
                 targetDate,
                 status,
                 deleted,
+                hasSource,
                 createdAt,
                 updatedAt
         );

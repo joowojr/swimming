@@ -7,7 +7,6 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
-import com.swimming.backend.folder.dto.FolderProgressResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.FolderTagResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
@@ -78,6 +77,7 @@ class FolderControllerTest {
                 LocalDate.of(2026, 9, 30),
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(3L, "취준"),
+                false,
                 Instant.parse("2026-08-19T10:00:00Z"),
                 Instant.parse("2026-08-19T10:00:00Z")
         ));
@@ -117,6 +117,7 @@ class FolderControllerTest {
                 null,
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(4L, "포트폴리오"),
+                false,
                 Instant.parse("2026-08-20T10:00:00Z"),
                 Instant.parse("2026-08-20T10:00:00Z")
         ));
@@ -193,7 +194,8 @@ class FolderControllerTest {
         mockMvc.perform(get("/api/folders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(10))
-                .andExpect(jsonPath("$[0].name").value("프로젝트"));
+                .andExpect(jsonPath("$[0].name").value("프로젝트"))
+                .andExpect(jsonPath("$[0].hasSource").value(false));
     }
 
     @Test
@@ -205,34 +207,16 @@ class FolderControllerTest {
                 "설명",
                 null,
                 FolderStatus.ARCHIVED,
-                null,
-                new FolderProgressResponse(2, 1, 50),
-                List.of(
-                        new TaskSummaryResponse(
-                                1L,
-                                "완료 Task",
-                                TaskStatus.DONE,
-                                0
-                        ),
-                        new TaskSummaryResponse(
-                                2L,
-                                "진행 Task",
-                                TaskStatus.DOING,
-                                1
-                        )
-                )
+                null
         ));
 
         mockMvc.perform(get("/api/folders/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.name").value("프로젝트"))
                 .andExpect(jsonPath("$.status").value("ARCHIVED"))
-                .andExpect(jsonPath("$.progress.totalTaskCount").value(2))
-                .andExpect(jsonPath("$.progress.completedTaskCount").value(1))
-                .andExpect(jsonPath("$.progress.completionPct").value(50))
-                .andExpect(jsonPath("$.tasks[0].id").value(1))
-                .andExpect(jsonPath("$.tasks[0].status").value("DONE"))
-                .andExpect(jsonPath("$.tasks[1].orderIdx").value(1));
+                .andExpect(jsonPath("$.tasks").doesNotExist())
+                .andExpect(jsonPath("$.progress").doesNotExist());
     }
 
     @Test
@@ -303,6 +287,7 @@ class FolderControllerTest {
                 targetDate,
                 status,
                 null,
+                false,
                 Instant.parse("2026-08-19T10:00:00Z"),
                 Instant.parse("2026-08-19T10:00:00Z")
         );

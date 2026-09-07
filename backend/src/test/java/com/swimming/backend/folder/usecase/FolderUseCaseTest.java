@@ -11,9 +11,9 @@ import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
+import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
-import com.swimming.backend.task.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,18 +43,11 @@ class FolderUseCaseTest {
     @Mock
     private FolderTagService folderTagService;
 
-    @Mock
-    private TaskService taskService;
-
     private FolderUseCase folderUseCase;
 
     @BeforeEach
     void setUp() {
-        folderUseCase = new FolderUseCase(
-                folderService,
-                folderTagService,
-                taskService
-        );
+        folderUseCase = new FolderUseCase(folderService, folderTagService);
     }
 
     @Test
@@ -69,7 +64,7 @@ class FolderUseCaseTest {
         );
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", targetDate,
-                FolderStatus.IN_PROGRESS, false, null, null
+                FolderStatus.IN_PROGRESS, false, false, null, null
         );
         when(folderTagService.getOne(1L, 3L)).thenReturn(tag);
         when(folderService.create(any(Folder.class))).thenReturn(folder);
@@ -95,7 +90,7 @@ class FolderUseCaseTest {
         FolderTag tag = FolderTag.restore(4L, 1L, "포트폴리오", null, null);
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", null,
-                FolderStatus.IN_PROGRESS, false, null, null
+                FolderStatus.IN_PROGRESS, false, false, null, null
         );
         CreateFolderRequest request = new CreateFolderRequest(
                 "프로젝트",
@@ -152,39 +147,16 @@ class FolderUseCaseTest {
     }
 
     @Test
-    @DisplayName("프로젝트 상세에 Task 목록과 완료 Task 비율을 포함한다")
+    @DisplayName("프로젝트 상세에 폴더 정보만 담고 할 일은 담지 않는다")
     void returnsFolderDetailAsResponse() {
         when(folderService.getOne(1L, 10L))
                 .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getSummaries(10L)).thenReturn(List.of(
-                new TaskSummaryResponse(1L, "첫째", TaskStatus.DONE, 0),
-                new TaskSummaryResponse(2L, "둘째", TaskStatus.DOING, 1)
-        ));
 
         FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
 
         assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.name()).isEqualTo("프로젝트");
         assertThat(response.description()).isEqualTo("설명");
-        assertThat(response.progress().totalTaskCount()).isEqualTo(2);
-        assertThat(response.progress().completedTaskCount()).isEqualTo(1);
-        assertThat(response.progress().completionPct()).isEqualTo(50);
-        assertThat(response.tasks()).extracting(TaskSummaryResponse::title)
-                .containsExactly("첫째", "둘째");
-    }
-
-    @Test
-    @DisplayName("Task가 없는 프로젝트의 완료 비율은 0이다")
-    void returnsZeroProgressWhenFolderHasNoTasks() {
-        when(folderService.getOne(1L, 10L))
-                .thenReturn(folder(10L, "프로젝트", "설명", null));
-        when(taskService.getSummaries(10L)).thenReturn(List.of());
-
-        FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
-
-        assertThat(response.progress().totalTaskCount()).isZero();
-        assertThat(response.progress().completedTaskCount()).isZero();
-        assertThat(response.progress().completionPct()).isZero();
-        assertThat(response.tasks()).isEmpty();
     }
 
     @Test
@@ -221,6 +193,15 @@ class FolderUseCaseTest {
         verify(folderService).delete(1L, 10L);
     }
 
+    /** 폴더 상세가 읽는 할 일 한 건. 커서를 만들려면 생성 시각과 id가 있어야 한다. */
+    private Task task(Long id, String title, TaskStatus status, int orderIdx) {
+        return Task.restore(
+                id, 1L, 10L, null, title, status, orderIdx,
+                Instant.parse("2026-03-01T00:00:00Z").plusSeconds(id),
+                Instant.parse("2026-03-01T00:00:00Z").plusSeconds(id)
+        );
+    }
+
     private Folder folder(
             Long id,
             String name,
@@ -229,7 +210,7 @@ class FolderUseCaseTest {
     ) {
         return Folder.restore(
                 id, 1L, null, name, description, targetDate,
-                FolderStatus.IN_PROGRESS, false, null, null
+                FolderStatus.IN_PROGRESS, false, false, null, null
         );
     }
 }

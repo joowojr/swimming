@@ -52,6 +52,16 @@ dependencies {
     // aws
 //	implementation 'software.amazon.awssdk:s3:2.53.3'
 
+    // 웹 크롤링
+    implementation 'org.jsoup:jsoup:1.23.2'
+    implementation 'net.dankito.readability4j:readability4j:1.0.8'
+    implementation 'com.vladsch.flexmark:flexmark-html2md-converter:0.64.8'
+    // playwright
+    implementation 'com.microsoft.playwright:playwright:1.62.0'
+
+    // API 문서 (OpenAPI 3 + Swagger UI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
     // dotenv
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
@@ -67,8 +77,84 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform {
-        excludeTags 'llm-eval'
+        excludeTags 'llm-eval', 'fetch-live', 'digest-live', 'postgres'
     }
+}
+
+/**
+ * 원하는 링크를 직접 넣어 파싱 결과를 본다.
+ *   ./gradlew fetchUrl -Purls="https://tech.kakao.com/posts/777"
+ *   ./gradlew fetchUrl -Purls="https://a.com,https://b.com" -Prender=false
+ *   ./gradlew fetchUrl -Purls="..." -Plines=40      # 앞 40줄만 (기본은 전체 출력)
+ */
+tasks.register('fetchUrl', Test) {
+    group = 'verification'
+    description = 'Fetches the URLs given in -Purls and prints the parsed markdown.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform { includeTags 'fetch-live' }
+    filter { includeTestsMatching 'com.swimming.backend.knowledge.live.SourceFetchPlaygroundTest' }
+
+    if (project.hasProperty('urls')) { systemProperty 'urls', project.property('urls') }
+    if (project.hasProperty('render')) { systemProperty 'render', project.property('render') }
+    if (project.hasProperty('lines')) { systemProperty 'lines', project.property('lines') }
+
+    outputs.upToDateWhen { false }
+    testLogging { showStandardStreams = true; events() }
+}
+
+/**
+ * 링크를 넣어 수집 -> AI 소화까지 돌려보고 결과를 확인한다.
+ *   ./gradlew digestUrl -Purls="https://tech.kakao.com/posts/777"
+ *   ./gradlew digestUrl -Purls="..." -PllmProvider=ollama -PllmModel=qwen3:8b
+ */
+tasks.register('digestUrl', Test) {
+    group = 'verification'
+    description = 'Fetches the URLs given in -Purls and prints the AI digest result.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform { includeTags 'digest-live' }
+    filter { includeTestsMatching 'com.swimming.backend.knowledge.live.SourceDigestPlaygroundTest' }
+
+    // 'model' 은 Gradle Project 의 내장 프로퍼티와 충돌하므로 llm 접두사를 붙인다.
+    ['urls', 'llmProvider', 'llmModel'].each { key ->
+        if (project.hasProperty(key)) { systemProperty key, project.property(key).toString() }
+    }
+
+    outputs.upToDateWhen { false }
+    testLogging { showStandardStreams = true; events() }
+}
+
+/**
+ * 커서 쿼리를 진짜 PostgreSQL에 물어본다. H2(PostgreSQL 모드)로는 파라미터 타입 추론
+ * 차이를 재현할 수 없어 따로 둔다.
+ *   docker compose up -d && ./gradlew postgresCheck
+ */
+tasks.register('postgresCheck', Test) {
+    group = 'verification'
+    description = 'Runs repository queries against the local PostgreSQL from docker compose.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform { includeTags 'postgres' }
+
+    outputs.upToDateWhen { false }
+    testLogging { showStandardStreams = true }
+}
+
+tasks.register('fetchLive', Test) {
+    group = 'verification'
+    description = 'Runs web fetch tests that call the real internet.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags 'fetch-live'
+    }
+    filter { includeTestsMatching 'com.swimming.backend.knowledge.live.SourceFetchLiveTest' }
+    testLogging { showStandardStreams = true }
 }
 
 tasks.register('llmEval', Test) {

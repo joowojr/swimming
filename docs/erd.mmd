@@ -20,6 +20,11 @@ erDiagram
     users ||--o{ group_participants : joins
     tasks o|--o{ group_participants : targets
     cities ||--o{ places : contains
+    users ||--o{ knowledge_node : owns
+    folders ||--o{ knowledge_source : collects
+    knowledge_node ||--o| knowledge_source : details
+    knowledge_node ||--o{ knowledge_branch : "parents (structure)"
+    knowledge_node ||--o{ knowledge_relation : "connects (meaning)"
 
     users {
         bigint id PK
@@ -48,6 +53,7 @@ erDiagram
         date target_date "nullable"
         varchar status
         boolean is_deleted
+        boolean has_source "링크가 있으면 폴더 삭제를 막는다. 링크 도메인이 갱신한다"
         timestamp created_at
         timestamp updated_at
     }
@@ -159,6 +165,56 @@ erDiagram
         varchar background_asset_type
         varchar background_asset_key
         varchar default_music_url "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    knowledge_node {
+        uuid id PK "애플리케이션 채번"
+        bigint user_id FK
+        varchar node_type "SOURCE | SUBJECT | TOPIC"
+        varchar title
+        varchar normalized_title "표기 차이 제거. SUBJECT 중복 방지 UK (is_deleted=false 한정)"
+        text description "nullable"
+        boolean is_deleted "soft delete. 관계는 남기고 조회에서만 뺀다"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    knowledge_source {
+        uuid node_id PK, FK
+        bigint folder_id FK
+        text url
+        text canonical_url
+        text content "nullable"
+        text summary "nullable"
+        varchar source_type "nullable"
+        varchar author "nullable"
+        timestamp published_at "nullable"
+        varchar processing_status "PENDING | PROCESSING | COMPLETED | FAILED"
+        integer analysis_version "nullable"
+        timestamp read_at "nullable, 읽은 시각"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    knowledge_branch {
+        bigint id PK
+        uuid parent_node_id FK
+        uuid child_node_id FK
+        integer position
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    knowledge_relation {
+        bigint id PK
+        uuid from_node_id FK
+        uuid to_node_id FK
+        varchar relation_type "ABOUT | SUPPORTS | INVOLVES"
+        varchar origin "AI | USER | SYSTEM"
+        double confidence "nullable"
+        jsonb evidence "nullable"
         timestamp created_at
         timestamp updated_at
     }

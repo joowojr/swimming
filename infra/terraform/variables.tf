@@ -251,3 +251,14 @@ variable "tfstate_key" {
   type        = string
   default     = "prod/terraform.tfstate"
 }
+
+variable "page_renderer_image_tag" {
+  description = <<-EOT
+    Image tag used when the page renderer Lambda is first created. An image with
+    this tag must exist before the full apply; follow the page renderer bootstrap
+    procedure in README.md. Later deploys use commit SHA tags through
+    update-function-code, and Terraform intentionally ignores image_uri changes.
+  EOT
+  type        = string
+  default     = "bootstrap"
+}

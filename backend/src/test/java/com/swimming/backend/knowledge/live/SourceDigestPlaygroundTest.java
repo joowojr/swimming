@@ -1,5 +1,8 @@
 package com.swimming.backend.knowledge.live;
 
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 import com.swimming.backend.common.config.llm.LlmProperties;
 import com.swimming.backend.common.config.llm.LlmProvider;
 import com.swimming.backend.common.config.llm.OllamaChatOptionsFactory;
@@ -22,7 +25,7 @@ import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.dto.in.SourceResponse;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
-import com.swimming.backend.knowledge.service.crawl.RenderedPageFetcher;
+import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
 import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
@@ -83,6 +86,19 @@ import static org.mockito.Mockito.mock;
 @Tag("digest-live")
 @Timeout(value = 20, unit = TimeUnit.MINUTES)
 class SourceDigestPlaygroundTest {
+    /** 렌더링 폴백은 실제 Lambda를 부른다. AWS 자격증명이 있는 셸에서만 의미가 있다. */
+    private static final String RENDER_FUNCTION_NAME = System.getenv()
+            .getOrDefault("KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME", "swimming-prod-page-renderer");
+
+    private static LambdaClient lambdaClient(KnowledgeFetchProperties properties) {
+        return LambdaClient.builder()
+                .httpClient(UrlConnectionHttpClient.create())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        .apiCallTimeout(properties.render().timeout().plusSeconds(5))
+                        .build())
+                .build();
+    }
+
 
     private static final Long USER_ID = 1L;
     private static final Long FOLDER_ID = 10L;
@@ -372,12 +388,12 @@ class SourceDigestPlaygroundTest {
         var properties = new KnowledgeFetchProperties(
                 4, Duration.ofSeconds(15), 4 * 1024 * 1024, 80_000, 300,
                 "SwimmingBot/0.1 (+https://swimming.app)",
-                new KnowledgeFetchProperties.Render(true, Duration.ofSeconds(20), 1000)
+                new KnowledgeFetchProperties.Render(true, RENDER_FUNCTION_NAME, Duration.ofSeconds(20), 1000)
         );
         return new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
-                Optional.of(new RenderedPageFetcher(properties))
+                Optional.of(new LambdaPageRendererClient(properties, lambdaClient(properties)))
         );
     }
 

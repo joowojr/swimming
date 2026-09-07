@@ -15,7 +15,8 @@ application end-user accounts, or AWS IAM users.
   the host actually needs, and allow PostgreSQL only from EC2
 - A private frontend S3 bucket served through CloudFront with an origin access
   control, and an optional us-east-1 ACM certificate
-- An immutable, scan-on-push ECR backend repository
+- Immutable, scan-on-push ECR repositories for the backend and page renderer
+- One container-image Lambda function for the headless-browser rendering fallback
 - An EC2 service role and instance profile; no IAM users
 - SSM Session Manager support and a scheduled SSM Agent update association
 - A Secrets Manager container for backend runtime values; no secret values are
@@ -32,7 +33,7 @@ checklist uses one EC2 host with an Elastic IP rather than an ALB.
 - AWS account bootstrap and human IAM users
 - PostgreSQL application/migration user creation and grants
 - Tables, indexes, foreign keys, and Flyway SQL
-- Application image deployment or automatic backend startup
+- Backend image deployment or automatic backend startup
 
 Keeping application startup outside EC2 user data prevents an infrastructure
 apply from running Flyway while a table-name migration is still in progress.
@@ -76,6 +77,11 @@ terraform apply tfplan
 ```
 
 Never commit `tfplan`.
+
+The page renderer needs an image in ECR before Lambda can create the function.
+For its first deployment, follow **Bootstrap the page renderer** below instead
+of running the full plan immediately. Normal plans and applies work after that
+one-time sequence.
 
 ## State backend
 
@@ -147,7 +153,9 @@ must match `backend/.env.example`:
   "GOOGLE_CLIENT_ID": "REPLACE_ME.apps.googleusercontent.com",
   "OPENAI_API_KEY": "REPLACE_ME",
   "PLACE_CDN_BASE_URL": "https://swimming-now.kro.kr",
-  "AWS_REGION": "ap-northeast-2"
+  "AWS_REGION": "ap-northeast-2",
+  "KNOWLEDGE_FETCH_RENDER_ENABLED": "true",
+  "KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME": "swimming-prod-page-renderer"
 }
 ```
 
@@ -346,9 +354,56 @@ or replacing it requires an explicit reviewed code change. A final snapshot is
 also required. This is intentional; do not disable the controls merely to make
 `terraform destroy` succeed.
 
+## Bootstrap the page renderer
+
+Lambda validates a container image when the function is created, while the ECR
+repository is itself managed by this state. Break that first-deployment cycle by
+creating only the repository and its isolated GitHub deploy policy first:
+
+```bash
+cd infra/terraform
+terraform init
+terraform apply -target=aws_iam_role_policy.github_page_renderer_deploy
+```
+
+The target pulls in only the GitHub OIDC role, the renderer repository, and the
+renderer deploy policy. It is a one-time bootstrap operation; use full plans for
+all later infrastructure changes.
+
+Publish the values needed by the workflow:
+
+```bash
+gh variable set AWS_DEPLOY_ROLE_ARN \
+  --body "$(terraform output -raw github_deploy_role_arn)"
+gh variable set PAGE_RENDERER_ECR_REPOSITORY \
+  --body "$(terraform output -raw page_renderer_repository_name)"
+gh variable set PAGE_RENDERER_FUNCTION_NAME \
+  --body "$(terraform output -raw page_renderer_function_name)"
+```
+
+Once `deploy-page-renderer.yml` is on `main`, run it once:
+
+```bash
+gh workflow run deploy-page-renderer.yml --ref main
+gh run watch
+```
+
+That run pushes the immutable commit-SHA image, adds the `bootstrap` tag if it
+does not exist, and exits successfully when the Lambda function is not present.
+Now create the function and the rest of the infrastructure with a normal plan:
+
+```bash
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+Future workflow runs update the existing function directly with their commit-SHA
+image. Finally, populate the two `KNOWLEDGE_FETCH_RENDER_*` values shown in
+**Populate the runtime secret** and redeploy the backend.
+
 ## CI/CD
 
-Four workflows live in `.github/workflows/`. None of them holds a long-lived AWS
+Five workflows live in `.github/workflows/`. None of them holds a long-lived AWS
 key: each assumes a role through the GitHub OIDC provider created in
 `github-oidc.tf`, and the trust policy pins the repository and the ref.
 
@@ -356,6 +411,7 @@ key: each assumes a role through the GitHub OIDC provider created in
 | --- | --- | --- | --- |
 | `ci.yml` | pull request, push to main | nothing - Gradle build and the Vite/tsc build only | none |
 | `deploy-backend.yml` | main touching `backend/**`, `compose.production.yaml`, the deploy script | ECR image, the container on EC2 | `swimming-prod-gha-deploy` |
+| `deploy-page-renderer.yml` | main touching `infra/lambda/page-renderer/**`, manual dispatch | ECR image, the renderer Lambda code | `swimming-prod-gha-deploy` |
 | `deploy-frontend.yml` | main touching `frontend/**` | web bucket objects, CloudFront cache | `swimming-prod-gha-deploy` |
 | `terraform.yml` | pull request touching `infra/terraform/**` | nothing - plan only, posted as a PR comment | `swimming-prod-gha-terraform` |
 
@@ -374,6 +430,8 @@ cd infra/terraform
 gh variable set AWS_DEPLOY_ROLE_ARN        --body "$(terraform output -raw github_deploy_role_arn)"
 gh variable set AWS_TERRAFORM_ROLE_ARN     --body "$(terraform output -raw github_terraform_role_arn)"
 gh variable set ECR_REPOSITORY             --body "$(terraform output -raw backend_ecr_repository_url | cut -d/ -f2-)"
+gh variable set PAGE_RENDERER_ECR_REPOSITORY --body "$(terraform output -raw page_renderer_repository_name)"
+gh variable set PAGE_RENDERER_FUNCTION_NAME  --body "$(terraform output -raw page_renderer_function_name)"
 gh variable set EC2_INSTANCE_ID            --body "$(terraform output -raw ec2_instance_id)"
 gh variable set WEB_BUCKET_NAME            --body "$(terraform output -raw web_bucket_name)"
 gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "$(terraform output -raw cloudfront_distribution_id)"

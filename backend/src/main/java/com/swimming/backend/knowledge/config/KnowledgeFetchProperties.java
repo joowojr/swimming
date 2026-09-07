@@ -41,7 +41,8 @@ public record KnowledgeFetchProperties(
      * jsoup은 JavaScript를 실행하지 않아 클라이언트 렌더링 페이지에서 빈 껍데기를 받는다.
      * 그런 경우에만 헤드리스 브라우저로 다시 받는다.
      *
-     * @param enabled          폴백 사용 여부. 꺼두면 브라우저를 아예 띄우지 않는다.
+     * @param enabled          폴백 사용 여부. 꺼두면 렌더러 빈을 아예 만들지 않는다.
+     * @param functionName     렌더링을 수행하는 Lambda 함수 이름. {@code enabled}일 때만 쓴다.
      * @param timeout          렌더링 제한 시간
      * @param minContentLength 마크다운이 이 길이 미만이면 렌더링에 실패한 것으로 보고 다시 받는다.
      *                         측정값 기준으로 렌더링이 필요했던 페이지가 74자와 322자,
@@ -49,6 +50,7 @@ public record KnowledgeFetchProperties(
      */
     public record Render(
             boolean enabled,
+            String functionName,
             @NotNull Duration timeout,
             @NotNull @Min(1) Integer minContentLength
     ) {

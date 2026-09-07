@@ -18,5 +18,15 @@ services:
       timeout: 5s
       retries: 10
 
+  page-renderer:
+    profiles:
+      - renderer
+    platform: linux/amd64
+    build:
+      context: ./infra/lambda/page-renderer
+    image: swimming-page-renderer:local
+    ports:
+      - "127.0.0.1:9000:8080"
+
 volumes:
   pg-data:

@@ -42,6 +42,8 @@ import java.util.concurrent.Semaphore;
 @Service
 public class WebFetchService {
 
+    private static final int HTTP_FORBIDDEN = 403;
+
     private static final Set<String> ALLOWED_SCHEMES = Set.of("http", "https");
 
     private static final Set<String> HTML_CONTENT_TYPES = Set.of(
@@ -61,16 +63,16 @@ public class WebFetchService {
     private final HtmlToMarkdownConverter markdownConverter;
 
     /** 렌더링 폴백은 꺼둘 수 있다. 꺼져 있으면 빈이 없다. */
-    private final Optional<RenderedPageFetcher> renderedPageFetcher;
+    private final Optional<LambdaPageRendererClient> pageRenderer;
 
     public WebFetchService(
             KnowledgeFetchProperties properties,
             HtmlToMarkdownConverter markdownConverter,
-            Optional<RenderedPageFetcher> renderedPageFetcher
+            Optional<LambdaPageRendererClient> pageRenderer
     ) {
         this.properties = properties;
         this.markdownConverter = markdownConverter;
-        this.renderedPageFetcher = renderedPageFetcher;
+        this.pageRenderer = pageRenderer;
     }
 
     /**
@@ -139,11 +141,7 @@ public class WebFetchService {
             return toDocument(url, response.parse());
 
         } catch (HttpStatusException exception) {
-            return SourceFetchResult.failure(
-                    url,
-                    SourceFetchResult.Failure.HTTP_ERROR,
-                    String.valueOf(exception.getStatusCode())
-            );
+            return recoverForbidden(url, exception);
         } catch (UnsupportedMimeTypeException exception) {
             return SourceFetchResult.failure(
                     url,
@@ -164,6 +162,48 @@ public class WebFetchService {
                     exception.getMessage()
             );
         }
+    }
+
+    /**
+     * 일반 HTTP 클라이언트만 차단하는 사이트는 브라우저로 한 번 더 가져온다.
+     *
+     * <p>403 이외의 상태는 없는 문서나 인증이 필요한 문서일 수 있으므로 그대로 실패시킨다.
+     * 렌더러도 실패하거나 유효한 본문을 만들지 못하면 최초 403 결과를 보존한다.
+     */
+    private SourceFetchResult recoverForbidden(
+            String requestedUrl,
+            HttpStatusException exception
+    ) {
+        int statusCode = exception.getStatusCode();
+        SourceFetchResult failed = SourceFetchResult.failure(
+                requestedUrl,
+                SourceFetchResult.Failure.HTTP_ERROR,
+                String.valueOf(statusCode)
+        );
+
+        if (statusCode != HTTP_FORBIDDEN || pageRenderer.isEmpty()) {
+            return failed;
+        }
+
+        String blockedUrl = StringUtils.hasText(exception.getUrl())
+                ? exception.getUrl()
+                : requestedUrl;
+
+        return pageRenderer.get().render(blockedUrl)
+                .map(html -> toDocument(
+                        requestedUrl,
+                        Jsoup.parse(html, blockedUrl),
+                        false
+                ))
+                .filter(SourceFetchResult::isSuccess)
+                .map(recovered -> {
+                    log.info(
+                            "[source-fetch] recovered http error url={} status={} via=renderer",
+                            requestedUrl, statusCode
+                    );
+                    return recovered;
+                })
+                .orElse(failed);
     }
 
     private SourceFetchResult resultOf(String url, Future<SourceFetchResult> future) {
@@ -202,11 +242,11 @@ public class WebFetchService {
             return converted;
         }
 
-        if (renderedPageFetcher.isEmpty()) {
+        if (pageRenderer.isEmpty()) {
             return converted;
         }
 
-        return renderedPageFetcher.get().render(url)
+        return pageRenderer.get().render(url)
                 .map(html -> markdownConverter.convert(url, Jsoup.parse(html, url)))
                 .filter(rendered -> rendered.meaningfulLength() > length)
                 .map(rendered -> {
@@ -270,9 +310,19 @@ public class WebFetchService {
     }
 
     private SourceFetchResult toDocument(String requestedUrl, Document document) {
+        return toDocument(requestedUrl, document, true);
+    }
+
+    private SourceFetchResult toDocument(
+            String requestedUrl,
+            Document document,
+            boolean allowRenderFallback
+    ) {
         String finalUrl = document.location();
         HtmlToMarkdownConverter.Result converted = markdownConverter.convert(finalUrl, document);
-        converted = renderIfEmpty(finalUrl, converted);
+        if (allowRenderFallback) {
+            converted = renderIfEmpty(finalUrl, converted);
+        }
         converted = fallBackToMetadata(finalUrl, document, converted);
 
         if (!StringUtils.hasText(converted.markdown())) {

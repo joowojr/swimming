@@ -56,6 +56,15 @@ public enum ErrorCode {
     // PLACE DOMAIN
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "공간을 찾을 수 없습니다"),
 
+    // KNOWLEDGE DOMAIN
+    KNOWLEDGE_NODE_NOT_FOUND(HttpStatus.NOT_FOUND, "지식 노드를 찾을 수 없습니다"),
+    INVALID_KNOWLEDGE_FOLDER(HttpStatus.BAD_REQUEST, "지식 폴더가 아닙니다"),
+    INVALID_KNOWLEDGE_RELATION(HttpStatus.BAD_REQUEST, "지식 관계의 연결 방향이 올바르지 않습니다"),
+    INVALID_KNOWLEDGE_CURSOR(HttpStatus.BAD_REQUEST, "목록 조회 커서가 올바르지 않습니다"),
+    INVALID_KNOWLEDGE_BRANCH(HttpStatus.BAD_REQUEST, "지식 구조의 연결이 올바르지 않습니다"),
+    INVALID_GRAPH_DEPTH(HttpStatus.BAD_REQUEST, "그래프 확장 단계가 올바르지 않습니다"),
+    KNOWLEDGE_TOPIC_NOT_DELETABLE(HttpStatus.CONFLICT, "목적은 문서를 삭제하면 함께 사라집니다"),
+
     // USER DOMAIN
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
     CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),

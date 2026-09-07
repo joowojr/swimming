@@ -21,7 +21,7 @@ const FEATURES = [
     Icon: IconSparkles,
     tone: 'bay-leaf',
     title: '생각이 엉켜 있어도, 시작할 수 있게',
-    body: '떠오른 메모를 AI가 실행 가능한 할 일로 바꿔줍니다.',
+    body: '떠오른 노트를 AI가 실행 가능한 할 일로 바꿔줍니다.',
   },
 ] as const
 

@@ -87,7 +87,7 @@
     background: var(--color-surface-container-lowest);
 }
 
-/* 쓰레기통은 공용 DeleteIconButton의 테두리를 쓰므로, 메모장 안에서만 걷어낸다. */
+/* 쓰레기통은 공용 DeleteIconButton의 테두리를 쓰므로, 노트장 안에서만 걷어낸다. */
 .memo-head-actions .memo-borderless {
     border: none;
 }

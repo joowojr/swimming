@@ -13,14 +13,15 @@ import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
-import com.swimming.backend.knowledge.service.KnowledgeNodeService;
-import com.swimming.backend.knowledge.service.KnowledgeRelationService;
-import com.swimming.backend.knowledge.service.KnowledgeSourceService;
-import com.swimming.backend.knowledge.service.NodeResolver;
-import com.swimming.backend.knowledge.service.SourceDigestService;
-import com.swimming.backend.knowledge.service.SourceFetchService;
-import com.swimming.backend.knowledge.service.SourceConceptReader;
-import com.swimming.backend.knowledge.service.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
+import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
+import com.swimming.backend.knowledge.service.llm.SourceDigestService;
+import com.swimming.backend.knowledge.service.crawl.WebFetchService;
+import com.swimming.backend.knowledge.service.SourceGraphReader;
+import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,11 +53,11 @@ class SourcePipelineTest {
     private InMemoryKnowledgeRepositories.Nodes nodes;
     private InMemoryKnowledgeRepositories.Relations relations;
 
-    private SourceFetchService fetchService;
+    private WebFetchService fetchService;
     private SourceDigestService digestService;
 
     private SourceCollectUseCase collectUseCase;
-    private SourceDigestUseCase digestUseCase;
+    private SourceDigestProcessor digestProcessor;
 
     @BeforeEach
     void setUp() {
@@ -64,12 +65,12 @@ class SourcePipelineTest {
         nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
 
-        fetchService = mock(SourceFetchService.class);
+        fetchService = mock(WebFetchService.class);
         digestService = mock(SourceDigestService.class);
 
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
 
-        digestUseCase = new SourceDigestUseCase(
+        digestProcessor = new SourceDigestProcessor(
                 sourceService,
                 new KnowledgeNodeService(nodes),
                 digestService,
@@ -83,8 +84,8 @@ class SourcePipelineTest {
                 fetchService,
                 mock(FolderService.class),
                 sourceService,
-                digestUseCase,
-                new SourceConceptReader(relations, nodes)
+                digestProcessor,
+                new SourceGraphReader(relations, nodes)
         );
     }
 
@@ -183,7 +184,7 @@ class SourcePipelineTest {
 
         assertThat(again.items().getFirst().source().sourceId()).isEqualTo(sourceId);
 
-        SourceDigestResponse digestedAgain = digestUseCase.digest(USER_ID, sourceId);
+        SourceDigestResponse digestedAgain = digestProcessor.digest(USER_ID, sourceId);
         assertThat(digestedAgain.result()).isNull();
         verify(digestService, times(1)).digest(any());
         assertThat(from(sources.findById(sourceId).orElseThrow().getNode().getId(), RelationType.ABOUT))
@@ -238,7 +239,7 @@ class SourcePipelineTest {
         assertThat(sources.findById(sourceId).orElseThrow().getProcessingStatus())
                 .isEqualTo(SourceProcessingStatus.FAILED);
 
-        SourceDigestResponse again = digestUseCase.digest(USER_ID, sourceId);
+        SourceDigestResponse again = digestProcessor.digest(USER_ID, sourceId);
 
         assertThat(again.status()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(again.result()).isNull();

@@ -65,6 +65,7 @@ public enum ErrorCode {
     INVALID_KNOWLEDGE_BRANCH(HttpStatus.BAD_REQUEST, "지식 구조의 연결이 올바르지 않습니다"),
     INVALID_GRAPH_DEPTH(HttpStatus.BAD_REQUEST, "그래프 확장 단계가 올바르지 않습니다"),
     KNOWLEDGE_TOPIC_NOT_DELETABLE(HttpStatus.CONFLICT, "목적은 문서를 삭제하면 함께 사라집니다"),
+    KNOWLEDGE_SOURCE_NOT_RETRYABLE(HttpStatus.CONFLICT, "본문 수집을 마치고 정리에 실패한 링크만 다시 분석할 수 있습니다"),
 
     // USER DOMAIN
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),

@@ -6,9 +6,9 @@ import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
-import com.swimming.backend.knowledge.service.KnowledgeNodeService;
-import com.swimming.backend.knowledge.service.KnowledgeRelationService;
-import com.swimming.backend.knowledge.service.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
+import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,6 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SourceDeleteUseCase {
 
+    /** Source에서 Topic으로 향하는 관계. 딸린 Topic을 찾을 때 쓴다. */
     private static final List<RelationType> TO_TOPIC = List.of(RelationType.SUPPORTS);
 
     private final KnowledgeSourceService sourceService;

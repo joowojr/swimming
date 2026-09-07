@@ -11,10 +11,10 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.GraphResponse;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
-import com.swimming.backend.knowledge.service.KnowledgeGraphAssembler;
-import com.swimming.backend.knowledge.service.KnowledgeNodeService;
-import com.swimming.backend.knowledge.service.KnowledgeRelationService;
-import com.swimming.backend.knowledge.service.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.KnowledgeGraphAssembler;
+import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
+import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

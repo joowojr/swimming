@@ -20,9 +20,12 @@ public interface KnowledgeSourceRepository {
     List<KnowledgeSource> findAllByIds(Collection<UUID> nodeIds);
 
     /**
-     * 같은 문서를 다시 저장했는지 확인한다.
+     * 이 Folder에 같은 문서를 다시 저장했는지 확인한다.
+     *
+     * <p>Folder 밖은 보지 않는다. 사용자는 폴더 단위로 링크를 모으므로, 다른 폴더에 있는
+     * 같은 문서는 이 폴더에서 보면 없는 것이다.
      */
-    Optional<KnowledgeSource> findByUserIdAndCanonicalUrl(Long userId, String canonicalUrl);
+    Optional<KnowledgeSource> findInFolderByCanonicalUrl(Long userId, Long folderId, String canonicalUrl);
 
     /**
      * Folder에 살아 있는 Source가 하나라도 있는지.
@@ -39,4 +42,7 @@ public interface KnowledgeSourceRepository {
      *         {@code limit + 1}을 요청해 판단한다
      */
     List<KnowledgeSource> findPage(SourcePageQuery query);
+
+    /** 사용자 전체 또는 선택한 Folder에서 관계 조건에 맞는 Source 후보를 최근 순으로 읽는다. */
+    List<KnowledgeSource> findSearchPage(SourceSearchPageQuery query);
 }

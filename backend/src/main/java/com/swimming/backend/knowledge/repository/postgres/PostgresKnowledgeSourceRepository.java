@@ -4,6 +4,7 @@ import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
+import com.swimming.backend.knowledge.repository.SourceSearchPageQuery;
 import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeNodeEntity;
 import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeSourceEntity;
 import lombok.RequiredArgsConstructor;
@@ -69,9 +70,14 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
-    public Optional<KnowledgeSource> findByUserIdAndCanonicalUrl(Long userId, String canonicalUrl) {
+    public Optional<KnowledgeSource> findInFolderByCanonicalUrl(
+            Long userId,
+            Long folderId,
+            String canonicalUrl
+    ) {
         return sourceJpaRepository.findAllByCanonicalUrl(canonicalUrl)
                 .stream()
+                .filter(sourceEntity -> sourceEntity.getFolderId().equals(folderId))
                 .flatMap(sourceEntity -> nodeJpaRepository
                         .findByIdAndUserIdAndDeletedFalse(sourceEntity.getNodeId(), userId)
                         .map(nodeEntity -> toDomain(nodeEntity, sourceEntity))
@@ -120,6 +126,47 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 .toList();
     }
 
+    @Override
+    public List<KnowledgeSource> findSearchPage(SourceSearchPageQuery query) {
+        boolean filterFolder = query.folderId() != null;
+        boolean filterSources = query.sourceIds() != null;
+        Long folderId = filterFolder ? query.folderId() : 0L;
+        Collection<UUID> sourceIds = filterSources
+                ? query.sourceIds()
+                : List.of(new UUID(0L, 0L));
+
+        List<KnowledgeSourceEntity> sourceEntities = query.cursorCreatedAt() == null
+                ? sourceJpaRepository.findFirstSearchPage(
+                        query.userId(), filterFolder, folderId, filterSources, sourceIds,
+                        PageRequest.of(0, query.limit())
+                )
+                : sourceJpaRepository.findNextSearchPage(
+                        query.userId(), filterFolder, folderId, filterSources, sourceIds,
+                        query.cursorCreatedAt(), query.cursorNodeId(),
+                        PageRequest.of(0, query.limit())
+                );
+
+        return toDomains(sourceEntities);
+    }
+
+    private List<KnowledgeSource> toDomains(List<KnowledgeSourceEntity> sourceEntities) {
+        if (sourceEntities.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, KnowledgeNodeEntity> nodesById = nodeJpaRepository
+                .findAllByIdInAndDeletedFalse(
+                        sourceEntities.stream().map(KnowledgeSourceEntity::getNodeId).toList()
+                )
+                .stream()
+                .collect(Collectors.toMap(KnowledgeNodeEntity::getId, Function.identity()));
+
+        return sourceEntities.stream()
+                .filter(sourceEntity -> nodesById.containsKey(sourceEntity.getNodeId()))
+                .map(sourceEntity -> toDomain(nodesById.get(sourceEntity.getNodeId()), sourceEntity))
+                .toList();
+    }
+
     private KnowledgeSourceEntity toEntity(KnowledgeSource source) {
         return KnowledgeSourceEntity.builder()
                 .nodeId(source.getId())
@@ -133,6 +180,7 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 .publishedAt(source.getPublishedAt())
                 .processingStatus(source.getProcessingStatus())
                 .analysisVersion(source.getAnalysisVersion())
+                .readAt(source.getReadAt())
                 .build();
     }
 
@@ -153,7 +201,8 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 sourceEntity.getAuthor(),
                 sourceEntity.getPublishedAt(),
                 sourceEntity.getProcessingStatus(),
-                sourceEntity.getAnalysisVersion()
+                sourceEntity.getAnalysisVersion(),
+                sourceEntity.getReadAt()
         );
     }
 }

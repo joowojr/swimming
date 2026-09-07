@@ -17,6 +17,7 @@ import java.util.UUID;
  * <p>원문({@code content})은 담지 않는다. 문서 하나가 수만 자라 목록이 감당하지 못한다.
  *
  * @param createdAt 이 Source를 저장한 시각
+ * @param readAt    이 링크를 읽은 시각. 아직 읽지 않았으면 {@code null}
  * @param status    소화가 어디까지 갔는지. {@code COMPLETED}가 아니면 아래 세 값은 비어 있다
  * @param topic     {@code COMPLETED}면 반드시 하나 있다
  * @param subjects  최대 4개
@@ -28,6 +29,7 @@ public record SourceResponse(
         String domain,
         String sourceType,
         Instant createdAt,
+        Instant readAt,
         SourceProcessingStatus status,
         String summary,
         NodeRef topic,
@@ -42,6 +44,7 @@ public record SourceResponse(
                 domainOf(source.getUrl()),
                 source.getSourceType(),
                 source.getNode().getCreatedAt(),
+                source.getReadAt(),
                 source.getProcessingStatus(),
                 source.getSummary(),
                 concepts.topic(),

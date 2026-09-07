@@ -15,6 +15,7 @@ import java.util.UUID;
  *
  * @param publishedAt 문서가 바깥에서 발행된 시각. 원문에서 못 읽으면 비어 있다
  * @param createdAt   이 Source를 저장한 시각. {@code publishedAt}과 다른 축이다
+ * @param readAt      이 링크를 읽은 시각. 아직 읽지 않았으면 {@code null}
  * @param status      {@code COMPLETED}가 아니면 아래 세 값은 비어 있다
  * @param topic       {@code COMPLETED}면 반드시 하나 있다
  */
@@ -29,6 +30,7 @@ public record SourceDetailResponse(
         Instant publishedAt,
         Long folderId,
         Instant createdAt,
+        Instant readAt,
         SourceProcessingStatus status,
         String summary,
         NodeRef topic,
@@ -47,6 +49,7 @@ public record SourceDetailResponse(
                 source.getPublishedAt(),
                 source.getFolderId(),
                 source.getNode().getCreatedAt(),
+                source.getReadAt(),
                 source.getProcessingStatus(),
                 source.getSummary(),
                 concepts.topic(),

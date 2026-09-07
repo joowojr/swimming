@@ -1,5 +1,7 @@
 package com.swimming.backend.knowledge.domain;
 
+import com.swimming.backend.common.exception.BusinessException;
+import com.swimming.backend.common.exception.ErrorCode;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -31,6 +33,9 @@ public class KnowledgeSource {
     private SourceProcessingStatus processingStatus;
     private Integer analysisVersion;
 
+    /** 읽은 시각. 아직 읽지 않았으면 비어 있다. */
+    private Instant readAt;
+
     private KnowledgeSource(
             KnowledgeNode node,
             Long folderId,
@@ -42,7 +47,8 @@ public class KnowledgeSource {
             String author,
             Instant publishedAt,
             SourceProcessingStatus processingStatus,
-            Integer analysisVersion
+            Integer analysisVersion,
+            Instant readAt
     ) {
         this.node = node;
         this.folderId = folderId;
@@ -55,6 +61,7 @@ public class KnowledgeSource {
         this.publishedAt = publishedAt;
         this.processingStatus = processingStatus;
         this.analysisVersion = analysisVersion;
+        this.readAt = readAt;
     }
 
     public static KnowledgeSource create(
@@ -75,6 +82,7 @@ public class KnowledgeSource {
                 null,
                 null,
                 SourceProcessingStatus.PENDING,
+                null,
                 null
         );
     }
@@ -90,7 +98,8 @@ public class KnowledgeSource {
             String author,
             Instant publishedAt,
             SourceProcessingStatus processingStatus,
-            Integer analysisVersion
+            Integer analysisVersion,
+            Instant readAt
     ) {
         return new KnowledgeSource(
                 node,
@@ -103,7 +112,8 @@ public class KnowledgeSource {
                 author,
                 publishedAt,
                 processingStatus,
-                analysisVersion
+                analysisVersion,
+                readAt
         );
     }
 
@@ -158,5 +168,35 @@ public class KnowledgeSource {
      */
     public void failDigestion() {
         this.processingStatus = SourceProcessingStatus.FAILED;
+    }
+
+    /**
+     * 읽음으로 표시한다. 시각은 서버가 정한다. 클라이언트 시계를 믿으면 읽은 링크를
+     * 세는 집계가 흔들린다.
+     *
+     * <p>이미 읽은 링크를 다시 표시해도 처음 읽은 시각을 유지한다. 같은 요청이 겹쳐 와도
+     * 결과가 같아야 하고, "언제 읽었나"는 마지막이 아니라 처음이 답이다.
+     */
+    public void markRead(Instant readAt) {
+        if (this.readAt == null) {
+            this.readAt = readAt;
+        }
+    }
+
+    /** 읽음 표시를 되돌린다. 읽은 시각도 함께 지운다. */
+    public void markUnread() {
+        this.readAt = null;
+    }
+
+    /** 저장된 본문으로 다시 소화할 수 있도록 대기 상태로 돌린다. URL 수집은 반복하지 않는다. */
+    public void prepareRetry() {
+        boolean retryableStatus = processingStatus == SourceProcessingStatus.PENDING
+                || processingStatus == SourceProcessingStatus.FAILED;
+
+        if (!retryableStatus || content == null || content.isBlank()) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);
+        }
+
+        this.processingStatus = SourceProcessingStatus.PENDING;
     }
 }

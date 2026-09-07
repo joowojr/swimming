@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class KnowledgeSourceTest {
 
@@ -80,5 +81,67 @@ class KnowledgeSourceTest {
         assertThat(source.getProcessingStatus()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(source.getContent()).isEqualTo("원문");
         assertThat(source.getSummary()).isNull();
+    }
+
+    @Test
+    @DisplayName("읽음으로 표시하면 읽은 시각이 남고, 해제하면 시각도 함께 사라진다")
+    void marksReadAndUnread() {
+        KnowledgeSource source = pendingSource();
+        Instant readAt = Instant.parse("2026-09-07T09:00:00Z");
+
+        assertThat(source.getReadAt()).isNull();
+
+        source.markRead(readAt);
+        assertThat(source.getReadAt()).isEqualTo(readAt);
+
+        source.markUnread();
+        assertThat(source.getReadAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("이미 읽은 링크를 다시 표시해도 처음 읽은 시각을 지킨다")
+    void keepsFirstReadAt() {
+        KnowledgeSource source = pendingSource();
+        Instant first = Instant.parse("2026-09-07T09:00:00Z");
+
+        source.markRead(first);
+        source.markRead(first.plusSeconds(600));
+
+        assertThat(source.getReadAt()).isEqualTo(first);
+    }
+
+    private KnowledgeSource pendingSource() {
+        return KnowledgeSource.create(USER_ID, FOLDER_ID, "Spring AI MCP Reference", URL, CANONICAL_URL);
+    }
+
+    @Test
+    @DisplayName("본문이 있는 실패 Source는 다시 분석 대기 상태로 돌릴 수 있다")
+    void preparesFailedSourceForRetry() {
+        KnowledgeSource source = KnowledgeSource.create(USER_ID, FOLDER_ID, "제목", URL, CANONICAL_URL);
+        source.applyExtractedDocument("제목", "원문", null, null, null);
+        source.failDigestion();
+
+        source.prepareRetry();
+
+        assertThat(source.getProcessingStatus()).isEqualTo(SourceProcessingStatus.PENDING);
+        assertThat(source.getContent()).isEqualTo("원문");
+    }
+
+    @Test
+    @DisplayName("완료했거나 본문이 없는 Source는 다시 분석할 수 없다")
+    void rejectsNonRetryableSource() {
+        KnowledgeSource completed = KnowledgeSource.create(USER_ID, FOLDER_ID, "완료", URL, CANONICAL_URL);
+        completed.applyExtractedDocument("완료", "원문", null, null, null);
+        completed.completeDigestion("요약", 1);
+        KnowledgeSource empty = KnowledgeSource.create(USER_ID, FOLDER_ID, "빈 문서", URL, CANONICAL_URL);
+
+        assertThatThrownBy(completed::prepareRetry)
+                .isInstanceOf(com.swimming.backend.common.exception.BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(com.swimming.backend.common.exception.ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);
+        assertThatThrownBy(empty::prepareRetry)
+                .isInstanceOf(com.swimming.backend.common.exception.BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(com.swimming.backend.common.exception.ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);
     }
 }

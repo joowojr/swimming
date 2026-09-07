@@ -99,6 +99,29 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
     })
   }
 
+  const replaceSource = (source: SourceCard) => {
+    setState((current) => current.status === 'ready'
+      ? {
+        ...current,
+        items: current.items.map((item) => item.sourceId === source.sourceId ? source : item),
+      }
+      : current)
+  }
+
+  /** 카드가 낙관적으로 바꾼 읽음 표시를 목록에 반영한다. 실패하면 카드가 되돌려 준다. */
+  const setSourceReadAt = (sourceId: string, readAt: string | null) => {
+    setState((current) => current.status === 'ready'
+      ? {
+        ...current,
+        items: current.items.map((item) => item.sourceId === sourceId ? { ...item, readAt } : item),
+      }
+      : current)
+  }
+
+  const readCount = state.status === 'ready'
+    ? state.items.filter((item) => item.readAt !== null).length
+    : 0
+
   const savedCount = state.status === 'ready'
     ? `${state.items.length}${state.nextCursor ? '개 이상' : '개'}`
     : null
@@ -110,7 +133,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
             <h3 id="link-sources-title">링크</h3>
             <span>
               {savedCount
-                ? `Source ${savedCount}를 모았어요`
+                ? `Source ${savedCount}를 모았어요${readCount > 0 ? ` · ${readCount}개 읽음` : ''}`
                 : '저장된 링크를 확인하고 있어요'}
             </span>
           </div>
@@ -165,6 +188,8 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
                     key={source.sourceId}
                     source={source}
                     onDeleted={removeSource}
+                    onRetried={replaceSource}
+                    onReadChanged={setSourceReadAt}
                   />
                 ))}
               </div>

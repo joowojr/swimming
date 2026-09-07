@@ -9,25 +9,45 @@ import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationOrigin;
 import com.swimming.backend.knowledge.domain.RelationType;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.GraphResponse;
-import com.swimming.backend.knowledge.dto.in.SourceResponse;
+import com.swimming.backend.knowledge.dto.in.NodeRef;
+import com.swimming.backend.knowledge.dto.in.SourceCollectRequest;
+import com.swimming.backend.knowledge.dto.in.SourceCollectResponse;
 import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
+import com.swimming.backend.knowledge.dto.in.SourceResponse;
+import com.swimming.backend.knowledge.dto.out.FetchedDocument;
+import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
-import com.swimming.backend.knowledge.service.KnowledgeGraphAssembler;
-import com.swimming.backend.knowledge.service.KnowledgeNodeService;
-import com.swimming.backend.knowledge.service.KnowledgeRelationService;
-import com.swimming.backend.knowledge.service.KnowledgeSourceService;
-import com.swimming.backend.knowledge.service.SourceConceptReader;
+import com.swimming.backend.knowledge.service.SourceGraphReader;
+import com.swimming.backend.knowledge.service.crawl.WebFetchService;
+import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
+import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.KnowledgeGraphAssembler;
+import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
+import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,9 +65,9 @@ class SourceDeleteUseCaseTest {
     private FolderService folderService;
 
     private SourceDeleteUseCase useCase;
-    private SourceListUseCase listUseCase;
-    private SourceDetailUseCase detailUseCase;
-    private NodeDetailUseCase nodeDetailUseCase;
+    private SourceQueryUseCase listUseCase;
+    private SourceQueryUseCase detailUseCase;
+    private NodeUseCase nodeDetailUseCase;
     private KnowledgeGraphUseCase graphUseCase;
 
     @BeforeEach
@@ -60,16 +80,16 @@ class SourceDeleteUseCaseTest {
 
         KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
-        SourceConceptReader conceptReader = new SourceConceptReader(relations, nodes);
+        SourceGraphReader conceptReader = new SourceGraphReader(relations, nodes);
 
         folderService = mock(FolderService.class);
         when(folderService.getReference(USER_ID, FOLDER_ID))
                 .thenReturn(new FolderReference(FOLDER_ID, "Spring AI 공부", "설명"));
 
         useCase = new SourceDeleteUseCase(sourceService, nodeService, relationService, folderService);
-        listUseCase = new SourceListUseCase(folderService, sourceService, conceptReader);
-        detailUseCase = new SourceDetailUseCase(sourceService, conceptReader);
-        nodeDetailUseCase = new NodeDetailUseCase(nodeService, relationService, sourceService);
+        listUseCase = new SourceQueryUseCase(folderService, sourceService, conceptReader);
+        detailUseCase = listUseCase;
+        nodeDetailUseCase = new NodeUseCase(nodeService, relationService, sourceService);
         graphUseCase = new KnowledgeGraphUseCase(
                 folderService,
                 sourceService,
@@ -230,4 +250,5 @@ class SourceDeleteUseCaseTest {
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND);
     }
+
 }

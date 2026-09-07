@@ -21,9 +21,19 @@ import com.swimming.backend.knowledge.dto.in.SourceCollectResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.dto.in.SourceResponse;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
-import com.swimming.backend.knowledge.service.*;
+import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
+import com.swimming.backend.knowledge.service.crawl.RenderedPageFetcher;
+import com.swimming.backend.knowledge.service.crawl.WebFetchService;
+import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
+import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.SourceGraphReader;
+import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.llm.DigestContextTrimmer;
+import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
+import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import com.swimming.backend.knowledge.usecase.SourceCollectUseCase;
-import com.swimming.backend.knowledge.usecase.SourceDigestUseCase;
 import com.swimming.backend.folder.service.FolderService;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.jupiter.api.DisplayName;
@@ -96,7 +106,7 @@ class SourceDigestPlaygroundTest {
         var sourceService = new KnowledgeSourceService(sources);
         var nodeService = new KnowledgeNodeService(nodes);
 
-        var digestUseCase = new SourceDigestUseCase(
+        var digestUseCase = new SourceDigestProcessor(
                 sourceService,
                 nodeService,
                 digestService(provider, model),
@@ -111,7 +121,7 @@ class SourceDigestPlaygroundTest {
                 mock(FolderService.class),
                 sourceService,
                 digestUseCase,
-                new SourceConceptReader(relations, nodes)
+                new SourceGraphReader(relations, nodes)
         );
 
         System.out.printf("%n모델: %s (%s) | 링크 %d개%n", model, provider, urls.size());
@@ -358,13 +368,13 @@ class SourceDigestPlaygroundTest {
         return result;
     }
 
-    private SourceFetchService fetchService() {
+    private WebFetchService fetchService() {
         var properties = new KnowledgeFetchProperties(
                 4, Duration.ofSeconds(15), 4 * 1024 * 1024, 80_000, 300,
                 "SwimmingBot/0.1 (+https://swimming.app)",
                 new KnowledgeFetchProperties.Render(true, Duration.ofSeconds(20), 1000)
         );
-        return new SourceFetchService(
+        return new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
                 Optional.of(new RenderedPageFetcher(properties))
@@ -414,7 +424,7 @@ class SourceDigestPlaygroundTest {
                         ? new OllamaChatOptionsFactory(properties)
                         : new OpenAiChatOptionsFactory(properties),
                 new LlmUsageLogger(),
-                new DigestContentTrimmer(new KnowledgeDigestProperties(40_000, 800))
+                new DigestContextTrimmer(new KnowledgeDigestProperties(40_000, 800))
         );
     }
 

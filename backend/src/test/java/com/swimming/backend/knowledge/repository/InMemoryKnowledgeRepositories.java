@@ -146,27 +146,57 @@ public final class InMemoryKnowledgeRepositories {
                     .toList();
         }
 
+        @Override
+        public List<KnowledgeSource> findSearchPage(SourceSearchPageQuery query) {
+            Comparator<KnowledgeSource> recentFirst = Comparator
+                    .comparing((KnowledgeSource source) -> source.getNode().getCreatedAt())
+                    .thenComparing(KnowledgeSource::getId)
+                    .reversed();
+
+            return stored.values().stream()
+                    .filter(source -> source.getUserId().equals(query.userId()))
+                    .filter(source -> !source.isDeleted())
+                    .filter(source -> query.folderId() == null
+                            || source.getFolderId().equals(query.folderId()))
+                    .filter(source -> query.sourceIds() == null
+                            || query.sourceIds().contains(source.getId()))
+                    .sorted(recentFirst)
+                    .filter(source -> afterCursor(source, query.cursorCreatedAt(), query.cursorNodeId()))
+                    .limit(query.limit())
+                    .map(Sources::copy)
+                    .toList();
+        }
+
         /** 커서보다 뒤에 오는 것만 남긴다. 정렬 기준과 같은 (생성 시각, id) 순서를 쓴다. */
         private boolean afterCursor(KnowledgeSource source, SourcePageQuery query) {
-            if (query.cursorCreatedAt() == null) {
+            return afterCursor(source, query.cursorCreatedAt(), query.cursorNodeId());
+        }
+
+        private boolean afterCursor(KnowledgeSource source, Instant cursorCreatedAt, UUID cursorNodeId) {
+            if (cursorCreatedAt == null) {
                 return true;
             }
 
             Instant createdAt = source.getNode().getCreatedAt();
 
-            if (createdAt.isBefore(query.cursorCreatedAt())) {
+            if (createdAt.isBefore(cursorCreatedAt)) {
                 return true;
             }
 
-            return createdAt.equals(query.cursorCreatedAt())
-                    && source.getId().compareTo(query.cursorNodeId()) < 0;
+            return createdAt.equals(cursorCreatedAt)
+                    && source.getId().compareTo(cursorNodeId) < 0;
         }
 
         @Override
-        public Optional<KnowledgeSource> findByUserIdAndCanonicalUrl(Long userId, String canonicalUrl) {
+        public Optional<KnowledgeSource> findInFolderByCanonicalUrl(
+                Long userId,
+                Long folderId,
+                String canonicalUrl
+        ) {
             return stored.values().stream()
                     .filter(source -> source.getUserId().equals(userId)
                             && !source.isDeleted()
+                            && Objects.equals(source.getFolderId(), folderId)
                             && Objects.equals(source.getCanonicalUrl(), canonicalUrl))
                     .findFirst()
                     .map(Sources::copy);
@@ -178,7 +208,8 @@ public final class InMemoryKnowledgeRepositories {
                     source.getFolderId(),
                     source.getUrl(), source.getCanonicalUrl(), source.getContent(),
                     source.getSummary(), source.getSourceType(), source.getAuthor(),
-                    source.getPublishedAt(), source.getProcessingStatus(), source.getAnalysisVersion()
+                    source.getPublishedAt(), source.getProcessingStatus(), source.getAnalysisVersion(),
+                    source.getReadAt()
             );
         }
     }

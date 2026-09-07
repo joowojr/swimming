@@ -79,4 +79,48 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
             @Param("cursorNodeId") UUID cursorNodeId,
             Pageable pageable
     );
+
+    @Query("""
+            select s
+            from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+            where s.nodeId = n.id
+              and n.userId = :userId
+              and n.deleted = false
+              and (:filterFolder = false or s.folderId = :folderId)
+              and (:filterSources = false or s.nodeId in :sourceIds)
+            order by n.createdAt desc, s.nodeId desc
+            """)
+    List<KnowledgeSourceEntity> findFirstSearchPage(
+            @Param("userId") Long userId,
+            @Param("filterFolder") boolean filterFolder,
+            @Param("folderId") Long folderId,
+            @Param("filterSources") boolean filterSources,
+            @Param("sourceIds") Collection<UUID> sourceIds,
+            Pageable pageable
+    );
+
+    @Query("""
+            select s
+            from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+            where s.nodeId = n.id
+              and n.userId = :userId
+              and n.deleted = false
+              and (:filterFolder = false or s.folderId = :folderId)
+              and (:filterSources = false or s.nodeId in :sourceIds)
+              and (
+                    n.createdAt < :cursorCreatedAt
+                 or (n.createdAt = :cursorCreatedAt and s.nodeId < :cursorNodeId)
+              )
+            order by n.createdAt desc, s.nodeId desc
+            """)
+    List<KnowledgeSourceEntity> findNextSearchPage(
+            @Param("userId") Long userId,
+            @Param("filterFolder") boolean filterFolder,
+            @Param("folderId") Long folderId,
+            @Param("filterSources") boolean filterSources,
+            @Param("sourceIds") Collection<UUID> sourceIds,
+            @Param("cursorCreatedAt") Instant cursorCreatedAt,
+            @Param("cursorNodeId") UUID cursorNodeId,
+            Pageable pageable
+    );
 }

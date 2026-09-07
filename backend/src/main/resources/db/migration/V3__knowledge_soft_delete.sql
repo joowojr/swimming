@@ -37,3 +37,10 @@ UPDATE folders f
           WHERE s.folder_id = f.id
             AND n.is_deleted = false
        );
+
+-- 링크를 읽었는지. boolean이 아니라 시각으로 둔다. 컬럼 하나가 여부와 시점을 함께 담고,
+-- "이번 주 읽은 링크 6개" 같은 축적 표현과 최근 읽은 순 정렬을 나중에 그대로 쓸 수 있다.
+-- knowledge_node가 아니라 knowledge_source에 두는 이유는 읽을 수 있는 것이 SOURCE 뿐이고,
+-- Graph 조회가 읽음 여부를 거를 일이 없기 때문이다.
+ALTER TABLE knowledge_source
+  ADD COLUMN read_at timestamptz;

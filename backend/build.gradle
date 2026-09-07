@@ -52,7 +52,7 @@ dependencies {
     // aws
 //	implementation 'software.amazon.awssdk:s3:2.53.3'
 
-    // 웹 문서 수집: fetch/parse -> 본문 추출 -> 마크다운
+    // 웹 크롤링
     implementation 'org.jsoup:jsoup:1.23.2'
     implementation 'net.dankito.readability4j:readability4j:1.0.8'
     implementation 'com.vladsch.flexmark:flexmark-html2md-converter:0.64.8'

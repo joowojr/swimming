@@ -2,8 +2,8 @@ package com.swimming.backend.knowledge.live;
 
 import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
-import com.swimming.backend.knowledge.service.HtmlToMarkdownConverter;
-import com.swimming.backend.knowledge.service.SourceFetchService;
+import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
+import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ class SourceFetchLiveTest {
             "https://spring.io/projects/spring-ai"
     );
 
-    private final SourceFetchService service = new SourceFetchService(
+    private final WebFetchService service = new WebFetchService(
             new KnowledgeFetchProperties(
                     4,
                     Duration.ofSeconds(15),

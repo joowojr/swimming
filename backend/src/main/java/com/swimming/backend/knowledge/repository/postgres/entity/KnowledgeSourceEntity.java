@@ -64,6 +64,9 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
     @Column(name = "analysis_version")
     private Integer analysisVersion;
 
+    @Column(name = "read_at")
+    private Instant readAt;
+
     @Builder
     private KnowledgeSourceEntity(
             UUID nodeId,
@@ -76,7 +79,8 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
             String author,
             Instant publishedAt,
             SourceProcessingStatus processingStatus,
-            Integer analysisVersion
+            Integer analysisVersion,
+            Instant readAt
     ) {
         this.nodeId = nodeId;
         this.folderId = folderId;
@@ -89,5 +93,6 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
         this.publishedAt = publishedAt;
         this.processingStatus = processingStatus;
         this.analysisVersion = analysisVersion;
+        this.readAt = readAt;
     }
 }

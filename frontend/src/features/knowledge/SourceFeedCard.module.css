@@ -1,5 +1,5 @@
 /* Hallmark · component: source-feed-card · genre: modern-minimal · theme: Purposeful Journey
- * states: pending · processing · completed · failed
+ * states: pending · processing · completed · failed · read
  * contrast: pass · responsive: code-pass
  * 카드 겉모양은 할 일 카드(ChecklistCard)와 같은 규격을 쓴다.
  */
@@ -97,7 +97,14 @@
   font-size: var(--text-label-caps-size);
 }
 
-.origin {
+.failure {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.retry {
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
@@ -107,30 +114,95 @@
   border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-control);
   color: var(--color-primary);
+  font: inherit;
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-button-weight);
-  text-decoration: none;
   background: var(--color-surface-container-lowest);
+  cursor: pointer;
 }
 
-.origin:focus-visible {
+.retry:disabled {
+  color: var(--color-mute);
+  cursor: default;
+}
+
+.retry:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--border-width);
 }
 
 .title {
-  display: -webkit-box;
   min-width: 0;
   margin: 0;
-  overflow: hidden;
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   font-style: normal;
   font-weight: var(--text-button-weight);
   line-height: var(--text-body-sm-line-height);
+}
+
+/* 제목이 곧 원문으로 나가는 링크다. 나가는 표시는 제목 옆에 붙어 함께 움직인다. */
+.title a {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.title-text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+}
+
+.title-icon {
+  flex: 0 0 auto;
+  color: var(--color-ash);
+}
+
+/* 읽음은 끝낸 표시다. 카드를 지우지 않고 연한 그레이로 한 단계 가라앉혀,
+ * 아직 안 읽은 흰 카드가 도드라지고 읽은 것은 쌓인 채로 남게 둔다. */
+.card[data-read='true'] {
+  background: var(--color-surface-soft);
+}
+
+.card[data-read='true'] .title,
+.card[data-read='true'] .summary {
+  color: var(--color-mute);
+}
+
+/* 읽었는지는 눈으로 말한다. 감은 눈이 아직 안 읽은 것, 뜬 눈이 읽은 것이다.
+ * 아직 안 읽은 쪽이 또렷하고 읽은 쪽은 회색으로 가라앉는다. 남은 것이 눈에 띄되
+ * 재촉하지 않는 순서다. 삭제 버튼과 같은 정사각 규격이라 액션 줄에서 나란히 선다. */
+.read {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  background: none;
+  cursor: pointer;
+}
+
+.read[aria-pressed='true'] {
+  color: var(--color-mute);
+}
+
+.read:disabled {
+  cursor: default;
+}
+
+.read:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
 }
 
 /* 어디서 가져온 글인지 도메인 바로 옆에서 알린다. */
@@ -219,12 +291,16 @@
     border-color: var(--color-hairline);
   }
 
-  .origin:hover {
+  .read:not(:disabled):hover {
+    background: var(--color-surface-container-highest);
+  }
+
+  .retry:not(:disabled):hover {
     border-color: var(--color-hairline);
     background: var(--color-surface-soft);
   }
 
-  .title a:hover {
+  .title a:hover .title-text {
     text-decoration: underline;
   }
 }

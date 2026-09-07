@@ -3,9 +3,9 @@ package com.swimming.backend.knowledge.live;
 import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
-import com.swimming.backend.knowledge.service.HtmlToMarkdownConverter;
-import com.swimming.backend.knowledge.service.RenderedPageFetcher;
-import com.swimming.backend.knowledge.service.SourceFetchService;
+import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
+import com.swimming.backend.knowledge.service.crawl.RenderedPageFetcher;
+import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -48,7 +48,7 @@ class SourceFetchPlaygroundTest {
         // 0이면 자르지 않고 전체를 출력한다.
         int lines = Integer.parseInt(System.getProperty("lines", "0"));
 
-        SourceFetchService service = service(render);
+        WebFetchService service = service(render);
         Path outDir = Path.of("build", "fetch-live");
         Files.createDirectories(outDir);
 
@@ -101,7 +101,7 @@ class SourceFetchPlaygroundTest {
         assertThat(results).hasSize(urls.size());
     }
 
-    private SourceFetchService service(boolean render) {
+    private WebFetchService service(boolean render) {
         KnowledgeFetchProperties properties = new KnowledgeFetchProperties(
                 4,
                 Duration.ofSeconds(15),
@@ -112,7 +112,7 @@ class SourceFetchPlaygroundTest {
                 new KnowledgeFetchProperties.Render(render, Duration.ofSeconds(20), 1000)
         );
 
-        return new SourceFetchService(
+        return new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
                 render

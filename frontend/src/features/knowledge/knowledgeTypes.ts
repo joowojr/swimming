@@ -23,6 +23,8 @@ export interface SourceCard {
   status: SourceProcessingStatus
   /** 이 폴더에 저장한 시각. */
   createdAt: string | null
+  /** 읽은 시각. 아직 읽지 않았으면 null. 시각은 서버가 정한다. */
+  readAt: string | null
   summary: string | null
   topic: NodeRef | null
   subjects: NodeRef[] | null

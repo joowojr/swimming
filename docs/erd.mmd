@@ -193,6 +193,7 @@ erDiagram
         timestamp published_at "nullable"
         varchar processing_status "PENDING | PROCESSING | COMPLETED | FAILED"
         integer analysis_version "nullable"
+        timestamp read_at "nullable, 읽은 시각"
         timestamp created_at
         timestamp updated_at
     }

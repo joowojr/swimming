@@ -95,6 +95,8 @@ public final class InMemoryKnowledgeRepositories {
     public static class Sources implements KnowledgeSourceRepository {
 
         final Map<UUID, KnowledgeSource> stored = new LinkedHashMap<>();
+        final Map<UUID, float[]> summaryEmbeddings = new HashMap<>();
+        final Map<UUID, String> summaryEmbeddingModels = new HashMap<>();
 
         @Override
         public KnowledgeSource save(KnowledgeSource source) {
@@ -117,6 +119,83 @@ public final class InMemoryKnowledgeRepositories {
                     .filter(source -> !source.isDeleted())
                     .map(Sources::copy)
                     .toList();
+        }
+
+        @Override
+        public void updateReadAt(UUID sourceId, Instant readAt) {
+            KnowledgeSource source = stored.get(sourceId);
+            if (source == null) {
+                return;
+            }
+            if (readAt == null) {
+                source.markUnread();
+            } else {
+                source.markRead(readAt);
+            }
+            stored.put(sourceId, copy(source));
+        }
+
+        @Override
+        public List<UUID> findSimilarSourceIds(
+                Long userId,
+                UUID excludedSourceId,
+                float[] summaryEmbedding,
+                String embeddingModel,
+                int limit
+        ) {
+            return stored.values().stream()
+                    .filter(source -> source.getUserId().equals(userId))
+                    .filter(source -> !source.getId().equals(excludedSourceId))
+                    .filter(source -> !source.isDeleted())
+                    .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
+                    .filter(source -> summaryEmbeddings.containsKey(source.getId()))
+                    .filter(source -> Objects.equals(
+                            summaryEmbeddingModels.get(source.getId()), embeddingModel
+                    ))
+                    .sorted(Comparator.comparingDouble(source -> cosineDistance(
+                            summaryEmbeddings.get(source.getId()), summaryEmbedding
+                    )))
+                    .limit(limit)
+                    .map(KnowledgeSource::getId)
+                    .toList();
+        }
+
+        @Override
+        public void saveSummaryEmbedding(
+                Long userId,
+                UUID sourceId,
+                float[] summaryEmbedding,
+                String embeddingModel
+        ) {
+            KnowledgeSource source = findById(sourceId).orElseThrow();
+            if (!source.getUserId().equals(userId)) {
+                throw new IllegalStateException("source owner does not match");
+            }
+            summaryEmbeddings.put(sourceId, summaryEmbedding.clone());
+            summaryEmbeddingModels.put(sourceId, embeddingModel);
+        }
+
+        public float[] summaryEmbeddingOf(UUID sourceId) {
+            float[] embedding = summaryEmbeddings.get(sourceId);
+            return embedding == null ? null : embedding.clone();
+        }
+
+        public String summaryEmbeddingModelOf(UUID sourceId) {
+            return summaryEmbeddingModels.get(sourceId);
+        }
+
+        private double cosineDistance(float[] left, float[] right) {
+            double dot = 0;
+            double leftNorm = 0;
+            double rightNorm = 0;
+
+            for (int index = 0; index < left.length; index++) {
+                dot += left[index] * right[index];
+                leftNorm += left[index] * left[index];
+                rightNorm += right[index] * right[index];
+            }
+
+            return 1 - dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
         }
 
         @Override

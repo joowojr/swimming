@@ -15,7 +15,10 @@ public enum PromptKey {
     TASK_EXTRACTOR("task-extractor"),
 
     /** 저장한 문서 하나를 소화해 Summary·Topic·Subject를 뽑는다. */
-    SOURCE_DIGEST("source-digest");
+    SOURCE_DIGEST("source-digest"),
+
+    /** 규칙으로 해결되지 않은 Subject 후보를 기존 Subject에 맞추거나 새 이름으로 정한다. */
+    NODE_RESOLUTION("node-resolution");
 
     private final String configName;
 

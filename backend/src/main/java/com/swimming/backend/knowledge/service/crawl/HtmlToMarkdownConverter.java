@@ -42,8 +42,9 @@ public class HtmlToMarkdownConverter {
 
     /** semantic 컨테이너 안에 남아 있는 부속 요소. */
     private static final String CHROME_SELECTOR = String.join(", ",
-            "nav", "aside", "footer", "header", "script", "style", "noscript", "form",
-            ".toc", ".nav", ".navbar", ".breadcrumbs", ".edit-this-page", ".sidebar");
+            "nav", "menu", "[role=navigation]", "aside", "footer", "header",
+            "script", "style", "noscript", "form", ".toc", ".nav", ".navbar", ".menu",
+            ".breadcrumbs", ".edit-this-page", ".sidebar");
 
     /**
      * Readability 결과가 semantic 컨테이너보다 이 배수 이상 적으면 추출에 실패한 것으로 본다.
@@ -73,23 +74,32 @@ public class HtmlToMarkdownConverter {
 
     String chooseBody(Document document, String readabilityHtml) {
         Element semantic = semanticContent(document);
+        String selected;
 
         if (semantic == null) {
-            return StringUtils.hasText(readabilityHtml)
+            selected = StringUtils.hasText(readabilityHtml)
                     ? readabilityHtml
                     : document.body().html();
+        } else if (!StringUtils.hasText(readabilityHtml)) {
+            selected = semantic.html();
+        } else {
+            int readabilityLength = Jsoup.parse(readabilityHtml).text().length();
+            int semanticLength = semantic.text().length();
+
+            boolean readabilityLostContent = readabilityLength == 0
+                    || semanticLength > readabilityLength * SEMANTIC_PREFERENCE_RATIO;
+
+            selected = readabilityLostContent ? semantic.html() : readabilityHtml;
         }
-        if (!StringUtils.hasText(readabilityHtml)) {
-            return semantic.html();
-        }
 
-        int readabilityLength = Jsoup.parse(readabilityHtml).text().length();
-        int semanticLength = semantic.text().length();
+        return removeChrome(selected);
+    }
 
-        boolean readabilityLostContent = readabilityLength == 0
-                || semanticLength > readabilityLength * SEMANTIC_PREFERENCE_RATIO;
-
-        return readabilityLostContent ? semantic.html() : readabilityHtml;
+    /** 선택한 본문에서 메뉴와 내비게이션 등 읽을거리 밖의 요소를 제거한다. */
+    private String removeChrome(String html) {
+        Document fragment = Jsoup.parseBodyFragment(html);
+        fragment.select(CHROME_SELECTOR).remove();
+        return fragment.body().html();
     }
 
     private Element semanticContent(Document document) {

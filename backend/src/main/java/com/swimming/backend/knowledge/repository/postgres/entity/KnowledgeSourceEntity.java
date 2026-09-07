@@ -7,12 +7,14 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
 @Entity
+@DynamicUpdate
 @Table(
         name = "knowledge_source",
         indexes = {
@@ -93,6 +95,10 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
         this.publishedAt = publishedAt;
         this.processingStatus = processingStatus;
         this.analysisVersion = analysisVersion;
+        this.readAt = readAt;
+    }
+
+    public void updateReadAt(Instant readAt) {
         this.readAt = readAt;
     }
 }

@@ -4,6 +4,7 @@ import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeSource
 import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +18,48 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
     List<KnowledgeSourceEntity> findAllByNodeIdIn(Collection<UUID> nodeIds);
 
     List<KnowledgeSourceEntity> findAllByCanonicalUrl(String canonicalUrl);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            update knowledge_source s
+               set summary_embedding = cast(:summaryEmbedding as vector),
+                   summary_embedding_model = :embeddingModel,
+                   updated_at = current_timestamp
+             where s.node_id = :sourceId
+               and exists (
+                    select 1
+                      from knowledge_node n
+                     where n.id = s.node_id
+                       and n.user_id = :userId
+                       and n.is_deleted = false
+               )
+            """, nativeQuery = true)
+    int updateSummaryEmbedding(
+            @Param("userId") Long userId,
+            @Param("sourceId") UUID sourceId,
+            @Param("summaryEmbedding") String summaryEmbedding,
+            @Param("embeddingModel") String embeddingModel
+    );
+
+    @Query(value = """
+            select s.node_id
+              from knowledge_source s
+              join knowledge_node n on n.id = s.node_id
+             where n.user_id = :userId
+               and n.is_deleted = false
+               and s.node_id <> :excludedSourceId
+               and s.processing_status = 'COMPLETED'
+               and s.summary_embedding is not null
+               and s.summary_embedding_model = :embeddingModel
+             order by s.summary_embedding <=> cast(:summaryEmbedding as vector)
+            """, nativeQuery = true)
+    List<UUID> findSimilarSourceIds(
+            @Param("userId") Long userId,
+            @Param("excludedSourceId") UUID excludedSourceId,
+            @Param("summaryEmbedding") String summaryEmbedding,
+            @Param("embeddingModel") String embeddingModel,
+            Pageable pageable
+    );
 
     @Query("""
             select s

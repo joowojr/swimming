@@ -32,5 +32,9 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Local documentation subdirectories
-/docs/*/
+# Keep local documentation private except for the canonical project documents.
+/docs/*
+!/docs/ARCHITECTURE.md
+!/docs/DESIGN.md
+!/docs/erd.mmd
+!/docs/PRD.md

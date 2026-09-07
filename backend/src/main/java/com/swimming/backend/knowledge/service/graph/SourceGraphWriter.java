@@ -27,7 +27,6 @@ import java.util.List;
 public class SourceGraphWriter {
 
     private final KnowledgeNodeService nodeService;
-    private final NodeResolver nodeResolver;
     private final KnowledgeRelationService relationService;
 
     /**
@@ -40,13 +39,15 @@ public class SourceGraphWriter {
      * {@link SourceDigestService}가 소화 실패로 돌린다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void write(KnowledgeSource source, SourceDigestResult result) {
+    public void write(
+            KnowledgeSource source,
+            SourceDigestResult result,
+            List<ResolvedNode> resolvedSubjects
+    ) {
         Long userId = source.getUserId();
         KnowledgeNode sourceNode = source.getNode();
 
-        List<KnowledgeNode> subjects = nodeResolver
-                .resolveSubjects(userId, result.subjects())
-                .stream()
+        List<KnowledgeNode> subjects = resolvedSubjects.stream()
                 .map(ResolvedNode::node)
                 .toList();
 

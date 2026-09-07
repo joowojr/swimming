@@ -18,6 +18,7 @@ import com.swimming.backend.knowledge.dto.in.SourceDeleteResponse;
 import com.swimming.backend.knowledge.dto.in.SourceResponse;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
@@ -26,7 +27,7 @@ import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.graph.KnowledgeGraphAssembler;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
@@ -83,6 +84,18 @@ class SourceCollectUseCaseTest {
 
             KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
             KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
+            NodeResolutionService resolutionService = mock(NodeResolutionService.class);
+            when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
+                List<String> candidates = invocation.getArgument(2);
+                return candidates.stream()
+                        .map(candidate -> ResolvedNode.created(
+                                candidate,
+                                nodes.save(KnowledgeNode.create(
+                                        USER_ID, NodeType.SUBJECT, candidate, null
+                                ))
+                        ))
+                        .toList();
+            });
 
             useCase = new SourceCollectUseCase(
                     fetchService,
@@ -92,9 +105,9 @@ class SourceCollectUseCaseTest {
                             sourceService,
                             nodeService,
                             digestService,
+                            resolutionService,
                             new SourceGraphWriter(
                                     nodeService,
-                                    new NodeResolver(nodes),
                                     new KnowledgeRelationService(relations)
                             )
                     ),
@@ -331,6 +344,7 @@ class SourceCollectUseCaseTest {
                     sourceService,
                     nodeService,
                     digestService,
+                    mock(NodeResolutionService.class),
                     mock(SourceGraphWriter.class)
             );
             useCase = new SourceCollectUseCase(

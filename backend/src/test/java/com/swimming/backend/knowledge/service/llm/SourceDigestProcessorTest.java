@@ -9,13 +9,14 @@ import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.SourceDigestResponse;
 import com.swimming.backend.knowledge.dto.out.SourceDigestInput;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ class SourceDigestProcessorTest {
     private InMemoryKnowledgeRepositories.Nodes nodes;
     private InMemoryKnowledgeRepositories.Relations relations;
     private SourceDigestService digestService;
+    private NodeResolutionService nodeResolutionService;
     private SourceGraphWriter graphWriter;
     private SourceDigestProcessor useCase;
 
@@ -54,10 +56,22 @@ class SourceDigestProcessorTest {
         nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
         digestService = mock(SourceDigestService.class);
+        nodeResolutionService = mock(NodeResolutionService.class);
+
+        when(nodeResolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
+            List<String> candidates = invocation.getArgument(2);
+            return candidates.stream()
+                    .map(candidate -> ResolvedNode.created(
+                            candidate,
+                            nodes.save(KnowledgeNode.create(
+                                    USER_ID, NodeType.SUBJECT, candidate, null
+                            ))
+                    ))
+                    .toList();
+        });
 
         graphWriter = new SourceGraphWriter(
                 new KnowledgeNodeService(nodes),
-                new NodeResolver(nodes),
                 new KnowledgeRelationService(relations)
         );
 
@@ -65,6 +79,7 @@ class SourceDigestProcessorTest {
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),
                 digestService,
+                nodeResolutionService,
                 graphWriter
         );
     }
@@ -127,7 +142,7 @@ class SourceDigestProcessorTest {
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getProcessingStatus()).isEqualTo(SourceProcessingStatus.COMPLETED);
         assertThat(saved.getSummary()).isEqualTo("Spring AI에서 MCP Server를 구성하는 방법을 설명한다.");
-        assertThat(saved.getAnalysisVersion()).isNotNull();
+        assertThat(saved.getAnalysisVersion()).isEqualTo(4);
     }
 
     @Test
@@ -191,9 +206,14 @@ class SourceDigestProcessorTest {
         when(digestService.digest(any())).thenReturn(digestResult());
 
         SourceGraphWriter failing = mock(SourceGraphWriter.class);
-        doThrow(new RuntimeException("db down")).when(failing).write(any(), any());
+        doThrow(new RuntimeException("db down")).when(failing).write(any(), any(), any());
         useCase = new SourceDigestProcessor(
-                new KnowledgeSourceService(sources), new KnowledgeNodeService(nodes), digestService, failing);
+                new KnowledgeSourceService(sources),
+                new KnowledgeNodeService(nodes),
+                digestService,
+                nodeResolutionService,
+                failing
+        );
 
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 

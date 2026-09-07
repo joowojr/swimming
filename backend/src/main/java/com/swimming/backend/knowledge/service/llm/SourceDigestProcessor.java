@@ -6,14 +6,17 @@ import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.SourceDigestResponse;
 import com.swimming.backend.knowledge.dto.out.SourceDigestInput;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,11 +34,12 @@ import java.util.UUID;
 public class SourceDigestProcessor {
 
     /** 프롬프트나 출력 스키마를 바꾸면 올린다. 어떤 기준으로 분석했는지 구분하기 위해서다. */
-    private static final int ANALYSIS_VERSION = 2;
+    private static final int ANALYSIS_VERSION = 4;
 
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
     private final SourceDigestService digestService;
+    private final NodeResolutionService nodeResolutionService;
     private final SourceGraphWriter graphWriter;
 
     public SourceDigestResponse digest(Long userId, UUID sourceId) {
@@ -54,6 +58,7 @@ public class SourceDigestProcessor {
         source.startDigestion();
 
         SourceDigestResult result;
+        List<ResolvedNode> resolvedSubjects;
         try {
             result = requireTopic(digestService.digest(new SourceDigestInput(
                     source.getNode().getTitle(),
@@ -63,6 +68,15 @@ public class SourceDigestProcessor {
                     // 이미 쓰던 표현만 참고로 보여 준다.
                     nodeService.findTitles(userId, NodeType.TOPIC)
             )));
+            resolvedSubjects = nodeResolutionService.resolveSubjects(
+                    source, result.summary(), result.subjects()
+            );
+            result = new SourceDigestResult(
+                    result.summary(),
+                    result.category(),
+                    result.topic(),
+                    resolvedSubjects.stream().map(item -> item.node().getTitle()).toList()
+            );
         } catch (RuntimeException exception) {
             log.info(
                     "[source-digest] failed sourceId={} url={} reason={}",
@@ -76,7 +90,7 @@ public class SourceDigestProcessor {
         source.completeDigestion(result.summary(), ANALYSIS_VERSION);
         KnowledgeSource saved = sourceService.save(source);
 
-        writeGraph(saved, result);
+        writeGraph(saved, result, resolvedSubjects);
 
         return SourceDigestResponse.of(saved, result);
     }
@@ -103,9 +117,13 @@ public class SourceDigestProcessor {
      * <p>지금은 로그로만 남는다. 반영이 빠진 Source를 다시 이어 붙이는 경로가 필요해지면
      * 그때 상태를 따로 둔다.
      */
-    private void writeGraph(KnowledgeSource source, SourceDigestResult result) {
+    private void writeGraph(
+            KnowledgeSource source,
+            SourceDigestResult result,
+            List<ResolvedNode> resolvedSubjects
+    ) {
         try {
-            graphWriter.write(source, result);
+            graphWriter.write(source, result, resolvedSubjects);
         } catch (RuntimeException exception) {
             log.warn(
                     "[source-digest] graph write failed sourceId={} reason={}",

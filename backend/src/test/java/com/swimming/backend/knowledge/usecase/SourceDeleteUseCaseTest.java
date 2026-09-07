@@ -26,7 +26,6 @@ import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.graph.KnowledgeGraphAssembler;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;

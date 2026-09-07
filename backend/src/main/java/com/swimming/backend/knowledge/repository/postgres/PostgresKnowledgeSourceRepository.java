@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,15 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
         KnowledgeSourceEntity sourceEntity = sourceJpaRepository.save(toEntity(source));
 
         return toDomain(nodeEntity, sourceEntity);
+    }
+
+    @Override
+    public void updateReadAt(UUID sourceId, Instant readAt){
+        KnowledgeSourceEntity entity = sourceJpaRepository.findById(sourceId).orElse(null);
+        if (entity != null){
+            entity.updateReadAt(readAt);
+            sourceJpaRepository.flush();
+        }
     }
 
     @Override
@@ -67,6 +77,49 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                         sourceEntity
                 ))
                 .toList();
+    }
+
+    @Override
+    public List<UUID> findSimilarSourceIds(
+            Long userId,
+            UUID excludedSourceId,
+            float[] summaryEmbedding,
+            String embeddingModel,
+            int limit
+    ) {
+        return sourceJpaRepository.findSimilarSourceIds(
+                userId,
+                excludedSourceId,
+                vectorLiteral(summaryEmbedding),
+                embeddingModel,
+                PageRequest.of(0, limit)
+        );
+    }
+
+    @Override
+    public void saveSummaryEmbedding(
+            Long userId,
+            UUID sourceId,
+            float[] summaryEmbedding,
+            String embeddingModel
+    ) {
+        int updated = sourceJpaRepository.updateSummaryEmbedding(
+                userId, sourceId, vectorLiteral(summaryEmbedding), embeddingModel
+        );
+        if (updated != 1) {
+            throw new IllegalStateException("failed to update source summary embedding: " + sourceId);
+        }
+    }
+
+    private String vectorLiteral(float[] embedding) {
+        StringBuilder literal = new StringBuilder("[");
+        for (int index = 0; index < embedding.length; index++) {
+            if (index > 0) {
+                literal.append(',');
+            }
+            literal.append(Float.toString(embedding[index]));
+        }
+        return literal.append(']').toString();
     }
 
     @Override

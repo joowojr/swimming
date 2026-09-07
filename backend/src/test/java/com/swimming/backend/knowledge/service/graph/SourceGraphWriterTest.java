@@ -1,15 +1,15 @@
 package com.swimming.backend.knowledge.service.graph;
 
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
+import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
-import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,6 @@ class SourceGraphWriterTest {
 
         writer = new SourceGraphWriter(
                 new KnowledgeNodeService(nodes),
-                new NodeResolver(nodes),
                 new KnowledgeRelationService(relations)
         );
     }
@@ -46,6 +45,16 @@ class SourceGraphWriterTest {
 
     private SourceDigestResult result(String topic, String... subjects) {
         return new SourceDigestResult("요약", "백엔드", topic, List.of(subjects));
+    }
+
+    private void write(KnowledgeSource source, SourceDigestResult result) {
+        List<ResolvedNode> subjects = result.subjects().stream()
+                .map(title -> ResolvedNode.created(
+                        title,
+                        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, title, null))
+                ))
+                .toList();
+        writer.write(source, result, subjects);
     }
 
     private List<KnowledgeRelation> from(UUID fromNodeId, RelationType relationType) {
@@ -61,7 +70,7 @@ class SourceGraphWriterTest {
     void 소스를_개념과_목적에_잇는다() {
         KnowledgeSource source = source("https://a.com/mcp");
 
-        writer.write(source, result("MCP 서버 구현하기", "MCP", "Tool Calling"));
+        write(source, result("MCP 서버 구현하기", "MCP", "Tool Calling"));
 
         UUID sourceNodeId = source.getNode().getId();
         assertThat(from(sourceNodeId, RelationType.ABOUT))
@@ -78,7 +87,7 @@ class SourceGraphWriterTest {
     void involves를_파생한다() {
         KnowledgeSource source = source("https://a.com/mcp");
 
-        writer.write(source, result("MCP 서버 구현하기", "MCP", "Tool Calling"));
+        write(source, result("MCP 서버 구현하기", "MCP", "Tool Calling"));
 
         UUID topicId = from(source.getNode().getId(), RelationType.SUPPORTS)
                 .getFirst().getToNodeId();
@@ -89,21 +98,10 @@ class SourceGraphWriterTest {
     }
 
     @Test
-    @DisplayName("다른 문서가 같은 개념을 표기만 다르게 적어 와도 Subject 노드는 늘지 않는다")
-    void 개념을_재사용한다() {
-        writer.write(source("https://a.com/1"), result("MCP 서버 구현하기", "MCP", "Tool Calling"));
-        writer.write(source("https://a.com/2"), result(null, "mcp", "TOOL-CALLING"));
-
-        assertThat(nodes.findAllByUserIdAndNodeType(USER_ID, NodeType.SUBJECT))
-                .extracting(node -> node.getTitle())
-                .containsExactlyInAnyOrder("MCP", "Tool Calling");
-    }
-
-    @Test
     @DisplayName("Topic은 재사용하지 않는다. 이름이 같아도 Source마다 새로 만든다")
     void 목적은_매번_만든다() {
-        writer.write(source("https://a.com/1"), result("MCP 서버 구현하기", "MCP"));
-        writer.write(source("https://a.com/2"), result("MCP 서버 구현하기", "MCP"));
+        write(source("https://a.com/1"), result("MCP 서버 구현하기", "MCP"));
+        write(source("https://a.com/2"), result("MCP 서버 구현하기", "MCP"));
 
         assertThat(nodes.findAllByUserIdAndNodeType(USER_ID, NodeType.TOPIC)).hasSize(2);
     }
@@ -113,8 +111,13 @@ class SourceGraphWriterTest {
     void 관계를_중복_저장하지_않는다() {
         KnowledgeSource source = source("https://a.com/mcp");
 
-        writer.write(source, result("MCP 서버 구현하기", "MCP"));
-        writer.write(source, result("MCP 서버 구현하기", "MCP"));
+        KnowledgeNode subject = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "MCP", null
+        ));
+        List<ResolvedNode> resolved = List.of(ResolvedNode.created("MCP", subject));
+
+        writer.write(source, result("MCP 서버 구현하기", "MCP"), resolved);
+        writer.write(source, result("MCP 서버 구현하기", "MCP"), resolved);
 
         assertThat(from(source.getNode().getId(), RelationType.ABOUT)).hasSize(1);
     }

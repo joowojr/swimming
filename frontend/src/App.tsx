@@ -28,7 +28,7 @@ function ProjectDetailRoute({ onDeleted }: { onDeleted: (folderId: number) => vo
     ? parsedProjectId
     : null
 
-  if (childPath !== undefined && childPath !== 'links') {
+  if (childPath && childPath !== 'links') {
     return <Navigate to="/folders" replace />
   }
 

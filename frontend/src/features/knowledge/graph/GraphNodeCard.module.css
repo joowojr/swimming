@@ -1,0 +1,108 @@
+/* Hallmark · component: graph-node · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · selected · dimmed
+ * contrast: pass
+ */
+
+.node {
+  display: flex;
+  width: 11rem;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+  transition: opacity var(--transition-short), border-color var(--transition-short);
+}
+
+.title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* 어디서 가져온 글인지 도메인 옆에서 알린다. */
+.origin {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.mark {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+}
+
+.domain {
+  overflow: hidden;
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Folder: 지금 수집 맥락. 하나뿐이라 가장 진하다. */
+.node[data-type='FOLDER'] {
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+/* Subject: 여러 문서가 함께 가리키는 개념. 이름만 있으면 되므로 칩이다. */
+.node[data-type='SUBJECT'] {
+  width: auto;
+  max-width: 11rem;
+  border-color: var(--color-tone-fountain-tint);
+  border-radius: var(--radius-full);
+  background: var(--color-tone-fountain-tint);
+}
+
+/* Topic: 문서 하나가 만든 적용 목적. Subject와 성격이 달라 톤으로 가른다. */
+.node[data-type='TOPIC'] {
+  border-color: var(--color-tone-indigo-tint);
+  background: var(--color-tone-indigo-tint);
+}
+
+.node[data-selected] {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--color-primary);
+}
+
+.node[data-dimmed] {
+  opacity: .32;
+}
+
+/* 연결점은 선이 붙는 자리일 뿐이라 보이지 않게 둔다. */
+.handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .node:hover {
+    border-color: var(--color-ash);
+  }
+
+  .node[data-type='FOLDER']:hover {
+    border-color: var(--color-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node { transition: none; }
+}

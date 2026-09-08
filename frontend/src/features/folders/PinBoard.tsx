@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import { useAuthStore } from '../../store/authStore'
+import { usePinboardViewStore } from '../../store/pinboardViewStore'
 import { EMPTY_TASK_FILTER } from '../tasks/taskFilter'
 import type { TaskFilter } from '../tasks/taskFilter'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
@@ -16,8 +17,6 @@ interface PinBoardProps {
   status: FolderLoadStatus
   onRetry: () => void
 }
-
-type PlannerView = 'daily' | 'matrix'
 
 const PLANNER_VIEW_OPTIONS = [
   { value: 'daily', label: '캘린더' },
@@ -40,7 +39,8 @@ export default function PinBoard({
   const { user } = useAuthStore()
   // 닉네임이 비어 있으면 이메일 아이디를 대신 부른다.
   const displayName = user?.nickname || user?.email?.split('@')[0]
-  const [plannerView, setPlannerView] = useState<PlannerView>('daily')
+  const plannerView = usePinboardViewStore((state) => state.plannerView)
+  const setPlannerView = usePinboardViewStore((state) => state.setPlannerView)
   const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
   /*
   const upcomingProjects = useMemo(

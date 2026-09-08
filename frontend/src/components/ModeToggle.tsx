@@ -64,6 +64,7 @@ export default function ModeToggle<T extends string>({
         const isActive = option.value === value
         return (
           <button
+            key={option.value}
             id={option.id}
             className={styles.button}
             type="button"

@@ -41,6 +41,7 @@
 }
 
 .calendarHeader h2 {
+    min-width: 0;
     color: var(--color-primary);
     font-size: var(--text-headline-md-size);
     font-weight: var(--text-headline-md-weight);
@@ -48,6 +49,19 @@
 
 .calendarNav {
     gap: var(--space-1);
+}
+
+.calendarViewToggle {
+    align-self: flex-end;
+    gap: 0;
+    padding: var(--border-width);
+}
+
+.calendarViewToggle button {
+    min-height: calc(var(--space-6) + var(--space-1));
+    padding-inline: var(--space-2);
+    font-size: var(--text-label-caps-size);
+    line-height: 1;
 }
 
 .calendarNav button {
@@ -324,9 +338,12 @@ span.task-title-editor.is-priority.is-urgent button::before {
         grid-template-columns: 1fr;
     }
 
-    /* 2주 보기의 헤더는 달 이름 대신 기간을 적는다. 이동 버튼과 한 줄에 들어가야 한다. */
     .calendarHeader h2 {
         font-size: var(--text-body-lg-size);
+    }
+
+    .calendarHeader {
+        flex-wrap: wrap;
     }
 
     .calendarPanel {

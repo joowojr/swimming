@@ -17,7 +17,8 @@
   <a href="#-아키텍처">아키텍처</a>
 </p>
 
-Swimming은 ADHD를 포함해 생각을 정리하거나 시작점을 잡기 어려운 사람이, 머릿속의 일을 일단 꺼내 놓고 실제 행동으로 옮길 수 있도록 돕는 웹 애플리케이션입니다.
+Swimming은 쏟아지는 정보와 해야 할 일 속에서, 생각을 정리하고 목표를 향한 첫 행동을 시작하기 어려운 사람들을 위한 서비스입니다.
+해야 할 일이 많아 어디서부터 시작해야 할지 막막할 때, 머릿속의 생각을 꺼내 실행 가능한 단위로 정리하고 목표에 집중할 수 있는 환경을 제공합니다.
 
 처음부터 완벽한 분류와 계획을 요구하지 않습니다. 메모나 링크를 먼저 수집하고, AI가 제안한 정리 결과를 확인한 뒤, 오늘 할 일과 집중 세션으로 이어 갑니다. 진척은 부족한 양이나 지연 경고 대신 지금까지 완료한 일과 쌓인 집중 기록으로 보여 줍니다.
 
@@ -241,8 +242,13 @@ npm run build
 
 기본 Backend 테스트는 H2를 사용하며 실제 네트워크가 필요한 LLM 평가·웹 수집·PostgreSQL 태그 테스트는 제외합니다. Frontend CI는 lint와 TypeScript/Vite production build를 실행합니다.
 
-## ☁️ 배포와 운영
+## ☁️ 시스템 아키텍처
 
+<p align="center">
+  <img src="./assets/readme/architecture.png" width="100%" alt="AWS 시스템 아키텍처">
+</p>
+
+### 배포 
 - Frontend: Vite build → 비공개 S3 → CloudFront
 - Backend: Docker image → immutable ECR tag → SSM을 통한 단일 EC2 배포
 - Database: private PostgreSQL 17 RDS와 Flyway migration

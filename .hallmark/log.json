@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-09-08",
+    "macrostructure": "Narrative Workflow",
+    "theme": "Purposeful Journey",
+    "enrichment": "Arcade inline demo",
+    "brief": "Public home combining product workflow and Google login"
+  },
+  {
+    "date": "2026-08-20",
+    "macrostructure": "Database Board",
+    "theme": "Purposeful Journey",
+    "enrichment": "none",
+    "brief": "F05 daily plan redesigned as a Notion-inspired date board"
+  },
+  {
+    "date": "2026-08-20",
+    "macrostructure": "Workbench",
+    "theme": "Purposeful Journey",
+    "enrichment": "none",
+    "brief": "API-backed central project detail and ordered task list"
+  }
+]

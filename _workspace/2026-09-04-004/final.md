@@ -1,0 +1,168 @@
+# CI 에 변수 값이 없어 terraform plan 이 멈춤 (tfvars 를 gitignore 함)
+
+- 상태: **해결** (2026-09-04)
+- 최초 작성: 2026-09-04
+- 관련 파일: `infra/terraform/prod.auto.tfvars`, `.gitignore`, `infra/terraform/.terraform.lock.hcl`, `infra/terraform/README.md`, `infra/architecture.md`
+- 관련 PR: #29
+
+---
+
+## 배경
+
+PR 에 `terraform plan` 결과를 붙여 두는 워크플로를 만들었다. 머지 전에 어떤 리소스가
+바뀌는지 보려는 것이다. 특히 `aws_instance.app` 에 "must be replaced" 가 뜨는지 본다.
+그 인스턴스가 지워지면 `/etc/letsencrypt` 와 렌더링된 `backend.env` 가 함께 사라진다.
+
+변수 값은 `terraform.tfvars` 에 뒀다. `.gitignore` 는 `*.tfvars` 를 무시하고
+`!*.tfvars.example` 만 예외로 뒀다. tfvars 에 비밀이 들어가기 쉬우니 통째로 막고
+형식만 예제 파일로 남기는, 흔한 구성이다.
+
+로컬에서는 잘 됐다. `terraform plan` 은 작업 디렉터리의 `terraform.tfvars` 를 자동으로
+읽는다.
+
+---
+
+## 증상
+
+OIDC 롤 인수 문제를 고친 직후, run 5 (`b1be62f`) 에서 자격 증명은 통과했다.
+`fmt` 도 `init` 도 `validate` 도 지나갔다. `plan` 에서 멈췄다.
+
+```
+Error: No value for required variable
+
+  on variables.tf line 29:
+  29: variable "owner" {
+
+The root module input variable "owner" is not set, and has no default value.
+Use a -var or -var-file command line argument to provide a value for this
+variable.
+```
+
+---
+
+## 원인
+
+CI 체크아웃에는 `terraform.tfvars` 가 없다. gitignore 했으니 없는 것이 당연하다.
+러너는 커밋된 파일만 받는다.
+
+변수는 30 개인데 default 가 없는 것은 `owner` 하나뿐이다. 그래서 이 한 줄만 걸렸다.
+
+```bash
+$ awk '/^variable /{n=$2;h=0} /^  default/{h=1} /^}/{if(n!=""){if(!h)print n;n=""}}' variables.tf
+"owner"
+```
+
+다만 진짜 문제는 `owner` 가 아니다. `owner` 에 default 를 하나 박아 넣으면 에러는
+사라지지만 plan 은 여전히 틀린다. 나머지 29 개도 default 가 있을 뿐, 이 배포가 쓰는
+값은 tfvars 쪽이다.
+
+| 변수 | 코드 default | 이 배포의 값 |
+| --- | --- | --- |
+| `db_backup_retention_days` | 7 | 1 |
+| `attach_web_domain` | false | true |
+| `api_domain_name` | null | `api.swimming-now.kro.kr` |
+| `web_domain_name` | null | `swimming-now.kro.kr` |
+
+default 로 돌린 plan 은 실제 상태와 온 사방에서 어긋난다. 도메인을 떼고 인증서를
+갈아엎는 diff 가 나온다. 리뷰어는 그 plan 을 믿을 수 없다. **CI 가 로컬과 같은 plan 을
+내려면 CI 도 같은 값을 읽어야 한다.**
+
+이 문제가 이제야 드러난 것은 앞 단계가 먼저 죽었기 때문이다. run 4 까지는 자격 증명
+단계에서 멈춰 `plan` 까지 오지도 못했다. 파이프라인 에러는 순서대로 하나씩 나온다.
+
+---
+
+## 선택지
+
+| 안 | 내용 | 문제 |
+| --- | --- | --- |
+| A | GitHub Variables 에 넣고 `TF_VAR_owner` 로 주입 | 값이 저장소와 GitHub 설정 두 곳으로 갈린다. 로컬 plan 과 CI plan 이 갈라져도 아무도 모른다 |
+| B | `owner` 에 default 를 준다 | 에러만 없앤다. 위 표의 값들이 여전히 빠져 plan 이 실제와 어긋난다 |
+| C | 값 파일을 커밋한다 | 비밀이 섞여 있으면 못 쓴다 |
+
+C 를 골랐다. 이 파일에 비밀이 없기 때문이다. DB 비밀번호와 JWT 시크릿은 Secrets
+Manager 에 있고 Terraform 변수로 지나가지 않는다. 남은 것은 리전, 이름, 도메인,
+토글뿐이다. 저장소를 보는 사람이 이미 코드에서 다 알 수 있는 값이다.
+
+---
+
+## 해결
+
+파일 이름을 `prod.auto.tfvars` 로 바꿨다. Terraform 은 `*.auto.tfvars` 를 `-var-file`
+없이 자동으로 읽는다. 워크플로에는 손대지 않았고 로컬 명령도 그대로다.
+
+```bash
+git mv infra/terraform/terraform.tfvars infra/terraform/prod.auto.tfvars
+```
+
+`.gitignore` 는 `*.tfvars` 를 계속 무시하되 이 파일만 예외로 둔다.
+
+```gitignore
+*.tfvars
+# The only deployment's variable values. No secrets: the DB password and JWT
+# secret live in Secrets Manager, not in Terraform variables. Committing them
+# is what lets CI run the same plan the local machine does.
+!/infra/terraform/prod.auto.tfvars
+```
+
+예외는 `/infra/terraform/` 을 붙인 절대 경로로 썼다. 다른 디렉터리에 같은 이름을 두면
+그것까지 딸려 올라간다.
+
+복사해 쓸 일이 없어진 `terraform.tfvars.example` 은 지웠다. `README.md` 와
+`infra/architecture.md` 의 참조도 새 이름으로 바꿨다.
+
+lock 파일도 함께 커밋했다. 로컬에서 만든 lock 에는 darwin_arm64 해시 하나뿐이라
+러너의 `init` 이 "provider dependency selections 를 바꿨다" 는 안내를 찍고 있었다.
+linux_amd64 해시를 넣어 러너가 lock 을 고쳐 쓰지 않게 했다.
+
+커밋 `0b2eca7` 을 올린 run 6 이 성공했다. 다섯 번 연속 실패가 끝났다.
+
+---
+
+## 배운 것
+
+- gitignore 한 파일이 빌드의 입력이면 CI 에는 그 입력이 없다. 로컬에서 되는 이유가
+  커밋되지 않은 파일이라면 CI 에서는 안 된다.
+- 에러 메시지가 가리키는 곳이 문제의 크기는 아니다. 걸린 것은 `owner` 한 줄이었지만
+  실제로 빠진 것은 값 전체였다. 그 한 줄만 막으면 plan 은 조용히 틀린 답을 낸다.
+- 비밀과 설정을 갈라 두면 설정 쪽은 커밋할 수 있다. 비밀 저장소를 따로 쓰는 이득은
+  유출 방지만이 아니다. 나머지를 마음 놓고 공개할 수 있다.
+- 워크플로에 플래그를 붙이는 대신 도구의 파일 이름 규약을 쓰면 로컬과 CI 가 갈라질
+  자리가 하나 줄어든다.
+
+<!-- HUMANIZE-SUMMARY v1.6.1
+run_id: 2026-09-04-004
+mode: 보수 (conservative)
+metrics:
+  char_in: 3683
+  char_out: 3676
+  change_rate: 0.12%
+  self_check: 6/6
+  grade: A
+categories:  # before → after
+  E-2 진행형 '~고 있었다' (상태 서술): 2 → 1
+  A-8/A-10 '~할 수 있게 된다': 1 → 0
+  A-1 '~에 대해': 0 → 0
+  D-1 결산 lexicon: 0 → 0
+  H-1 문두 접속사 5회+: 0 → 0
+  C-11 연결어미 뒤 쉼표: 0 → 0
+  J-1 본문 볼드: 1 → 1 (핵심 판단 1건, 남용 아님 — 보존)
+self_check:
+  - 고유명사·수치·인용·내용 앵커 100% 보존: OK (코드 펜스·표 셀·경로·해시·PR 번호 무수정)
+  - 변경률 30% 이하: OK (0.12%)
+  - 장르 이탈 없음: OK (기술 트러블슈팅 리포트 유지)
+  - register 보존: OK (담백한 '~다' 체, 격식 상향 없음)
+  - S1 잔존 0건: OK
+  - 인공 표현 추가 없음: OK (원문에 없던 어휘 0건 삽입)
+highlights:
+  - id: E-2
+    before: "변수 값은 `terraform.tfvars` 에 두고 있었다."
+    after: "변수 값은 `terraform.tfvars` 에 뒀다."
+  - id: A-8/A-10
+    before: "나머지를 마음 놓고 공개할 수 있게 된다."
+    after: "나머지를 마음 놓고 공개할 수 있다."
+residual_findings: (없음 — 보수 모드에서 의도적으로 보존한 구간 2건)
+  - "온 사방에서 어긋난다": 원문 고유의 살아있는 구어. 확신 없는 구간이므로 무수정.
+  - "형식만 예제 파일로 남기는, 흔한 구성이다": 관형형 뒤 쉼표(C-11 비대상). 의도된 호흡으로 판단해 보존.
+grade_reason: "A — S1 0건, S2 잔존 0건, 자체검증 6항 통과. 입력이 이미 사람 글(risk_band low, score 0)이라 변경률이 A 기준 대역(10~25%)보다 낮으나, 보수 강도 지시에 따라 근거 있는 2건만 손댔다."
+-->

@@ -1,0 +1,48 @@
+## 개요
+
+할 일 오거나이저가 화면과 무관하게 모든 폴더를 컨텍스트로 넣던 것을, **노트가 속한 범위만 참조**하도록 바꿨다. 그 과정에서 프롬프트를 설정으로 교체할 수 있게 저장소로 추상화하고, provider 별로 흩어져 있던 LLM 옵션을 정리했다.
+
+프론트에서는 공간 카탈로그를 여러 화면이 각자 조회하던 것을 store 하나로 모았다.
+
+## 관련 이슈
+
+- Closes #26
+
+## Feature
+
+### 기능 범위에 따른 오거나이저 컨텍스트 축소
+
+- 사용자 동작: 폴더 상세에서 노트를 정리하면 그 폴더의 제안만 나온다. 세션 중에는 세션에 담긴 task 의 폴더만 참조한다.
+- Frontend: `NoteCard` 가 노트의 범위(`contextType`, `contextId`)를 `TaskOrganizerPanel` 로 넘기고, 패널이 preview 요청에 실어 보낸다.
+- Backend: `TaskOrganizerUseCase` 가 범위별로 폴더를 정한다. `SESSION` 은 `SessionService.getTaskIds` → `TaskService.getFolderIds` 두 단계로 푼다. `session_tasks` 를 아는 코드는 session 도메인 안에만 두어 `folder → task → session` 단방향 의존을 지켰다.
+- API·DB: `POST /api/task-organizer/preview` 요청에 `contextType`, `contextId` 추가. 둘 다 선택값이라 **기존 호출은 그대로 동작**한다. `TaskRepository` 에 폴더 한정 컨텍스트 조회와 task→folderId 조회 추가.
+- 검증: 범위별 폴더 조회, 소유권 검증, `contextId` 누락·불일치 400, 참조할 폴더 없음 400 — 모두 LLM 호출 전에 차단되는지 단위 테스트로 확인.
+
+### 범위별 프롬프트 분리
+
+- 사용자 동작: 폴더가 정해진 상태에서는 "이 메모에서 할 일 뽑기"만 수행한다. 폴더 적합성을 다시 따지지 않는다.
+- Backend: `PromptKey.TASK_ORGANIZER`(분류) / `TASK_EXTRACTOR`(추출) 두 프롬프트. 추출 경로는 `folderId` 가 없는 별도 결과 DTO(`TaskExtractResult`)를 쓰고, 응답 매핑에서 컨텍스트 폴더로 확정한다.
+- API·DB: 응답 계약(`TaskOrganizeResponse`) 변경 없음.
+- 검증: 조립된 분류 프롬프트가 분해 전 원문과 **글자 단위로 동일**한지 대조하는 테스트를 두어, 조각으로 나누며 내용이 바뀌지 않았음을 보장한다.
+
+## Refactor
+
+- **프롬프트 저장소화** — 경로가 상수로 박혀 있던 것을 `PromptRepository` + 설정으로 옮겼다. `classpath:` 와 `file:` 을 같은 속성으로 처리하므로, 나중에 이미지를 다시 만들지 않고 프롬프트만 교체할 수 있다. 기동 시 한 번 읽고 조립해 **경로 오타나 조각 누락이 첫 LLM 호출이 아니라 기동에서** 드러난다.
+- **프롬프트 조각 공유** — 두 프롬프트가 공통 규칙(문장 분리·병합 9줄, 제목 작성 6줄)을 `FRAGMENT_MARKER` 마커로 공유한다. HTML 주석이라 마크다운에 렌더링되지 않고 본문의 백틱·XML 태그·중괄호와 충돌하지 않는다. 템플릿 엔진을 들이지 않은 이유는 필요한 것이 변수 치환이 아니라 조각 삽입이기 때문이다.
+- **LLM 옵션 추상화** — `ChatOptionsFactory` 를 provider 별로 나눴다(OpenAI / Ollama / OpenAI 호환). reasoning 모델은 `maxCompletionTokens` 를, 일반 모델은 `maxTokens`·`temperature` 를 쓰는 차이를 팩토리 안에 가뒀다. 프로필이 `llm/*.yml` 조각 하나를 `spring.config.import` 로 끌어다 쓰고, 그 파일이 유일한 출처가 된다.
+- **토큰 사용량 로깅** — 호출마다 프롬프트 키·토큰·입력 글자 수를 한 줄로 남긴다. 프롬프트를 바꿨을 때 변화를 그 프롬프트에 귀속시키기 위해서다.
+- **place store 도입** — 홈 위젯·세션 생성 모달·세션 화면이 각자 공간 목록을 조회하던 것을 zustand store 하나로 모았다. 카탈로그는 세션 중에 바뀌지 않는 정적 데이터라 한 번 채우면 다시 요청하지 않고, 여러 화면이 동시에 `load()` 를 불러도 요청은 하나로 합친다.
+- **place 응답에 asset key 추가** — 배경 에셋의 오브젝트 키를 함께 내려, 프론트가 CDN URL 과 원본 키를 모두 다룰 수 있게 했다.
+
+## 공통 변경
+
+- 설정·보안: `llm/openai.yml`, `llm/ollama.yml`, `llm/openai-compatible.yml` 추가. API 키는 환경변수 참조만 두고 값은 커밋하지 않는다.
+- 로깅·예외: `LlmUsageLogger` 추가. `ErrorCode` 에 `INVALID_TASK_ORGANIZER_CONTEXT`, `EMPTY_TASK_ORGANIZER_CONTEXT` 추가 — 둘 다 400.
+- 문서·인프라: `docs/ARCHITECTURE.md`, `docs/DESIGN.md` 갱신.
+
+## 제외 범위
+
+- **프롬프트 품질 평가와 기본값 확정** — `llmEval` 로 별도 측정한다. 이 PR 은 구조만 만든다.
+- **프롬프트를 이미지 밖 파일로 운영** (`file:` 경로) — 구조는 준비했으나 배포에는 적용하지 않았다.
+- **세션 컨텍스트의 실사용 검증** — 그룹 세션 슬라이스에서 다룬다.
+- 인프라(Terraform)와 배포 관련 변경은 이 브랜치에 포함하지 않았다.

@@ -1,0 +1,195 @@
+# GitHub Actions OIDC 롤 인수 실패 (sub 클레임 형식)
+
+- 상태: **해결** (2026-09-04)
+- 최초 작성: 2026-09-04
+- 관련 파일: `infra/terraform/github-oidc.tf`, `infra/terraform/locals.tf`, `infra/terraform/variables.tf`, `.github/workflows/terraform.yml`
+- 관련 PR: #29
+
+---
+
+## 배경
+
+CI 에서 AWS 를 쓸 때 액세스 키 대신 OIDC 를 골랐다. GitHub 이 워크플로마다 서명한 토큰을
+발급한다. AWS 는 그 토큰의 클레임을 신뢰 정책과 대조해 임시 자격 증명을 내준다. 장기 자격
+증명을 GitHub 에 두지 않아도 된다.
+
+대조의 핵심은 `sub` 클레임이다. 롤 두 개를 두고 각각 다른 `sub` 를 요구하게 했다.
+
+| 롤 | 용도 | 요구한 `sub` |
+| --- | --- | --- |
+| `swimming-prod-gha-terraform` | `terraform plan` (읽기 전용 + state 락) | `repo:joowojr/swimming:pull_request` |
+| `swimming-prod-gha-deploy` | 이미지 push, 프론트 배포 | `repo:joowojr/swimming:ref:refs/heads/main` |
+
+---
+
+## 증상
+
+PR #29 에서 Terraform plan 워크플로가 자격 증명 단계에서 멈췄다.
+
+```
+Assuming role with OIDC   (12 회 재시도)
+##[error]Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity
+```
+
+`aws-actions/configure-aws-credentials` 가 2 분 30 초 동안 재시도하다 포기했다. 롤 ARN 도,
+리전도, `audience` 도 로그에 찍힌 값이 전부 맞았다.
+
+---
+
+## 처음의 오진
+
+같은 시간대에 다른 일이 겹쳐 있었다.
+
+| 시각 (UTC) | 일어난 일 |
+| --- | --- |
+| 01:03 | `8e56aab` — `github_terraform` 을 고치려다 `github_deploy` 의 `sub` 를 바꿔 커밋 |
+| 01:15 | `226a71b` — 롤을 바로잡고 deploy 는 되돌림 |
+| 01:16:07 | `terraform apply` 로 terraform 롤 신뢰 정책 갱신 |
+| 01:16:47 | plan 워크플로가 롤 인수 시도 시작 |
+| 01:17:42 | 실패 |
+
+신뢰 정책 갱신 40 초 뒤에 실패했으므로 **IAM 전파 지연**으로 판단했다. 재실행하면 될 것으로
+봤다. 틀렸다. 2 시간 20 분 뒤 `226a71b` 로 돌린 run 4 도 같은 에러로 실패했다.
+
+전파 지연이었다면 시간이 해결한다. 시간이 해결하지 못했으므로 전파 지연이 아니다.
+
+---
+
+## 원인
+
+CloudTrail 에서 실패한 `AssumeRoleWithWebIdentity` 이벤트를 찾았다. 실패한 호출도 기록된다.
+`userIdentity.userName` 에 토큰의 `sub` 가 그대로 남는다.
+
+```json
+{
+  "userIdentity": {
+    "type": "WebIdentityUser",
+    "userName": "repo:joowojr@85955988/swimming@1339074737:pull_request"
+  },
+  "errorCode": "AccessDenied",
+  "errorMessage": "Not authorized to perform sts:AssumeRoleWithWebIdentity"
+}
+```
+
+GitHub 이 보낸 `sub` 와 신뢰 정책이 요구한 `sub` 가 다르다.
+
+| | 값 |
+| --- | --- |
+| 토큰 | `repo:joowojr@85955988/swimming@1339074737:pull_request` |
+| 신뢰 정책 | `repo:joowojr/swimming:pull_request` |
+
+GitHub 이 `sub` 에 계정 ID(`85955988`)와 저장소 ID(`1339074737`)를 함께 넣는다. 이름만으로
+식별하면 계정이나 저장소 이름을 넘겨받은 쪽이 이전 이름의 신뢰를 그대로 물려받는다. 그래서
+바뀌지 않는 숫자 ID 를 섞었다.
+
+`repo:owner/name:...` 은 문서와 예제에 널리 퍼진 형식이고 우리도 그대로 따라 썼다. 그
+형식을 정하는 쪽은 GitHub 이고 우리가 아니다.
+
+---
+
+## 진단 방법
+
+이 문제는 워크플로 로그만 봐서는 풀리지 않는다. `AccessDenied` 는 어느 조건이 어긋났는지
+말해 주지 않는다. **토큰에 실제로 무엇이 담겨 왔는지**는 CloudTrail 에만 있다.
+
+```bash
+aws cloudtrail lookup-events \
+  --region ap-northeast-2 \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity \
+  --start-time 2026-09-04T03:30:00Z
+```
+
+리전을 두 번 틀렸다.
+
+- STS 는 리전 엔드포인트로 호출된다. `configure-aws-credentials` 가
+  `sts.ap-northeast-2.amazonaws.com` 을 쓰므로 이벤트는 **ap-northeast-2** 에 남는다.
+  us-east-1 을 뒤지면 아무것도 안 나온다.
+- 반대로 IAM 은 글로벌 서비스라 `UpdateAssumeRolePolicy` 같은 이벤트는 **us-east-1** 에
+  남는다.
+
+같은 사건을 추적하는데 서비스마다 봐야 할 리전이 다르다.
+
+---
+
+## 해결
+
+`sub` 를 GitHub 이 실제로 보내는 형식으로 맞췄다. 숫자 ID 두 개를 변수로 두고 로컬에서
+조립한다.
+
+```hcl
+# variables.tf
+variable "github_repository_owner_id" { default = "85955988" }
+variable "github_repository_id"       { default = "1339074737" }
+
+# locals.tf
+github_oidc_repository = format(
+  "%s@%s/%s@%s",
+  split("/", var.github_repository)[0],
+  var.github_repository_owner_id,
+  split("/", var.github_repository)[1],
+  var.github_repository_id
+)
+
+# github-oidc.tf
+values = ["repo:${local.github_oidc_repository}:pull_request"]
+```
+
+두 롤 모두 고쳤다. deploy 롤은 main 푸시가 아직 없어 드러나지 않았을 뿐, 머지 직후 같은
+에러로 실패할 상태였다. **한쪽에서 형식 문제를 만나면 같은 형식을 쓰는 나머지도 전부
+같은 상태다.**
+
+plan 결과는 `0 to add, 2 to change, 0 to destroy` 로 신뢰 정책 두 개만 바뀐다.
+
+terraform 롤에 주석으로 남아 있던 `refs/heads/main` 은 지웠다. plan 워크플로는
+`pull_request` 에서만 돈다.
+
+---
+
+## 배운 것
+
+- 시간이 해결하지 못하는 문제는 타이밍 문제가 아니다. 전파 지연 가설은 시간을 두고 다시
+  돌려 보면 한 번에 판별된다.
+- `AccessDenied` 는 정책의 어느 조건이 어긋났는지 말하지 않는다. 신뢰 정책은 이쪽에 있으니
+  모르는 쪽은 언제나 **토큰에 무엇이 담겨 왔는가** 다. CloudTrail 을 먼저 본다.
+- 외부 서비스가 정하는 식별자 형식을 문자열로 하드코딩하면 그쪽이 바뀔 때 깨진다.
+
+<!-- HUMANIZE-SUMMARY v1.6.1
+run_id: 2026-09-04-003
+metrics:
+  char_in: 3946
+  char_out: 3936
+  change_rate: 3.4%
+  self_check: 6/6
+  grade: A
+categories:  # before → after
+  C-11 연결어미(-고/-니) 뒤 쉼표: 4 → 1
+  A-18 좌향 관형구 장문: 1 → 0
+  I-1 '~것이다' 종결: 1 → 0
+  A-15 만능 명사구 '쓰는 방법으로': 1 → 0
+  E-1 병렬 장문 분해: 1 → 0
+self_check:
+  - 고유명사·수치·인용·내용 앵커 100% 보존: OK (코드 펜스·표·식별자·시각 전부 무수정)
+  - 변경률 30% 이하: OK
+  - 장르 이탈 없음: OK (트러블슈팅 문서 구조·헤딩·표·수평선 유지)
+  - register 보존: OK (담백한 '~다' 체 유지, 격식 상향 없음)
+  - S1 잔존 0건: OK
+  - 인공 표현 추가 없음: OK (없던 주장·상투구 신규 삽입 0건)
+highlights:
+  - id: E-1 / C-11
+    before: "GitHub 이 워크플로마다 서명한 토큰을 발급하고, AWS 는 그 토큰의 클레임을 신뢰 정책과 대조해 임시 자격 증명을 내준다."
+    after: "GitHub 이 워크플로마다 서명한 토큰을 발급한다. AWS 는 그 토큰의 클레임을 신뢰 정책과 대조해 임시 자격 증명을 내준다."
+  - id: A-18 / I-1
+    before: "이름만으로 식별하면 ... 물려받게 되므로, 바뀌지 않는 숫자 ID 를 섞은 것이다."
+    after: "이름만으로 식별하면 ... 물려받는다. 그래서 바뀌지 않는 숫자 ID 를 섞었다."
+  - id: C-11
+    before: "실패한 호출도 기록되고, `userIdentity.userName` 에 토큰의 `sub` 가 그대로 남는다."
+    after: "실패한 호출도 기록된다. `userIdentity.userName` 에 토큰의 `sub` 가 그대로 남는다."
+  - id: A-15
+    before: "CI 에서 AWS 를 쓰는 방법으로 액세스 키 대신 OIDC 를 골랐다."
+    after: "CI 에서 AWS 를 쓸 때 액세스 키 대신 OIDC 를 골랐다."
+  - id: C-11
+    before: "신뢰 정책은 이쪽에 있으니, 모르는 쪽은 언제나"
+    after: "신뢰 정책은 이쪽에 있으니 모르는 쪽은 언제나"
+residual_findings: (없음)
+grade_reason: "A — S1 잔존 0건, 자체검증 6항 통과. 입력 risk_band low·강도 보수라 변경률은 A 밴드(10~25%) 아래인 3.4%. 손댈 산문 티가 애초에 적었다."
+-->

@@ -56,11 +56,18 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
       }
     }
 
+    let renderedWidth = 0
+
     const render = () => {
       if (!window.google) {
         setError('Google 로그인을 불러오지 못했습니다.')
         return
       }
+
+      const availableWidth = container.clientWidth || container.parentElement?.clientWidth || 320
+      const nextWidth = Math.floor(Math.min(320, availableWidth))
+      if (nextWidth === renderedWidth && container.childElementCount > 0) return
+      renderedWidth = nextWidth
 
       if (!window.swimmingGoogleIdentity) {
         const identityState: GoogleIdentityState = {
@@ -82,7 +89,7 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
         size: 'large',
         text: 'signin_with',
         shape: 'rectangular',
-        width: '320',
+        width: String(nextWidth),
       })
     }
 
@@ -97,7 +104,11 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     }
 
     const script = document.getElementById('google-identity-services')
+    const resizeObserver = new ResizeObserver(() => render())
+    resizeObserver.observe(container)
+
     return () => {
+      resizeObserver.disconnect()
       script?.removeEventListener('load', render)
       script?.removeEventListener('error', handleScriptError)
       if (window.swimmingGoogleIdentity?.credentialHandler === credentialHandler) {

@@ -1,11 +1,9 @@
 .login-page {
   display: flex;
-  /* 일러스트와 로그인 영역을 한 덩어리로 묶어 화면 정중앙에 둔다. */
   align-items: center;
   justify-content: center;
   gap: var(--space-12);
-  /* 상단바를 뺀 화면 전체를 차지해야 세로 중앙이 화면 중앙이 된다. */
-  min-height: calc(100svh - var(--top-bar-height));
+  min-height: 100svh;
   width: 100%;
   margin: 0;
   padding: var(--space-12) var(--space-8);
@@ -14,7 +12,6 @@
 
 .hero {
   display: flex;
-  /* 로그인 영역보다 좁게 두되 화면이 줄면 먼저 양보한다. */
   flex: 0 1 26rem;
   flex-direction: column;
   gap: var(--space-6);
@@ -24,21 +21,11 @@
 .hero-art {
   display: block;
   width: 100%;
-  /* svg가 width/height를 100%로 갖고 있어 비율을 명시해야 높이가 잡힌다. */
   aspect-ratio: 3 / 2;
   height: auto;
 }
 
-.hero-caption {
-  margin: 0;
-  color: var(--color-mute);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-  text-align: center;
-}
-
 .login-panel {
-  /* 구글 버튼이 320px 고정폭이라 내용 폭을 그 언저리로 맞춰야 한 덩어리로 읽힌다. */
   flex: 0 1 24rem;
   min-width: 0;
 }
@@ -48,16 +35,17 @@
   color: var(--color-primary-container);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-label-strong-weight);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--text-headline-xl-letter-spacing);
   line-height: var(--text-body-sm-line-height);
 }
 
 .login-panel h1 {
+  min-width: 0;
   margin: 0;
   color: var(--color-primary);
   font-size: var(--text-headline-lg-size);
   font-weight: var(--text-headline-lg-weight);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--text-headline-xl-letter-spacing);
   line-height: var(--text-headline-lg-line-height);
   overflow-wrap: anywhere;
 }
@@ -79,17 +67,16 @@
 }
 
 .features {
+  display: grid;
+  gap: var(--space-3);
   margin: var(--space-10) 0 0;
   padding: var(--space-8) 0 0;
   border-top: var(--border-width) solid var(--color-border-subtle);
   list-style: none;
-  display: grid;
-  gap: var(--space-3);
 }
 
 .feature {
   display: flex;
-  /* 두 줄짜리 항목이라 아이콘은 첫 줄에 맞춘다. */
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3);
@@ -103,7 +90,7 @@
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   font-weight: var(--text-label-strong-weight);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--text-headline-xl-letter-spacing);
   line-height: var(--text-body-sm-line-height);
 }
 
@@ -126,24 +113,34 @@
 }
 
 .feature-icon[data-tone='fountain'] {
-  background: var(--color-tone-fountain-tint);
   color: var(--color-tone-fountain);
+  background: var(--color-tone-fountain-tint);
 }
 
 .feature-icon[data-tone='indigo'] {
-  background: var(--color-tone-indigo-tint);
   color: var(--color-tone-indigo);
+  background: var(--color-tone-indigo-tint);
 }
 
 .feature-icon[data-tone='bay-leaf'] {
-  background: var(--color-tone-bay-leaf-tint);
   color: var(--color-tone-bay-leaf);
+  background: var(--color-tone-bay-leaf-tint);
 }
 
-/* 좌우로 나란히 두기엔 좁으면 인증 영역만 남긴다. */
 @media (max-width: 60rem) {
+  .login-page {
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
   .hero {
-    display: none;
+    flex: 0 0 auto;
+    width: min(100%, var(--login-illustration-mobile-width));
+  }
+
+  .login-panel {
+    flex: 0 0 auto;
+    width: min(100%, var(--modal-width));
   }
 }
 

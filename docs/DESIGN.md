@@ -25,7 +25,7 @@ Values live in `frontend/src/styles/tokens.css`. That file is authoritative; upd
 | `--color-on-primary` | `#fcfbf8` | Text on ink |
 | `--color-ink` | `#030303` | Highest-emphasis text |
 | `--color-on-dark` / `--color-on-dark-mute` | `#fcfbf8` / `rgba(252,251,248,.7)` | Text over the session backdrop |
-| `--color-primary-container` | `#3451b2` | Inline links and focus rings |
+| `--color-primary-container` | `#3451b2` | Primary actions, inline links, and focus rings |
 
 ### Project tones
 
@@ -60,7 +60,9 @@ Read them through `--chip-todo-*`, `--chip-doing-*`, `--chip-done-*`, `--chip-ho
 
 ### Accent
 
-Coral — `--color-tertiary` `#F48067` with its container and on-container pair — belongs to graphics and brand marks, not to controls.
+Indigo — `--color-primary-container` `#3451b2` — is the public home's main color for the wordmark, primary CTA, links, and focus rings. `--color-accent` aliases this token, and `--color-accent-ink` supplies readable text on an indigo fill.
+
+Coral — `--color-tertiary` `#F48067` with its container and on-container pair — remains available for existing secondary graphics, but is not used on the public home.
 
 ## Typography
 

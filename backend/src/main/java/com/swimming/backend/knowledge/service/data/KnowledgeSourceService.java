@@ -3,6 +3,7 @@ package com.swimming.backend.knowledge.service.data;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
 import com.swimming.backend.knowledge.repository.SourceSearchPageQuery;
@@ -30,18 +31,19 @@ public class KnowledgeSourceService {
 
     /** 읽음으로 표시한다. 시각은 부르는 쪽이 서버 시계에서 뽑아 넘긴다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void markRead(KnowledgeSource source, Instant readAt) {
-        getOwned(source.getId(), source.getUserId());
-        source.markRead(readAt);
+    public void markRead(KnowledgeSource source) {
         sourceRepository.updateReadAt(source.getId(), source.getReadAt());
     }
 
     /** 읽음 표시를 되돌린다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public void markUnread(KnowledgeSource source) {
-        getOwned(source.getId(), source.getUserId());
-        source.markUnread();
         sourceRepository.updateReadAt(source.getId(), null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updateStatus(KnowledgeSource source) {
+        sourceRepository.updateStatus(source.getId(), source.getProcessingStatus());
     }
 
     /** 원문은 남기고 노드만 지운 것으로 표시한다. */

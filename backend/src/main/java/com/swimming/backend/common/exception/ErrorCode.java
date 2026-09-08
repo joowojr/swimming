@@ -70,7 +70,32 @@ public enum ErrorCode {
     // USER DOMAIN
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
     CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),
-    PASSWORD_REUSE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "현재 비밀번호와 다른 비밀번호를 입력해 주세요");
+    PASSWORD_REUSE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "현재 비밀번호와 다른 비밀번호를 입력해 주세요"),
+
+    SOURCE_EMPTY_CONTENT(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "문서에서 정리할 내용을 찾지 못했어요. 링크는 그대로 저장되어 있어요."
+    ),
+
+    SOURCE_DIGEST_FAILURE(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요."
+    ),
+
+    NON_RETRYABLE_SOURCE_DIGEST_FAILURE(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "문서 내용을 정리할 수 없어요. 링크는 그대로 저장되어 있어요."
+    ),
+
+    SOURCE_DIGEST_RESOLUTION_FAILURE(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "일시적인 오류가 발생했어요. 잠시 후 다시 분석해 주세요."
+    ),
+
+    NON_RETRYABLE_SOURCE_DIGEST_RESOLUTION_FAILURE(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "문서의 개념을 연결할 수 없어요. 링크는 그대로 저장되어 있어요."
+    );
 
     private final HttpStatus status;
     private final String message;

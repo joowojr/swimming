@@ -111,4 +111,8 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
     public void updateReadAt(Instant readAt) {
         this.readAt = readAt;
     }
+
+    public void updateStatus(SourceProcessingStatus processingStatus) {
+        this.processingStatus = processingStatus;
+    }
 }

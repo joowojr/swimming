@@ -2,6 +2,7 @@ package com.swimming.backend.knowledge.repository.postgres;
 
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
 import com.swimming.backend.knowledge.repository.SourceSearchPageQuery;
@@ -48,6 +49,16 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
             sourceJpaRepository.flush();
         }
     }
+
+    @Override
+    public void updateStatus(UUID sourceId, SourceProcessingStatus status) {
+        KnowledgeSourceEntity entity = sourceJpaRepository.findById(sourceId).orElse(null);
+        if (entity != null){
+            entity.updateStatus(status);
+            sourceJpaRepository.flush();
+        }
+    }
+
 
     @Override
     public Optional<KnowledgeSource> findById(UUID nodeId) {

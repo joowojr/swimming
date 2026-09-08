@@ -27,14 +27,14 @@ public class SourceReadUseCase {
     @Transactional(propagation = Propagation.REQUIRED)
     public void markRead(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
-
-        sourceService.markRead(source, Instant.now(clock));
+        source.markRead(Instant.now(clock));
+        sourceService.markRead(source);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void markUnread(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
-
+        source.markUnread();
         sourceService.markUnread(source);
     }
 }

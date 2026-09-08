@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.repository;
 
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -64,4 +65,6 @@ public interface KnowledgeSourceRepository {
     List<KnowledgeSource> findSearchPage(SourceSearchPageQuery query);
 
     void updateReadAt(UUID sourceId, Instant readAt);
+
+    void updateStatus(UUID sourceId, SourceProcessingStatus status);
 }

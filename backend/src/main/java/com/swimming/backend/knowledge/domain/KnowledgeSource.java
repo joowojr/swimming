@@ -206,6 +206,10 @@ public class KnowledgeSource {
         this.readAt = null;
     }
 
+    public void updateStatus(SourceProcessingStatus status) {
+        this.processingStatus = status;
+    }
+
     /** 저장된 본문으로 다시 소화할 수 있도록 대기 상태로 돌린다. URL 수집은 반복하지 않는다. */
     public void prepareRetry() {
         boolean retryableStatus = processingStatus == SourceProcessingStatus.PENDING

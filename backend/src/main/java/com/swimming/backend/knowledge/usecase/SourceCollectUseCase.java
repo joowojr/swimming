@@ -2,6 +2,7 @@ package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.SourceCollectRequest;
 import com.swimming.backend.knowledge.dto.in.SourceCollectResponse;
 import com.swimming.backend.knowledge.dto.in.SourceConcepts;
@@ -33,6 +34,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SourceCollectUseCase {
+
+    private static final int MIN_SOURCE_CONTENT_LENGTH = 100;
 
     private final WebFetchService sourceFetchService;
 
@@ -132,7 +135,17 @@ public class SourceCollectUseCase {
                 .orElseGet(() -> {
                     KnowledgeSource created =
                             sourceService.save(toSource(userId, folderId, document));
-
+                    if (created.getContent().length() < MIN_SOURCE_CONTENT_LENGTH){
+                        created.updateStatus(SourceProcessingStatus.FAILED);
+                        sourceService.updateStatus(created);
+                        return new Saved(
+                                result.requestedUrl(),
+                                SourceCollectResponse.Result.CREATED,
+                                created.getId(),
+                                SourceFetchResult.Failure.SOURCE_EMPTY_CONTENT,
+                                true
+                        );
+                    }
                     // 소화가 실패해도 예외를 던지지 않는다. 상태만 남고 원문은 그대로 있다.
                     digestProcessor.digest(userId, created.getId());
 
@@ -177,12 +190,12 @@ public class SourceCollectUseCase {
 
     private String fetchFailureMessage(SourceFetchResult.Failure failure) {
         return switch (failure) {
-            case INVALID_URL -> "링크 주소를 확인해 주세요.";
+            case INVALID_URL -> "링크 주소를 다시 한 번 확인해 주세요.";
             case BLOCKED_ADDRESS -> "가져올 수 없는 주소예요.";
             case UNSUPPORTED_CONTENT_TYPE -> "웹 문서가 아니라 가져오지 못했어요.";
             case HTTP_ERROR -> "문서를 여는 데 실패했어요.";
             case TIMEOUT -> "응답이 늦어 가져오지 못했어요.";
-            case EMPTY_CONTENT -> "가져올 본문이 없었어요.";
+            case SOURCE_EMPTY_CONTENT -> "본문을 가져오지 못했어요.";
             case UNKNOWN -> "링크를 가져오지 못했어요.";
         };
     }

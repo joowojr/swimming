@@ -1,6 +1,7 @@
 /* Hallmark · component: source-feed-card · genre: modern-minimal · theme: Purposeful Journey
- * states: pending · processing · completed · failed · read
+ * states: default · hover · focus · active · disabled · loading · error · success
  * contrast: pass · responsive: code-pass
+ * critique: P5 H4 E4 S5 R5 V4
  * 카드 겉모양은 할 일 카드(ChecklistCard)와 같은 규격을 쓴다.
  */
 
@@ -98,10 +99,39 @@
 }
 
 .failure {
-  display: flex;
+  display: grid;
   align-items: center;
-  flex-wrap: wrap;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-default);
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+}
+
+.failure-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: var(--color-surface-container-lowest);
+}
+
+.failure .notice {
+  color: var(--color-primary);
+  overflow-wrap: anywhere;
+}
+
+.retry-error {
+  grid-column: 2 / -1;
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
 }
 
 .retry {
@@ -109,26 +139,37 @@
   align-items: center;
   flex: 0 0 auto;
   gap: var(--space-1);
-  min-height: 1.875rem;
-  padding-inline: var(--space-2);
-  border: var(--border-width) solid var(--color-border-subtle);
+  min-height: var(--button-height);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-control);
-  color: var(--color-primary);
+  color: var(--color-on-primary);
   font: inherit;
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-button-weight);
-  background: var(--color-surface-container-lowest);
+  white-space: nowrap;
+  background: var(--color-primary);
   cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-out),
+              transform var(--dur-micro) var(--ease-out);
 }
 
 .retry:disabled {
-  color: var(--color-mute);
-  cursor: default;
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.retry[aria-busy='true'] {
+  cursor: wait;
 }
 
 .retry:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--border-width);
+  outline-offset: var(--space-1);
+}
+
+.retry:active:not(:disabled) {
+  transform: translateY(var(--border-width));
 }
 
 .title {
@@ -296,8 +337,7 @@
   }
 
   .retry:not(:disabled):hover {
-    border-color: var(--color-hairline);
-    background: var(--color-surface-soft);
+    background: var(--color-ink);
   }
 
   .title a:hover .title-text {
@@ -309,8 +349,26 @@
   .card {
     padding-inline: var(--space-3);
   }
+
+  .failure {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .retry,
+  .retry-error {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (pointer: coarse) {
+  .retry {
+    min-height: var(--button-height);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .retry { transition: none; }
   .spinner { animation-duration: calc(var(--dur-modal) * 6); }
 }

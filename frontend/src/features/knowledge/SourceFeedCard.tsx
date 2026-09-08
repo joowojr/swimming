@@ -3,6 +3,7 @@ import {
   IconExternalLink,
   IconEye,
   IconEyeClosed,
+  IconInfoCircle,
   IconLoader2,
   IconPencil,
   IconRefresh,
@@ -127,11 +128,9 @@ export default function SourceFeedCard({
               <span className={styles.saved}>{savedAt}</span>
             </>
           )}
-          {source.status !== 'COMPLETED' && (
+          {isDigesting(source) && (
             <span className={styles.status} data-status={source.status}>
-              {isDigesting(source) && (
-                <IconLoader2 className={styles.spinner} size={12} stroke={1.8} aria-hidden="true" />
-              )}
+              <IconLoader2 className={styles.spinner} size={12} stroke={1.8} aria-hidden="true" />
               {SOURCE_STATUS_LABEL[source.status]}
             </span>
           )}
@@ -192,6 +191,9 @@ export default function SourceFeedCard({
         </div>
       ) : source.status === 'FAILED' ? (
         <div className={styles.failure}>
+          <span className={styles['failure-icon']} aria-hidden="true">
+            <IconInfoCircle size={16} stroke={1.8} />
+          </span>
           <p className={styles.notice}>
             {source.failureMessage ?? '내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.'}
           </p>
@@ -200,6 +202,7 @@ export default function SourceFeedCard({
               type="button"
               className={styles.retry}
               disabled={isRetrying}
+              aria-busy={isRetrying}
               onClick={() => void retry()}
             >
               {isRetrying
@@ -208,7 +211,7 @@ export default function SourceFeedCard({
               {isRetrying ? '다시 분석하는 중' : '다시 분석하기'}
             </button>
           )}
-          {retryError && <p className={styles.error} role="alert">{retryError}</p>}
+          {retryError && <p className={styles['retry-error']} role="alert">{retryError}</p>}
         </div>
       ) : (
         source.summary && <p className={styles.summary}>{source.summary}</p>

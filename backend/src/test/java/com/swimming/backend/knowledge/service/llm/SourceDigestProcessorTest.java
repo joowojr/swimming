@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.ai.retry.NonTransientAiException;
 
 import java.util.List;
 import java.util.UUID;
@@ -138,6 +139,8 @@ class SourceDigestProcessorTest {
         assertThat(response.result().category()).isEqualTo("백엔드");
         assertThat(response.result().topic()).isEqualTo("MCP 서버 구현하기");
         assertThat(response.result().subjects()).containsExactly("MCP", "Tool Calling");
+        assertThat(response.failureMessage()).isNull();
+        assertThat(response.retryable()).isFalse();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getProcessingStatus()).isEqualTo(SourceProcessingStatus.COMPLETED);
@@ -155,11 +158,16 @@ class SourceDigestProcessorTest {
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(response.result()).isNull();
+        assertThat(response.failureMessage())
+                .isEqualTo("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.");
+        assertThat(response.retryable()).isTrue();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getProcessingStatus()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(saved.getContent()).contains("MCP Server를 구성하는 방법");
         assertThat(saved.getSummary()).isNull();
+        assertThat(saved.getFailureMessage()).isEqualTo(response.failureMessage());
+        assertThat(saved.isRetryable()).isTrue();
     }
 
     @Test
@@ -185,7 +193,44 @@ class SourceDigestProcessorTest {
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
+        assertThat(response.failureMessage())
+                .isEqualTo("문서에서 정리할 내용을 찾지 못했어요. 링크는 그대로 저장되어 있어요.");
+        assertThat(response.retryable()).isFalse();
         verify(digestService, never()).digest(any());
+    }
+
+    @Test
+    @DisplayName("AI의 잘못된 요청 오류는 사용자에게 원문을 숨기고 재시도 불가로 남긴다")
+    void hidesNonTransientAiFailure() {
+        KnowledgeSource source = savedSource();
+        when(digestService.digest(any()))
+                .thenThrow(new NonTransientAiException("400 invalid api request: secret detail"));
+
+        SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
+
+        assertThat(response.failureMessage())
+                .isEqualTo("문서 내용을 정리할 수 없어요. 링크는 그대로 저장되어 있어요.")
+                .doesNotContain("secret detail");
+        assertThat(response.retryable()).isFalse();
+    }
+
+    @Test
+    @DisplayName("개념 연결 실패는 별도 사용자 메시지와 함께 저장한다")
+    void reportsSubjectResolutionFailure() {
+        KnowledgeSource source = savedSource();
+        when(digestService.digest(any())).thenReturn(digestResult());
+        doThrow(new RuntimeException("embedding provider unavailable"))
+                .when(nodeResolutionService).resolveSubjects(any(), any(), any());
+
+        SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
+
+        assertThat(response.failureMessage())
+                .isEqualTo("문서의 개념을 연결하지 못했어요. 잠시 후 다시 분석해 주세요.")
+                .doesNotContain("embedding provider unavailable");
+        assertThat(response.retryable()).isTrue();
+
+        KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
+        assertThat(saved.getFailureMessage()).isEqualTo(response.failureMessage());
     }
 
     @Test
@@ -245,6 +290,9 @@ class SourceDigestProcessorTest {
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
+        assertThat(response.failureMessage())
+                .isEqualTo("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.");
+        assertThat(response.retryable()).isTrue();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getContent()).contains("MCP Server를 구성하는 방법");

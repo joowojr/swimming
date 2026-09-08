@@ -175,7 +175,8 @@ class SourceDigestPlaygroundTest {
             System.out.println("=".repeat(100));
 
             if (item.source() == null) {
-                System.out.printf("수집 실패: %s%n", item.reason());
+                System.out.printf("수집 실패: %s (retryable=%s)%n",
+                        item.failureMessage(), item.retryable());
                 continue;
             }
 

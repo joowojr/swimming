@@ -25,6 +25,10 @@ export interface SourceCard {
   createdAt: string | null
   /** 읽은 시각. 아직 읽지 않았으면 null. 시각은 서버가 정한다. */
   readAt: string | null
+  /** 실패했을 때 서버가 제공하는 사용자용 안내. */
+  failureMessage: string | null
+  /** 같은 분석을 다시 시도할 수 있는지. */
+  retryable: boolean
   summary: string | null
   topic: NodeRef | null
   subjects: NodeRef[] | null
@@ -39,20 +43,12 @@ export interface SourceListQuery extends CursorPageQuery {
 /** 링크를 어떻게 처리했는가. 그 문서의 소화가 어디까지 갔는지는 SourceCard.status다. */
 export type SourceCollectResult = 'CREATED' | 'ALREADY_SAVED' | 'FAILED'
 
-export type SourceFetchFailure =
-  | 'INVALID_URL'
-  | 'BLOCKED_ADDRESS'
-  | 'UNSUPPORTED_CONTENT_TYPE'
-  | 'HTTP_ERROR'
-  | 'TIMEOUT'
-  | 'EMPTY_CONTENT'
-  | 'UNKNOWN'
-
 export interface SourceCollectItem {
   url: string
   result: SourceCollectResult
   source: SourceCard | null
-  reason: SourceFetchFailure | null
+  failureMessage: string | null
+  retryable: boolean
 }
 
 export interface SourceCollectResponse {

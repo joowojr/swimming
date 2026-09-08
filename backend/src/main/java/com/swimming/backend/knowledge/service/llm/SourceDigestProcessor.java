@@ -13,6 +13,8 @@ import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -35,6 +37,16 @@ public class SourceDigestProcessor {
 
     /** 프롬프트나 출력 스키마를 바꾸면 올린다. 어떤 기준으로 분석했는지 구분하기 위해서다. */
     private static final int ANALYSIS_VERSION = 4;
+    private static final String EMPTY_CONTENT_FAILURE_MESSAGE =
+            "문서에서 정리할 내용을 찾지 못했어요. 링크는 그대로 저장되어 있어요.";
+    private static final String DIGEST_FAILURE_MESSAGE =
+            "문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.";
+    private static final String NON_RETRYABLE_DIGEST_FAILURE_MESSAGE =
+            "문서 내용을 정리할 수 없어요. 링크는 그대로 저장되어 있어요.";
+    private static final String SUBJECT_RESOLUTION_FAILURE_MESSAGE =
+            "문서의 개념을 연결하지 못했어요. 잠시 후 다시 분석해 주세요.";
+    private static final String NON_RETRYABLE_SUBJECT_RESOLUTION_FAILURE_MESSAGE =
+            "문서의 개념을 연결할 수 없어요. 링크는 그대로 저장되어 있어요.";
 
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
@@ -51,14 +63,13 @@ public class SourceDigestProcessor {
         }
 
         if (!StringUtils.hasText(source.getContent())) {
-            source.failDigestion();
+            source.failDigestion(EMPTY_CONTENT_FAILURE_MESSAGE, false);
             return SourceDigestResponse.of(sourceService.save(source), null);
         }
 
         source.startDigestion();
 
         SourceDigestResult result;
-        List<ResolvedNode> resolvedSubjects;
         try {
             result = requireTopic(digestService.digest(new SourceDigestInput(
                     source.getNode().getTitle(),
@@ -68,6 +79,17 @@ public class SourceDigestProcessor {
                     // 이미 쓰던 표현만 참고로 보여 준다.
                     nodeService.findTitles(userId, NodeType.TOPIC)
             )));
+        } catch (RuntimeException exception) {
+            return fail(
+                    source,
+                    DIGEST_FAILURE_MESSAGE,
+                    NON_RETRYABLE_DIGEST_FAILURE_MESSAGE,
+                    exception
+            );
+        }
+
+        List<ResolvedNode> resolvedSubjects;
+        try {
             resolvedSubjects = nodeResolutionService.resolveSubjects(
                     source, result.summary(), result.subjects()
             );
@@ -78,13 +100,12 @@ public class SourceDigestProcessor {
                     resolvedSubjects.stream().map(item -> item.node().getTitle()).toList()
             );
         } catch (RuntimeException exception) {
-            log.info(
-                    "[source-digest] failed sourceId={} url={} reason={}",
-                    sourceId, source.getUrl(), exception.toString()
+            return fail(
+                    source,
+                    SUBJECT_RESOLUTION_FAILURE_MESSAGE,
+                    NON_RETRYABLE_SUBJECT_RESOLUTION_FAILURE_MESSAGE,
+                    exception
             );
-
-            source.failDigestion();
-            return SourceDigestResponse.of(sourceService.save(source), null);
         }
 
         source.completeDigestion(result.summary(), ANALYSIS_VERSION);
@@ -93,6 +114,40 @@ public class SourceDigestProcessor {
         writeGraph(saved, result, resolvedSubjects);
 
         return SourceDigestResponse.of(saved, result);
+    }
+
+    private SourceDigestResponse fail(
+            KnowledgeSource source,
+            String retryableFailureMessage,
+            String nonRetryableFailureMessage,
+            RuntimeException exception
+    ) {
+        log.info(
+                "[source-digest] failed sourceId={} url={} reason={}",
+                source.getId(), source.getUrl(), exception.toString()
+        );
+
+        boolean retryable = isRetryable(exception);
+        String failureMessage = retryable
+                ? retryableFailureMessage
+                : nonRetryableFailureMessage;
+        source.failDigestion(failureMessage, retryable);
+        return SourceDigestResponse.of(sourceService.save(source), null);
+    }
+
+    /** 잘못된 요청처럼 다시 보내도 달라지지 않는 AI 오류는 재시도 대상으로 노출하지 않는다. */
+    private boolean isRetryable(RuntimeException exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof NonTransientAiException) {
+                return false;
+            }
+            if (cause instanceof TransientAiException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return true;
     }
 
     /**

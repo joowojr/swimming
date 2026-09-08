@@ -233,6 +233,8 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 .publishedAt(source.getPublishedAt())
                 .processingStatus(source.getProcessingStatus())
                 .analysisVersion(source.getAnalysisVersion())
+                .failureMessage(source.getFailureMessage())
+                .retryable(source.isRetryable())
                 .readAt(source.getReadAt())
                 .build();
     }
@@ -255,6 +257,8 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 sourceEntity.getPublishedAt(),
                 sourceEntity.getProcessingStatus(),
                 sourceEntity.getAnalysisVersion(),
+                sourceEntity.getFailureMessage(),
+                sourceEntity.isRetryable(),
                 sourceEntity.getReadAt()
         );
     }

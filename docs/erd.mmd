@@ -195,6 +195,8 @@ erDiagram
         timestamp published_at "nullable"
         varchar processing_status "PENDING | PROCESSING | COMPLETED | FAILED"
         integer analysis_version "nullable"
+        varchar failure_message "nullable, 사용자용 실패 안내"
+        boolean retryable "재시도 가능 여부"
         timestamp read_at "nullable, 읽은 시각"
         timestamp created_at
         timestamp updated_at

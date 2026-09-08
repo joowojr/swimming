@@ -288,6 +288,7 @@ public final class InMemoryKnowledgeRepositories {
                     source.getUrl(), source.getCanonicalUrl(), source.getContent(),
                     source.getSummary(), source.getSourceType(), source.getAuthor(),
                     source.getPublishedAt(), source.getProcessingStatus(), source.getAnalysisVersion(),
+                    source.getFailureMessage(), source.isRetryable(),
                     source.getReadAt()
             );
         }

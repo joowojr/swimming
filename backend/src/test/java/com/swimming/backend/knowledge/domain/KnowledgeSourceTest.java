@@ -76,11 +76,13 @@ class KnowledgeSourceTest {
         source.applyExtractedDocument("제목", "원문", null, null, null);
 
         source.startDigestion();
-        source.failDigestion();
+        source.failDigestion("문서 내용을 정리하지 못했어요.", true);
 
         assertThat(source.getProcessingStatus()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(source.getContent()).isEqualTo("원문");
         assertThat(source.getSummary()).isNull();
+        assertThat(source.getFailureMessage()).isEqualTo("문서 내용을 정리하지 못했어요.");
+        assertThat(source.isRetryable()).isTrue();
     }
 
     @Test
@@ -119,12 +121,14 @@ class KnowledgeSourceTest {
     void preparesFailedSourceForRetry() {
         KnowledgeSource source = KnowledgeSource.create(USER_ID, FOLDER_ID, "제목", URL, CANONICAL_URL);
         source.applyExtractedDocument("제목", "원문", null, null, null);
-        source.failDigestion();
+        source.failDigestion("다시 분석해 주세요.", true);
 
         source.prepareRetry();
 
         assertThat(source.getProcessingStatus()).isEqualTo(SourceProcessingStatus.PENDING);
         assertThat(source.getContent()).isEqualTo("원문");
+        assertThat(source.getFailureMessage()).isNull();
+        assertThat(source.isRetryable()).isFalse();
     }
 
     @Test
@@ -134,12 +138,21 @@ class KnowledgeSourceTest {
         completed.applyExtractedDocument("완료", "원문", null, null, null);
         completed.completeDigestion("요약", 1);
         KnowledgeSource empty = KnowledgeSource.create(USER_ID, FOLDER_ID, "빈 문서", URL, CANONICAL_URL);
+        KnowledgeSource fixedFailure = KnowledgeSource.create(
+                USER_ID, FOLDER_ID, "재시도 불가", URL, CANONICAL_URL
+        );
+        fixedFailure.applyExtractedDocument("재시도 불가", "원문", null, null, null);
+        fixedFailure.failDigestion("다시 시도할 수 없어요.", false);
 
         assertThatThrownBy(completed::prepareRetry)
                 .isInstanceOf(com.swimming.backend.common.exception.BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(com.swimming.backend.common.exception.ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);
         assertThatThrownBy(empty::prepareRetry)
+                .isInstanceOf(com.swimming.backend.common.exception.BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(com.swimming.backend.common.exception.ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);
+        assertThatThrownBy(fixedFailure::prepareRetry)
                 .isInstanceOf(com.swimming.backend.common.exception.BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(com.swimming.backend.common.exception.ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);

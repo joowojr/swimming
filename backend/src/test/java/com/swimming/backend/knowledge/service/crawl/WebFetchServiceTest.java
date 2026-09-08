@@ -118,6 +118,7 @@ class WebFetchServiceTest {
 
             assertThat(result.isSuccess()).isFalse();
             assertThat(result.failure()).isEqualTo(SourceFetchResult.Failure.INVALID_URL);
+            assertThat(result.isRetryable()).isFalse();
         }
     }
 
@@ -136,6 +137,7 @@ class WebFetchServiceTest {
             assertThat(result.failure())
                     .as(url)
                     .isEqualTo(SourceFetchResult.Failure.BLOCKED_ADDRESS);
+            assertThat(result.isRetryable()).as(url).isFalse();
         }
     }
 
@@ -251,6 +253,9 @@ class WebFetchServiceTest {
 
             assertThat(result.failure()).isEqualTo(SourceFetchResult.Failure.HTTP_ERROR);
             assertThat(result.failureDetail()).isEqualTo("403");
+            assertThat(result.isRetryable())
+                    .as("Lambda 렌더링 실패 뒤에도 4xx 수집 오류는 재시도하지 않는다")
+                    .isFalse();
             verify(renderer).render(URL);
         }
     }
@@ -268,7 +273,20 @@ class WebFetchServiceTest {
 
             assertThat(result.failure()).isEqualTo(SourceFetchResult.Failure.HTTP_ERROR);
             assertThat(result.failureDetail()).isEqualTo("404");
+            assertThat(result.isRetryable()).isFalse();
             verify(renderer, never()).render(URL);
+        }
+    }
+
+    @Test
+    @DisplayName("서버 HTTP 오류는 다시 수집할 수 있다")
+    void allowsRetryForServerHttpErrors() throws Exception {
+        try (MockedStatic<Jsoup> jsoup = forbiddenResponse(503)) {
+            SourceFetchResult result = service.fetch(URL);
+
+            assertThat(result.failure()).isEqualTo(SourceFetchResult.Failure.HTTP_ERROR);
+            assertThat(result.failureDetail()).isEqualTo("503");
+            assertThat(result.isRetryable()).isTrue();
         }
     }
 

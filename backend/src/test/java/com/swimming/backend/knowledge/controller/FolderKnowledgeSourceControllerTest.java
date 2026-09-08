@@ -10,7 +10,6 @@ import com.swimming.backend.knowledge.dto.in.SourceResponse;
 import com.swimming.backend.knowledge.dto.in.SourceCollectRequest;
 import com.swimming.backend.knowledge.dto.in.SourceCollectResponse;
 import com.swimming.backend.common.dto.CursorPage;
-import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.usecase.SourceCollectUseCase;
 import com.swimming.backend.knowledge.usecase.SourceQueryUseCase;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,6 +74,8 @@ class FolderKnowledgeSourceControllerTest {
                 CREATED_AT,
                 null,
                 SourceProcessingStatus.COMPLETED,
+                null,
+                false,
                 "MCP Server를 구성하는 방법을 설명한다.",
                 new NodeRef(TOPIC_ID, "MCP 서버 구현하기"),
                 List.of(new NodeRef(SUBJECT_ID, "MCP"))
@@ -100,7 +101,8 @@ class FolderKnowledgeSourceControllerTest {
                 .andExpect(jsonPath("$.items[0].source.domain").value("docs.spring.io"))
                 .andExpect(jsonPath("$.items[0].source.topic.title").value("MCP 서버 구현하기"))
                 .andExpect(jsonPath("$.items[0].source.subjects[0].title").value("MCP"))
-                .andExpect(jsonPath("$.items[0].reason").isEmpty());
+                .andExpect(jsonPath("$.items[0].failureMessage").isEmpty())
+                .andExpect(jsonPath("$.items[0].retryable").value(false));
 
         verify(commandUseCase).collect(
                 1L, 10L, new SourceCollectRequest(List.of("https://docs.spring.io/mcp.html"))
@@ -113,7 +115,7 @@ class FolderKnowledgeSourceControllerTest {
         when(commandUseCase.collect(eq(1L), eq(10L), any(SourceCollectRequest.class)))
                 .thenReturn(new SourceCollectResponse(List.of(
                         SourceCollectResponse.Item.failed(
-                                "https://gone.com", SourceFetchResult.Failure.HTTP_ERROR
+                                "https://gone.com", "문서를 여는 데 실패했어요.", false
                         )
                 )));
 
@@ -124,7 +126,8 @@ class FolderKnowledgeSourceControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].result").value("FAILED"))
-                .andExpect(jsonPath("$.items[0].reason").value("HTTP_ERROR"))
+                .andExpect(jsonPath("$.items[0].failureMessage").value("문서를 여는 데 실패했어요."))
+                .andExpect(jsonPath("$.items[0].retryable").value(false))
                 .andExpect(jsonPath("$.items[0].source").isEmpty());
     }
 

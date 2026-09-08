@@ -99,7 +99,8 @@ public class SourceCollectUseCase {
             String url,
             SourceCollectResponse.Result result,
             UUID sourceId,
-            SourceFetchResult.Failure failure
+            SourceFetchResult.Failure failure,
+            boolean retryable
     ) {
     }
 
@@ -110,7 +111,8 @@ public class SourceCollectUseCase {
                     result.requestedUrl(), result.failure(), result.failureDetail()
             );
             return new Saved(
-                    result.requestedUrl(), SourceCollectResponse.Result.FAILED, null, result.failure()
+                    result.requestedUrl(), SourceCollectResponse.Result.FAILED, null,
+                    result.failure(), result.isRetryable()
             );
         }
 
@@ -124,7 +126,8 @@ public class SourceCollectUseCase {
                         result.requestedUrl(),
                         SourceCollectResponse.Result.ALREADY_SAVED,
                         existing.getId(),
-                        null
+                        null,
+                        false
                 ))
                 .orElseGet(() -> {
                     KnowledgeSource created =
@@ -137,7 +140,8 @@ public class SourceCollectUseCase {
                             result.requestedUrl(),
                             SourceCollectResponse.Result.CREATED,
                             created.getId(),
-                            null
+                            null,
+                            false
                     );
                 });
     }
@@ -158,7 +162,9 @@ public class SourceCollectUseCase {
 
         return saved.stream()
                 .map(item -> switch (item.result()) {
-                    case FAILED -> SourceCollectResponse.Item.failed(item.url(), item.failure());
+                    case FAILED -> SourceCollectResponse.Item.failed(
+                            item.url(), fetchFailureMessage(item.failure()), item.retryable()
+                    );
                     case CREATED -> SourceCollectResponse.Item.created(
                             item.url(), responses.get(item.sourceId())
                     );
@@ -167,6 +173,18 @@ public class SourceCollectUseCase {
                     );
                 })
                 .toList();
+    }
+
+    private String fetchFailureMessage(SourceFetchResult.Failure failure) {
+        return switch (failure) {
+            case INVALID_URL -> "링크 주소를 확인해 주세요.";
+            case BLOCKED_ADDRESS -> "가져올 수 없는 주소예요.";
+            case UNSUPPORTED_CONTENT_TYPE -> "웹 문서가 아니라 가져오지 못했어요.";
+            case HTTP_ERROR -> "문서를 여는 데 실패했어요.";
+            case TIMEOUT -> "응답이 늦어 가져오지 못했어요.";
+            case EMPTY_CONTENT -> "가져올 본문이 없었어요.";
+            case UNKNOWN -> "링크를 가져오지 못했어요.";
+        };
     }
 
     private KnowledgeSource toSource(Long userId, Long folderId, FetchedDocument document) {

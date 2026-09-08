@@ -123,6 +123,8 @@ class KnowledgeSourceControllerTest {
                 CREATED_AT,
                 READ_AT,
                 SourceProcessingStatus.COMPLETED,
+                null,
+                false,
                 "MCP Server를 구성하는 방법을 설명한다.",
                 new NodeRef(TOPIC_ID, "MCP 서버 구현하기"),
                 List.of(new NodeRef(SUBJECT_ID, "MCP"))
@@ -186,6 +188,8 @@ class KnowledgeSourceControllerTest {
                 CREATED_AT,
                 null,
                 SourceProcessingStatus.COMPLETED,
+                null,
+                false,
                 "다시 분석한 요약",
                 new NodeRef(TOPIC_ID, "MCP 서버 구현하기"),
                 List.of(new NodeRef(SUBJECT_ID, "MCP"))

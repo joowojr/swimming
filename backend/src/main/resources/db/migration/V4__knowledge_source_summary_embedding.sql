@@ -3,6 +3,8 @@
 ALTER TABLE knowledge_source
   ADD COLUMN summary_embedding vector(768),
   ADD COLUMN summary_embedding_model varchar(100),
+  ADD COLUMN failure_message varchar(255),
+  ADD COLUMN retryable boolean NOT NULL DEFAULT false,
   ADD CONSTRAINT chk_knowledge_source_summary_embedding_pair
     CHECK (
       (summary_embedding IS NULL AND summary_embedding_model IS NULL)

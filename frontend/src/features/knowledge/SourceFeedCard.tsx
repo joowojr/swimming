@@ -193,19 +193,21 @@ export default function SourceFeedCard({
       ) : source.status === 'FAILED' ? (
         <div className={styles.failure}>
           <p className={styles.notice}>
-            내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.
+            {source.failureMessage ?? '내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.'}
           </p>
-          <button
-            type="button"
-            className={styles.retry}
-            disabled={isRetrying}
-            onClick={() => void retry()}
-          >
-            {isRetrying
-              ? <IconLoader2 className={styles.spinner} size={13} stroke={1.8} aria-hidden="true" />
-              : <IconRefresh size={13} stroke={1.8} aria-hidden="true" />}
-            {isRetrying ? '다시 분석하는 중' : '다시 분석하기'}
-          </button>
+          {source.retryable && (
+            <button
+              type="button"
+              className={styles.retry}
+              disabled={isRetrying}
+              onClick={() => void retry()}
+            >
+              {isRetrying
+                ? <IconLoader2 className={styles.spinner} size={13} stroke={1.8} aria-hidden="true" />
+                : <IconRefresh size={13} stroke={1.8} aria-hidden="true" />}
+              {isRetrying ? '다시 분석하는 중' : '다시 분석하기'}
+            </button>
+          )}
           {retryError && <p className={styles.error} role="alert">{retryError}</p>}
         </div>
       ) : (

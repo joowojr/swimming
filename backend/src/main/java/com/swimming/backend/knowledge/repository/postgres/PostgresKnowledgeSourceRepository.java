@@ -2,6 +2,7 @@ package com.swimming.backend.knowledge.repository.postgres;
 
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
 import com.swimming.backend.knowledge.repository.SourceSearchPageQuery;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,30 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
+    public void updateReadAt(UUID sourceId, Instant readAt){
+        KnowledgeSourceEntity entity = sourceJpaRepository.findById(sourceId).orElse(null);
+        if (entity != null){
+            entity.updateReadAt(readAt);
+            sourceJpaRepository.flush();
+        }
+    }
+
+    @Override
+    public void updateStatus(
+            UUID sourceId,
+            SourceProcessingStatus status,
+            String failureMessage,
+            boolean retryable
+    ) {
+        KnowledgeSourceEntity entity = sourceJpaRepository.findById(sourceId).orElse(null);
+        if (entity != null){
+            entity.updateStatus(status, failureMessage, retryable);
+            sourceJpaRepository.flush();
+        }
+    }
+
+
+    @Override
     public Optional<KnowledgeSource> findById(UUID nodeId) {
         return sourceJpaRepository.findById(nodeId)
                 .flatMap(sourceEntity -> nodeJpaRepository.findByIdAndDeletedFalse(nodeId)
@@ -67,6 +93,49 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                         sourceEntity
                 ))
                 .toList();
+    }
+
+    @Override
+    public List<UUID> findSimilarSourceIds(
+            Long userId,
+            UUID excludedSourceId,
+            float[] summaryEmbedding,
+            String embeddingModel,
+            int limit
+    ) {
+        return sourceJpaRepository.findSimilarSourceIds(
+                userId,
+                excludedSourceId,
+                vectorLiteral(summaryEmbedding),
+                embeddingModel,
+                PageRequest.of(0, limit)
+        );
+    }
+
+    @Override
+    public void saveSummaryEmbedding(
+            Long userId,
+            UUID sourceId,
+            float[] summaryEmbedding,
+            String embeddingModel
+    ) {
+        int updated = sourceJpaRepository.updateSummaryEmbedding(
+                userId, sourceId, vectorLiteral(summaryEmbedding), embeddingModel
+        );
+        if (updated != 1) {
+            throw new IllegalStateException("failed to update source summary embedding: " + sourceId);
+        }
+    }
+
+    private String vectorLiteral(float[] embedding) {
+        StringBuilder literal = new StringBuilder("[");
+        for (int index = 0; index < embedding.length; index++) {
+            if (index > 0) {
+                literal.append(',');
+            }
+            literal.append(Float.toString(embedding[index]));
+        }
+        return literal.append(']').toString();
     }
 
     @Override
@@ -180,6 +249,8 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 .publishedAt(source.getPublishedAt())
                 .processingStatus(source.getProcessingStatus())
                 .analysisVersion(source.getAnalysisVersion())
+                .failureMessage(source.getFailureMessage())
+                .retryable(source.isRetryable())
                 .readAt(source.getReadAt())
                 .build();
     }
@@ -202,6 +273,8 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
                 sourceEntity.getPublishedAt(),
                 sourceEntity.getProcessingStatus(),
                 sourceEntity.getAnalysisVersion(),
+                sourceEntity.getFailureMessage(),
+                sourceEntity.isRetryable(),
                 sourceEntity.getReadAt()
         );
     }

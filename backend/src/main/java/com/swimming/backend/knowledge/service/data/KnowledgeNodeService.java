@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -53,6 +54,19 @@ public class KnowledgeNodeService {
     )
     public List<KnowledgeNode> findAllByIds(Collection<UUID> ids) {
         return nodeRepository.findAllByIds(ids);
+    }
+
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
+    public Optional<KnowledgeNode> findSubjectByNormalizedTitle(
+            Long userId,
+            String normalizedTitle
+    ) {
+        return nodeRepository.findByUserIdAndNodeTypeAndNormalizedTitle(
+                userId, NodeType.SUBJECT, normalizedTitle
+        );
     }
 
     /** 행은 남기고 조회에서만 뺀다. 관계는 지우지 않는다. */

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "frontend-design-codex": {
+      "source": "dachent/skills",
+      "sourceType": "github",
+      "skillPath": "frontend-design-codex/SKILL.md",
+      "computedHash": "0755e11af48cafeb507df9bb74787f47ffa821b5f9532b02b683139ae6995270"
+    },
+    "hallmark": {
+      "source": "nutlope/hallmark",
+      "sourceType": "github",
+      "skillPath": "skills/hallmark/SKILL.md",
+      "computedHash": "579f86b27cdd7eb972107f7aecedd537f472891c5fd7c7c821bea15f64e0fe86"
+    }
+  }
+}

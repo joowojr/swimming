@@ -1,5 +1,6 @@
 package com.swimming.backend.knowledge.usecase;
 
+import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.dto.in.SourceCollectRequest;
@@ -33,6 +34,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SourceCollectUseCase {
+
+    private static final int MIN_SOURCE_CONTENT_LENGTH = 100;
 
     private final WebFetchService sourceFetchService;
 
@@ -99,7 +102,8 @@ public class SourceCollectUseCase {
             String url,
             SourceCollectResponse.Result result,
             UUID sourceId,
-            SourceFetchResult.Failure failure
+            SourceFetchResult.Failure failure,
+            boolean retryable
     ) {
     }
 
@@ -110,7 +114,8 @@ public class SourceCollectUseCase {
                     result.requestedUrl(), result.failure(), result.failureDetail()
             );
             return new Saved(
-                    result.requestedUrl(), SourceCollectResponse.Result.FAILED, null, result.failure()
+                    result.requestedUrl(), SourceCollectResponse.Result.FAILED, null,
+                    result.failure(), result.isRetryable()
             );
         }
 
@@ -124,12 +129,23 @@ public class SourceCollectUseCase {
                         result.requestedUrl(),
                         SourceCollectResponse.Result.ALREADY_SAVED,
                         existing.getId(),
-                        null
+                        null,
+                        false
                 ))
                 .orElseGet(() -> {
                     KnowledgeSource created =
                             sourceService.save(toSource(userId, folderId, document));
-
+                    if (created.getContent().length() < MIN_SOURCE_CONTENT_LENGTH) {
+                        created.failDigestion(ErrorCode.SOURCE_EMPTY_CONTENT.name(), false);
+                        sourceService.updateStatus(created);
+                        return new Saved(
+                                result.requestedUrl(),
+                                SourceCollectResponse.Result.CREATED,
+                                created.getId(),
+                                null,
+                                false
+                        );
+                    }
                     // 소화가 실패해도 예외를 던지지 않는다. 상태만 남고 원문은 그대로 있다.
                     digestProcessor.digest(userId, created.getId());
 
@@ -137,7 +153,8 @@ public class SourceCollectUseCase {
                             result.requestedUrl(),
                             SourceCollectResponse.Result.CREATED,
                             created.getId(),
-                            null
+                            null,
+                            false
                     );
                 });
     }
@@ -158,7 +175,9 @@ public class SourceCollectUseCase {
 
         return saved.stream()
                 .map(item -> switch (item.result()) {
-                    case FAILED -> SourceCollectResponse.Item.failed(item.url(), item.failure());
+                    case FAILED -> SourceCollectResponse.Item.failed(
+                            item.url(), fetchFailureCode(item.failure()).name(), item.retryable()
+                    );
                     case CREATED -> SourceCollectResponse.Item.created(
                             item.url(), responses.get(item.sourceId())
                     );
@@ -167,6 +186,18 @@ public class SourceCollectUseCase {
                     );
                 })
                 .toList();
+    }
+
+    private ErrorCode fetchFailureCode(SourceFetchResult.Failure failure) {
+        return switch (failure) {
+            case INVALID_URL -> ErrorCode.SOURCE_INVALID_URL;
+            case BLOCKED_ADDRESS -> ErrorCode.SOURCE_BLOCKED_ADDRESS;
+            case UNSUPPORTED_CONTENT_TYPE -> ErrorCode.SOURCE_UNSUPPORTED_CONTENT_TYPE;
+            case HTTP_ERROR -> ErrorCode.SOURCE_HTTP_ERROR;
+            case TIMEOUT -> ErrorCode.SOURCE_TIMEOUT;
+            case SOURCE_EMPTY_CONTENT -> ErrorCode.SOURCE_EMPTY_CONTENT;
+            case UNKNOWN -> ErrorCode.SOURCE_UNKNOWN;
+        };
     }
 
     private KnowledgeSource toSource(Long userId, Long folderId, FetchedDocument document) {

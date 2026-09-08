@@ -23,6 +23,7 @@ import com.swimming.backend.knowledge.dto.in.SourceCollectRequest;
 import com.swimming.backend.knowledge.dto.in.SourceCollectResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.dto.in.SourceResponse;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
 import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
@@ -30,7 +31,7 @@ import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.DigestContextTrimmer;
@@ -65,7 +66,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * 링크를 넣어 수집부터 그래프 반영까지 돌려보고 결과를 눈으로 확인한다.
@@ -121,14 +124,26 @@ class SourceDigestPlaygroundTest {
         var relations = new InMemoryKnowledgeRepositories.Relations();
         var sourceService = new KnowledgeSourceService(sources);
         var nodeService = new KnowledgeNodeService(nodes);
+        var resolutionService = mock(NodeResolutionService.class);
+        when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
+            List<String> candidates = invocation.getArgument(2);
+            return candidates.stream()
+                    .map(candidate -> ResolvedNode.created(
+                            candidate,
+                            nodes.save(KnowledgeNode.create(
+                                    USER_ID, NodeType.SUBJECT, candidate, null
+                            ))
+                    ))
+                    .toList();
+        });
 
         var digestUseCase = new SourceDigestProcessor(
                 sourceService,
                 nodeService,
                 digestService(provider, model),
+                resolutionService,
                 new SourceGraphWriter(
                         nodeService,
-                        new NodeResolver(nodes),
                         new KnowledgeRelationService(relations)
                 )
         );
@@ -160,7 +175,8 @@ class SourceDigestPlaygroundTest {
             System.out.println("=".repeat(100));
 
             if (item.source() == null) {
-                System.out.printf("수집 실패: %s%n", item.reason());
+                System.out.printf("수집 실패: %s (retryable=%s)%n",
+                        item.failureMessage(), item.retryable());
                 continue;
             }
 
@@ -406,7 +422,9 @@ class SourceDigestPlaygroundTest {
                                 PromptKey.TASK_EXTRACTOR.configName(),
                                 "classpath:prompts/task-organizer/extract.md",
                                 PromptKey.SOURCE_DIGEST.configName(),
-                                "classpath:prompts/knowledge/digest.md"
+                                "classpath:prompts/knowledge/digest.md",
+                                PromptKey.NODE_RESOLUTION.configName(),
+                                "classpath:prompts/knowledge/node-resolution.md"
                         ),
                         Map.of(
                                 "splitting", "classpath:prompts/task-organizer/_splitting.md",

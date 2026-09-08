@@ -10,7 +10,8 @@ import TasksPage from './features/tasks/TasksPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
 import type { Folder } from './features/folders/folderTypes.ts'
 import AppShell from './layout/AppShell'
-import LoginPage from './features/auth/LoginPage'
+import LoginPage from './pages/login/LoginPage.tsx'
+import PublicHomePage from './pages/landing/PublicHomePage.tsx'
 import UserSettingsPage from './features/settings/UserSettingsPage'
 import { authActions, useAuthStore } from './store/authStore'
 import { useFolderStore } from './store/folderStore.ts'
@@ -101,73 +102,77 @@ function App() {
     )
   }
 
+  if (auth.status === 'unauthenticated') {
+    return (
+      <Routes>
+        <Route path="/health" element={<HealthPage />} />
+        <Route path="/" element={<PublicHomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<PublicHomePage />} />
+      </Routes>
+    )
+  }
+
   return (
     <AppShell
       userEmail={auth.user?.email ?? null}
       onLogin={() => navigate('/')}
     >
-      {auth.status === 'unauthenticated' ? (
-        <Routes>
-          <Route path="/health" element={<HealthPage />} />
-          <Route path="*" element={<LoginPage />} />
-        </Routes>
-      ) : (
-        <Routes>
-          <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
-          <Route path="/sessions" element={<DiveSessionFeedPage />} />
-          <Route path="/tasks" element={<TasksPage folders={folders} />} />
-          <Route
-            path="/folders"
-            element={(
-              <>
-                <FolderListPage
-                  folders={folders}
-                  status={folderStatus}
-                  onOpenCreate={() => setIsCreateModalOpen(true)}
-                  onOpenTagManage={() => setIsTagModalOpen(true)}
-                  onRetry={retryLoadProjects}
+      <Routes>
+        <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
+        <Route path="/sessions" element={<DiveSessionFeedPage />} />
+        <Route path="/tasks" element={<TasksPage folders={folders} />} />
+        <Route
+          path="/folders"
+          element={(
+            <>
+              <FolderListPage
+                folders={folders}
+                status={folderStatus}
+                onOpenCreate={() => setIsCreateModalOpen(true)}
+                onOpenTagManage={() => setIsTagModalOpen(true)}
+                onRetry={retryLoadProjects}
+              />
+              {isCreateModalOpen && (
+                <CreateFolderModal
+                  onClose={() => setIsCreateModalOpen(false)}
+                  onCreated={handleProjectCreated}
                 />
-                {isCreateModalOpen && (
-                  <CreateFolderModal
-                    onClose={() => setIsCreateModalOpen(false)}
-                    onCreated={handleProjectCreated}
-                  />
-                )}
-                {isTagModalOpen && (
-                  <FolderTagModal
-                    onClose={() => setIsTagModalOpen(false)}
-                    onChanged={retryLoadProjects}
-                  />
-                )}
-              </>
-            )}
-          />
-          <Route
-            path="/pinboard"
-            element={(
-              <>
-                <PinBoard
-                  folders={folders}
-                  status={folderStatus}
-                  onRetry={retryLoadProjects}
+              )}
+              {isTagModalOpen && (
+                <FolderTagModal
+                  onClose={() => setIsTagModalOpen(false)}
+                  onChanged={retryLoadProjects}
                 />
-                {isTagModalOpen && (
-                  <FolderTagModal
-                    onClose={() => setIsTagModalOpen(false)}
-                    onChanged={retryLoadProjects}
-                  />
-                )}
-              </>
-            )}
-          />
-          <Route
-            path="/folders/:folderId/*"
-            element={<ProjectDetailRoute onDeleted={removeFolder} />}
-          />
-          <Route path="/health" element={<HealthPage />} />
-          <Route path="*" element={<Navigate to="/pinboard" replace />} />
-        </Routes>
-      )}
+              )}
+            </>
+          )}
+        />
+        <Route
+          path="/pinboard"
+          element={(
+            <>
+              <PinBoard
+                folders={folders}
+                status={folderStatus}
+                onRetry={retryLoadProjects}
+              />
+              {isTagModalOpen && (
+                <FolderTagModal
+                  onClose={() => setIsTagModalOpen(false)}
+                  onChanged={retryLoadProjects}
+                />
+              )}
+            </>
+          )}
+        />
+        <Route
+          path="/folders/:folderId/*"
+          element={<ProjectDetailRoute onDeleted={removeFolder} />}
+        />
+        <Route path="/health" element={<HealthPage />} />
+        <Route path="*" element={<Navigate to="/pinboard" replace />} />
+      </Routes>
     </AppShell>
   )
 }

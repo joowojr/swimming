@@ -38,11 +38,14 @@ app:
       task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer/classify.md}
       task-extractor: ${TASK_EXTRACTOR_PROMPT_PATH:classpath:prompts/task-organizer/extract.md}
       source-digest: ${SOURCE_DIGEST_PROMPT_PATH:classpath:prompts/knowledge/digest.md}
+      node-resolution: ${NODE_RESOLUTION_PROMPT_PATH:classpath:prompts/knowledge/node-resolution.md}
     # 골격의 <!-- fragment: 이름 --> 줄에 끼워 넣는다.
     fragments:
       splitting: classpath:prompts/task-organizer/_splitting.md
       titles: classpath:prompts/task-organizer/_titles.md
   knowledge:
+    resolution:
+      similar-source-limit: 5
     digest:
       # LLM 입력 상한. 이보다 짧은 문서는 손대지 않고 통째로 넣는다.
       max-input-length: 40000

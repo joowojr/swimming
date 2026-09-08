@@ -9,19 +9,21 @@ import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.SourceDigestResponse;
 import com.swimming.backend.knowledge.dto.out.SourceDigestInput;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.ai.retry.NonTransientAiException;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +47,7 @@ class SourceDigestProcessorTest {
     private InMemoryKnowledgeRepositories.Nodes nodes;
     private InMemoryKnowledgeRepositories.Relations relations;
     private SourceDigestService digestService;
+    private NodeResolutionService nodeResolutionService;
     private SourceGraphWriter graphWriter;
     private SourceDigestProcessor useCase;
 
@@ -54,10 +57,22 @@ class SourceDigestProcessorTest {
         nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
         digestService = mock(SourceDigestService.class);
+        nodeResolutionService = mock(NodeResolutionService.class);
+
+        when(nodeResolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
+            List<String> candidates = invocation.getArgument(2);
+            return candidates.stream()
+                    .map(candidate -> ResolvedNode.created(
+                            candidate,
+                            nodes.save(KnowledgeNode.create(
+                                    USER_ID, NodeType.SUBJECT, candidate, null
+                            ))
+                    ))
+                    .toList();
+        });
 
         graphWriter = new SourceGraphWriter(
                 new KnowledgeNodeService(nodes),
-                new NodeResolver(nodes),
                 new KnowledgeRelationService(relations)
         );
 
@@ -65,6 +80,7 @@ class SourceDigestProcessorTest {
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),
                 digestService,
+                nodeResolutionService,
                 graphWriter
         );
     }
@@ -123,11 +139,13 @@ class SourceDigestProcessorTest {
         assertThat(response.result().category()).isEqualTo("백엔드");
         assertThat(response.result().topic()).isEqualTo("MCP 서버 구현하기");
         assertThat(response.result().subjects()).containsExactly("MCP", "Tool Calling");
+        assertThat(response.failureMessage()).isNull();
+        assertThat(response.retryable()).isFalse();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getProcessingStatus()).isEqualTo(SourceProcessingStatus.COMPLETED);
         assertThat(saved.getSummary()).isEqualTo("Spring AI에서 MCP Server를 구성하는 방법을 설명한다.");
-        assertThat(saved.getAnalysisVersion()).isNotNull();
+        assertThat(saved.getAnalysisVersion()).isEqualTo(4);
     }
 
     @Test
@@ -140,11 +158,16 @@ class SourceDigestProcessorTest {
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(response.result()).isNull();
+        assertThat(response.failureMessage())
+                .isEqualTo("SOURCE_DIGEST_FAILURE");
+        assertThat(response.retryable()).isTrue();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getProcessingStatus()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(saved.getContent()).contains("MCP Server를 구성하는 방법");
         assertThat(saved.getSummary()).isNull();
+        assertThat(saved.getFailureMessage()).isEqualTo(response.failureMessage());
+        assertThat(saved.isRetryable()).isTrue();
     }
 
     @Test
@@ -170,7 +193,44 @@ class SourceDigestProcessorTest {
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
+        assertThat(response.failureMessage())
+                .isEqualTo("SOURCE_EMPTY_CONTENT");
+        assertThat(response.retryable()).isFalse();
         verify(digestService, never()).digest(any());
+    }
+
+    @Test
+    @DisplayName("AI의 잘못된 요청 오류는 사용자에게 원문을 숨기고 재시도 불가로 남긴다")
+    void hidesNonTransientAiFailure() {
+        KnowledgeSource source = savedSource();
+        when(digestService.digest(any()))
+                .thenThrow(new NonTransientAiException("400 invalid api request: secret detail"));
+
+        SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
+
+        assertThat(response.failureMessage())
+                .isEqualTo("SOURCE_DIGEST_NON_RETRYABLE_FAILURE")
+                .doesNotContain("secret detail");
+        assertThat(response.retryable()).isFalse();
+    }
+
+    @Test
+    @DisplayName("개념 연결 실패는 별도 사용자 메시지와 함께 저장한다")
+    void reportsSubjectResolutionFailure() {
+        KnowledgeSource source = savedSource();
+        when(digestService.digest(any())).thenReturn(digestResult());
+        doThrow(new RuntimeException("embedding provider unavailable"))
+                .when(nodeResolutionService).resolveSubjects(any(), any(), any());
+
+        SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
+
+        assertThat(response.failureMessage())
+                .isEqualTo("SOURCE_DIGEST_RESOLUTION_FAILURE")
+                .doesNotContain("embedding provider unavailable");
+        assertThat(response.retryable()).isTrue();
+
+        KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
+        assertThat(saved.getFailureMessage()).isEqualTo(response.failureMessage());
     }
 
     @Test
@@ -191,9 +251,14 @@ class SourceDigestProcessorTest {
         when(digestService.digest(any())).thenReturn(digestResult());
 
         SourceGraphWriter failing = mock(SourceGraphWriter.class);
-        doThrow(new RuntimeException("db down")).when(failing).write(any(), any());
+        doThrow(new RuntimeException("db down")).when(failing).write(any(), any(), any());
         useCase = new SourceDigestProcessor(
-                new KnowledgeSourceService(sources), new KnowledgeNodeService(nodes), digestService, failing);
+                new KnowledgeSourceService(sources),
+                new KnowledgeNodeService(nodes),
+                digestService,
+                nodeResolutionService,
+                failing
+        );
 
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
@@ -225,6 +290,9 @@ class SourceDigestProcessorTest {
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
+        assertThat(response.failureMessage())
+                .isEqualTo("SOURCE_DIGEST_FAILURE");
+        assertThat(response.retryable()).isTrue();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getContent()).contains("MCP Server를 구성하는 방법");

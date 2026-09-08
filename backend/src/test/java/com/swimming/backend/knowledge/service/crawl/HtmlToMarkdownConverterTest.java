@@ -128,6 +128,23 @@ class HtmlToMarkdownConverterTest {
     }
 
     @Test
+    @DisplayName("Readability가 선택한 본문에서도 메뉴 요소를 제거한다")
+    void stripsMenuFromReadabilityContent() {
+        Document document = parse("<html><body><div>원본</div></body></html>");
+        String readability = """
+                <div role="navigation">상단 메뉴</div>
+                <menu><li>문서 목록</li></menu>
+                <div class="menu">사이드 메뉴</div>
+                <p>실제 본문</p>
+                """;
+
+        String chosen = converter.chooseBody(document, readability);
+
+        assertThat(chosen).contains("실제 본문");
+        assertThat(chosen).doesNotContain("상단 메뉴", "문서 목록", "사이드 메뉴");
+    }
+
+    @Test
     @DisplayName("article이 여러 개면 목록 페이지로 보고 semantic 컨테이너로 쓰지 않는다")
     void ignoresMultipleArticles() {
         Document document = parse("""
@@ -149,6 +166,9 @@ class HtmlToMarkdownConverterTest {
                 <html><body>
                   <main>
                     <nav><a href="/x">사이드 메뉴</a></nav>
+                    <menu><li>문서 목록</li></menu>
+                    <div class="menu">관련 메뉴</div>
+                    <div role="navigation">페이지 메뉴</div>
                     <h1>제목</h1><p>%s</p>
                     <footer>바닥글 저작권</footer>
                   </main>
@@ -159,6 +179,7 @@ class HtmlToMarkdownConverterTest {
 
         assertThat(chosen).contains("제목");
         assertThat(chosen).doesNotContain("사이드 메뉴");
+        assertThat(chosen).doesNotContain("문서 목록", "관련 메뉴", "페이지 메뉴");
         assertThat(chosen).doesNotContain("바닥글 저작권");
     }
 

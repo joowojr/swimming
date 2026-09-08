@@ -1,0 +1,9 @@
+{
+  "scannedAt": "2026-08-20",
+  "framework": "React 19 + Vite",
+  "fonts": ["Hanken Grotesk", "JetBrains Mono"],
+  "palette": "Purposeful Journey tokens",
+  "spacing": "4px token scale",
+  "motion": "motion-cut",
+  "preserved": ["fonts", "palette", "spacing", "application shell"]
+}

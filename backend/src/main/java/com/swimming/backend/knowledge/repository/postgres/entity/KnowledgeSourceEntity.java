@@ -7,12 +7,14 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
 @Entity
+@DynamicUpdate
 @Table(
         name = "knowledge_source",
         indexes = {
@@ -64,6 +66,12 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
     @Column(name = "analysis_version")
     private Integer analysisVersion;
 
+    @Column(name = "failure_message", length = 255)
+    private String failureMessage;
+
+    @Column(nullable = false)
+    private boolean retryable;
+
     @Column(name = "read_at")
     private Instant readAt;
 
@@ -80,6 +88,8 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
             Instant publishedAt,
             SourceProcessingStatus processingStatus,
             Integer analysisVersion,
+            String failureMessage,
+            boolean retryable,
             Instant readAt
     ) {
         this.nodeId = nodeId;
@@ -93,6 +103,22 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
         this.publishedAt = publishedAt;
         this.processingStatus = processingStatus;
         this.analysisVersion = analysisVersion;
+        this.failureMessage = failureMessage;
+        this.retryable = retryable;
         this.readAt = readAt;
+    }
+
+    public void updateReadAt(Instant readAt) {
+        this.readAt = readAt;
+    }
+
+    public void updateStatus(
+            SourceProcessingStatus processingStatus,
+            String failureMessage,
+            boolean retryable
+    ) {
+        this.processingStatus = processingStatus;
+        this.failureMessage = failureMessage;
+        this.retryable = retryable;
     }
 }

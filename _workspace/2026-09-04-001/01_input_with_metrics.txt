@@ -1,0 +1,66 @@
+[정량 사전 점수 v2.0 — v1.6 8지표(KatFish baseline) + v2.0 카운트형]
+risk_band: medium  (score 4)
+route_hint: light  (권고 — 사용자·오케스트레이터가 무시 가능)
+route_reason: 카운트형 어휘·피동 티 0건 · risk_band medium — 이미 잘 쓴 글, 단일 콜·최소 파이프라인 권장
+genre: report
+char_count: 807
+warning: baseline_genre_null:report->essay
+
+[v1.6 지표]
+- comma_inclusion_rate: 0.17  (z=-0.56 vs report 인간 baseline)
+- comma_usage_rate: 0.17  (z=-1.35 vs report 인간 baseline)
+- ending_comma_rate: 0.50  (z=+5.84 vs report 인간 baseline)  ★ S1 트리거
+- comma_segment_length: 7.04  (z=+1.28 vs report 인간 baseline)  · S2 시그널
+- conclusion_pivot_count: 0
+- safe_balance_count: 0
+- hanja_nominalizer_density: 0.019  (z=-1.38 vs report 인간 baseline)
+- lexical_diversity: 0.82  (z=+3.50 vs report 인간 baseline)  ★ S1 트리거
+
+[v2.0 카운트형 지표 — 원값 / baseline calibration 전 z-score 해석 보류]
+- double_passive_count (이중 피동, 본진 A-8): 0
+- by_passive_count (~에 의해 피동, 본진 A-9): 0
+- pronoun_density (인칭 대명사 밀도, 본진 A-16): 0.000
+- have_make_literal_count (have/make 직역, 본진 A-7): 0
+- double_particle_count (이중 조사 결합, 본진 A-19): 0
+- relative_clause_nesting (관형절 3중+ 중첩 문장 수, 본진 A-18): 0
+- deul_overuse_rate ('-들' 남용률, 본진 A-17 hold): 0.000
+- 카운트 > 0 지표는 해당 본진 ID 처방(quick-rules.md·taxonomy)과 교차 확인 후 윤문할 것.
+
+[근거 사용 가이드]
+- 위 점수는 *근거 보조*다. 단독 판정 금지(보고서 명시).
+- z>1.0 지표는 quick-rules.md S1·S2 패턴과 교차 확인 후 윤문할 것.
+- ending_comma_rate가 ★ S1 트리거인 경우 C-11(연결어미 뒤 쉼표) 우선 손질.
+- conclusion_pivot 매치 토큰은 D-1·H-1 처방 적용 대상.
+
+[원문 시작]
+## 목적
+
+Terraform으로 만든 AWS 인프라에 코드를 올리는 경로가 없다. 지금은 사람이 직접 이미지를 빌드해 ECR에 올리고 EC2에 들어가 컨테이너를 갈아끼운다. 이 과정을 GitHub Actions로 옮겨, main에 머지하면 배포가 끝나는 상태로 만든다.
+
+장기 AWS 자격증명을 GitHub에 두지 않는 것을 전제로 한다. OIDC로 역할을 맡고, 배포용 역할과 인프라 조회용 역할을 나눠 매 푸시에 쓰이는 권한을 좁게 유지한다.
+
+- 작업 브랜치: `feature/deploy`
+
+## 작업 범위
+
+- [ ] GitHub OIDC provider와 역할 2개 (배포용, terraform plan용)
+- [ ] CI: 백엔드 Gradle 빌드, 프론트 lint와 프로덕션 빌드
+- [ ] 백엔드 배포: ECR push 후 SSM Run Command로 컨테이너 교체
+- [ ] 프론트 배포: S3 업로드와 CloudFront 무효화
+- [ ] Terraform: PR에 plan 게시 (apply는 로컬 유지)
+- [ ] 헬스체크 실패 시 직전 이미지로 롤백
+
+## 완료 조건
+
+- [ ] main 머지만으로 백엔드와 프론트가 배포된다.
+- [ ] GitHub에 장기 AWS 키를 저장하지 않는다.
+- [ ] 배포 역할로는 인프라를 변경할 수 없다.
+- [ ] 배포 실패 시 이전 이미지로 자동 복구된다.
+- [ ] PR에서 인프라 변경 내용을 머지 전에 확인할 수 있다.
+
+## 제외 범위
+
+- Terraform apply 자동화 (plan까지만)
+- 스테이징 환경
+- 무중단 배포 (컨테이너 교체 중 짧은 중단 허용)
+[원문 끝]

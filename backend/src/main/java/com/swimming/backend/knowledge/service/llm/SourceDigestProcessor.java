@@ -1,19 +1,25 @@
 package com.swimming.backend.knowledge.service.llm;
 
+import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.SourceDigestResponse;
 import com.swimming.backend.knowledge.dto.out.SourceDigestInput;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,11 +37,12 @@ import java.util.UUID;
 public class SourceDigestProcessor {
 
     /** 프롬프트나 출력 스키마를 바꾸면 올린다. 어떤 기준으로 분석했는지 구분하기 위해서다. */
-    private static final int ANALYSIS_VERSION = 2;
+    private static final int ANALYSIS_VERSION = 4;
 
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
     private final SourceDigestService digestService;
+    private final NodeResolutionService nodeResolutionService;
     private final SourceGraphWriter graphWriter;
 
     public SourceDigestResponse digest(Long userId, UUID sourceId) {
@@ -47,7 +54,7 @@ public class SourceDigestProcessor {
         }
 
         if (!StringUtils.hasText(source.getContent())) {
-            source.failDigestion();
+            source.failDigestion(ErrorCode.SOURCE_EMPTY_CONTENT.name(), false);
             return SourceDigestResponse.of(sourceService.save(source), null);
         }
 
@@ -64,21 +71,72 @@ public class SourceDigestProcessor {
                     nodeService.findTitles(userId, NodeType.TOPIC)
             )));
         } catch (RuntimeException exception) {
-            log.info(
-                    "[source-digest] failed sourceId={} url={} reason={}",
-                    sourceId, source.getUrl(), exception.toString()
+            return fail(
+                    source,
+                    ErrorCode.SOURCE_DIGEST_FAILURE,
+                    ErrorCode.SOURCE_DIGEST_NON_RETRYABLE_FAILURE,
+                    exception
             );
+        }
 
-            source.failDigestion();
-            return SourceDigestResponse.of(sourceService.save(source), null);
+        List<ResolvedNode> resolvedSubjects;
+        try {
+            resolvedSubjects = nodeResolutionService.resolveSubjects(
+                    source, result.summary(), result.subjects()
+            );
+            result = new SourceDigestResult(
+                    result.summary(),
+                    result.category(),
+                    result.topic(),
+                    resolvedSubjects.stream().map(item -> item.node().getTitle()).toList()
+            );
+        } catch (RuntimeException exception) {
+            return fail(
+                    source,
+                    ErrorCode.SOURCE_DIGEST_RESOLUTION_FAILURE,
+                    ErrorCode.SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE,
+                    exception
+            );
         }
 
         source.completeDigestion(result.summary(), ANALYSIS_VERSION);
         KnowledgeSource saved = sourceService.save(source);
 
-        writeGraph(saved, result);
+        writeGraph(saved, result, resolvedSubjects);
 
         return SourceDigestResponse.of(saved, result);
+    }
+
+    private SourceDigestResponse fail(
+            KnowledgeSource source,
+            ErrorCode retryableFailure,
+            ErrorCode nonRetryableFailure,
+            RuntimeException exception
+    ) {
+        log.info(
+                "[source-digest] failed sourceId={} url={} reason={}",
+                source.getId(), source.getUrl(), exception.toString()
+        );
+
+        boolean retryable = isRetryable(exception);
+        ErrorCode failure = retryable ? retryableFailure : nonRetryableFailure;
+        source.failDigestion(failure.name(), retryable);
+        return SourceDigestResponse.of(sourceService.save(source), null);
+    }
+
+    /** 잘못된 요청처럼 다시 보내도 달라지지 않는 AI 오류는 재시도 대상으로 노출하지 않는다. */
+    private boolean isRetryable(RuntimeException exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof NonTransientAiException) {
+                return false;
+            }
+            if (cause instanceof TransientAiException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return true;
     }
 
     /**
@@ -103,9 +161,13 @@ public class SourceDigestProcessor {
      * <p>지금은 로그로만 남는다. 반영이 빠진 Source를 다시 이어 붙이는 경로가 필요해지면
      * 그때 상태를 따로 둔다.
      */
-    private void writeGraph(KnowledgeSource source, SourceDigestResult result) {
+    private void writeGraph(
+            KnowledgeSource source,
+            SourceDigestResult result,
+            List<ResolvedNode> resolvedSubjects
+    ) {
         try {
-            graphWriter.write(source, result);
+            graphWriter.write(source, result, resolvedSubjects);
         } catch (RuntimeException exception) {
             log.warn(
                     "[source-digest] graph write failed sourceId={} reason={}",

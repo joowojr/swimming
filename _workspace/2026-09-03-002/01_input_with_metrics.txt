@@ -1,0 +1,84 @@
+[정량 사전 점수 v2.0 — v1.6 8지표(KatFish baseline) + v2.0 카운트형]
+risk_band: low  (score 2)
+route_hint: light  (권고 — 사용자·오케스트레이터가 무시 가능)
+route_reason: 카운트형 어휘·피동 티 0건 · risk_band low — 이미 잘 쓴 글, 단일 콜·최소 파이프라인 권장
+genre: report
+char_count: 1463
+warning: baseline_genre_null:report->essay
+
+[v1.6 지표]
+- comma_inclusion_rate: 0.15  (z=-0.64 vs report 인간 baseline)
+- comma_usage_rate: 0.15  (z=-1.37 vs report 인간 baseline)
+- ending_comma_rate: 0.12  (z=+1.07 vs report 인간 baseline)  · S2 시그널
+- comma_segment_length: 6.38  (z=+0.96 vs report 인간 baseline)
+- conclusion_pivot_count: 0
+- safe_balance_count: 0
+- hanja_nominalizer_density: 0.000  (z=-2.00 vs report 인간 baseline)
+- lexical_diversity: 0.80  (z=+2.99 vs report 인간 baseline)  ★ S1 트리거
+
+[v2.0 카운트형 지표 — 원값 / baseline calibration 전 z-score 해석 보류]
+- double_passive_count (이중 피동, 본진 A-8): 0
+- by_passive_count (~에 의해 피동, 본진 A-9): 0
+- pronoun_density (인칭 대명사 밀도, 본진 A-16): 0.000
+- have_make_literal_count (have/make 직역, 본진 A-7): 0
+- double_particle_count (이중 조사 결합, 본진 A-19): 0
+- relative_clause_nesting (관형절 3중+ 중첩 문장 수, 본진 A-18): 1
+- deul_overuse_rate ('-들' 남용률, 본진 A-17 hold): 0.000
+- 카운트 > 0 지표는 해당 본진 ID 처방(quick-rules.md·taxonomy)과 교차 확인 후 윤문할 것.
+
+[근거 사용 가이드]
+- 위 점수는 *근거 보조*다. 단독 판정 금지(보고서 명시).
+- z>1.0 지표는 quick-rules.md S1·S2 패턴과 교차 확인 후 윤문할 것.
+- ending_comma_rate가 ★ S1 트리거인 경우 C-11(연결어미 뒤 쉼표) 우선 손질.
+- conclusion_pivot 매치 토큰은 D-1·H-1 처방 적용 대상.
+
+[원문 시작]
+# 빈 응답이 무슨 뜻인지
+
+## 통신은 정상이었습니다
+
+먼저 오해를 풀자면, 에러가 난 게 아닙니다. OpenAI 호출은 성공했고 JSON도 정상적으로 왔습니다. 스키마 검증도 통과했습니다. 우리 코드에서 예외가 난 곳은 한 군데도 없습니다.
+
+문제는 그 정상적인 JSON의 내용이 이랬다는 겁니다.
+
+    { "tasks": [], "notActionable": [] }
+
+두 목록이 다 비었습니다. 모델이 "이 메모에는 할 일도 없고, 할 일이 아닌 내용도 없다"고 답한 셈입니다. 그런데 입력 메모는 이거였습니다.
+
+    엄마 생신 케이크 예약해야 하는데 날짜 카톡에서 먼저 찾아봐야겠다
+
+한 문장이 통째로 사라졌습니다.
+
+## 토큰을 보면 모델이 뭘 했는지 짐작이 됩니다
+
+같은 메모를 다섯 번 돌렸는데, 성공한 실행과 실패한 실행의 토큰 사용량이 반대로 나왔습니다.
+
+성공한 실행은 54토큰을 썼습니다. 결과 항목 하나를 만드는 데 딱 필요한 양입니다.
+실패한 실행은 215토큰을 썼습니다. 그런데 내놓은 결과는 빈 목록 두 개, 10토큰어치입니다.
+
+나머지 200토큰은 reasoning에 들어갔습니다. 설정이 reasoning-effort low라서 모델이 답을 내기 전에 속으로 생각을 합니다.
+
+즉 실패한 쪽이 네 배 더 오래 고민했습니다. 폴더는 포트폴리오인데 메모는 생신 케이크니까, 이걸 넣어야 하나 말아야 하나 재다가 결국 둘 다 아니라고 결론을 낸 것으로 보입니다. 성공한 쪽은 고민 없이 바로 할 일로 뽑았습니다.
+
+## 이게 왜 오분류보다 나쁜가
+
+결과가 틀리는 방식에는 세 가지가 있는데 사용자가 겪는 일이 전혀 다릅니다.
+
+할 일로 잡히면 제안 목록에 뜹니다. 정상입니다.
+할 일이 아닌 것으로 잡히면 미분류 영역에 뜹니다. 틀렸지만 사용자가 눈으로 보고 직접 옮길 수 있습니다.
+빈 응답이면 화면에 아무것도 안 뜹니다. 사용자 입장에서는 적어둔 메모가 그냥 사라진 것처럼 보입니다. 복구할 방법이 없습니다.
+
+## 규칙 위반인데 스키마가 못 잡습니다
+
+프롬프트에는 이미 이런 규칙이 있습니다. 메모의 의미 있는 조각은 tasks나 notActionable 중 정확히 하나에 들어가야 한다고요.
+
+메모 전체가 의미 있는 한 문장인데 어느 쪽에도 안 들어갔으니 명백한 위반입니다. 그런데 JSON 스키마 입장에서는 빈 배열도 유효한 값이라 validateSchema가 통과시킵니다.
+
+## 그래서 검증을 하나 추가해야 합니다
+
+지금 구조 검증은 결과에 있는 원문이 메모에 실제로 있는지만 봅니다. 반대 방향, 그러니까 메모의 내용이 결과에 다 들어갔는지는 안 봅니다.
+
+메모에 내용이 있는데 두 목록이 모두 비면 실패로 처리하는 단정을 넣으면 됩니다. 이건 정답 라벨이 필요 없어서 모든 시나리오에 그냥 적용됩니다.
+
+지금은 이 케이스가 우연히 잡혔습니다. mustBeTask 라벨을 달아둔 시나리오였기 때문입니다. 라벨 없는 시나리오에서 같은 일이 생기면 조용히 통과합니다.
+[원문 끝]

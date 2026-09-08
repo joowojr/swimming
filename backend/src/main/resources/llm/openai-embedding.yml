@@ -1,0 +1,11 @@
+# Subject resolution에 쓰는 Source Summary 임베딩은 채팅 provider와 무관하게 OpenAI로 고정한다.
+spring:
+  ai:
+    model:
+      embedding: openai
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      embedding:
+        options:
+          model: text-embedding-3-small
+          dimensions: 768

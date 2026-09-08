@@ -1,0 +1,137 @@
+## 개요
+
+배포를 GitHub Actions로 옮긴다. 지금까지는 이미지를 손으로 빌드해 ECR에 올리고 EC2에 접속해 컨테이너를 갈아끼웠다. 이 PR 이후로는 main에 머지하면 백엔드와 프론트가 각각 배포된다.
+
+인증에는 장기 키를 쓰지 않는다. OIDC로 역할을 맡고 trust policy가 리포지토리와 ref를 고정한다. 역할은 둘로 나눴다. 배포 역할은 이미지를 올리고 배포 명령을 보내는 것까지만 할 수 있고, plan 역할은 계정을 읽기만 한다. 매 푸시에 쓰이는 역할에 인프라 변경 권한이 섞이지 않게 하려는 분리다.
+
+## 관련 이슈
+
+- Closes #ISSUE_NUMBER
+
+## Feature
+
+### 백엔드 배포
+
+- 사용자 동작: main에 백엔드 변경을 머지하거나 Actions에서 Run workflow를 누른다
+- Backend: `backend/Dockerfile`로 이미지를 빌드해 ECR에 올린다. 태그는 커밋 SHA다. ECR이 IMMUTABLE이라 `latest` 같은 움직이는 태그를 다시 올릴 수 없고 지금 떠 있는 이미지를 커밋으로 되짚을 수 있다
+- API·DB: 변경 없음. Flyway 마이그레이션은 앱 기동 시 실행되므로 별도 단계를 두지 않았다
+- 검증: 헬스체크가 통과해야 배포가 성공으로 끝난다
+
+배포는 SSH가 아니라 SSM Run Command로 간다. 22번을 열지 않아도 되고 GitHub에 개인키를 둘 곳도 없어진다.
+
+`compose.production.yaml`과 `infra/scripts/deploy-backend.sh`는 배포할 때마다 리포에서 호스트로 보낸다. 스크립트를 EC2 user data에 넣지 않은 이유는 `aws_instance.app`이 `user_data_replace_on_change = true`라서다. user data를 고치면 인스턴스가 교체되고 `/etc/letsencrypt`가 함께 사라진다.
+
+호스트에서 스크립트가 하는 일은 이렇다. Secrets Manager에서 `backend.env`를 렌더하고, 새 태그로 `docker compose up -d`를 돌리고, `/api/health`를 최대 120초 폴링한다. 실패하면 직전 태그로 되돌린다. 다만 **Flyway 마이그레이션은 되돌아가지 않는다.** 파괴적인 마이그레이션 뒤에 실패한 배포는 이 경로가 아니라 RDS 스냅샷 복구가 필요하다.
+
+이미 ECR에 있는 태그는 다시 빌드하지 않는다. 같은 커밋으로 재실행하면 IMMUTABLE 저장소에 같은 태그를 올리려다 거부되기 때문이다. 덕분에 재실행이 "시크릿을 다시 읽어 재기동"이 되고 실패한 배포의 재시도 경로도 된다.
+
+### 프론트 배포
+
+- 사용자 동작: main에 프론트 변경을 머지한다
+- Frontend: `npm ci`와 `npm run build` 뒤 S3에 올리고 CloudFront를 무효화한다
+- 검증: 배포 후 화면 확인
+
+올리는 순서를 지킨다. 해시가 붙은 `assets/`를 먼저 1년 `immutable`로 올리고 그다음 해시 없는 루트 파일을 `no-cache`로 올린다. 순서를 뒤집으면 아직 없는 파일을 가리키는 `index.html`이 잠깐 노출된다.
+
+무효화 대상은 빌드 결과의 루트 파일만이다. CloudFront 함수가 확장자 없는 경로를 전부 `/index.html`로 다시 쓰므로 그 하나로 모든 라우트가 덮인다. 해시된 자산은 내용이 바뀌면 이름이 바뀌니 무효화할 이유가 없다.
+
+### CI
+
+- 사용자 동작: PR을 올리거나 main에 푸시한다
+- Backend: `./gradlew build`. 테스트가 H2를 쓰고 `llm-eval` 태그가 제외돼 있어 DB도 `OPENAI_API_KEY`도 필요 없다
+- Frontend: `npm run lint`와 `npm run build`
+- 검증: paths 필터로 바뀐 쪽만 돌린다
+
+### Terraform plan
+
+- 사용자 동작: `infra/terraform/**`을 건드린 PR을 올린다
+- 검증: plan 결과가 PR 코멘트로 붙는다. 재실행하면 같은 코멘트를 갱신한다
+
+apply는 로컬에 남긴다. plan 역할은 `ReadOnlyAccess`와 `.tflock` 객체 쓰기만 가지므로 워크플로를 고쳐도 인프라를 바꿀 수 없다.
+
+이 워크플로의 실질적인 값은 머지 전에 무엇이 교체되는지 보는 데 있다. 특히 user data를 건드리는 변경은 plan에 `must be replaced`로 찍히는데, 그 교체는 Let's Encrypt 인증서와 렌더된 `backend.env`를 함께 가져간다.
+
+## Refactor
+
+로고를 `frontend/public/`에서 `frontend/src/assets/`로 옮기고 import로 참조하게 바꿨다.
+
+`public/`에 있으면 해시 없이 `dist/` 루트로 나와서 1년 `immutable`을 붙이면 로고를 바꿔도 반영되지 않고 `no-cache`로 두면 매번 재검증한다. Vite 빌드에 태우면 이 선택 자체가 사라진다. 실제로는 557바이트라 data URI로 번들에 인라인됐고 요청이 하나 줄면서 해시된 청크와 함께 버전이 매겨진다.
+
+## 공통 변경
+
+- 설정·보안: OIDC provider와 역할 2개를 추가했다. 배포 역할은 ECR push, SSM SendCommand, 웹 버킷, CloudFront 무효화로 한정된다. Secrets Manager 권한은 주지 않았다. 시크릿 값은 AWS에서만 바꾸고 GitHub은 반영만 트리거한다
+- 문서·인프라: `infra/terraform/README.md`에 워크플로 표, 리포지토리 변수 설정 명령, 백엔드 릴리스가 인스턴스에 닿는 경로를 적었다
+- `tfplan`을 추적에서 뺐다. 저장된 plan 파일은 state 스냅샷을 통째로 담는다
+
+## 제외 범위
+
+- Terraform apply 자동화
+- 스테이징 환경과 승인 게이트
+- 무중단 배포
+- 백엔드 테스트 정리 (별건으로 논의 중)
+
+## 검증
+
+- [x] 백엔드 전체 테스트 — `./gradlew build` 통과
+- [ ] 프론트엔드 린트 — `FolderListPage.tsx:70`에서 `react-hooks/set-state-in-effect` 1건 실패. 이 PR과 무관한 기존 오류다
+- [x] 프론트엔드 프로덕션 빌드 — `tsc -b && vite build` 통과
+- [x] 주요 API 또는 사용자 흐름 확인 — `terraform fmt -check`와 `validate` 통과, `plan` 결과 6개 추가 0개 변경 0개 삭제로 기존 리소스 무변경. 워크플로 YAML 4개 파싱 확인. 배포 스크립트 `bash -n` 확인. 호스트의 `render-backend-env`, `backend.env`, `.env`의 `BACKEND_IMAGE` 존재 확인, compose 파일 해시가 리포와 일치
+
+## 확인 사항
+
+- [x] 현재 Feature 범위 밖의 변경을 포함하지 않았다.
+- [x] API 응답과 오류 형식이 프로젝트 규칙을 따른다. (API 변경 없음)
+- [x] 관련 문서와 구현 내용이 일치한다.
+
+## 머지 전에 필요한 작업
+
+워크플로가 동작하려면 머지 **전에** 두 가지가 끝나 있어야 한다. 이 브랜치는 배포 워크플로의 paths 필터에 걸리는 파일을 담고 있어서 머지하는 순간 백엔드와 프론트 배포가 둘 다 실행된다.
+
+1. `terraform apply` — OIDC provider와 역할이 아직 계정에 없다
+2. `gh variable set` 6개 — `infra/terraform/README.md` 참고
+
+<!-- HUMANIZE-SUMMARY v1.6.1
+run_id: 2026-09-04-002
+mode: monolith / 보수(conservative) / genre=report(GitHub PR body)
+metrics:
+  char_in: 3753
+  char_out: 3742
+  change_rate: 0.4%
+  self_check: 6/6
+  grade: A
+categories:  # before → after
+  C-11 연결어미 뒤 쉼표: 11 → 3 (대비·3항 나열 쉼표 3건은 가독성 위해 의도적 보존)
+  E-2 '~고 있다' 진행형: 3 → 2
+  A-7 have 직역('가지다'): 1 → 1 (권한 소유의 정상 용법으로 판정, 미개입)
+  D-1~D-4 결산·hype 어휘: 0 → 0
+  H-1 문두 접속사: 0 → 0
+  J-1 본문 볼드: 2 → 2 (경고 강조로 기능, 보존)
+self_check:
+  - 고유명사·수치·인용·내용 앵커 100% 보존: ✅ (Terraform/ECR/EC2/SSM/OIDC/CloudFront/S3/Flyway/Vite/Gradle/H2/Let's Encrypt/IMMUTABLE/main, 120초·557바이트·6개, 모든 파일 경로·명령어·백틱 표기, Closes #ISSUE_NUMBER 원형 유지)
+  - 마크다운 구조 보존: ✅ (헤딩 레벨, 체크박스 [x]/[ ], 불릿, 라벨 항목, 번호 목록 그대로)
+  - 변경률 30% 이하: ✅
+  - 장르 이탈 없음: ✅ (PR 본문 리포트 톤 유지)
+  - register 보존: ✅ (평서 '-다' 체 그대로, 격식 상향 없음)
+  - S1 잔존 0건: ✅
+  - 인공 표현 추가 없음: ✅ (내용 추가·삭제 0)
+highlights:
+  - id: C-11
+    before: "OIDC로 역할을 맡고, trust policy가 리포지토리와 ref를 고정한다"
+    after: "OIDC로 역할을 맡고 trust policy가 리포지토리와 ref를 고정한다"
+  - id: C-11
+    before: "`public/`에 있으면 해시 없이 `dist/` 루트로 나와서, 1년 `immutable`을 붙이면"
+    after: "`public/`에 있으면 해시 없이 `dist/` 루트로 나와서 1년 `immutable`을 붙이면"
+  - id: C-11
+    before: "쓰기만 가지므로, 워크플로를 고쳐도 인프라를 바꿀 수 없다"
+    after: "쓰기만 가지므로 워크플로를 고쳐도 인프라를 바꿀 수 없다"
+  - id: C-11
+    before: "paths 필터에 걸리는 파일을 담고 있어서, 머지하는 순간"
+    after: "paths 필터에 걸리는 파일을 담고 있어서 머지하는 순간"
+  - id: E-2
+    before: "저장된 plan 파일은 state 스냅샷을 통째로 담고 있다"
+    after: "저장된 plan 파일은 state 스냅샷을 통째로 담는다"
+residual_findings: |
+  C-11 3건 의도적 보존 — (1) "할 수 있고, plan 역할은…" 대비 구조,
+  (2)(3) "렌더하고, …돌리고, …폴링한다" 3항 나열. 쉼표 제거 시 가독성 손상 판단.
+grade_reason: "A — S1 잔존 0, 자체검증 6항 통과. 사전 점수 risk_band low(score 2)로 원문이 이미 인간이 쓴 결에 가까워 보수 강도로 C-11만 겨냥, 변경률은 A 기준 밴드(10~25%)보다 낮은 0.4%. 개입할 근거가 없는 구간을 건드리지 않은 결과다."
+-->

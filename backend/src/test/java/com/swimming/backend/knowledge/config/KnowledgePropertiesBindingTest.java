@@ -40,6 +40,17 @@ class KnowledgePropertiesBindingTest {
                 .toList();
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> yamlAt(String resource, String... path) throws Exception {
+        try (InputStream input = new ClassPathResource(resource).getInputStream()) {
+            Object node = new Yaml().load(input);
+            for (String key : path) {
+                node = ((Map<String, Object>) node).get(key);
+            }
+            return (Map<String, Object>) node;
+        }
+    }
+
     @Test
     @DisplayName("digest 설정 항목이 application.yml 에 모두 있다")
     void digestPropertiesArePresent() throws Exception {
@@ -47,6 +58,28 @@ class KnowledgePropertiesBindingTest {
 
         assertThat(yaml.keySet())
                 .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(KnowledgeDigestProperties.class));
+    }
+
+    @Test
+    @DisplayName("resolution 설정 항목이 application.yml 에 모두 있다")
+    void resolutionPropertiesArePresent() throws Exception {
+        Map<String, Object> yaml = at("app", "knowledge", "resolution");
+
+        assertThat(yaml.keySet()).containsExactlyInAnyOrderElementsOf(
+                kebabComponentsOf(KnowledgeResolutionProperties.class)
+        );
+    }
+
+    @Test
+    @DisplayName("Subject resolution 임베딩 모델과 차원을 고정한다")
+    void openAiEmbeddingModelAndDimensionsAreFixed() throws Exception {
+        Map<String, Object> options = yamlAt(
+                "llm/openai-embedding.yml",
+                "spring", "ai", "openai", "embedding", "options"
+        );
+
+        assertThat(options.get("model")).isEqualTo("text-embedding-3-small");
+        assertThat(options.get("dimensions")).isEqualTo(768);
     }
 
     @Test

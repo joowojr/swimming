@@ -2,6 +2,7 @@ spring:
   config:
     import:
       - classpath:llm/${LLM_CONFIG:openai}.yml
+      - classpath:llm/openai-embedding.yml
   datasource:
     url: jdbc:postgresql://localhost:5432/swimming
     username: swimming

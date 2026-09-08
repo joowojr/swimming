@@ -13,6 +13,8 @@ public record SourceDigestResponse(
         UUID sourceId,
         String title,
         SourceProcessingStatus status,
+        String failureMessage,
+        boolean retryable,
         SourceDigestResult result
 ) {
 
@@ -21,6 +23,8 @@ public record SourceDigestResponse(
                 source.getId(),
                 source.getNode().getTitle(),
                 source.getProcessingStatus(),
+                source.getFailureMessage(),
+                source.isRetryable(),
                 result
         );
     }

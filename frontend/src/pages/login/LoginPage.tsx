@@ -1,7 +1,7 @@
 import { IconChartBar, IconSparkles, IconTargetArrow } from '@tabler/icons-react'
 import loginArt from '../../assets/login.svg'
-import GoogleLoginButton from './GoogleLoginButton'
-import { authActions } from '../../store/authStore'
+import GoogleLoginButton from '../../features/auth/GoogleLoginButton.tsx'
+import { authActions } from '../../store/authStore.ts'
 import styles from './LoginPage.module.css'
 
 const FEATURES = [
@@ -27,7 +27,7 @@ const FEATURES = [
 
 export default function LoginPage() {
   return (
-    <div className={styles['login-page']}>
+    <main className={styles['login-page']}>
       <section className={styles.hero} aria-hidden="true">
         <img className={styles['hero-art']} src={loginArt} alt="" />
       </section>
@@ -47,7 +47,7 @@ export default function LoginPage() {
             {FEATURES.map(({ Icon, tone, title, body }) => (
               <li key={title} className={styles.feature}>
                 <span className={styles['feature-icon']} data-tone={tone}>
-                  <Icon size={16} stroke={2} />
+                  <Icon size={16} stroke={2} aria-hidden="true" />
                 </span>
                 <span>
                   <strong className={styles['feature-title']}>{title}</strong>
@@ -58,6 +58,6 @@ export default function LoginPage() {
           </ul>
         </div>
       </section>
-    </div>
+    </main>
   )
 }

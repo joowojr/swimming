@@ -88,7 +88,7 @@ class SourceQueryUseCaseTest {
             sources.save(KnowledgeSource.restore(
                     node, FOLDER_ID, "https://a.com/" + title, "https://a.com/" + title,
                     "본문", title + " 요약", "article", "작성자", null,
-                    SourceProcessingStatus.COMPLETED, 1, null
+                    SourceProcessingStatus.COMPLETED, 1, null, false, null
             ));
         }
 

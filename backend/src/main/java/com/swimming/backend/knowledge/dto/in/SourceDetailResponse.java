@@ -32,6 +32,8 @@ public record SourceDetailResponse(
         Instant createdAt,
         Instant readAt,
         SourceProcessingStatus status,
+        String failureMessage,
+        boolean retryable,
         String summary,
         NodeRef topic,
         List<NodeRef> subjects
@@ -51,6 +53,8 @@ public record SourceDetailResponse(
                 source.getNode().getCreatedAt(),
                 source.getReadAt(),
                 source.getProcessingStatus(),
+                source.getFailureMessage(),
+                source.isRetryable(),
                 source.getSummary(),
                 concepts.topic(),
                 concepts.subjects()

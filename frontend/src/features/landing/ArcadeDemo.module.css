@@ -1,0 +1,96 @@
+.demo {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+.frame {
+  position: relative;
+  width: 100%;
+  height: 0;
+  min-width: 0;
+  padding-bottom: calc(var(--arcade-aspect-height) + var(--arcade-controls-height));
+  overflow: clip;
+  color: var(--color-primary);
+}
+
+.iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  color-scheme: light;
+  opacity: 1;
+  transition: opacity var(--dur-short) var(--ease-out);
+}
+
+.iframe[data-loaded='false'] {
+  opacity: 0;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-align: center;
+}
+
+.caption {
+  min-height: var(--text-body-sm-line-height);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.caption a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  min-height: var(--control-height);
+  border-bottom: var(--border-width) solid currentColor;
+  color: var(--color-primary-container);
+  font-weight: var(--text-label-strong-weight);
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.caption a::after {
+  content: '↗';
+  font-size: var(--text-body-md-size);
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.caption a:active {
+  transform: translateY(var(--border-width));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .caption a:hover {
+    color: var(--color-primary);
+  }
+
+  .caption a:hover::after {
+    transform: translate(var(--space-1), calc(var(--space-1) * -1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iframe,
+  .caption a,
+  .caption a::after {
+    transition-duration: var(--dur-reduced-motion);
+  }
+}

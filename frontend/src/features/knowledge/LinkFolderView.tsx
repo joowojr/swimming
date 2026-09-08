@@ -133,7 +133,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
             <h3 id="link-sources-title">링크</h3>
             <span>
               {savedCount
-                ? `Source ${savedCount}를 모았어요${readCount > 0 ? ` · ${readCount}개 읽음` : ''}`
+                ? `링크 ${savedCount}를 모았어요${readCount > 0 ? ` · ${readCount}개 읽음` : ''}`
                 : '저장된 링크를 확인하고 있어요'}
             </span>
           </div>

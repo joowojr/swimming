@@ -1,7 +1,9 @@
 package com.swimming.backend.knowledge.repository;
 
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +20,22 @@ public interface KnowledgeSourceRepository {
     Optional<KnowledgeSource> findById(UUID nodeId);
 
     List<KnowledgeSource> findAllByIds(Collection<UUID> nodeIds);
+
+    void saveSummaryEmbedding(
+            Long userId,
+            UUID sourceId,
+            float[] summaryEmbedding,
+            String embeddingModel
+    );
+
+    /** Summary 의미가 가까운 같은 사용자의 완료 Source id를 가까운 순서대로 돌려준다. */
+    List<UUID> findSimilarSourceIds(
+            Long userId,
+            UUID excludedSourceId,
+            float[] summaryEmbedding,
+            String embeddingModel,
+            int limit
+    );
 
     /**
      * 이 Folder에 같은 문서를 다시 저장했는지 확인한다.
@@ -45,4 +63,13 @@ public interface KnowledgeSourceRepository {
 
     /** 사용자 전체 또는 선택한 Folder에서 관계 조건에 맞는 Source 후보를 최근 순으로 읽는다. */
     List<KnowledgeSource> findSearchPage(SourceSearchPageQuery query);
+
+    void updateReadAt(UUID sourceId, Instant readAt);
+
+    void updateStatus(
+            UUID sourceId,
+            SourceProcessingStatus status,
+            String failureMessage,
+            boolean retryable
+    );
 }

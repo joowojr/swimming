@@ -3,6 +3,7 @@ import {
   IconExternalLink,
   IconEye,
   IconEyeClosed,
+  IconInfoCircle,
   IconLoader2,
   IconPencil,
   IconRefresh,
@@ -11,7 +12,7 @@ import type { ApiError } from '../../api/client'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import { deleteSource, markSourceRead, markSourceUnread, retrySource } from './knowledgeApi'
-import { SOURCE_STATUS_LABEL } from './knowledgeLabels'
+import { SOURCE_STATUS_LABEL, sourceFailureMessage } from './knowledgeLabels'
 import { sourceMark } from './sourceIcon'
 import { formatSavedAt } from './sourceTime'
 import type { SourceCard, SourceDeleteResponse } from './knowledgeTypes'
@@ -127,11 +128,9 @@ export default function SourceFeedCard({
               <span className={styles.saved}>{savedAt}</span>
             </>
           )}
-          {source.status !== 'COMPLETED' && (
+          {isDigesting(source) && (
             <span className={styles.status} data-status={source.status}>
-              {isDigesting(source) && (
-                <IconLoader2 className={styles.spinner} size={12} stroke={1.8} aria-hidden="true" />
-              )}
+              <IconLoader2 className={styles.spinner} size={12} stroke={1.8} aria-hidden="true" />
               {SOURCE_STATUS_LABEL[source.status]}
             </span>
           )}
@@ -192,21 +191,30 @@ export default function SourceFeedCard({
         </div>
       ) : source.status === 'FAILED' ? (
         <div className={styles.failure}>
+          <span className={styles['failure-icon']} aria-hidden="true">
+            <IconInfoCircle size={16} stroke={1.8} />
+          </span>
           <p className={styles.notice}>
-            내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.
+            {sourceFailureMessage(
+              source.failureMessage,
+              '내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.',
+            )}
           </p>
-          <button
-            type="button"
-            className={styles.retry}
-            disabled={isRetrying}
-            onClick={() => void retry()}
-          >
-            {isRetrying
-              ? <IconLoader2 className={styles.spinner} size={13} stroke={1.8} aria-hidden="true" />
-              : <IconRefresh size={13} stroke={1.8} aria-hidden="true" />}
-            {isRetrying ? '다시 분석하는 중' : '다시 분석하기'}
-          </button>
-          {retryError && <p className={styles.error} role="alert">{retryError}</p>}
+          {source.retryable && (
+            <button
+              type="button"
+              className={styles.retry}
+              disabled={isRetrying}
+              aria-busy={isRetrying}
+              onClick={() => void retry()}
+            >
+              {isRetrying
+                ? <IconLoader2 className={styles.spinner} size={13} stroke={1.8} aria-hidden="true" />
+                : <IconRefresh size={13} stroke={1.8} aria-hidden="true" />}
+              {isRetrying ? '다시 분석하는 중' : '다시 분석하기'}
+            </button>
+          )}
+          {retryError && <p className={styles['retry-error']} role="alert">{retryError}</p>}
         </div>
       ) : (
         source.summary && <p className={styles.summary}>{source.summary}</p>

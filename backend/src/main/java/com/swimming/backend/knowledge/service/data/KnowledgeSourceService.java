@@ -3,6 +3,7 @@ package com.swimming.backend.knowledge.service.data;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
 import com.swimming.backend.knowledge.repository.SourceSearchPageQuery;
@@ -30,16 +31,24 @@ public class KnowledgeSourceService {
 
     /** 읽음으로 표시한다. 시각은 부르는 쪽이 서버 시계에서 뽑아 넘긴다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void markRead(KnowledgeSource source, Instant readAt) {
-        source.markRead(readAt);
-        sourceRepository.save(source);
+    public void markRead(KnowledgeSource source) {
+        sourceRepository.updateReadAt(source.getId(), source.getReadAt());
     }
 
     /** 읽음 표시를 되돌린다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public void markUnread(KnowledgeSource source) {
-        source.markUnread();
-        sourceRepository.save(source);
+        sourceRepository.updateReadAt(source.getId(), null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void updateStatus(KnowledgeSource source) {
+        sourceRepository.updateStatus(
+                source.getId(),
+                source.getProcessingStatus(),
+                source.getFailureMessage(),
+                source.isRetryable()
+        );
     }
 
     /** 원문은 남기고 노드만 지운 것으로 표시한다. */
@@ -77,6 +86,34 @@ public class KnowledgeSourceService {
     )
     public List<KnowledgeSource> findAllByIds(Collection<UUID> sourceIds) {
         return sourceRepository.findAllByIds(sourceIds);
+    }
+
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
+    public List<UUID> findSimilarSourceIds(
+            Long userId,
+            UUID excludedSourceId,
+            float[] summaryEmbedding,
+            String embeddingModel,
+            int limit
+    ) {
+        return sourceRepository.findSimilarSourceIds(
+                userId, excludedSourceId, summaryEmbedding, embeddingModel, limit
+        );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void saveSummaryEmbedding(
+            Long userId,
+            UUID sourceId,
+            float[] summaryEmbedding,
+            String embeddingModel
+    ) {
+        sourceRepository.saveSummaryEmbedding(
+                userId, sourceId, summaryEmbedding, embeddingModel
+        );
     }
 
     @Transactional(

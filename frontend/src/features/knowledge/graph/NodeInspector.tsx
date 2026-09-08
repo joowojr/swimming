@@ -110,7 +110,7 @@ export default function NodeInspector({
 
       {topics.length > 0 && (
         <section className={styles.section}>
-          <h5>이럴 때 사용</h5>
+          <h5>연관된 주제</h5>
           <ul>
             {topics.map((topic) => (
               <li key={topic.nodeId}>

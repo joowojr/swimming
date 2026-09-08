@@ -24,7 +24,7 @@ public record SourceDigestResult(
 
         @JsonPropertyDescription(
                 "Single application purpose the document itself explains or supports. "
-                        + "Always present, never null or empty."
+                        + "Empty only when the input has no usable content."
         )
         String topic,
 

@@ -31,7 +31,7 @@ public record SourceFetchResult(
         TIMEOUT,
 
         /** 본문을 추출했지만 남는 내용이 없다. */
-        EMPTY_CONTENT,
+        SOURCE_EMPTY_CONTENT,
 
         /** 그 밖의 오류. */
         UNKNOWN
@@ -51,5 +51,27 @@ public record SourceFetchResult(
 
     public boolean isSuccess() {
         return document != null;
+    }
+
+    /** 같은 URL 수집 요청을 다시 보내 성공할 가능성이 있는 실패인지 판단한다. */
+    public boolean isRetryable() {
+        if (isSuccess() || failure == null) {
+            return false;
+        }
+
+        return switch (failure) {
+            case TIMEOUT, UNKNOWN -> true;
+            case HTTP_ERROR -> isServerError(failureDetail);
+            case INVALID_URL, BLOCKED_ADDRESS, UNSUPPORTED_CONTENT_TYPE, SOURCE_EMPTY_CONTENT -> false;
+        };
+    }
+
+    private boolean isServerError(String detail) {
+        try {
+            int status = Integer.parseInt(detail);
+            return status >= 500 && status <= 599;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
     }
 }

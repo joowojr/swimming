@@ -32,6 +32,8 @@ public class KnowledgeSource {
 
     private SourceProcessingStatus processingStatus;
     private Integer analysisVersion;
+    private String failureMessage;
+    private boolean retryable;
 
     /** 읽은 시각. 아직 읽지 않았으면 비어 있다. */
     private Instant readAt;
@@ -48,6 +50,8 @@ public class KnowledgeSource {
             Instant publishedAt,
             SourceProcessingStatus processingStatus,
             Integer analysisVersion,
+            String failureMessage,
+            boolean retryable,
             Instant readAt
     ) {
         this.node = node;
@@ -61,6 +65,8 @@ public class KnowledgeSource {
         this.publishedAt = publishedAt;
         this.processingStatus = processingStatus;
         this.analysisVersion = analysisVersion;
+        this.failureMessage = failureMessage;
+        this.retryable = retryable;
         this.readAt = readAt;
     }
 
@@ -83,6 +89,8 @@ public class KnowledgeSource {
                 null,
                 SourceProcessingStatus.PENDING,
                 null,
+                null,
+                false,
                 null
         );
     }
@@ -99,6 +107,8 @@ public class KnowledgeSource {
             Instant publishedAt,
             SourceProcessingStatus processingStatus,
             Integer analysisVersion,
+            String failureMessage,
+            boolean retryable,
             Instant readAt
     ) {
         return new KnowledgeSource(
@@ -113,6 +123,8 @@ public class KnowledgeSource {
                 publishedAt,
                 processingStatus,
                 analysisVersion,
+                failureMessage,
+                retryable,
                 readAt
         );
     }
@@ -155,19 +167,25 @@ public class KnowledgeSource {
 
     public void startDigestion() {
         this.processingStatus = SourceProcessingStatus.PROCESSING;
+        this.failureMessage = null;
+        this.retryable = false;
     }
 
     public void completeDigestion(String summary, Integer analysisVersion) {
         this.summary = summary;
         this.analysisVersion = analysisVersion;
         this.processingStatus = SourceProcessingStatus.COMPLETED;
+        this.failureMessage = null;
+        this.retryable = false;
     }
 
     /**
      * AI 처리 실패는 원문 Source를 남긴 채 상태만 바꾼다.
      */
-    public void failDigestion() {
+    public void failDigestion(String failureMessage, boolean retryable) {
         this.processingStatus = SourceProcessingStatus.FAILED;
+        this.failureMessage = failureMessage;
+        this.retryable = retryable;
     }
 
     /**
@@ -188,15 +206,21 @@ public class KnowledgeSource {
         this.readAt = null;
     }
 
+    public void updateStatus(SourceProcessingStatus status) {
+        this.processingStatus = status;
+    }
+
     /** 저장된 본문으로 다시 소화할 수 있도록 대기 상태로 돌린다. URL 수집은 반복하지 않는다. */
     public void prepareRetry() {
         boolean retryableStatus = processingStatus == SourceProcessingStatus.PENDING
-                || processingStatus == SourceProcessingStatus.FAILED;
+                || (processingStatus == SourceProcessingStatus.FAILED && retryable);
 
         if (!retryableStatus || content == null || content.isBlank()) {
             throw new BusinessException(ErrorCode.KNOWLEDGE_SOURCE_NOT_RETRYABLE);
         }
 
         this.processingStatus = SourceProcessingStatus.PENDING;
+        this.failureMessage = null;
+        this.retryable = false;
     }
 }

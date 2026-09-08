@@ -328,7 +328,7 @@ public class WebFetchService {
         if (!StringUtils.hasText(converted.markdown())) {
             return SourceFetchResult.failure(
                     requestedUrl,
-                    SourceFetchResult.Failure.EMPTY_CONTENT,
+                    SourceFetchResult.Failure.SOURCE_EMPTY_CONTENT,
                     null
             );
         }

@@ -35,6 +35,9 @@
     --color-surface-dark: var(--color-primary);
     --color-focus-inner: var(--color-on-primary);
     --color-primary-container: #3451b2;
+    --color-accent: var(--color-primary-container);
+    --color-accent-ink: var(--color-on-primary);
+    --color-footer-rule: rgba(252, 251, 248, 0.24);
 
     /* Entity tones - 폴더 구분용. 명도를 맞춰 어떤 항목도 더 중요해 보이지 않게 한다. */
     --color-tone-fountain: #64ADB3;
@@ -97,6 +100,11 @@
     --text-button-line-height: 1.5rem;
     --text-button-weight: 480;
     --text-label-strong-weight: 700;
+    --text-landing-display-size: clamp(2.5rem, 5vw, 4.5rem);
+    --text-landing-display-line-height: 1.02;
+    --text-landing-display-tracking: -0.04em;
+    --text-landing-section-size: clamp(2rem, 4vw, 3.75rem);
+    --text-landing-section-line-height: 1.08;
 
     --text-display: var(--text-headline-xl-size);
     --text-heading: var(--text-headline-md-size);
@@ -121,6 +129,23 @@
     --layout-margin-desktop: 5rem;
     --layout-container-max: 80rem;
     --layout-page-padding-inline: var(--space-16);
+    --landing-header-height: 4.5rem;
+    --landing-shell-max: 100rem;
+    --landing-hero-shell-max: 112rem;
+    --landing-hero-margin-desktop: 3rem;
+    --landing-copy-column: 26rem;
+    --landing-copy-measure: 36rem;
+    --landing-title-measure: 11ch;
+    --landing-section-title-measure: 14ch;
+    --landing-footer-measure: 28ch;
+    --landing-login-width: 20rem;
+    --landing-step-number-width: 3rem;
+    --landing-step-title-width: 10rem;
+    --landing-section-space: 6rem;
+    --landing-logo-width: 9rem;
+    --arcade-aspect-height: 56.25%;
+    --arcade-controls-height: 2.5625rem;
+    --login-illustration-mobile-width: 16rem;
 
     /* Shape */
     --radius-sm: 0.5rem;
@@ -158,6 +183,7 @@
     --dur-micro: 120ms;
     --dur-short: 220ms;
     --dur-modal: 300ms;
+    --dur-reduced-motion: 1ms;
     --transition-short: 140ms;
 }
 

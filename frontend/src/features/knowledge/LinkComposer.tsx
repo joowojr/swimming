@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { IconBookmarkPlus, IconLink, IconLoader2 } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import { collectSources } from './knowledgeApi'
-import { SOURCE_FETCH_FAILURE_LABEL } from './knowledgeLabels'
+import { sourceFailureMessage } from './knowledgeLabels'
 import type { SourceCard } from './knowledgeTypes'
 import styles from './LinkComposer.module.css'
 
@@ -52,7 +52,7 @@ export default function LinkComposer({ folderId, onSaved }: LinkComposerProps) {
       if (item.result === 'FAILED') {
         setNotice({
           tone: 'error',
-          text: SOURCE_FETCH_FAILURE_LABEL[item.reason ?? 'UNKNOWN'],
+          text: sourceFailureMessage(item.failureMessage, '링크를 가져오지 못했어요.'),
         })
         return
       }

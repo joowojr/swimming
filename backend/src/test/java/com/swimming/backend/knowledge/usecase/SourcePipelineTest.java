@@ -2,7 +2,9 @@ package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
+import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.knowledge.domain.NodeTitleNormalizer;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
@@ -12,11 +14,12 @@ import com.swimming.backend.knowledge.dto.in.SourceDigestResponse;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
-import com.swimming.backend.knowledge.service.graph.NodeResolver;
+import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import com.swimming.backend.knowledge.service.crawl.WebFetchService;
@@ -69,14 +72,32 @@ class SourcePipelineTest {
         digestService = mock(SourceDigestService.class);
 
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
+        NodeResolutionService resolutionService = mock(NodeResolutionService.class);
+        when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
+            List<String> candidates = invocation.getArgument(2);
+            return candidates.stream()
+                    .map(candidate -> nodes.findByUserIdAndNodeTypeAndNormalizedTitle(
+                                    USER_ID,
+                                    NodeType.SUBJECT,
+                                    NodeTitleNormalizer.normalize(candidate)
+                            )
+                            .map(node -> ResolvedNode.exact(candidate, node))
+                            .orElseGet(() -> ResolvedNode.created(
+                                    candidate,
+                                    nodes.save(KnowledgeNode.create(
+                                            USER_ID, NodeType.SUBJECT, candidate, null
+                                    ))
+                            )))
+                    .toList();
+        });
 
         digestProcessor = new SourceDigestProcessor(
                 sourceService,
                 new KnowledgeNodeService(nodes),
                 digestService,
+                resolutionService,
                 new SourceGraphWriter(
                         new KnowledgeNodeService(nodes),
-                        new NodeResolver(nodes),
                         new KnowledgeRelationService(relations)
                 )
         );
@@ -93,7 +114,7 @@ class SourcePipelineTest {
         when(fetchService.fetchAll(anyList())).thenReturn(List.of(
                 SourceFetchResult.success(url, new FetchedDocument(
                         url, url, title, "작성자", null, "article",
-                        "# " + title + "\n\n본문입니다.", false
+                        "# " + title + "\n\n" + "본문입니다. ".repeat(20), false
                 ))
         ));
     }

@@ -1,7 +1,5 @@
 package com.swimming.backend.knowledge.dto.in;
 
-import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
-
 /**
  * 링크마다 어떻게 됐는지 그대로 돌려준다. 하나가 실패해도 나머지는 저장된다.
  */
@@ -22,25 +20,27 @@ public record SourceCollectResponse(java.util.List<Item> items) {
 
     /**
      * @param source 가져오기에 성공했을 때만 채운다
-     * @param reason 실패했을 때만 채운다
+     * @param failureMessage 실패했을 때만 채우는 {@code SOURCE_*} 오류 코드
+     * @param retryable 같은 요청을 다시 시도할 수 있는지
      */
     public record Item(
             String url,
             Result result,
             SourceResponse source,
-            SourceFetchResult.Failure reason
+            String failureMessage,
+            boolean retryable
     ) {
 
         public static Item created(String url, SourceResponse source) {
-            return new Item(url, Result.CREATED, source, null);
+            return new Item(url, Result.CREATED, source, null, false);
         }
 
         public static Item alreadySaved(String url, SourceResponse source) {
-            return new Item(url, Result.ALREADY_SAVED, source, null);
+            return new Item(url, Result.ALREADY_SAVED, source, null, false);
         }
 
-        public static Item failed(String url, SourceFetchResult.Failure reason) {
-            return new Item(url, Result.FAILED, null, reason);
+        public static Item failed(String url, String failureMessage, boolean retryable) {
+            return new Item(url, Result.FAILED, null, failureMessage, retryable);
         }
     }
 }

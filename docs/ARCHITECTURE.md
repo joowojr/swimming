@@ -146,7 +146,7 @@ com.swimming.backend
 ├── session     세션·기록
 ├── group       그룹 룸·참가자·실시간
 ├── place       도시·장소
-├── stats       집계·통계·streak
+├── knowledge   링크 수집
 ├── note        기본·폴더·세션 컨텍스트 메모와 Task 정리
 └── common      공통 설정, 예외, 응답 포맷
 ```
@@ -159,7 +159,6 @@ com.swimming.backend
 2. **JPA 엔티티를 직접 주고받지 않는다.** 다른 도메인의 영속 엔티티를 그대로 넘기면 영속성 세부 구현과 변경 추적 범위가 도메인 경계를 넘어간다. 상대 Service는 호출 목적에 따라 `ProjectReference` 같은 DTO나 `Session` 같은 순수 도메인 객체를 반환한다.
 3. **기반 식별자는 값으로 보유한다.** project는 소유자를 `user` Service로 조회하지 않고 `userId`(Long)만 들고 다닌다. 기반 도메인(user·place)을 향한 불필요한 런타임 의존을 만들지 않기 위해서다.
 4. **의존 방향을 한쪽으로 유지한다.** 아래 방향을 따르면 순환 참조가 생기지 않는다.
-5. **여러 도메인이 엮이는 후속 처리는 이벤트로 분리한다.** 예를 들어 세션 종료 후 통계 갱신은 `SessionEndedEvent`를 발행하고 `stats`가 수신한다. 서로를 몰라도 된다.
 6. **여러 Service가 엮이는 흐름은 UseCase가 조율한다.** Service끼리 순환 의존하거나 상호 조율 책임을 나눠 갖지 않는다.
 
 ### 의존 방향
@@ -172,7 +171,6 @@ plan → folder, task
 session → user, place, plan, task
 note → folder, session, task
 group → user, place, session, task
-stats → folder, task, session, place
 ```
 
 화살표는 Service 호출 방향이다. `/folders/{folderId}/tasks`처럼 폴더 소유권 확인과 Task 동작이 함께 필요한 사용자 행동은 `FolderUseCase`가 조율해 `folder → task` 방향을 유지한다. 반대 방향 호출은 두지 않는다.
@@ -303,7 +301,7 @@ cities ── places ─────────────┴─ group_rooms
 ```
 frontend/src/
 ├── pages/        라우트 단위 화면 (홈, 폴더 상세, 세션, 그룹)
-├── features/     도메인별 로직 (folder, task, session, group, stats)
+├── features/     도메인별 로직 (folder, task, session, group)
 ├── components/   공용 UI
 ├── api/          REST 클라이언트
 ├── ws/           STOMP 연결·구독 관리

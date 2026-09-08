@@ -112,7 +112,13 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
         this.readAt = readAt;
     }
 
-    public void updateStatus(SourceProcessingStatus processingStatus) {
+    public void updateStatus(
+            SourceProcessingStatus processingStatus,
+            String failureMessage,
+            boolean retryable
+    ) {
         this.processingStatus = processingStatus;
+        this.failureMessage = failureMessage;
+        this.retryable = retryable;
     }
 }

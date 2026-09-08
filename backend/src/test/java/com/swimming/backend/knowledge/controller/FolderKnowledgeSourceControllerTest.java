@@ -115,7 +115,7 @@ class FolderKnowledgeSourceControllerTest {
         when(commandUseCase.collect(eq(1L), eq(10L), any(SourceCollectRequest.class)))
                 .thenReturn(new SourceCollectResponse(List.of(
                         SourceCollectResponse.Item.failed(
-                                "https://gone.com", "문서를 여는 데 실패했어요.", false
+                                "https://gone.com", "SOURCE_HTTP_ERROR", false
                         )
                 )));
 
@@ -126,7 +126,7 @@ class FolderKnowledgeSourceControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].result").value("FAILED"))
-                .andExpect(jsonPath("$.items[0].failureMessage").value("문서를 여는 데 실패했어요."))
+                .andExpect(jsonPath("$.items[0].failureMessage").value("SOURCE_HTTP_ERROR"))
                 .andExpect(jsonPath("$.items[0].retryable").value(false))
                 .andExpect(jsonPath("$.items[0].source").isEmpty());
     }

@@ -159,7 +159,7 @@ class SourceDigestProcessorTest {
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(response.result()).isNull();
         assertThat(response.failureMessage())
-                .isEqualTo("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.");
+                .isEqualTo("SOURCE_DIGEST_FAILURE");
         assertThat(response.retryable()).isTrue();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
@@ -194,7 +194,7 @@ class SourceDigestProcessorTest {
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(response.failureMessage())
-                .isEqualTo("문서에서 정리할 내용을 찾지 못했어요. 링크는 그대로 저장되어 있어요.");
+                .isEqualTo("SOURCE_EMPTY_CONTENT");
         assertThat(response.retryable()).isFalse();
         verify(digestService, never()).digest(any());
     }
@@ -209,7 +209,7 @@ class SourceDigestProcessorTest {
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
         assertThat(response.failureMessage())
-                .isEqualTo("문서 내용을 정리할 수 없어요. 링크는 그대로 저장되어 있어요.")
+                .isEqualTo("SOURCE_DIGEST_NON_RETRYABLE_FAILURE")
                 .doesNotContain("secret detail");
         assertThat(response.retryable()).isFalse();
     }
@@ -225,7 +225,7 @@ class SourceDigestProcessorTest {
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
 
         assertThat(response.failureMessage())
-                .isEqualTo("문서의 개념을 연결하지 못했어요. 잠시 후 다시 분석해 주세요.")
+                .isEqualTo("SOURCE_DIGEST_RESOLUTION_FAILURE")
                 .doesNotContain("embedding provider unavailable");
         assertThat(response.retryable()).isTrue();
 
@@ -291,7 +291,7 @@ class SourceDigestProcessorTest {
 
         assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
         assertThat(response.failureMessage())
-                .isEqualTo("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.");
+                .isEqualTo("SOURCE_DIGEST_FAILURE");
         assertThat(response.retryable()).isTrue();
 
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();

@@ -43,7 +43,12 @@ public class KnowledgeSourceService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void updateStatus(KnowledgeSource source) {
-        sourceRepository.updateStatus(source.getId(), source.getProcessingStatus());
+        sourceRepository.updateStatus(
+                source.getId(),
+                source.getProcessingStatus(),
+                source.getFailureMessage(),
+                source.isRetryable()
+        );
     }
 
     /** 원문은 남기고 노드만 지운 것으로 표시한다. */

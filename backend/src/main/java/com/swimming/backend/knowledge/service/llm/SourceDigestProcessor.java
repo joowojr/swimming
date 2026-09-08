@@ -54,7 +54,7 @@ public class SourceDigestProcessor {
         }
 
         if (!StringUtils.hasText(source.getContent())) {
-            source.failDigestion(ErrorCode.SOURCE_EMPTY_CONTENT.getMessage(), false);
+            source.failDigestion(ErrorCode.SOURCE_EMPTY_CONTENT.name(), false);
             return SourceDigestResponse.of(sourceService.save(source), null);
         }
 
@@ -73,8 +73,8 @@ public class SourceDigestProcessor {
         } catch (RuntimeException exception) {
             return fail(
                     source,
-                    ErrorCode.SOURCE_DIGEST_FAILURE.getMessage(),
-                    ErrorCode.NON_RETRYABLE_SOURCE_DIGEST_FAILURE.getMessage(),
+                    ErrorCode.SOURCE_DIGEST_FAILURE,
+                    ErrorCode.SOURCE_DIGEST_NON_RETRYABLE_FAILURE,
                     exception
             );
         }
@@ -93,8 +93,8 @@ public class SourceDigestProcessor {
         } catch (RuntimeException exception) {
             return fail(
                     source,
-                    ErrorCode.SOURCE_DIGEST_RESOLUTION_FAILURE.getMessage(),
-                    ErrorCode.NON_RETRYABLE_SOURCE_DIGEST_RESOLUTION_FAILURE.getMessage(),
+                    ErrorCode.SOURCE_DIGEST_RESOLUTION_FAILURE,
+                    ErrorCode.SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE,
                     exception
             );
         }
@@ -109,8 +109,8 @@ public class SourceDigestProcessor {
 
     private SourceDigestResponse fail(
             KnowledgeSource source,
-            String retryableFailureMessage,
-            String nonRetryableFailureMessage,
+            ErrorCode retryableFailure,
+            ErrorCode nonRetryableFailure,
             RuntimeException exception
     ) {
         log.info(
@@ -119,10 +119,8 @@ public class SourceDigestProcessor {
         );
 
         boolean retryable = isRetryable(exception);
-        String failureMessage = retryable
-                ? retryableFailureMessage
-                : nonRetryableFailureMessage;
-        source.failDigestion(failureMessage, retryable);
+        ErrorCode failure = retryable ? retryableFailure : nonRetryableFailure;
+        source.failDigestion(failure.name(), retryable);
         return SourceDigestResponse.of(sourceService.save(source), null);
     }
 

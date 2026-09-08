@@ -20,7 +20,7 @@ public record SourceCollectResponse(java.util.List<Item> items) {
 
     /**
      * @param source 가져오기에 성공했을 때만 채운다
-     * @param failureMessage 실패했을 때만 채우는 사용자용 안내
+     * @param failureMessage 실패했을 때만 채우는 {@code SOURCE_*} 오류 코드
      * @param retryable 같은 요청을 다시 시도할 수 있는지
      */
     public record Item(

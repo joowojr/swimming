@@ -12,7 +12,7 @@ import type { ApiError } from '../../api/client'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import { deleteSource, markSourceRead, markSourceUnread, retrySource } from './knowledgeApi'
-import { SOURCE_STATUS_LABEL } from './knowledgeLabels'
+import { SOURCE_STATUS_LABEL, sourceFailureMessage } from './knowledgeLabels'
 import { sourceMark } from './sourceIcon'
 import { formatSavedAt } from './sourceTime'
 import type { SourceCard, SourceDeleteResponse } from './knowledgeTypes'
@@ -195,7 +195,10 @@ export default function SourceFeedCard({
             <IconInfoCircle size={16} stroke={1.8} />
           </span>
           <p className={styles.notice}>
-            {source.failureMessage ?? '내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.'}
+            {sourceFailureMessage(
+              source.failureMessage,
+              '내용을 정리하지 못했지만 링크는 그대로 저장되어 있어요.',
+            )}
           </p>
           {source.retryable && (
             <button

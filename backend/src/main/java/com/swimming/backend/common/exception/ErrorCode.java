@@ -72,29 +72,28 @@ public enum ErrorCode {
     CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),
     PASSWORD_REUSE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "현재 비밀번호와 다른 비밀번호를 입력해 주세요"),
 
-    SOURCE_EMPTY_CONTENT(
+    // SOURCE FAILURE CODES
+    // Source의 개별 수집·소화 실패는 ProblemDetail이 아니라 failureMessage로 전달한다.
+    // 프런트가 사용자 문구를 결정하므로 코드명 자체를 저장·전송한다.
+    SOURCE_INVALID_URL(HttpStatus.UNPROCESSABLE_ENTITY, "SOURCE_INVALID_URL"),
+    SOURCE_BLOCKED_ADDRESS(HttpStatus.UNPROCESSABLE_ENTITY, "SOURCE_BLOCKED_ADDRESS"),
+    SOURCE_UNSUPPORTED_CONTENT_TYPE(HttpStatus.UNPROCESSABLE_ENTITY, "SOURCE_UNSUPPORTED_CONTENT_TYPE"),
+    SOURCE_HTTP_ERROR(HttpStatus.BAD_GATEWAY, "SOURCE_HTTP_ERROR"),
+    SOURCE_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "SOURCE_TIMEOUT"),
+    SOURCE_UNKNOWN(HttpStatus.INTERNAL_SERVER_ERROR, "SOURCE_UNKNOWN"),
+    SOURCE_EMPTY_CONTENT(HttpStatus.UNPROCESSABLE_ENTITY, "SOURCE_EMPTY_CONTENT"),
+    SOURCE_DIGEST_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, "SOURCE_DIGEST_FAILURE"),
+    SOURCE_DIGEST_NON_RETRYABLE_FAILURE(
             HttpStatus.UNPROCESSABLE_ENTITY,
-            "문서에서 정리할 내용을 찾지 못했어요. 링크는 그대로 저장되어 있어요."
+            "SOURCE_DIGEST_NON_RETRYABLE_FAILURE"
     ),
-
-    SOURCE_DIGEST_FAILURE(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요."
-    ),
-
-    NON_RETRYABLE_SOURCE_DIGEST_FAILURE(
-            HttpStatus.UNPROCESSABLE_ENTITY,
-            "문서 내용을 정리할 수 없어요. 링크는 그대로 저장되어 있어요."
-    ),
-
     SOURCE_DIGEST_RESOLUTION_FAILURE(
             HttpStatus.INTERNAL_SERVER_ERROR,
-            "일시적인 오류가 발생했어요. 잠시 후 다시 분석해 주세요."
+            "SOURCE_DIGEST_RESOLUTION_FAILURE"
     ),
-
-    NON_RETRYABLE_SOURCE_DIGEST_RESOLUTION_FAILURE(
+    SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE(
             HttpStatus.UNPROCESSABLE_ENTITY,
-            "문서의 개념을 연결할 수 없어요. 링크는 그대로 저장되어 있어요."
+            "SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE"
     );
 
     private final HttpStatus status;

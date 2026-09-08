@@ -114,7 +114,7 @@ class SourcePipelineTest {
         when(fetchService.fetchAll(anyList())).thenReturn(List.of(
                 SourceFetchResult.success(url, new FetchedDocument(
                         url, url, title, "작성자", null, "article",
-                        "# " + title + "\n\n본문입니다.", false
+                        "# " + title + "\n\n" + "본문입니다. ".repeat(20), false
                 ))
         ));
     }

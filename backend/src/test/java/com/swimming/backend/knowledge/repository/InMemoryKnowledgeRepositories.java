@@ -136,6 +136,25 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
+        public void updateStatus(
+                UUID sourceId,
+                SourceProcessingStatus status,
+                String failureMessage,
+                boolean retryable
+        ) {
+            KnowledgeSource source = stored.get(sourceId);
+            if (source == null) {
+                return;
+            }
+            if (status == SourceProcessingStatus.FAILED) {
+                source.failDigestion(failureMessage, retryable);
+            } else {
+                source.updateStatus(status);
+            }
+            stored.put(sourceId, copy(source));
+        }
+
+        @Override
         public List<UUID> findSimilarSourceIds(
                 Long userId,
                 UUID excludedSourceId,

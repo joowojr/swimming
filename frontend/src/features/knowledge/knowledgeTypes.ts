@@ -4,6 +4,19 @@ import type { CursorPage, CursorPageQuery } from '../../api/types'
 
 export type SourceProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
+export type SourceFailureCode =
+  | 'SOURCE_INVALID_URL'
+  | 'SOURCE_BLOCKED_ADDRESS'
+  | 'SOURCE_UNSUPPORTED_CONTENT_TYPE'
+  | 'SOURCE_HTTP_ERROR'
+  | 'SOURCE_TIMEOUT'
+  | 'SOURCE_UNKNOWN'
+  | 'SOURCE_EMPTY_CONTENT'
+  | 'SOURCE_DIGEST_FAILURE'
+  | 'SOURCE_DIGEST_NON_RETRYABLE_FAILURE'
+  | 'SOURCE_DIGEST_RESOLUTION_FAILURE'
+  | 'SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE'
+
 /** 눌러서 Node Detail로 갈 수 있도록 이름과 함께 id를 받는다. */
 export interface NodeRef {
   nodeId: string
@@ -25,8 +38,8 @@ export interface SourceCard {
   createdAt: string | null
   /** 읽은 시각. 아직 읽지 않았으면 null. 시각은 서버가 정한다. */
   readAt: string | null
-  /** 실패했을 때 서버가 제공하는 사용자용 안내. */
-  failureMessage: string | null
+  /** 실패했을 때 서버가 제공하는 SOURCE_* 오류 코드. */
+  failureMessage: SourceFailureCode | null
   /** 같은 분석을 다시 시도할 수 있는지. */
   retryable: boolean
   summary: string | null
@@ -47,7 +60,7 @@ export interface SourceCollectItem {
   url: string
   result: SourceCollectResult
   source: SourceCard | null
-  failureMessage: string | null
+  failureMessage: SourceFailureCode | null
   retryable: boolean
 }
 

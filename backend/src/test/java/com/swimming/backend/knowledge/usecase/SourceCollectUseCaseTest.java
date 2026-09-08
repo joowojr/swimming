@@ -121,7 +121,7 @@ class SourceCollectUseCaseTest {
             return SourceFetchResult.success(url, new FetchedDocument(
                     url, canonical, title, "작성자",
                     Instant.parse("2026-03-01T00:00:00Z"), "article",
-                    "# " + title + "\n\n본문입니다.", false
+                    "# " + title + "\n\n" + "본문입니다. ".repeat(20), false
             ));
         }
 
@@ -193,6 +193,31 @@ class SourceCollectUseCaseTest {
         }
 
         @Test
+        @DisplayName("본문이 짧으면 오류 코드와 함께 실패 상태를 저장한다")
+        void storesFailureCodeWhenContentIsTooShort() {
+            givenFetch(SourceFetchResult.success("https://a.com/short", new FetchedDocument(
+                    "https://a.com/short",
+                    "https://a.com/short",
+                    "짧은 문서",
+                    null,
+                    null,
+                    "article",
+                    "짧은 본문",
+                    false
+            )));
+
+            SourceResponse source = collect(FOLDER_ID, "https://a.com/short")
+                    .items().getFirst().source();
+
+            assertThat(source.status()).isEqualTo(SourceProcessingStatus.FAILED);
+            assertThat(source.failureMessage()).isEqualTo("SOURCE_EMPTY_CONTENT");
+            assertThat(source.retryable()).isFalse();
+            assertThat(sources.findById(source.sourceId()).orElseThrow().getFailureMessage())
+                    .isEqualTo("SOURCE_EMPTY_CONTENT");
+            verify(digestService, never()).digest(any());
+        }
+
+        @Test
         @DisplayName("소화에 실패해도 저장은 남는다")
         void keepsSourceWhenDigestionFails() {
             givenFetch(success("https://a.com/1", "https://a.com/1", "첫 문서"));
@@ -209,7 +234,7 @@ class SourceCollectUseCaseTest {
             assertThat(item.source().summary()).isNull();
             assertThat(item.source().subjects()).isEmpty();
             assertThat(item.source().failureMessage())
-                    .isEqualTo("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.");
+                    .isEqualTo("SOURCE_DIGEST_FAILURE");
             assertThat(item.source().retryable()).isTrue();
 
             assertThat(sources.findById(item.source().sourceId()).orElseThrow().getContent())
@@ -227,7 +252,7 @@ class SourceCollectUseCaseTest {
             SourceCollectResponse response = collect(FOLDER_ID, "https://bad.com", "https://good.com");
 
             assertThat(response.items().getFirst().result()).isEqualTo(SourceCollectResponse.Result.FAILED);
-            assertThat(response.items().getFirst().failureMessage()).isEqualTo("문서를 여는 데 실패했어요.");
+            assertThat(response.items().getFirst().failureMessage()).isEqualTo("SOURCE_HTTP_ERROR");
             assertThat(response.items().getFirst().retryable()).isFalse();
             assertThat(response.items().getFirst().source()).isNull();
 
@@ -235,7 +260,7 @@ class SourceCollectUseCaseTest {
         }
 
         @Test
-        @DisplayName("서버 오류로 수집하지 못한 링크는 사용자 메시지와 재시도 가능 여부를 돌려준다")
+        @DisplayName("서버 오류로 수집하지 못한 링크는 오류 코드와 재시도 가능 여부를 돌려준다")
         void reportsRetryableFetchFailure() {
             givenFetch(SourceFetchResult.failure(
                     "https://unstable.com", SourceFetchResult.Failure.HTTP_ERROR, "503"
@@ -244,7 +269,7 @@ class SourceCollectUseCaseTest {
             SourceCollectResponse.Item item = collect(FOLDER_ID, "https://unstable.com")
                     .items().getFirst();
 
-            assertThat(item.failureMessage()).isEqualTo("문서를 여는 데 실패했어요.");
+            assertThat(item.failureMessage()).isEqualTo("SOURCE_HTTP_ERROR");
             assertThat(item.retryable()).isTrue();
         }
 
@@ -379,7 +404,7 @@ class SourceCollectUseCaseTest {
                     USER_ID, FOLDER_ID, "문서", "https://a.com", "https://a.com"
             );
             source.applyExtractedDocument("문서", "파싱한 본문", "article", null, null);
-            source.failDigestion("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.", true);
+            source.failDigestion("SOURCE_DIGEST_FAILURE", true);
             return sources.save(source);
         }
 
@@ -401,7 +426,7 @@ class SourceCollectUseCaseTest {
         }
 
         @Test
-        @DisplayName("재분석이 다시 실패하면 사용자 메시지와 재시도 가능 여부를 응답한다")
+        @DisplayName("재분석이 다시 실패하면 오류 코드와 재시도 가능 여부를 응답한다")
         void returnsFailureMessageWhenRetryFails() {
             KnowledgeSource source = failedSource();
             when(digestService.digest(any())).thenThrow(new RuntimeException("provider timeout"));
@@ -410,7 +435,7 @@ class SourceCollectUseCaseTest {
 
             assertThat(response.status()).isEqualTo(SourceProcessingStatus.FAILED);
             assertThat(response.failureMessage())
-                    .isEqualTo("문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.");
+                    .isEqualTo("SOURCE_DIGEST_FAILURE");
             assertThat(response.retryable()).isTrue();
         }
 

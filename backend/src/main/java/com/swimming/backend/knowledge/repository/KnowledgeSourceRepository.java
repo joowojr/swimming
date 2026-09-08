@@ -66,5 +66,10 @@ public interface KnowledgeSourceRepository {
 
     void updateReadAt(UUID sourceId, Instant readAt);
 
-    void updateStatus(UUID sourceId, SourceProcessingStatus status);
+    void updateStatus(
+            UUID sourceId,
+            SourceProcessingStatus status,
+            String failureMessage,
+            boolean retryable
+    );
 }

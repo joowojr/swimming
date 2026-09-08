@@ -51,10 +51,15 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
-    public void updateStatus(UUID sourceId, SourceProcessingStatus status) {
+    public void updateStatus(
+            UUID sourceId,
+            SourceProcessingStatus status,
+            String failureMessage,
+            boolean retryable
+    ) {
         KnowledgeSourceEntity entity = sourceJpaRepository.findById(sourceId).orElse(null);
         if (entity != null){
-            entity.updateStatus(status);
+            entity.updateStatus(status, failureMessage, retryable);
             sourceJpaRepository.flush();
         }
     }

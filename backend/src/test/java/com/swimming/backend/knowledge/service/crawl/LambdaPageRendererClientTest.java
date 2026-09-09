@@ -1,7 +1,5 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +10,8 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -46,7 +46,7 @@ class LambdaPageRendererClientTest {
                 )
         );
 
-        renderer = new LambdaPageRendererClient(properties, lambdaClient);
+        renderer = new LambdaPageRendererClient(properties, lambdaClient, new ObjectMapper());
     }
 
     private void givenResponse(String payload) {
@@ -77,9 +77,9 @@ class LambdaPageRendererClientTest {
         assertThat(request.functionName()).isEqualTo(FUNCTION_NAME);
 
         JsonNode payload = new ObjectMapper().readTree(request.payload().asUtf8String());
-        assertThat(payload.get("url").asText()).isEqualTo(URL);
+        assertThat(payload.get("url").asString()).isEqualTo(URL);
         assertThat(payload.get("timeoutMs").asLong()).isEqualTo(20_000);
-        assertThat(payload.get("userAgent").asText())
+        assertThat(payload.get("userAgent").asString())
                 .as("렌더링만 다른 봇으로 보이지 않게 한다")
                 .isEqualTo(USER_AGENT);
     }

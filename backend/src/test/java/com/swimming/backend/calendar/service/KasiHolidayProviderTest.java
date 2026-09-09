@@ -56,13 +56,13 @@ class KasiHolidayProviderTest {
                     }
                     """);
         });
-        KasiHolidayProvider provider = provider("decoded+/=");
+        KasiHolidayProvider provider = provider("encoded%2B%2F%3D");
 
         List<HolidayEvent> result = provider.getHolidays(YearMonth.of(2026, 9));
 
         assertThat(result).containsExactly(new HolidayEvent(LocalDate.of(2026, 9, 25), "추석"));
         assertThat(rawQuery.get())
-                .contains("ServiceKey=decoded%2B%2F%3D")
+                .contains("ServiceKey=encoded%2B%2F%3D")
                 .contains("solYear=2026")
                 .contains("solMonth=09")
                 .contains("_type=json")

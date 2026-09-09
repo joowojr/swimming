@@ -42,6 +42,8 @@ class PlaceUseCaseTest {
         ));
         when(placeVideoService.resolveBackgroundUrl("places/lisbon/alfama.mp4"))
                 .thenReturn("https://cdn.example.com/places/lisbon/alfama.mp4");
+        when(placeVideoService.resolveThumbnailUrl("places/thumbnails/alfama.mp4"))
+                .thenReturn("https://cdn.example.com/places/thumbnails/alfama.mp4");
         when(placeVideoService.resolveBackgroundUrl("places/tokyo/shibuya.mp4"))
                 .thenReturn("https://cdn.example.com/places/tokyo/shibuya.mp4");
 
@@ -58,6 +60,8 @@ class PlaceUseCaseTest {
                     assertThat(place.backgroundAsset().key()).isEqualTo("places/lisbon/alfama.mp4");
                     assertThat(place.backgroundAsset().url())
                             .isEqualTo("https://cdn.example.com/places/lisbon/alfama.mp4");
+                    assertThat(place.backgroundAsset().thumbnailUrl())
+                            .isEqualTo("https://cdn.example.com/places/thumbnails/alfama.mp4");
                 });
     }
 
@@ -97,6 +101,7 @@ class PlaceUseCaseTest {
                 name,
                 BackgroundAssetType.VIDEO,
                 backgroundAssetKey,
+                backgroundAssetKey == null ? null : "places/thumbnails/alfama.mp4",
                 "https://youtu.be/default"
         );
     }

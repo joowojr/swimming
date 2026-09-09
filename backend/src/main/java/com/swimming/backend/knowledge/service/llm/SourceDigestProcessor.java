@@ -37,7 +37,7 @@ import java.util.UUID;
 public class SourceDigestProcessor {
 
     /** 프롬프트나 출력 스키마를 바꾸면 올린다. 어떤 기준으로 분석했는지 구분하기 위해서다. */
-    private static final int ANALYSIS_VERSION = 4;
+    private static final int ANALYSIS_VERSION = 5;
 
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;

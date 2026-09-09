@@ -30,6 +30,7 @@ public record SessionWithPlaceRow(
         String placeName,
         BackgroundAssetType backgroundAssetType,
         String backgroundAssetKey,
+        String thumbnailAssetKey,
         String defaultMusicUrl
 ) {
 }

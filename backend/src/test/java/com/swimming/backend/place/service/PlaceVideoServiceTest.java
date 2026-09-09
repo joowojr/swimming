@@ -34,6 +34,20 @@ class PlaceVideoServiceTest {
     }
 
     @Test
+    @DisplayName("썸네일 오브젝트 키를 CDN URL로 변환한다")
+    void resolvesCdnThumbnailUrl() {
+        String url = placeVideoService.resolveThumbnailUrl("places/thumbnails/alfama.mp4");
+
+        assertThat(url).isEqualTo("https://cdn.example.net/places/thumbnails/alfama.mp4");
+    }
+
+    @Test
+    @DisplayName("썸네일 키가 없으면 썸네일 URL을 비운다")
+    void leavesThumbnailUrlEmptyWhenKeyIsMissing() {
+        assertThat(placeVideoService.resolveThumbnailUrl(null)).isNull();
+    }
+
+    @Test
     @DisplayName("'/'로 시작하는 키도 슬래시가 겹치지 않는 CDN URL로 만든다")
     void normalizesLeadingSlashInKey() {
         String url = placeVideoService.resolveBackgroundUrl("/places/video/alfama.mp4");

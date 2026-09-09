@@ -2,7 +2,7 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.plan.service.DailyPlanService;
+import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.place.domain.City;
 import com.swimming.backend.place.domain.Place;
@@ -97,6 +97,8 @@ class SessionUseCaseTest {
         ));
         when(placeVideoService.resolveBackgroundUrl("places/video/alfama.mp4"))
                 .thenReturn("https://cdn.example.com/alfama.mp4");
+        when(placeVideoService.resolveThumbnailUrl("places/thumbnails/alfama.mp4"))
+                .thenReturn("https://cdn.example.com/places/thumbnails/alfama.mp4");
         when(taskService.getReferences(1L, List.of(10L, 11L))).thenReturn(List.of(
                 new TaskReference(10L, 2L, "폴더", "첫 Task", null),
                 new TaskReference(11L, 2L, "폴더", "다음 Task", null)
@@ -111,6 +113,8 @@ class SessionUseCaseTest {
         assertThat(response.place().id()).isEqualTo(20L);
         assertThat(response.place().backgroundAsset().url())
                 .isEqualTo("https://cdn.example.com/alfama.mp4");
+        assertThat(response.place().backgroundAsset().thumbnailUrl())
+                .isEqualTo("https://cdn.example.com/places/thumbnails/alfama.mp4");
         assertThat(response.status()).isEqualTo(SessionStatus.IN_PROGRESS);
         verify(dailyPlanService).containsAllTasks(
                 1L,
@@ -452,6 +456,7 @@ class SessionUseCaseTest {
                 name,
                 BackgroundAssetType.VIDEO,
                 backgroundAssetKey,
+                "places/thumbnails/alfama.mp4",
                 "https://youtu.be/default"
         );
     }
@@ -486,6 +491,7 @@ class SessionUseCaseTest {
                 place.getName(),
                 place.getBackgroundAssetType(),
                 place.getBackgroundAssetKey(),
+                place.getThumbnailAssetKey(),
                 place.getDefaultMusicUrl()
         );
     }

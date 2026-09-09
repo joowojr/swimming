@@ -25,12 +25,24 @@ public class PlaceVideoService {
             return null;
         }
 
-        String objectKey = backgroundAssetKey.strip().replaceAll("^/+", "");
+        return resolveAssetUrl(backgroundAssetKey);
+    }
+
+    public String resolveThumbnailUrl(String thumbnailAssetKey) {
+        if (thumbnailAssetKey == null || thumbnailAssetKey.isBlank()) {
+            return null;
+        }
+
+        return resolveAssetUrl(thumbnailAssetKey);
+    }
+
+    private String resolveAssetUrl(String assetKey) {
+        String objectKey = assetKey.strip().replaceAll("^/+", "");
         String url = placeBackgroundProperties.cdnBaseUrl()
                 + "/"
                 + UriUtils.encodePath(objectKey, StandardCharsets.UTF_8);
 
-        log.debug("[SWIMMING_PLACE] 배경 URL 생성 key={} url={}", objectKey, url);
+        log.debug("[SWIMMING_PLACE] 미디어 URL 생성 key={} url={}", objectKey, url);
         return url;
     }
 }

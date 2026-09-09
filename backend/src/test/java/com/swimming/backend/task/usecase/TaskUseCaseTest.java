@@ -4,16 +4,16 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
-import com.swimming.backend.plan.service.DailyPlanService;
+import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
-import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
@@ -63,10 +63,9 @@ class TaskUseCaseTest {
         when(taskService.create(1L, 10L, "Task", false, false, 1024L))
                 .thenReturn(task(1L, 10L, "Task", 0));
 
-        TaskResponse response = taskUseCase.create(
+        TaskResponse response = taskUseCase.createWithOptionalPlan(
                 1L,
-                10L,
-                new CreateTaskRequest("Task")
+                new CreateTaskWithPlanRequest("Task", 10L, false, false, null)
         );
 
         assertThat(response.id()).isEqualTo(1L);

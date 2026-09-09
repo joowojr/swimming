@@ -8,14 +8,20 @@ public record PlaceResponse(
         BackgroundAssetResponse backgroundAsset,
         String defaultMusicUrl
 ) {
-    public static PlaceResponse from(Place place, String backgroundAssetUrl) {
+    public static PlaceResponse from(
+            Place place,
+            String backgroundAssetUrl,
+            String thumbnailAssetUrl
+    ) {
         return new PlaceResponse(
                 place.getId(),
                 place.getName(),
                 new BackgroundAssetResponse(
                         place.getBackgroundAssetType(),
                         place.getBackgroundAssetKey(),
-                        backgroundAssetUrl
+                        backgroundAssetUrl,
+                        place.getThumbnailAssetKey(),
+                        thumbnailAssetUrl
                 ),
                 place.getDefaultMusicUrl()
         );

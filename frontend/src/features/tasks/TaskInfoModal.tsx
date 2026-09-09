@@ -18,7 +18,7 @@ interface TaskInfoModalProps {
   currentUrgent: boolean
   /**
    * 날짜를 다룰 수 있는 화면만 넘긴다.
-   * itemId가 있으면 그 계획 항목을 옮기고, 없으면 고른 날짜의 계획에 새로 담는다.
+   * itemId가 있으면 그 캘린더 항목을 옮기고, 없으면 고른 날짜의 캘린더에 새로 담는다.
    * date는 지금 담긴 날짜이고, 모르면 빈 문자열이다.
    */
   plan?: { itemId?: number; date: string }
@@ -38,7 +38,7 @@ function requestErrorMessage(error: unknown, fallback: string) {
 /**
  * 역할: 할 일의 날짜·폴더·표시를 한 화면에서 고친다.
  * 서버가 한 트랜잭션으로 처리하므로 일부만 반영되는 중간 상태가 없다.
- * TODO(task-owns-plan-date): 계획 날짜가 task 컬럼이 되면 plan prop과 응답의 plans가 사라지고
+ * TODO(task-owns-plan-date): 캘린더 날짜가 task 컬럼이 되면 plan prop과 응답의 plans가 사라지고
  *   날짜도 폴더와 같은 평범한 필드가 된다. docs/backlog/task-owns-plan-date.md
  */
 export default function TaskInfoModal({
@@ -95,7 +95,7 @@ export default function TaskInfoModal({
 
     try {
       // folderId는 null이 "미분류"라 생략과 구분되지 않으므로 세 값을 항상 보낸다.
-      // 날짜만 바뀌지 않았을 때 보내지 않아, 계획 항목을 건드리지 않는다.
+      // 날짜만 바뀌지 않았을 때 보내지 않아, 캘린더 항목을 건드리지 않는다.
       const updated = await updateTaskInfo(taskId, {
         title: trimmedTitle,
         folderId,

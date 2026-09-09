@@ -34,3 +34,5 @@ logging:
   level:
     org.hibernate.orm.jdbc.bind: TRACE
     org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: DEBUG
+    com.swimming.backend.knowledge.service: debug
+    com.swimming.backend.calendar.service: debug

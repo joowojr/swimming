@@ -20,6 +20,7 @@ class PlaceEntityTest {
                 "Alfama Cafe",
                 BackgroundAssetType.VIDEO,
                 "https://cdn.example.com/alfama.webm",
+                "https://cdn.example.com/alfama-thumbnail.mp4",
                 "https://youtu.be/default"
         );
         ReflectionTestUtils.setField(entity, "id", 11L);
@@ -31,5 +32,6 @@ class PlaceEntityTest {
         assertThat(place.getCityId()).isEqualTo(1L);
         assertThat(place.getCity().getName()).isEqualTo("Lisbon");
         assertThat(place.getBackgroundAssetType()).isEqualTo(BackgroundAssetType.VIDEO);
+        assertThat(place.getThumbnailAssetKey()).isEqualTo("https://cdn.example.com/alfama-thumbnail.mp4");
     }
 }

@@ -67,7 +67,7 @@ function timerPhase(session: SessionDetailResponse) {
       cursor -= rest
     }
   }
-  // 구간을 모두 소진하고 남은 cursor가 곧 계획을 넘겨 더 진행한 시간이다.
+  // 구간을 모두 소진하고 남은 cursor가 곧 캘린더을 넘겨 더 진행한 시간이다.
   return { kind: 'complete' as const, remaining: 0, overtime: cursor, index: repeats, repeats, elapsed }
 }
 
@@ -403,7 +403,7 @@ export default function PersonalSessionPage() {
               <circle className={styles['ring-progress']} data-phase={phase.kind} cx="50" cy="50" r="44" style={{ strokeDashoffset: ringOffset }} />
             </svg>
             <div className={styles['timer-value']}>
-              {/* 계획한 시간을 넘기면 남은 시간 대신 더 진행한 시간을 센다. */}
+              {/* 캘린더한 시간을 넘기면 남은 시간 대신 더 진행한 시간을 센다. */}
               <h2 id="session-timer-title">
                 {phase.kind === 'complete' ? `+${formatTimer(phase.overtime)}` : formatTimer(remaining)}
               </h2>

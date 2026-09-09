@@ -92,6 +92,7 @@ class PlaceServiceTest {
                 name,
                 BackgroundAssetType.VIDEO,
                 "places/video/alfama.mp4",
+                "places/thumbnails/alfama.mp4",
                 "https://youtu.be/default"
         );
         ReflectionTestUtils.setField(entity, "id", id);

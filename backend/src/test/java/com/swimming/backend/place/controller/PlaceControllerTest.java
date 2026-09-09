@@ -56,7 +56,9 @@ class PlaceControllerTest {
                         new BackgroundAssetResponse(
                                 BackgroundAssetType.VIDEO,
                                 "places/lisbon/alfama.mp4",
-                                "https://cdn.example.com/places/lisbon/alfama.mp4"
+                                "https://cdn.example.com/places/lisbon/alfama.mp4",
+                                "places/thumbnails/alfama.mp4",
+                                "https://cdn.example.com/places/thumbnails/alfama.mp4"
                         ),
                         "https://youtu.be/default"
                 ))
@@ -71,7 +73,9 @@ class PlaceControllerTest {
                         .value("https://youtu.be/default"))
                 .andExpect(jsonPath("$[0].places[0].backgroundAsset.type").value("VIDEO"))
                 .andExpect(jsonPath("$[0].places[0].backgroundAsset.url")
-                        .value("https://cdn.example.com/places/lisbon/alfama.mp4"));
+                        .value("https://cdn.example.com/places/lisbon/alfama.mp4"))
+                .andExpect(jsonPath("$[0].places[0].backgroundAsset.thumbnailUrl")
+                        .value("https://cdn.example.com/places/thumbnails/alfama.mp4"));
 
         verify(placeUseCase).getPlaces();
     }

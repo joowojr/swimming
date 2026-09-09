@@ -86,8 +86,33 @@
     opacity: .55;
 }
 
+.thumbnail::after {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 28%, var(--overlay-scrim));
+    content: '';
+    pointer-events: none;
+}
+
 .thumbnail > * {
     position: relative;
+    z-index: 2;
+}
+
+.thumbnail > .thumbnail-video {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.has-thumbnail-video,
+.has-thumbnail-video svg,
+.has-thumbnail-video span {
+    color: var(--color-on-dark);
 }
 
 .thumbnail svg {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { IconArrowNarrowRight, IconFilter } from '@tabler/icons-react'
+import { IconArrowNarrowRight, IconHierarchy } from '@tabler/icons-react'
 import type { ColumnOrder, LayoutAxis, LayoutOptions, NodeSort } from './graphLayout'
 import styles from './GraphLayoutMenu.module.css'
 
@@ -96,7 +96,7 @@ export default function GraphLayoutMenu({ value, onChange }: GraphLayoutMenuProp
         aria-haspopup="dialog"
         onClick={() => setIsOpen((open) => !open)}
       >
-        <IconFilter size={15} stroke={1.8} aria-hidden="true" />
+        <IconHierarchy size={15} stroke={1.8} aria-hidden="true" />
         보기
       </button>
       {isOpen && (

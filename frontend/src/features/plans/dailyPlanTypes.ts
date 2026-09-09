@@ -24,7 +24,7 @@ export type CreateDailyPlanItemsRequest =
   | { taskIds?: never; folderId?: number; title: string; priority?: boolean; urgent?: boolean }
 
 /**
- * store에 담기는 계획 항목. 계획이 소유하는 것은 "어떤 날짜에 어떤 task가 어떤 순서로 있는가"뿐이고,
+ * store에 담기는 캘린더 항목. 캘린더이 소유하는 것은 "어떤 날짜에 어떤 task가 어떤 순서로 있는가"뿐이고,
  * task의 가변 속성(title·status·priority·urgent)은 taskStore가 소유한다.
  * folderName은 folderStore에 폴더가 없을 때 쓰는 표시용 폴백이다.
  */

@@ -14,7 +14,7 @@ import java.util.List;
  */
 public record SourceDigestResult(
 
-        @JsonPropertyDescription("Core content of the document, in Korean.")
+        @JsonPropertyDescription("Summarize the content in 2–3 concise Korean sentences that a 17 years old student could understand.")
         String summary,
 
         @JsonPropertyDescription(
@@ -28,9 +28,11 @@ public record SourceDigestResult(
         )
         String topic,
 
-        @JsonPropertyDescription("Concepts the document directly covers, in order of prominence.")
+        @JsonPropertyDescription(
+                "Canonical, independently searchable concepts substantively covered by the document, ordered by prominence."
+        )
         // 상한은 스키마로 막는다. 설명문에 숫자를 또 적으면 한쪽만 고쳤을 때 갈라진다.
-        @ArraySchema(maxItems = 4)
+        @ArraySchema(maxItems = 5)
         List<String> subjects
 ) {
 }

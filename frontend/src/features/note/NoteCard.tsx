@@ -20,7 +20,7 @@ import styles from './NoteCard.module.css'
 
 /**
  * 역할: 노트의 선택·자동 저장·보관·삭제를 관리하고, 각 화면 조각과 Task Organizer 흐름을 조합한다.
- * AI 정리와 계획 연결의 세부 상태는 TaskOrganizerPanel이 소유한다.
+ * AI 정리와 캘린더 연결의 세부 상태는 TaskOrganizerPanel이 소유한다.
  */
 interface NoteCardProps {
   folders: ProjectOption[]

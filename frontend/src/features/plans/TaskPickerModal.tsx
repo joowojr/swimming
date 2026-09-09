@@ -239,9 +239,9 @@ export default function TaskPickerModal({
             semantics="tabs"
             onChange={selectAddMode}
           />
-          <section className={styles['planning-option-field']} aria-label="할 일 계획 옵션">
+          <section className={styles['planning-option-field']} aria-label="할 일 캘린더 옵션">
             <label className={styles['date-option']}>
-              <input aria-label="계획 날짜" type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} disabled={isSubmitting} />
+              <input aria-label="캘린더 날짜" type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} disabled={isSubmitting} />
             </label>
             {addMode === 'direct' && (
               <div className={styles['planning-option-chips']} role="list">

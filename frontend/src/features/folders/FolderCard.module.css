@@ -115,6 +115,29 @@
   gap: var(--space-2);
 }
 
+.card-bottom {
+  margin-top: auto;
+}
+
+.source-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: var(--space-2);
+}
+
+.source-mark {
+  display: inline-flex;
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-highest);
+  font-size: var(--text-body-sm-size);
+  line-height: 1;
+}
+
 .description {
   display: -webkit-box;
   margin: 0;
@@ -129,7 +152,6 @@
 .footer {
   justify-content: space-between;
   gap: var(--space-3);
-  margin-top: auto;
   padding-top: var(--space-4);
   border-top: var(--border-width) solid var(--color-border-subtle);
   color: var(--color-mute);

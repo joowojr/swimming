@@ -1,10 +1,7 @@
-import { useState } from 'react'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import { useAuthStore } from '../../store/authStore'
 import { usePinboardViewStore } from '../../store/pinboardViewStore'
-import { EMPTY_TASK_FILTER } from '../tasks/taskFilter'
-import type { TaskFilter } from '../tasks/taskFilter'
 import DailyPlanner from '../plans/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
@@ -41,7 +38,8 @@ export default function PinBoard({
   const displayName = user?.nickname || user?.email?.split('@')[0]
   const plannerView = usePinboardViewStore((state) => state.plannerView)
   const setPlannerView = usePinboardViewStore((state) => state.setPlannerView)
-  const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
+  const matrixFilter = usePinboardViewStore((state) => state.matrixFilter)
+  const setMatrixFilter = usePinboardViewStore((state) => state.setMatrixFilter)
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -112,8 +110,8 @@ export default function PinBoard({
                       />
                       {plannerView === 'matrix' && (
                         <TaskFilterMenu
-                          value={taskFilter}
-                          onChange={setTaskFilter}
+                          value={matrixFilter}
+                          onChange={setMatrixFilter}
                           showFlags={false}
                           triggerClassName={styles['planner-filter']}
                         />
@@ -121,7 +119,7 @@ export default function PinBoard({
                     </div>
                     {plannerView === 'daily'
                       ? <DailyPlanner/>
-                      : <TaskMatrix statusFilter={taskFilter.status}/>}
+                      : <TaskMatrix statusFilter={matrixFilter.status}/>}
                   </div>
                 </div>
 

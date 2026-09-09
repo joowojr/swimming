@@ -1,12 +1,12 @@
-package com.swimming.backend.plan.service;
+package com.swimming.backend.calendar.service;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.plan.domain.DailyPlanItem;
-import com.swimming.backend.plan.repository.DailyPlanItemBatchRepository;
-import com.swimming.backend.plan.repository.DailyPlanItemRepository;
-import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
-import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.calendar.domain.DailyPlanItem;
+import com.swimming.backend.calendar.repository.DailyPlanItemBatchRepository;
+import com.swimming.backend.calendar.repository.DailyPlanItemRepository;
+import com.swimming.backend.calendar.repository.entity.DailyPlanItemEntity;
+import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

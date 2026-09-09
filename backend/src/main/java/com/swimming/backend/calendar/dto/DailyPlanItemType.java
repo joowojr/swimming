@@ -1,4 +1,4 @@
-package com.swimming.backend.plan.dto;
+package com.swimming.backend.calendar.dto;
 
 public enum DailyPlanItemType {
     TASK,

@@ -1,6 +1,6 @@
 package com.swimming.backend.task.dto.in;
 
-import com.swimming.backend.plan.dto.DailyPlanResponse;
+import com.swimming.backend.calendar.dto.DailyPlanResponse;
 
 import java.util.List;
 

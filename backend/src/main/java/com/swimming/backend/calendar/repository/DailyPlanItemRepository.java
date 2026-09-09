@@ -1,7 +1,7 @@
-package com.swimming.backend.plan.repository;
+package com.swimming.backend.calendar.repository;
 
-import com.swimming.backend.plan.repository.entity.DailyPlanItemEntity;
-import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.calendar.repository.entity.DailyPlanItemEntity;
+import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +15,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
     List<DailyPlanItemEntity> findAllByUserIdAndPlanDateOrderByOrderIdxAsc(Long userId, LocalDate planDate);
 
     @Query("""
-            select new com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow(
+            select new com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow(
                 item.id,
                 item.planDate,
                 item.taskId,

@@ -1,4 +1,4 @@
-package com.swimming.backend.plan.dto.projection;
+package com.swimming.backend.calendar.dto.projection;
 
 import com.swimming.backend.task.domain.TaskStatus;
 

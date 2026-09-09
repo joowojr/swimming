@@ -1,6 +1,6 @@
-package com.swimming.backend.plan.dto;
+package com.swimming.backend.calendar.dto;
 
-import com.swimming.backend.plan.dto.projection.DailyPlanItemQueryRow;
+import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.task.domain.TaskStatus;
 
 public record DailyPlanItemResponse(

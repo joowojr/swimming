@@ -1,7 +1,7 @@
-package com.swimming.backend.plan.repository.entity;
+package com.swimming.backend.calendar.repository.entity;
 
 import com.swimming.backend.common.entity.BaseTimeEntity;
-import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.calendar.domain.DailyPlanItem;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

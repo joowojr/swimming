@@ -1,6 +1,6 @@
-package com.swimming.backend.plan.repository;
+package com.swimming.backend.calendar.repository;
 
-import com.swimming.backend.plan.domain.DailyPlanItem;
+import com.swimming.backend.calendar.domain.DailyPlanItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;

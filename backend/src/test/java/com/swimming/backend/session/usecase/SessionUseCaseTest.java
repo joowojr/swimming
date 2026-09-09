@@ -2,7 +2,7 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.plan.service.DailyPlanService;
+import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.place.domain.City;
 import com.swimming.backend.place.domain.Place;

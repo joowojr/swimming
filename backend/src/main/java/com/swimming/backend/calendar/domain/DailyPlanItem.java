@@ -1,4 +1,4 @@
-package com.swimming.backend.plan.domain;
+package com.swimming.backend.calendar.domain;
 
 import lombok.Getter;
 

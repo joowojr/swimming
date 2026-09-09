@@ -9,7 +9,8 @@ Analyze the `<source-digest-input>` and return a Summary, one Category, one Topi
 - Ignore error, unavailable, forbidden, not found, DNS, timeout, CAPTCHA, Cloudflare, bot-check, and access-blocked content. If legitimate content remains, use only that content; otherwise return empty strings for `summary`, `category`, and `topic`, and an empty `subjects` array.
 
 ## summary
-- Summarize the content in 3-4 concise Korean sentences.
+- Summarize the content in 3 concise Korean sentences that a 17 years old student could understand.
+- Prefer a high-level explanation over implementation details, feature lists, or technical mechanisms unless they are essential to understanding the content.
 - State only what the content explains. Do not evaluate it, recommend it, or address the reader.
 
 ## category
@@ -22,11 +23,9 @@ Analyze the `<source-digest-input>` and return a Summary, one Category, one Topi
 * `<existing-topics>` contains naming hints only. Reuse a value exactly when it represents the same topic; never choose an unrelated value.
 * Return an empty string only when no usable content remains.
 
-
 ## subjects
-- Return up to four concrete, durable, retrieval-worthy concepts that describe the content, ordered by prominence. If there are no good Subjects, return an empty array.
-- Include only retrieval-worthy concepts the content substantively explains, not passing mentions, one-off facts, examples, organizations, page sections, or incidental implementation details.
-- Each Subject must represent exactly one atomic concept that can stand on its own as a search or knowledge-graph node. 
-- DO NOT combine multiple distinct concepts into one Subject, even when they are closely related or frequently used together. 
-- Never use the document title or a heading merely because it is prominent. Remove document-specific framing and keep one independently searchable concept per Subject.
-- Preserve official products, technologies, APIs, protocols, standards, options, libraries, and established abbreviations in their original form. Use Korean for general concepts with an established Korean name.
+* Return up to four durable, independently searchable technical or domain concepts that the content substantively explains, ordered by prominence.
+* Prefer canonical concepts over document-specific features, workflows, or descriptive phrases.
+* Each Subject must represent exactly one atomic concept. Do not combine distinct concepts.
+* Exclude passing mentions, examples, organizations, headings, and incidental details.
+* Preserve official technologies, APIs, standards, libraries, and abbreviations in their original form; use Korean for established general concepts.

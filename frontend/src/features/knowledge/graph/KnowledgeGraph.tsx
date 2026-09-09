@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   BackgroundVariant,
   Controls,
   ReactFlow,
 } from '@xyflow/react'
-import type { Edge } from '@xyflow/react'
+import type { Edge, ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { ApiError } from '../../../api/client'
 import GraphLayoutMenu from './GraphLayoutMenu'
@@ -32,6 +32,11 @@ type GraphState =
   | { status: 'error'; message: string }
 
 const nodeTypes = { knowledge: GraphNodeCard }
+const SUBJECT_SUMMARY_NODE_PREFIX = '__subject-summary__:'
+const MAX_SOURCES_WITH_VISIBLE_SUBJECTS = 4
+const SUBJECT_DETAIL_ZOOM = 0.7
+const SUBJECT_DETAIL_TARGET_ZOOM = 0.78
+const SUBJECT_SUMMARY_POSITION_RATIO = 0.62
 
 function errorMessage(error: unknown) {
   const apiMessage = typeof error === 'object' && error !== null
@@ -54,7 +59,9 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     order: 'source-first',
     sort: 'linked',
   })
+  const [showSubjectDetails, setShowSubjectDetails] = useState(true)
   const [requestKey, setRequestKey] = useState(0)
+  const flowInstanceRef = useRef<ReactFlowInstance<KnowledgeFlowNode, Edge> | null>(null)
 
   useEffect(() => {
     let active = true
@@ -83,24 +90,110 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     const sourceNodeIds = graph.nodes
       .filter((node) => node.type === 'SOURCE')
       .map((node) => node.nodeId)
+    const showAllSubjects = sourceNodeIds.length <= MAX_SOURCES_WITH_VISIBLE_SUBJECTS
     const highlighted = selectedNodeId
       ? neighborsOf(selectedNodeId, graph.edges, sourceNodeIds)
       : null
 
-    const flowNodes: KnowledgeFlowNode[] = layoutGraph(graph, layout).map(({ node, x, y }) => ({
-      id: node.nodeId,
-      type: 'knowledge',
-      position: { x, y },
-      selected: node.nodeId === selectedNodeId,
-      data: {
-        node,
-        dimmed: highlighted !== null
-          && node.nodeId !== selectedNodeId
-          && !highlighted.has(node.nodeId),
-        sourceCard: sourcesById.get(node.nodeId),
-        axis: layout.axis,
+    const positionedNodes = layoutGraph(graph, layout)
+    const selectedSubjectId = graph.nodes.some(
+      (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
+    ) ? selectedNodeId : null
+    const hiddenSubjects = showAllSubjects || showSubjectDetails
+      ? []
+      : positionedNodes.filter(
+        ({ node }) => node.type === 'SUBJECT' && node.nodeId !== selectedSubjectId,
+      )
+    const hiddenSubjectIds = new Set(hiddenSubjects.map(({ node }) => node.nodeId))
+
+    const visiblePositionedNodes = positionedNodes.filter(
+      ({ node }) => !hiddenSubjectIds.has(node.nodeId),
+    )
+    const positionedById = new Map(positionedNodes.map((entry) => [entry.node.nodeId, entry]))
+    const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]))
+
+    // 축소 상태에서는 전체 Subject를 한 덩어리로 만들지 않는다. Topic마다 직접 이어진
+    // Subject만 세어 요약해야 어떤 목적에 딸린 태그인지 공간적으로 남는다.
+    const subjectSummaries = showAllSubjects || showSubjectDetails
+      ? []
+      : positionedNodes
+        .filter(({ node }) => node.type === 'TOPIC')
+        .flatMap((topicEntry) => {
+          const subjectIds = new Set(
+            graph.edges.flatMap((edge) => {
+              const neighborId = edge.from === topicEntry.node.nodeId
+                ? edge.to
+                : edge.to === topicEntry.node.nodeId
+                  ? edge.from
+                  : null
+              return neighborId
+                && hiddenSubjectIds.has(neighborId)
+                && nodeById.get(neighborId)?.type === 'SUBJECT'
+                ? [neighborId]
+                : []
+            }),
+          )
+          const subjects = [...subjectIds]
+            .map((subjectId) => positionedById.get(subjectId))
+            .filter((entry) => entry !== undefined)
+          if (subjects.length === 0) return []
+
+          const subjectCenter = subjects.reduce(
+            (sum, entry) => ({ x: sum.x + entry.x, y: sum.y + entry.y }),
+            { x: 0, y: 0 },
+          )
+          subjectCenter.x /= subjects.length
+          subjectCenter.y /= subjects.length
+
+          const id = `${SUBJECT_SUMMARY_NODE_PREFIX}${topicEntry.node.nodeId}`
+          return [{
+            id,
+            topicId: topicEntry.node.nodeId,
+            topicTitle: topicEntry.node.title,
+            count: subjects.length,
+            x: topicEntry.x
+              + (subjectCenter.x - topicEntry.x) * SUBJECT_SUMMARY_POSITION_RATIO,
+            y: topicEntry.y
+              + (subjectCenter.y - topicEntry.y) * SUBJECT_SUMMARY_POSITION_RATIO,
+          }]
+        })
+    const subjectSummaryById = new Map(subjectSummaries.map((summary) => [summary.id, summary]))
+
+    visiblePositionedNodes.push(...subjectSummaries.map((summary) => ({
+      node: {
+        nodeId: summary.id,
+        type: 'SUBJECT' as const,
+        title: `+${summary.count}`,
       },
-    }))
+      x: summary.x,
+      y: summary.y,
+    })))
+
+    const flowNodes: KnowledgeFlowNode[] = visiblePositionedNodes.map(({ node, x, y }) => {
+      const subjectSummary = subjectSummaryById.get(node.nodeId)
+      const summaryIsHighlighted = subjectSummary !== undefined
+        && (subjectSummary.topicId === selectedNodeId || highlighted?.has(subjectSummary.topicId))
+
+      return {
+        id: node.nodeId,
+        type: 'knowledge',
+        position: { x, y },
+        selected: node.nodeId === selectedNodeId,
+        data: {
+          node,
+          dimmed: highlighted !== null
+            && node.nodeId !== selectedNodeId
+            && !highlighted.has(node.nodeId)
+            && !summaryIsHighlighted,
+          sourceCard: sourcesById.get(node.nodeId),
+          axis: layout.axis,
+          subjectSummary: subjectSummary !== undefined,
+        },
+        ariaLabel: subjectSummary
+          ? `${subjectSummary.topicTitle}의 태그 ${subjectSummary.count}개 펼쳐 보기`
+          : undefined,
+      }
+    })
 
     // Folder→Source 간선은 응답에 없다. root에 달린 SOURCE가 곧 소속이라(§6.1) 그 소속을
     // 화면에서만 선으로 잇는다.
@@ -123,25 +216,36 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
       }))
       : []
 
-    const relationEdges: Edge[] = graph.edges.map((edge) => ({
+    const relationEdges: Edge[] = graph.edges
+      .filter((edge) => !hiddenSubjectIds.has(edge.from) && !hiddenSubjectIds.has(edge.to))
+      .map((edge) => ({
+        ...shape,
+        id: `${edge.from}-${edge.to}-${edge.kind}`,
+        source: flip ? edge.to : edge.from,
+        target: flip ? edge.from : edge.to,
+        className: `${styles.edge} ${edge.kind === 'USED_FOR' ? styles['edge-used-for'] : ''}`,
+        data: { active: selectedNodeId !== null && touchesNode(edge, selectedNodeId) },
+      }))
+
+    const summaryEdges: Edge[] = subjectSummaries.map((summary) => ({
       ...shape,
-      id: `${edge.from}-${edge.to}-${edge.kind}`,
-      source: flip ? edge.to : edge.from,
-      target: flip ? edge.from : edge.to,
-      className: `${styles.edge} ${edge.kind === 'USED_FOR' ? styles['edge-used-for'] : ''}`,
-      data: { active: selectedNodeId !== null && touchesNode(edge, selectedNodeId) },
+      id: `summary-${summary.topicId}`,
+      source: flip ? summary.id : summary.topicId,
+      target: flip ? summary.topicId : summary.id,
+      className: `${styles.edge} ${styles['edge-summary']}`,
+      data: { active: selectedNodeId === summary.topicId },
     }))
 
     // 고른 노드에 닿는 선만 진하게 두고 나머지는 뒤로 물린다. 고르기 전에는 모두 같은 무게다.
     return {
       nodes: flowNodes,
-      edges: [...belongsEdges, ...relationEdges].map((edge) => ({
+      edges: [...belongsEdges, ...relationEdges, ...summaryEdges].map((edge) => ({
         ...edge,
         className: edge.data?.active ? `${edge.className} ${styles['edge-active']}` : edge.className,
         style: selectedNodeId !== null && !edge.data?.active ? { opacity: 0.12 } : undefined,
       })),
     }
-  }, [graph, layout, selectedNodeId, sourcesById])
+  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById])
 
   const selectedNode = graph?.nodes.find((node) => node.nodeId === selectedNodeId)
     ?? (selectedNodeId === rootNodeId && graph
@@ -202,13 +306,24 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
             minZoom={0.4}
             maxZoom={1.6}
             proOptions={{ hideAttribution: false }}
-            onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+            onInit={(instance) => { flowInstanceRef.current = instance }}
+            onViewportChange={({ zoom }) => {
+              const next = zoom >= SUBJECT_DETAIL_ZOOM
+              setShowSubjectDetails((current) => current === next ? current : next)
+            }}
+            onNodeClick={(_, node) => {
+              if (node.id.startsWith(SUBJECT_SUMMARY_NODE_PREFIX)) {
+                void flowInstanceRef.current?.zoomTo(SUBJECT_DETAIL_TARGET_ZOOM, { duration: 240 })
+                return
+              }
+              setSelectedNodeId(node.id)
+            }}
             onPaneClick={() => setSelectedNodeId(null)}
           >
             <Background
               variant={BackgroundVariant.Dots}
-              gap={24}
-              size={1}
+              gap={20}
+              size={1.3}
               color="var(--color-ash)"
             />
             <Controls showInteractive={false} />

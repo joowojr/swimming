@@ -72,6 +72,12 @@
   background: var(--color-tone-fountain-tint);
 }
 
+/* 축소 상태에서는 태그 열의 자리를 지키면서 숨긴 개수만 한 칩으로 알린다. */
+.node[data-subject-summary] {
+  border-style: dashed;
+  color: var(--color-mute);
+}
+
 /* Topic: 문서 하나가 만든 적용 목적. Subject와 성격이 달라 톤으로 가른다. */
 .node[data-type='TOPIC'] {
   border-color: var(--color-tone-indigo-tint);

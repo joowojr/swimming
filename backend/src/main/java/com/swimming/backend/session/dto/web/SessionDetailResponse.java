@@ -25,6 +25,7 @@ public record SessionDetailResponse(
     public static SessionDetailResponse from(
             SessionWithPlaceRow row,
             String backgroundAssetUrl,
+            String thumbnailAssetUrl,
             List<SessionTaskResponse> tasks
     ) {
         return new SessionDetailResponse(
@@ -38,7 +39,7 @@ public record SessionDetailResponse(
                 row.actualDurationSec(),
                 row.startedAt(),
                 row.endedAt(),
-                SessionDetailPlaceResponse.from(row, backgroundAssetUrl),
+                SessionDetailPlaceResponse.from(row, backgroundAssetUrl, thumbnailAssetUrl),
                 row.musicUrl(),
                 List.copyOf(tasks)
         );

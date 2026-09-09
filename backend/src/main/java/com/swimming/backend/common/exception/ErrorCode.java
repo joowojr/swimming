@@ -37,6 +37,8 @@ public enum ErrorCode {
     DAILY_PLAN_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "데일리 플랜 항목을 찾을 수 없습니다"),
     INVALID_DAILY_PLAN_ITEM(HttpStatus.BAD_REQUEST, "데일리 플랜 항목이 올바르지 않습니다"),
     INVALID_DAILY_PLAN_ITEM_ORDER(HttpStatus.BAD_REQUEST, "데일리 플랜 항목 순서가 올바르지 않습니다"),
+    INVALID_HOLIDAY_MONTH(HttpStatus.BAD_REQUEST, "공휴일 조회 연월이 올바르지 않습니다"),
+    HOLIDAY_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "공휴일 정보를 아직 제공할 수 없습니다"),
 
     // SESSION DOMAIN
     DAILY_PLAN_TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "오늘의 계획에서 Task를 찾을 수 없습니다"),

@@ -111,6 +111,8 @@ class SessionControllerTest {
                 .andExpect(jsonPath("$.tasks[0].title").value("첫 Task"))
                 .andExpect(jsonPath("$.tasks[1].id").value(11))
                 .andExpect(jsonPath("$.place.backgroundAsset.type").value("VIDEO"))
+                .andExpect(jsonPath("$.place.backgroundAsset.thumbnailUrl")
+                        .value("https://bucket.s3.amazonaws.com/alfama-thumbnail.mp4?X-Amz-Signature=abc"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
         verify(sessionUseCase).startPersonal(1L, request);
@@ -369,7 +371,9 @@ class SessionControllerTest {
                 new BackgroundAssetResponse(
                         BackgroundAssetType.VIDEO,
                         "places/video/alfama.mp4",
-                        "https://bucket.s3.amazonaws.com/alfama.mp4?X-Amz-Signature=abc"
+                        "https://bucket.s3.amazonaws.com/alfama.mp4?X-Amz-Signature=abc",
+                        "places/thumbnails/alfama.mp4",
+                        "https://bucket.s3.amazonaws.com/alfama-thumbnail.mp4?X-Amz-Signature=abc"
                 ),
                 "https://youtu.be/default"
         );

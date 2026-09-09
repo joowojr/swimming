@@ -126,6 +126,9 @@ public class SessionUseCase {
                         placeVideoService.resolveBackgroundUrl(
                                 sessionRows.getFirst().backgroundAssetKey()
                         ),
+                        placeVideoService.resolveThumbnailUrl(
+                                sessionRows.getFirst().thumbnailAssetKey()
+                        ),
                         getTasks(sessionRows, tasksById)
                 ))
                 .toList();
@@ -224,6 +227,7 @@ public class SessionUseCase {
         return SessionDetailResponse.from(
                 first,
                 placeVideoService.resolveBackgroundUrl(first.backgroundAssetKey()),
+                placeVideoService.resolveThumbnailUrl(first.thumbnailAssetKey()),
                 getTasks(userId, rows)
         );
     }

@@ -92,7 +92,19 @@ export default function DiveSessionFeedPage() {
           <div className={styles.grid}>
             {sessions.map((session) => (
             <Link className={styles.card} key={session.id} to={`/sessions/${session.id}`}>
-              <div className={`${styles.thumbnail} ${styles[`thumbnail-${session.status.toLowerCase()}`]}`}>
+              <div className={`${styles.thumbnail} ${styles[`thumbnail-${session.status.toLowerCase()}`]} ${session.place.backgroundAsset.thumbnailUrl ? styles['has-thumbnail-video'] : ''}`}>
+                {session.place.backgroundAsset.thumbnailUrl && (
+                  <video
+                    className={styles['thumbnail-video']}
+                    src={session.place.backgroundAsset.thumbnailUrl}
+                    aria-hidden="true"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                )}
                 <StatusIcon status={session.status} />
                 <span>{statusLabels[session.status]}</span>
                 <strong>{formatDuration(session.actualDurationSec ?? session.plannedDurationSec)}</strong>

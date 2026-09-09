@@ -4,6 +4,8 @@ export interface BackgroundAsset {
   type: BackgroundAssetType
   key: string | null
   url: string | null
+  thumbnailKey: string | null
+  thumbnailUrl: string | null
 }
 
 export interface Place {

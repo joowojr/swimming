@@ -81,7 +81,14 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
       >
         <div className={styles.thumbnail} aria-hidden="true">
           {background?.url && (background.type === 'VIDEO' ? (
-              <video src={background.url} autoPlay muted loop playsInline preload="metadata" />
+              <video
+                src={background.thumbnailUrl ?? background.url}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+              />
           ) : (
               <img src={background.url} alt="" />
           ))}

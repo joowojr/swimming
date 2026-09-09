@@ -11,7 +11,7 @@ import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
-import com.swimming.backend.calendar.dto.DailyPlanResponse;
+import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;

@@ -7,12 +7,6 @@ export type TaskStatus = 'TODO' | 'DOING' | 'DONE' | 'HOLD'
 export type TaskSort = 'desc' | 'asc'
 export type TaskMatrixSection = 'PRIORITY_URGENT' | 'URGENT' | 'PRIORITY' | 'STANDARD'
 
-export interface CreateTaskRequest {
-  title: string
-  priority?: boolean
-  urgent?: boolean
-}
-
 export interface UpdateTaskTitleRequest {
   title: string
 }

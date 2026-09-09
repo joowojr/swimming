@@ -1,7 +1,6 @@
 import { client } from '../../api/client'
 import type { CursorPage, CursorPageQuery } from '../../api/types'
 import type {
-  CreateTaskRequest,
   DeleteTasksRequest,
   TaskResponse,
   UpdateTaskStatusRequest,
@@ -18,18 +17,6 @@ import type {
   TaskPlacementRequest,
   TaskPlacementResponse,
 } from './taskTypes'
-
-/** @deprecated 새 Task 생성에는 createTaskWithOptionalPlan을 사용합니다. */
-export async function createTask(
-  folderId: number,
-  request: CreateTaskRequest,
-): Promise<TaskResponse> {
-  const response = await client.post<TaskResponse>(
-    `/folders/${folderId}/tasks`,
-    request,
-  )
-  return response.data
-}
 
 export async function createTaskWithOptionalPlan(request: {
   title: string

@@ -3,7 +3,7 @@ import type { TaskCacheEntry } from '../tasks/taskTypes'
 import type { DailyPlanItem, PlanEntry } from './dailyPlanTypes'
 
 /**
- * 계획 항목(멤버십) + task(가변 속성) + 폴더(이름)를 화면이 쓰는 한 줄로 합친다.
+ * 캘린더 항목(멤버십) + task(가변 속성) + 폴더(이름)를 화면이 쓰는 한 줄로 합친다.
  * task가 아직 캐시에 없으면 그릴 수 없으므로 건너뛴다.
  */
 export function joinPlanItems(
@@ -25,7 +25,7 @@ export function joinPlanItems(
     }
 
     // itemType과 폴더 이름은 서버 값이 아니라 task.folderId에서 파생한다.
-    // 폴더를 옮기면 계획 화면에도 곧바로 반영돼야 하기 때문이다. entry의 값은 폴백으로만 쓴다.
+    // 폴더를 옮기면 캘린더 화면에도 곧바로 반영돼야 하기 때문이다. entry의 값은 폴백으로만 쓴다.
     if (task.folderId !== null) {
       const folderName = folders.find((folder) => folder.id === task.folderId)?.name
       return [{ ...base, itemType: 'TASK' as const, folderId: task.folderId, folderName: folderName ?? entry.folderName ?? '폴더' }]
@@ -43,7 +43,7 @@ export function toPlanEntries(items: DailyPlanItem[]): PlanEntry[] {
   }))
 }
 
-/** 계획 응답에 실려 온 task 정보를 taskStore가 받을 모양으로 바꾼다. */
+/** 캘린더 응답에 실려 온 task 정보를 taskStore가 받을 모양으로 바꾼다. */
 export function toTaskEntries(items: DailyPlanItem[]): TaskCacheEntry[] {
   return items.map((item) => ({
     id: item.taskId,

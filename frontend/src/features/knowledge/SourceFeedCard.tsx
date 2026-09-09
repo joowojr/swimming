@@ -222,7 +222,7 @@ export default function SourceFeedCard({
 
       {isConfirming && (
         <DeleteConfirmation
-          message="이 링크와 정리된 내용이 사라집니다. 개념은 다른 문서에 남습니다."
+          message="이 링크와 정리된 내용이 사라집니다. 연결된 개념은 다른 문서에 남습니다."
           ariaLabel="링크 삭제 확인"
           isDeleting={isDeleting}
           onCancel={() => setIsConfirming(false)}

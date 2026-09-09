@@ -208,7 +208,7 @@ export default function DailyPlanBoard() {
                 : plan))
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-            setMessage(apiMessage ?? '계획에서 할 일을 제거하지 못했습니다.')
+            setMessage(apiMessage ?? '캘린더에서 할 일을 제거하지 못했습니다.')
         }
     }
 
@@ -225,14 +225,14 @@ export default function DailyPlanBoard() {
         <section className={styles.section} aria-labelledby="daily-plan-title">
             <header className={styles.heading}>
                 <div className={styles['title-group']}>
-                    <h2 id="daily-plan-title">오늘의 계획</h2>
+                    <h2 id="daily-plan-title">오늘의 캘린더</h2>
                     <div className={styles['database-toolbar']}>
                         <details className={styles.range}>
-                            <summary aria-label="계획 조회 기간 변경">
+                            <summary aria-label="캘린더 조회 기간 변경">
                                 <IconCalendar size={16} aria-hidden="true"/>
                                 {rangeFormatter.format(new Date(`${fromDate}T00:00:00`))}–{rangeFormatter.format(new Date(`${toDate}T00:00:00`))}
                             </summary>
-                            <div className={styles['range-popover']} aria-label="계획 조회 기간">
+                            <div className={styles['range-popover']} aria-label="캘린더 조회 기간">
                                 <p>시작일을 포함해 최대 7일까지 볼 수 있습니다.</p>
                                 <label><span>시작일</span><input type="date" value={fromDate}
                                                               onChange={(event) => changeFromDate(event.target.value)}/></label>
@@ -247,17 +247,17 @@ export default function DailyPlanBoard() {
             </header>
 
             {status === 'loading' ? (
-                <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19}/>계획을 불러오는
+                <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19}/>캘린더을 불러오는
                     중…
                 </div>
             ) : status === 'error' ? (
-                <div className={styles.state}><p>계획을 불러오지 못했습니다.</p>
+                <div className={styles.state}><p>캘린더을 불러오지 못했습니다.</p>
                     <button type="button" onClick={() => void retry()}>다시 불러오기</button>
                 </div>
             ) : (
                 <>
                     <div className={styles['board-scroll']}>
-                        <div className={styles.board} role="tablist" aria-label="날짜별 계획 보드">
+                        <div className={styles.board} role="tablist" aria-label="날짜별 캘린더 보드">
                             {plans.map((plan) => {
                                 const date = new Date(`${plan.date}T00:00:00`)
                                 const items = drafts[plan.date] ?? plan.items
@@ -344,12 +344,12 @@ export default function DailyPlanBoard() {
                                                 </li>
                                             ))}
                                         </ol>
-                                        {items.length === 0 && <p className={styles.empty}>아직 계획된 할 일이 없습니다.</p>}
+                                        {items.length === 0 && <p className={styles.empty}>아직 캘린더된 할 일이 없습니다.</p>}
                                         <ModalTriggerButton
                                             className={styles['column-add']}
                                             dialogId="task-picker-dialog"
                                             variant="plain"
-                                            aria-label={`${dayFormatter.format(date)} 계획에 할 일 추가`}
+                                            aria-label={`${dayFormatter.format(date)} 캘린더에 할 일 추가`}
                                             icon={<IconPlus size={15} aria-hidden="true"/>}
                                             onClick={() => {
                                             setSelectedDate(plan.date);

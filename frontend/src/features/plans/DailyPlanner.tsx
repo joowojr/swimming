@@ -123,7 +123,7 @@ export default function DailyPlanner() {
         void loadMonth(visibleMonthKey, fromDate, toDate).catch(() => {})
     }, [visibleMonthKey, fromDate, toDate, loadMonth, loadedMonths])
 
-    // 계획 항목(멤버십) + task(가변 속성) + 폴더(이름)를 여기서 합친다.
+    // 캘린더 항목(멤버십) + task(가변 속성) + 폴더(이름)를 여기서 합친다.
     const items = useMemo(
         () => joinPlanItems(entriesByDate[selectedDate] ?? [], tasksById, folders),
         [entriesByDate, selectedDate, tasksById, folders],
@@ -198,7 +198,7 @@ export default function DailyPlanner() {
             await removePlanItem(selectedDate, itemId)
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-            setMessage(apiMessage ?? '계획에서 할 일을 제거하지 못했습니다.')
+            setMessage(apiMessage ?? '캘린더에서 할 일을 제거하지 못했습니다.')
         }
     }
 
@@ -243,7 +243,7 @@ export default function DailyPlanner() {
                 <div className={styles.weekdays} aria-hidden="true">
                     {dayLabels.map((label) => <span key={label}>{label}</span>)}
                 </div>
-                <div className={styles.calendarGrid} role="grid" aria-label="계획 날짜 선택">
+                <div className={styles.calendarGrid} role="grid" aria-label="캘린더 날짜 선택">
                     {calendarDays.map((date, index) => {
                         if (!date) return <span className={styles.outsideDay} key={`empty-${index}`} aria-hidden="true" />
                         const dateValue = formatLocalDate(date)
@@ -283,9 +283,9 @@ export default function DailyPlanner() {
                 {message && <p className={styles.message} role="alert">{message}</p>}
 
                 {isLoading ? (
-                    <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19} />계획을 불러오는 중…</div>
+                    <div className={styles.state} role="status"><IconLoader2 className={styles.spinner} size={19} />캘린더을 불러오는 중…</div>
                 ) : status === 'error' ? (
-                    <div className={styles.state}><p>계획을 불러오지 못했습니다.</p><button type="button" onClick={() => void loadMonth(visibleMonthKey, fromDate, toDate).catch(() => {})}>다시 불러오기</button></div>
+                    <div className={styles.state}><p>캘린더을 불러오지 못했습니다.</p><button type="button" onClick={() => void loadMonth(visibleMonthKey, fromDate, toDate).catch(() => {})}>다시 불러오기</button></div>
                 ) : (
                     <>
                         <ol className={styles.todoList}>
@@ -343,7 +343,7 @@ export default function DailyPlanner() {
                                 </li>
                             ))}
                         </ol>
-                        {items.length === 0 && <p className={styles.empty}>이 날짜에는 계획된 할 일이 없습니다.</p>}
+                        {items.length === 0 && <p className={styles.empty}>이 날짜에는 캘린더된 할 일이 없습니다.</p>}
                     </>
                 )}
             </div>

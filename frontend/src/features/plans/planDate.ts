@@ -1,6 +1,6 @@
 import { formatLocalDate } from '../../lib/date'
 
-/** 계획 조회는 달 단위다. 여기 있는 것은 그 달 경계를 다루는 계획 전용 헬퍼다. */
+/** 캘린더 조회는 달 단위다. 여기 있는 것은 그 달 경계를 다루는 캘린더 전용 헬퍼다. */
 export function monthKeyOf(date: string) {
   return date.slice(0, 7)
 }

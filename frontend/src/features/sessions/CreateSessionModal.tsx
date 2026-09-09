@@ -67,7 +67,7 @@ export default function CreateSessionModal({
   const firstTaskRef = useRef<HTMLUListElement>(null)
   const customMinutesRef = useRef<HTMLInputElement>(null)
   const customBreakMinutesRef = useRef<HTMLInputElement>(null)
-  // 같은 상태끼리는 계획에 담은 순서를 유지한다(Array.prototype.sort는 안정 정렬).
+  // 같은 상태끼리는 캘린더에 담은 순서를 유지한다(Array.prototype.sort는 안정 정렬).
   const linkedTasks = useMemo(
     () => [...todayTasks].sort(
       (first, second) => TASK_STATUS_ORDER[first.status] - TASK_STATUS_ORDER[second.status],
@@ -173,7 +173,7 @@ export default function CreateSessionModal({
       onStarted(await startPersonalSession({
         taskIds: selectedTaskIds,
         placeId: selectedPlace.place.id,
-        // 계획 시간은 한 구간이 아니라 휴식까지 포함한 세션 전체 길이다.
+        // 캘린더 시간은 한 구간이 아니라 휴식까지 포함한 세션 전체 길이다.
         plannedDurationSec: totalMinutes * 60,
         focusDurationSec: durationMinutes * 60,
         breakDurationSec: hasBreak ? breakMinutes * 60 : 0,
@@ -237,7 +237,7 @@ export default function CreateSessionModal({
               <legend>무엇을 할까요</legend>
               <p className={styles.hint}>오늘 일정에서 함께 진행할 할 일을 모두 선택해 주세요.</p>
               {linkedTasks.length === 0 ? (
-                <p className={styles.empty}>오늘 계획에 포함된 할 일이 없습니다.</p>
+                <p className={styles.empty}>오늘 캘린더에 포함된 할 일이 없습니다.</p>
               ) : (
                 <ul className={styles['task-list']} ref={firstTaskRef} tabIndex={-1}>
                   {linkedTasks.map((task) => (

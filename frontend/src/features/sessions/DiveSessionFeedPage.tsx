@@ -133,8 +133,8 @@ export default function DiveSessionFeedPage() {
                   </span>
                 </div>
                 <div className={styles.meta}>
-                  <span><IconMapPin size={15} aria-hidden="true" />{session.place.cityName} · {session.place.name}</span>
-                  <span><IconClock size={15} aria-hidden="true" />{formatDateTime(session.startedAt)}</span>
+                  <span><IconClock size={15} aria-hidden="true"/>{formatDateTime(session.startedAt)}</span>
+                  <span><IconMapPin size={15} aria-hidden="true"/>{session.place.cityName} · {session.place.name}</span>
                 </div>
               </div>
             </Link>

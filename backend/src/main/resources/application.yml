@@ -37,7 +37,7 @@ app:
     holiday:
       kasi:
         base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo
-        # 공공데이터포털의 Decoding 인증키를 사용한다. 애플리케이션이 요청 시 한 번 인코딩한다.
+        # 공공데이터포털의 Encoding 인증키를 그대로 사용한다.
         service-key: ${KASI_HOLIDAY_SERVICE_KEY:}
         connect-timeout: 3s
         response-timeout: 5s

@@ -43,7 +43,7 @@ class CalendarControllerTest {
                 List.of(new HolidayResponse(LocalDate.of(2026, 9, 1), List.of("공휴일")))
         ));
 
-        mockMvc.perform(get("/api/holidays").queryParam("year", "2026").queryParam("month", "9"))
+        mockMvc.perform(get("/api/calendar/holiday").queryParam("year", "2026").queryParam("month", "9"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(2026))
                 .andExpect(jsonPath("$.month").value(9))
@@ -57,7 +57,7 @@ class CalendarControllerTest {
         when(useCase.getMonth(2026, 9))
                 .thenThrow(new BusinessException(ErrorCode.HOLIDAY_PROVIDER_UNAVAILABLE));
 
-        mockMvc.perform(get("/api/holidays").queryParam("year", "2026").queryParam("month", "9"))
+        mockMvc.perform(get("/api/calendar/holiday").queryParam("year", "2026").queryParam("month", "9"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("HOLIDAY_PROVIDER_UNAVAILABLE"));
     }

@@ -1,4 +1,4 @@
-package com.swimming.backend.calendar.dto;
+package com.swimming.backend.calendar.dto.in;
 
 import java.time.LocalDate;
 import java.util.List;

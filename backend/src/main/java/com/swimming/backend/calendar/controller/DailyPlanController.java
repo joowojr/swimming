@@ -2,9 +2,9 @@ package com.swimming.backend.calendar.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
-import com.swimming.backend.calendar.dto.CreateDailyPlanItemsRequest;
-import com.swimming.backend.calendar.dto.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.ReorderDailyPlanItemsRequest;
+import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
+import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
+import com.swimming.backend.calendar.dto.in.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.calendar.usecase.DailyPlanUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

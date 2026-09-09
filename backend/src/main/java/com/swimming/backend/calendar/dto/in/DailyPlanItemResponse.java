@@ -1,4 +1,4 @@
-package com.swimming.backend.calendar.dto;
+package com.swimming.backend.calendar.dto.in;
 
 import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.task.domain.TaskStatus;

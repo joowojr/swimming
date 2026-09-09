@@ -66,7 +66,10 @@ class HolidayServiceTest {
     @Test
     @DisplayName("공급자 오류를 성공한 빈 공휴일 목록으로 바꾸지 않는다")
     void preservesUnavailableProviderError() {
-        HolidayService service = new HolidayService(new UnavailableHolidayProvider());
+        HolidayProvider unavailableProvider = month -> {
+            throw new BusinessException(ErrorCode.HOLIDAY_PROVIDER_UNAVAILABLE);
+        };
+        HolidayService service = new HolidayService(unavailableProvider);
 
         assertThatThrownBy(() -> service.getHolidays(YearMonth.of(2026, 9)))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->

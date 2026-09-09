@@ -2,11 +2,11 @@ package com.swimming.backend.calendar.controller;
 
 import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
-import com.swimming.backend.calendar.dto.CreateDailyPlanItemsRequest;
-import com.swimming.backend.calendar.dto.DailyPlanItemResponse;
-import com.swimming.backend.calendar.dto.DailyPlanItemType;
-import com.swimming.backend.calendar.dto.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.ReorderDailyPlanItemsRequest;
+import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
+import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
+import com.swimming.backend.calendar.dto.in.DailyPlanItemType;
+import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
+import com.swimming.backend.calendar.dto.in.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.calendar.usecase.DailyPlanUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;

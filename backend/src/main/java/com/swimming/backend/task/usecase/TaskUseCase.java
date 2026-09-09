@@ -3,7 +3,6 @@ package com.swimming.backend.task.usecase;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
-import com.swimming.backend.task.dto.in.CreateTaskRequest;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.calendar.domain.DailyPlanItem;
 import com.swimming.backend.calendar.service.DailyPlanService;
@@ -55,19 +54,6 @@ public class TaskUseCase {
             dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
         }
         return TaskResponse.from(task);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
-    @Deprecated(since = "2026-09-01", forRemoval = true)
-    public TaskResponse create(
-            Long userId,
-            Long folderId,
-            CreateTaskRequest request
-    ) {
-        FolderReference folder = folderService.getReference(userId, folderId);
-        long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
-        return TaskResponse.from(taskService.create(
-                userId, folder.id(), request.title(), request.priority(), request.urgent(), matrixRank));
     }
 
     /**

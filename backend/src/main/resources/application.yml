@@ -7,6 +7,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+      hibernate.type.json_format_mapper: org.hibernate.type.format.jackson.Jackson3JsonFormatMapper
   sql:
     init:
       mode: never

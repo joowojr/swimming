@@ -1,0 +1,6 @@
+gradio==6.26.0
+openai==3.11.0
+runwayml==5.20.0
+Pillow>=11.3.0,<13
+python-dotenv>=1.1.0,<2
+pytest>=8.4.0,<10

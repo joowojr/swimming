@@ -1,0 +1,53 @@
+:root {
+  --asset-bg: #f4f7f5;
+  --asset-surface: #ffffff;
+  --asset-text: #18322c;
+  --asset-muted: #5c706b;
+  --asset-border: #d8e2de;
+  --asset-accent: #167963;
+  --asset-radius: 18px;
+}
+
+.gradio-container {
+  background: var(--asset-bg) !important;
+  color: var(--asset-text) !important;
+  max-width: 1240px !important;
+  padding: 28px 20px 56px !important;
+}
+
+.pipeline-panel,
+.upload-panel {
+  background: var(--asset-surface);
+  border: 1px solid var(--asset-border) !important;
+  border-radius: var(--asset-radius) !important;
+  padding: 18px !important;
+  box-shadow: 0 14px 36px rgba(24, 50, 44, 0.06);
+}
+
+.gradio-container button.primary {
+  background: var(--asset-accent) !important;
+  border-color: var(--asset-accent) !important;
+}
+
+.gradio-container h1,
+.gradio-container h2,
+.gradio-container h3 {
+  color: var(--asset-text);
+  letter-spacing: -0.02em;
+}
+
+.gradio-container p {
+  color: var(--asset-muted);
+}
+
+@media (max-width: 720px) {
+  .gradio-container {
+    padding: 16px 10px 40px !important;
+  }
+
+  .pipeline-panel,
+  .upload-panel {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+}

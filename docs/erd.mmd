@@ -9,6 +9,8 @@ erDiagram
     tasks ||--o{ daily_plan_items : "plans (delete cascades)"
     users ||--o{ sessions : runs
     users ||--o{ notes : owns
+    users ||--o{ task_organizer_runs : owns
+    notes ||--o{ task_organizer_runs : records
     folders o|--o{ notes : contextualizes
     sessions o|--o{ notes : contextualizes
     sessions ||--|{ session_tasks : contains
@@ -126,6 +128,19 @@ erDiagram
         timestamp updated_at
     }
 
+    task_organizer_runs {
+        bigint id PK
+        bigint user_id FK
+        bigint note_id FK
+        varchar status "PREVIEWED | CONFIRMED"
+        jsonb input_snapshot "메모와 Folder·Task 입력 스냅샷"
+        jsonb preview_snapshot "AI 제안과 itemId"
+        jsonb feedback_snapshot "승인·제외 및 최종 수정값, nullable"
+        jsonb llm_calls "단계별 모델·프롬프트 해시·토큰·지연"
+        timestamp created_at
+        timestamp updated_at
+    }
+
     group_rooms {
         bigint id PK
         bigint place_id FK
@@ -177,6 +192,8 @@ erDiagram
         varchar title
         varchar normalized_title "표기 차이 제거. SUBJECT 중복 방지 UK (is_deleted=false 한정)"
         text description "nullable"
+        vector title_embedding "nullable, SUBJECT title의 text-embedding-3-small 768차원"
+        varchar title_embedding_model "nullable, SUBJECT일 때 embedding과 함께 저장"
         boolean is_deleted "soft delete. 관계는 남기고 조회에서만 뺀다"
         timestamp created_at
         timestamp updated_at

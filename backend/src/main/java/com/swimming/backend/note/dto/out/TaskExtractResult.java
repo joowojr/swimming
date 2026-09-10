@@ -1,8 +1,10 @@
 package com.swimming.backend.note.dto.out;
 
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.time.LocalDate;
 
 /**
  * 폴더가 이미 정해진 상태의 결과. 분류 판단이 없으므로 {@code folderId} 를 받지 않는다.
@@ -25,8 +27,14 @@ public record TaskExtractResult(
             String sourceText,
 
             @JsonPropertyDescription("Short actionable task title.")
-            String title
+            String title,
+
+            @JsonPropertyDescription("Date explicitly stated in sourceText, resolved as an ISO date, or null when absent.")
+            @Nullable LocalDate planDate
     ) {
+        public ExtractedTask(String sourceText, String title) {
+            this(sourceText, title, null);
+        }
     }
 
     public record UnclassifiedItem(
@@ -35,7 +43,13 @@ public record TaskExtractResult(
             String sourceText,
 
             @JsonPropertyDescription("Short title that preserves the original meaning.")
-            String title
+            String title,
+
+            @JsonPropertyDescription("Date explicitly stated in sourceText, resolved as an ISO date, or null when absent.")
+            @Nullable LocalDate planDate
     ) {
+        public UnclassifiedItem(String sourceText, String title) {
+            this(sourceText, title, null);
+        }
     }
 }

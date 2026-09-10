@@ -1,8 +1,10 @@
 package com.swimming.backend.note.dto.out;
 
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.time.LocalDate;
 
 /**
  * 설명은 <b>필드가 무엇인지</b>만 적는다. 어느 바구니에 넣을지의 판단 기준은 프롬프트의
@@ -40,8 +42,16 @@ public record TaskOrganizeResult(
             @JsonPropertyDescription(
                     "Short actionable task title."
             )
-            String title
-            ) {
+            String title,
+
+            @JsonPropertyDescription(
+                    "Date explicitly stated in sourceText, resolved as an ISO date, or null when absent."
+            )
+            @Nullable LocalDate planDate
+    ) {
+        public TaskSuggestion(String type, String sourceText, Long folderId, String title) {
+            this(type, sourceText, folderId, title, null);
+        }
     }
 
     public record UnclassifiedItem(
@@ -54,7 +64,15 @@ public record TaskOrganizeResult(
             @JsonPropertyDescription(
                     "Short title that preserves the original meaning."
             )
-            String title
+            String title,
+
+            @JsonPropertyDescription(
+                    "Date explicitly stated in sourceText, resolved as an ISO date, or null when absent."
+            )
+            @Nullable LocalDate planDate
     ) {
+        public UnclassifiedItem(String sourceText, String title) {
+            this(sourceText, title, null);
+        }
     }
 }

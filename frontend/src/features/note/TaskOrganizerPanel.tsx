@@ -30,6 +30,7 @@ interface PreviewTaskItem {
   title: string
   folderId: number | null
   folderName: string | null
+  planDate: string | null
   selected: boolean
 }
 
@@ -46,6 +47,7 @@ type OrganizerState =
   | { kind: 'loading'; messageIndex: number }
   | {
       kind: 'preview'
+      runId: number
       items: PreviewTaskItem[]
       editingProjectItemId: string | null
       message: string | null
@@ -69,20 +71,22 @@ const LOADING_MESSAGES = [
 
 function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
   return [
-    ...preview.suggestions.map((suggestion, index) => ({
-      id: `suggestion-${index}`,
+    ...preview.suggestions.map((suggestion) => ({
+      id: suggestion.itemId,
       sourceText: suggestion.sourceText,
       title: suggestion.title,
       folderId: suggestion.folderId,
       folderName: suggestion.folderName,
+      planDate: suggestion.planDate,
       selected: true,
     })),
-    ...preview.unclassified.map((item, index) => ({
-      id: `unclassified-${index}`,
+    ...preview.unclassified.map((item) => ({
+      id: item.itemId,
       sourceText: item.sourceText,
       title: item.title,
       folderId: null,
       folderName: null,
+      planDate: item.planDate,
       selected: true,
     })),
   ]
@@ -111,7 +115,9 @@ export default function TaskOrganizerPanel({
     let cancelled = false
 
     void previewTaskOrganization({
+      noteId: source.noteId,
       memo: source.memo,
+      currentDate: formatLocalDate(new Date()),
       contextType: source.contextType,
       contextId: source.contextId,
     })
@@ -119,6 +125,7 @@ export default function TaskOrganizerPanel({
         if (!cancelled) {
           setState({
             kind: 'preview',
+            runId: preview.runId,
             items: toPreviewItems(preview),
             editingProjectItemId: null,
             message: null,
@@ -133,7 +140,7 @@ export default function TaskOrganizerPanel({
     return () => {
       cancelled = true
     }
-  }, [onFinish, source.memo, source.contextType, source.contextId])
+  }, [onFinish, source.noteId, source.memo, source.contextType, source.contextId])
 
   useEffect(() => {
     if (state.kind !== 'loading') return
@@ -204,8 +211,10 @@ export default function TaskOrganizerPanel({
 
     try {
       const response = await confirmTaskOrganization({
+        runId: state.runId,
         noteId: source.noteId,
         tasks: selectedItems.map((item) => ({
+          itemId: item.id,
           sourceText: item.sourceText,
           folderId: item.folderId,
           title: item.title.trim(),
@@ -216,14 +225,14 @@ export default function TaskOrganizerPanel({
       const today = formatLocalDate(new Date())
       setState({
         kind: 'plan-link',
-        items: response.createdTasks.map((task) => ({
+        items: response.createdTasks.map((task, index) => ({
           id: task.id,
           title: task.title,
           folderId: task.folderId,
           folderName: task.folderId === null
             ? null
             : folders.find((folder) => folder.id === task.folderId)?.name ?? '폴더',
-          planDate: today,
+          planDate: selectedItems[index]?.planDate ?? today,
           selected: true,
         })),
         editingPlanDateTaskId: null,
@@ -232,7 +241,7 @@ export default function TaskOrganizerPanel({
       })
     } catch {
       setState((current) => current.kind === 'preview'
-        ? { ...current, isConfirming: false, message: '할 일을 만들지 못했어요. 선택 내용을 그대로 유지했어요.' }
+        ? { ...current, isConfirming: false, message: '할 일을 만들지 못했습니다. 다시 시도해주세요' }
         : current)
     }
   }
@@ -278,7 +287,7 @@ export default function TaskOrganizerPanel({
             isLinking: false,
             message: linkedCount > 0
               ? `${linkedCount}개는 연결했어요. 남은 할 일을 다시 연결해 주세요.`
-              : '캘린더에 연결하지 못했어요. 날짜와 선택 내용을 그대로 유지했어요.',
+              : '캘린더에 연결하지 못했습니다. 다시 시도해주세요',
           }
         : current)
     }

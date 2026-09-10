@@ -10,13 +10,18 @@ import java.util.List;
 
 public record TaskOrganizeConfirmRequest(
         @NotNull
+        Long runId,
+
+        @NotNull
         Long noteId,
 
         @NotEmpty
         List<@Valid ApprovedTaskRequest> tasks
 ) {
-
     public record ApprovedTaskRequest(
+            @NotBlank
+            String itemId,
+
             @NotBlank
             String sourceText,
 

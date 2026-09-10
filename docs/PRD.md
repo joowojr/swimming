@@ -214,8 +214,8 @@
 | PATCH | /folder-tags/{id} | 폴더 태그 이름 수정 |
 | DELETE | /folder-tags/{id} | 폴더 연결 해제 후 태그 삭제 |
 | GET | /tasks?mode=all\|unclassified | 내 전체 Task 또는 폴더 없는 Task 목록 |
+| POST | /tasks | 폴더·계획 연결을 선택할 수 있는 Task 생성 |
 | GET | /folders/{id}/tasks | task 목록 |
-| POST | /folders/{id}/tasks | task 생성 |
 | PUT | /folders/{id}/tasks/order | task 순서 저장 |
 |  |  |  |
 | PATCH | /tasks/{id} | task 수정(제목·상태) |

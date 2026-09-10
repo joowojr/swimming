@@ -20,6 +20,8 @@ public final class InMemoryKnowledgeRepositories {
     public static class Nodes implements KnowledgeNodeRepository {
 
         final Map<UUID, KnowledgeNode> stored = new LinkedHashMap<>();
+        final Map<UUID, float[]> titleEmbeddings = new HashMap<>();
+        final Map<UUID, String> titleEmbeddingModels = new HashMap<>();
 
         @Override
         public KnowledgeNode save(KnowledgeNode node) {
@@ -70,8 +72,85 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
+        public KnowledgeNode createSubjectWithEmbedding(
+                KnowledgeNode subject,
+                float[] titleEmbedding,
+                String embeddingModel
+        ) {
+            if (subject.getNodeType() != NodeType.SUBJECT) {
+                throw new IllegalArgumentException("title embedding can only be stored for a subject");
+            }
+            KnowledgeNode saved = save(subject);
+            titleEmbeddings.put(saved.getId(), titleEmbedding.clone());
+            titleEmbeddingModels.put(saved.getId(), embeddingModel);
+            return saved;
+        }
+
+        public void saveTitleEmbedding(
+                Long userId,
+                UUID subjectId,
+                float[] titleEmbedding,
+                String embeddingModel
+        ) {
+            KnowledgeNode subject = stored.get(subjectId);
+            if (subject == null || subject.isDeleted()
+                    || !subject.getUserId().equals(userId)
+                    || subject.getNodeType() != NodeType.SUBJECT) {
+                throw new IllegalStateException("failed to update subject title embedding: " + subjectId);
+            }
+            titleEmbeddings.put(subjectId, titleEmbedding.clone());
+            titleEmbeddingModels.put(subjectId, embeddingModel);
+        }
+
+        @Override
+        public List<KnowledgeNode> findSimilarSubjects(
+                Long userId,
+                float[] titleEmbedding,
+                String embeddingModel,
+                int limit
+        ) {
+            return stored.values().stream()
+                    .filter(node -> node.getUserId().equals(userId)
+                            && node.getNodeType() == NodeType.SUBJECT
+                            && !node.isDeleted()
+                            && Objects.equals(titleEmbeddingModels.get(node.getId()), embeddingModel)
+                            && titleEmbeddings.containsKey(node.getId()))
+                    .sorted(Comparator.comparingDouble(node ->
+                            -cosine(titleEmbedding, titleEmbeddings.get(node.getId()))))
+                    .limit(limit)
+                    .map(Nodes::copy)
+                    .toList();
+        }
+
+        public float[] titleEmbeddingOf(UUID subjectId) {
+            float[] embedding = titleEmbeddings.get(subjectId);
+            return embedding == null ? null : embedding.clone();
+        }
+
+        public String titleEmbeddingModelOf(UUID subjectId) {
+            return titleEmbeddingModels.get(subjectId);
+        }
+
+        @Override
         public void deleteById(UUID id) {
             stored.remove(id);
+            titleEmbeddings.remove(id);
+            titleEmbeddingModels.remove(id);
+        }
+
+        private static double cosine(float[] left, float[] right) {
+            double dot = 0;
+            double leftNorm = 0;
+            double rightNorm = 0;
+            for (int index = 0; index < left.length; index++) {
+                dot += left[index] * right[index];
+                leftNorm += left[index] * left[index];
+                rightNorm += right[index] * right[index];
+            }
+            if (leftNorm == 0 || rightNorm == 0) {
+                return 0;
+            }
+            return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
         }
 
         /**

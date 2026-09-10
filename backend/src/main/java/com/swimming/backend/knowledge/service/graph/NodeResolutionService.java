@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -59,7 +58,7 @@ public class NodeResolutionService {
             String summary,
             List<String> rawCandidates
     ) {
-        float[] summaryEmbedding = embed(summary);
+        float[] summaryEmbedding = embedOne(summary, "source summary");
         sourceService.saveSummaryEmbedding(
                 source.getUserId(), source.getId(), summaryEmbedding, EMBEDDING_MODEL
         );
@@ -96,13 +95,13 @@ public class NodeResolutionService {
                 .toList());
     }
 
-    /** Source Summary를 임베딩하고 저장 규격인 768차원인지 검증한다. */
-    private float[] embed(String summary) {
-        if (!StringUtils.hasText(summary)) {
-            throw new IllegalStateException("source summary is empty");
+    /** 텍스트를 임베딩하고 저장 규격인 768차원인지 검증한다. */
+    private float[] embedOne(String value, String label) {
+        if (!StringUtils.hasText(value)) {
+            throw new IllegalStateException(label + " is empty");
         }
 
-        float[] embedding = embeddingClient.embed(summary);
+        float[] embedding = embeddingClient.embed(value);
         if (embedding == null || embedding.length != EMBEDDING_DIMENSIONS) {
             throw new IllegalStateException(
                     "expected %d embedding dimensions but got %s".formatted(
@@ -176,35 +175,26 @@ public class NodeResolutionService {
         return List.copyOf(subjectsOf(source.getUserId(), similarSourceIds).values());
     }
 
-    /** 미해결 후보마다 직접 Subject embedding 상위 K개를 순서대로 수집한다. */
+    /** 미해결 후보만 임베딩하고 DB에 저장된 Subject embedding 상위 K개를 수집한다. */
     private List<KnowledgeNode> subjectsFromEmbedding(
             Long userId,
             List<Candidate> unresolved
     ) {
-        List<KnowledgeNode> subjects = nodeService.findSubjects(userId);
-        if (subjects.isEmpty()) {
-            return List.of();
-        }
-
-        List<String> inputs = new ArrayList<>();
-        inputs.addAll(unresolved.stream().map(Candidate::value).map(this::embeddingText).toList());
-        inputs.addAll(subjects.stream().map(KnowledgeNode::getTitle)
-                .map(this::embeddingText).toList());
+        List<String> inputs = unresolved.stream()
+                .map(Candidate::value)
+                .map(this::embeddingText)
+                .toList();
         List<float[]> embeddings = embeddingClient.embed(inputs);
         validateEmbeddings(embeddings, inputs.size());
 
-        int candidateCount = unresolved.size();
-        List<float[]> subjectEmbeddings = embeddings.subList(candidateCount, embeddings.size());
         Map<String, KnowledgeNode> selected = new LinkedHashMap<>();
-        for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++) {
-            float[] candidateEmbedding = embeddings.get(candidateIndex);
-            IntStream.range(0, subjects.size())
-                    .mapToObj(subjectIndex -> new RankedSubject(
-                            subjects.get(subjectIndex),
-                            cosine(candidateEmbedding, subjectEmbeddings.get(subjectIndex))))
-                    .sorted(Comparator.comparingDouble(RankedSubject::similarity).reversed())
-                    .limit(properties.subjectTopK())
-                    .map(RankedSubject::subject)
+        for (int candidateIndex = 0; candidateIndex < unresolved.size(); candidateIndex++) {
+            nodeService.findSimilarSubjects(
+                            userId,
+                            embeddings.get(candidateIndex),
+                            EMBEDDING_MODEL,
+                            properties.subjectTopK()
+                    )
                     .forEach(subject -> selected.putIfAbsent(
                             NodeTitleNormalizer.normalize(subject.getTitle()), subject));
         }
@@ -236,18 +226,6 @@ public class NodeResolutionService {
                     "expected %d embeddings with %d dimensions".formatted(
                             expectedCount, EMBEDDING_DIMENSIONS));
         }
-    }
-
-    private double cosine(float[] left, float[] right) {
-        double dot = 0;
-        double leftNorm = 0;
-        double rightNorm = 0;
-        for (int index = 0; index < left.length; index++) {
-            dot += left[index] * right[index];
-            leftNorm += left[index] * left[index];
-            rightNorm += right[index] * right[index];
-        }
-        return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
     }
 
     /** 유사 Source가 ABOUT 관계로 가리키는 현재 사용자의 Subject를 수집한다. */
@@ -342,10 +320,16 @@ public class NodeResolutionService {
 
         return nodeService.findSubjectByNormalizedTitle(userId, normalized)
                 .map(node -> ResolvedNode.exact(candidate.value(), node))
-                .orElseGet(() -> ResolvedNode.created(
-                        candidate.value(),
-                        nodeService.create(userId, NodeType.SUBJECT, value, null)
-                ));
+                .orElseGet(() -> createSubject(userId, candidate.value(), value));
+    }
+
+    /** Subject title embedding을 먼저 계산하고, 노드 생성 직후 DB에 저장한다. */
+    private ResolvedNode createSubject(Long userId, String candidate, String title) {
+        float[] titleEmbedding = embedOne(embeddingText(title), "subject title");
+        KnowledgeNode created = nodeService.createSubjectWithEmbedding(
+                userId, title, null, titleEmbedding, EMBEDDING_MODEL
+        );
+        return ResolvedNode.created(candidate, created);
     }
 
     /** 여러 후보가 같은 Subject로 확정된 경우 최초 결과 하나만 남긴다. */
@@ -357,6 +341,4 @@ public class NodeResolutionService {
     private record Candidate(String value, String normalized) {
     }
 
-    private record RankedSubject(KnowledgeNode subject, double similarity) {
-    }
 }

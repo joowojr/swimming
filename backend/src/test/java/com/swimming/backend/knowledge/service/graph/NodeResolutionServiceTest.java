@@ -161,6 +161,12 @@ class NodeResolutionServiceTest {
         KnowledgeNode keywordMatch = nodes.save(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "OIDC Authentication", null
         ));
+        nodes.saveTitleEmbedding(
+                USER_ID, unrelated.getId(), vector(-1), NodeResolutionService.EMBEDDING_MODEL
+        );
+        nodes.saveTitleEmbedding(
+                USER_ID, keywordMatch.getId(), vector(1), NodeResolutionService.EMBEDDING_MODEL
+        );
         KnowledgeSource nearest = completedSource(
                 USER_ID, "https://a.com/nearest", vector(1)
         );
@@ -169,10 +175,6 @@ class NodeResolutionServiceTest {
         );
         relationService.connect(nearest.getNode(), unrelated, RelationOrigin.AI);
         relationService.connect(farther.getNode(), keywordMatch, RelationOrigin.AI);
-
-        when(embeddingClient.embed(anyList())).thenReturn(List.of(
-                vector(1), vector(-1), vector(1)
-        ));
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
@@ -200,6 +202,12 @@ class NodeResolutionServiceTest {
         KnowledgeNode nearestSubject = nodes.save(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "OAuth 2.0", null
         ));
+        nodes.saveTitleEmbedding(
+                USER_ID, fartherSubject.getId(), vector(1), NodeResolutionService.EMBEDDING_MODEL
+        );
+        nodes.saveTitleEmbedding(
+                USER_ID, nearestSubject.getId(), vector(-1), NodeResolutionService.EMBEDDING_MODEL
+        );
         KnowledgeSource nearest = completedSource(
                 USER_ID, "https://a.com/nearest", vector(1)
         );
@@ -244,6 +252,9 @@ class NodeResolutionServiceTest {
         assertThat(result.node().getTitle()).isEqualTo("OpenID Connect");
         assertThat(result.node().getNodeType()).isEqualTo(NodeType.SUBJECT);
         assertThat(result.match()).isEqualTo(ResolvedNode.Match.CREATED);
+        assertThat(nodes.titleEmbeddingOf(result.node().getId())).hasSize(768);
+        assertThat(nodes.titleEmbeddingModelOf(result.node().getId()))
+                .isEqualTo(NodeResolutionService.EMBEDDING_MODEL);
     }
 
     @Test

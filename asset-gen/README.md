@@ -4,9 +4,9 @@
 
 ## Overview
 
-새 이미지는 OpenAI Image API로 생성하고, 기존 이미지는 로컬 파일로 가져옵니다. 결정적으로 확인 가능한 Runway 입력 조건만 자동 검수한 뒤 사용자가 이미지를 승인하면 Runway task를 생성하고 상태를 polling합니다. 영상 생성이 완료되면 결과를 로컬에 다운로드하고 기존 `infra/scripts/upload-media.sh`로 선택적으로 업로드할 수 있습니다.
-
-API key가 없어도 UI는 시작됩니다. 이미지 또는 영상 생성 버튼을 누르면 필요한 환경변수를 안내하는 오류를 표시하며 가짜 성공 결과는 만들지 않습니다.
+새 이미지는 OpenAI Image API로 생성하고, 기존 이미지는 로컬 파일로 가져옵니다. 
+확인 가능한 입력 조건만 자동 검수한 뒤 사용자가 이미지를 승인하면 Runway task를 생성하고 상태를 polling합니다. 
+영상 생성이 완료되면 결과를 로컬에 다운로드하고 기존 `infra/scripts/upload-media.sh`로 선택적으로 업로드할 수 있습니다.
 
 ## Tech Stack
 

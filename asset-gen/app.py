@@ -189,8 +189,8 @@ def build_app() -> gr.Blocks:
         generated_video = gr.State("")
 
         gr.Markdown(
-            "# Asset Generation Pipeline\n"
-            "이미지를 만들거나 가져온 뒤 검수하고, Runway 영상 생성과 기존 S3 업로드까지 이어갑니다."
+            "# Video Asset Generation Pipeline\n"
+            "이미지를 통해, Runway 영상 생성과 기존 S3 업로드까지 진행합니다."
         )
 
         with gr.Row(equal_height=False):

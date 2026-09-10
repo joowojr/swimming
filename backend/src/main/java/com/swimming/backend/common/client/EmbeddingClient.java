@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /** 임베딩 AI API 호출만 담당한다. */
 @Service
 @RequiredArgsConstructor
@@ -13,5 +15,9 @@ public class EmbeddingClient {
 
     public float[] embed(String input) {
         return embeddingModel.embed(input);
+    }
+
+    public List<float[]> embed(List<String> inputs) {
+        return embeddingModel.embed(inputs);
     }
 }

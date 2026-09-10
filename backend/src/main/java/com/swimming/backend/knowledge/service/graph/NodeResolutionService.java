@@ -20,20 +20,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 /**
  * Subject 후보를 실제 노드로 확정한다.
  *
- * <p>표기 규칙으로 명확한 중복을 먼저 제거한다. 남은 후보가 있을 때만 현재 Source의 Summary
- * 임베딩으로 유사 Source를 찾고, 그 Source가 이미 가리키는 Subject 안에서 LLM이 재사용 대상을
- * 고르게 한다. 네트워크 호출을 포함하므로 이 서비스 전체를 트랜잭션으로 묶지 않는다.
+ * <p>표기 규칙으로 명확한 중복을 먼저 제거한다. 남은 후보가 있을 때 현재 Source와 유사한
+ * Source의 Subject 조회 및 Subject 직접 임베딩 검색을 병렬로 수행한다. 두 결과의 합집합 안에서
+ * LLM이 재사용 대상을 고르게 한다. 네트워크 호출을 포함하므로 이 서비스 전체를 트랜잭션으로
+ * 묶지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -128,23 +132,21 @@ public class NodeResolutionService {
         return List.copyOf(unique.values());
     }
 
-    /** 유사 Source의 Subject를 Context로 제공해 미해결 후보를 LLM으로 판정한다. */
+    /** Source 검색과 Subject 직접 검색을 병렬 실행하고 합집합을 Context로 제공한다. */
     private List<ResolvedNode> resolveSemantically(
             KnowledgeSource source,
             String summary,
             float[] summaryEmbedding,
             List<Candidate> unresolved
     ) {
-        List<UUID> similarSourceIds = sourceService.findSimilarSourceIds(
-                source.getUserId(),
-                source.getId(),
-                summaryEmbedding,
-                EMBEDDING_MODEL,
-                properties.similarSourceLimit()
-        );
-        List<KnowledgeNode> existingSubjects = List.copyOf(subjectsOf(
-                source.getUserId(), similarSourceIds
-        ).values());
+        CompletableFuture<List<KnowledgeNode>> sourceSubjectsFuture = CompletableFuture.supplyAsync(
+                () -> subjectsFromSimilarSources(source, summaryEmbedding));
+        CompletableFuture<List<KnowledgeNode>> directSubjectsFuture = CompletableFuture.supplyAsync(
+                () -> subjectsFromEmbedding(source.getUserId(), unresolved));
+        CompletableFuture.allOf(sourceSubjectsFuture, directSubjectsFuture).join();
+
+        List<KnowledgeNode> existingSubjects = unionSubjects(
+                directSubjectsFuture.join(), sourceSubjectsFuture.join());
 
         NodeResolutionInput input = new NodeResolutionInput(
                 summary,
@@ -158,6 +160,94 @@ public class NodeResolutionService {
 
         NodeResolutionResult result = resolutionLlmService.resolve(input);
         return materialize(source.getUserId(), unresolved, existingSubjects, result);
+    }
+
+    private List<KnowledgeNode> subjectsFromSimilarSources(
+            KnowledgeSource source,
+            float[] summaryEmbedding
+    ) {
+        List<UUID> similarSourceIds = sourceService.findSimilarSourceIds(
+                source.getUserId(),
+                source.getId(),
+                summaryEmbedding,
+                EMBEDDING_MODEL,
+                properties.similarSourceLimit()
+        );
+        return List.copyOf(subjectsOf(source.getUserId(), similarSourceIds).values());
+    }
+
+    /** 미해결 후보마다 직접 Subject embedding 상위 K개를 순서대로 수집한다. */
+    private List<KnowledgeNode> subjectsFromEmbedding(
+            Long userId,
+            List<Candidate> unresolved
+    ) {
+        List<KnowledgeNode> subjects = nodeService.findSubjects(userId);
+        if (subjects.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> inputs = new ArrayList<>();
+        inputs.addAll(unresolved.stream().map(Candidate::value).map(this::embeddingText).toList());
+        inputs.addAll(subjects.stream().map(KnowledgeNode::getTitle)
+                .map(this::embeddingText).toList());
+        List<float[]> embeddings = embeddingClient.embed(inputs);
+        validateEmbeddings(embeddings, inputs.size());
+
+        int candidateCount = unresolved.size();
+        List<float[]> subjectEmbeddings = embeddings.subList(candidateCount, embeddings.size());
+        Map<String, KnowledgeNode> selected = new LinkedHashMap<>();
+        for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++) {
+            float[] candidateEmbedding = embeddings.get(candidateIndex);
+            IntStream.range(0, subjects.size())
+                    .mapToObj(subjectIndex -> new RankedSubject(
+                            subjects.get(subjectIndex),
+                            cosine(candidateEmbedding, subjectEmbeddings.get(subjectIndex))))
+                    .sorted(Comparator.comparingDouble(RankedSubject::similarity).reversed())
+                    .limit(properties.subjectTopK())
+                    .map(RankedSubject::subject)
+                    .forEach(subject -> selected.putIfAbsent(
+                            NodeTitleNormalizer.normalize(subject.getTitle()), subject));
+        }
+        return List.copyOf(selected.values());
+    }
+
+    /** 직접 Subject 검색 순서를 우선하고 Source 검색 결과를 뒤에 더한다. */
+    private List<KnowledgeNode> unionSubjects(
+            List<KnowledgeNode> directSubjects,
+            List<KnowledgeNode> sourceSubjects
+    ) {
+        Map<String, KnowledgeNode> union = new LinkedHashMap<>();
+        directSubjects.forEach(subject -> union.putIfAbsent(
+                NodeTitleNormalizer.normalize(subject.getTitle()), subject));
+        sourceSubjects.forEach(subject -> union.putIfAbsent(
+                NodeTitleNormalizer.normalize(subject.getTitle()), subject));
+        return List.copyOf(union.values());
+    }
+
+    private String embeddingText(String value) {
+        return value.strip().toLowerCase(Locale.ROOT);
+    }
+
+    private void validateEmbeddings(List<float[]> embeddings, int expectedCount) {
+        if (embeddings == null || embeddings.size() != expectedCount
+                || embeddings.stream().anyMatch(embedding ->
+                embedding == null || embedding.length != EMBEDDING_DIMENSIONS)) {
+            throw new IllegalStateException(
+                    "expected %d embeddings with %d dimensions".formatted(
+                            expectedCount, EMBEDDING_DIMENSIONS));
+        }
+    }
+
+    private double cosine(float[] left, float[] right) {
+        double dot = 0;
+        double leftNorm = 0;
+        double rightNorm = 0;
+        for (int index = 0; index < left.length; index++) {
+            dot += left[index] * right[index];
+            leftNorm += left[index] * left[index];
+            rightNorm += right[index] * right[index];
+        }
+        return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
     }
 
     /** 유사 Source가 ABOUT 관계로 가리키는 현재 사용자의 Subject를 수집한다. */
@@ -265,5 +355,8 @@ public class NodeResolutionService {
     }
 
     private record Candidate(String value, String normalized) {
+    }
+
+    private record RankedSubject(KnowledgeNode subject, double similarity) {
     }
 }

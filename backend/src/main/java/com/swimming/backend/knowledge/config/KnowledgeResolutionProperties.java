@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("app.knowledge.resolution")
 public record KnowledgeResolutionProperties(
-        @NotNull @Min(1) @Max(20) Integer similarSourceLimit
+        @NotNull @Min(1) @Max(20) Integer similarSourceLimit,
+        @NotNull @Min(1) @Max(20) Integer subjectTopK
 ) {
 }

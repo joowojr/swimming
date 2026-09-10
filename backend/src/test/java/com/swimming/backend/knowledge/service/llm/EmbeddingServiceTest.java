@@ -5,6 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -23,5 +25,19 @@ class EmbeddingServiceTest {
 
         assertThat(actual).isSameAs(expected);
         verify(embeddingModel).embed("요약");
+    }
+
+    @Test
+    @DisplayName("여러 입력을 EmbeddingModel의 batch API에 그대로 전달한다")
+    void delegatesBatchEmbeddingApiCall() {
+        EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
+        List<String> inputs = List.of("OIDC", "OpenID Connect");
+        List<float[]> expected = List.of(new float[]{0.1f}, new float[]{0.2f});
+        when(embeddingModel.embed(inputs)).thenReturn(expected);
+
+        List<float[]> actual = new EmbeddingClient(embeddingModel).embed(inputs);
+
+        assertThat(actual).isSameAs(expected);
+        verify(embeddingModel).embed(inputs);
     }
 }

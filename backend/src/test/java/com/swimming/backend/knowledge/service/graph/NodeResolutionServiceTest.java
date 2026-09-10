@@ -24,6 +24,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -55,10 +56,14 @@ class NodeResolutionServiceTest {
         relationService = new KnowledgeRelationService(relations);
 
         when(embeddingClient.embed(anyString())).thenReturn(vector(1));
+        when(embeddingClient.embed(anyList())).thenAnswer(invocation ->
+                invocation.<List<String>>getArgument(0).stream()
+                        .map(ignored -> vector(1))
+                        .toList());
 
         service = new NodeResolutionService(
                 embeddingClient,
-                new KnowledgeResolutionProperties(5),
+                new KnowledgeResolutionProperties(5, 3),
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),
                 relationService,
@@ -145,6 +150,80 @@ class NodeResolutionServiceTest {
         assertThat(captor.getValue().existingSubjects())
                 .extracting(NodeResolutionInput.ExistingSubject::index)
                 .containsExactly(1);
+    }
+
+    @Test
+    @DisplayName("Subject 직접 임베딩 유사도가 높으면 더 먼 Source의 후보라도 먼저 제공한다")
+    void ranksSubjectsByDirectEmbeddingSimilarity() {
+        KnowledgeNode unrelated = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "OAuth Authorization", null
+        ));
+        KnowledgeNode keywordMatch = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "OIDC Authentication", null
+        ));
+        KnowledgeSource nearest = completedSource(
+                USER_ID, "https://a.com/nearest", vector(1)
+        );
+        KnowledgeSource farther = completedSource(
+                USER_ID, "https://a.com/farther", vector(-1)
+        );
+        relationService.connect(nearest.getNode(), unrelated, RelationOrigin.AI);
+        relationService.connect(farther.getNode(), keywordMatch, RelationOrigin.AI);
+
+        when(embeddingClient.embed(anyList())).thenReturn(List.of(
+                vector(1), vector(-1), vector(1)
+        ));
+
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        "OIDC protocol", NodeResolutionResult.Action.CREATE, 0, "OIDC Protocol"
+                )
+        )));
+
+        service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC protocol")
+        );
+
+        ArgumentCaptor<NodeResolutionInput> captor = ArgumentCaptor.forClass(NodeResolutionInput.class);
+        verify(llmService).resolve(captor.capture());
+        assertThat(captor.getValue().existingSubjects())
+                .extracting(NodeResolutionInput.ExistingSubject::value)
+                .containsExactly("OIDC Authentication", "OAuth Authorization");
+    }
+
+    @Test
+    @DisplayName("Subject 직접 임베딩 후보 순서는 Source 유사도 순서보다 우선한다")
+    void prioritizesDirectEmbeddingOrderOverSimilarSourceRank() {
+        KnowledgeNode fartherSubject = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "JSON Web Token", null
+        ));
+        KnowledgeNode nearestSubject = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "OAuth 2.0", null
+        ));
+        KnowledgeSource nearest = completedSource(
+                USER_ID, "https://a.com/nearest", vector(1)
+        );
+        KnowledgeSource farther = completedSource(
+                USER_ID, "https://a.com/farther", vector(-1)
+        );
+        relationService.connect(farther.getNode(), fartherSubject, RelationOrigin.AI);
+        relationService.connect(nearest.getNode(), nearestSubject, RelationOrigin.AI);
+
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        "identity standard", NodeResolutionResult.Action.CREATE, 0, "Identity Standard"
+                )
+        )));
+
+        service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("identity standard")
+        );
+
+        ArgumentCaptor<NodeResolutionInput> captor = ArgumentCaptor.forClass(NodeResolutionInput.class);
+        verify(llmService).resolve(captor.capture());
+        assertThat(captor.getValue().existingSubjects())
+                .extracting(NodeResolutionInput.ExistingSubject::value)
+                .containsExactly("JSON Web Token", "OAuth 2.0");
     }
 
     @Test

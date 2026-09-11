@@ -14,6 +14,7 @@ public record FolderResponse(
         FolderStatus status,
         FolderTagResponse tag,
         boolean hasSource,
+        Instant pinnedAt,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -28,6 +29,7 @@ public record FolderResponse(
                         ? null
                         : FolderTagResponse.from(folder.getTag()),
                 folder.isHasSource(),
+                folder.getPinnedAt(),
                 folder.getCreatedAt(),
                 folder.getUpdatedAt()
         );

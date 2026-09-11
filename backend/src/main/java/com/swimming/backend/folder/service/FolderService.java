@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +42,7 @@ public class FolderService {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<Folder> getAll(Long userId) {
         return folderRepository
-                .findAllByUser_IdAndStatusNotAndDeletedFalseOrderByCreatedAtDesc(
+                .findAllActiveOrderByPinnedAtDescCreatedAtDesc(
                         userId,
                         FolderStatus.ARCHIVED
                 )
@@ -129,6 +130,20 @@ public class FolderService {
     public void updateHasSource(Long userId, Long folderId, boolean hasSource) {
         getOwnedFolderEntity(userId, folderId).updateHasSource(hasSource);
         folderRepository.flush();
+    }
+
+    /**
+     * 폴더를 고정하거나 해제한다. 고정하면 그 시각을 남겨 목록에서 최근 고정 순으로 쓴다.
+     *
+     * <p>save를 부르지 않고 관리 Entity를 그대로 바꿔 변경 감지로 반영한다. flush는 응답이
+     * 갱신된 updated_at을 담도록 쓰기 시점만 앞당긴다. update와 같은 방식이다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Folder pin(Long userId, Long folderId, boolean pinned) {
+        FolderEntity entity = getOwnedFolderEntity(userId, folderId);
+        entity.updatePinnedAt(pinned ? Instant.now() : null);
+        folderRepository.flush();
+        return entity.toDomain();
     }
 
     private FolderEntity getOwnedFolderEntity(Long userId, Long folderId) {

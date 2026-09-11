@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
@@ -65,6 +66,15 @@ public class FolderEntity extends BaseTimeEntity {
     @Column(name = "has_source", nullable = false)
     private boolean hasSource;
 
+    /**
+     * 이 폴더를 고정한 시각. 고정하지 않았으면 null이다.
+     *
+     * <p>{@code hasSource}와 같은 이유로 {@link #apply}가 옮기지 않는다. 폴더 수정과
+     * 고정은 서로 다른 API라, 폴더를 수정했다고 고정이 풀리면 안 된다.
+     */
+    @Column(name = "pinned_at")
+    private Instant pinnedAt;
+
     private FolderEntity(Folder folder, User user, FolderTagEntity tag) {
         this.user = user;
         this.tag = tag;
@@ -83,7 +93,7 @@ public class FolderEntity extends BaseTimeEntity {
         return new FolderEntity(folder, user, tag);
     }
 
-    /** hasSource는 옮기지 않는다. 폴더 수정이 링크 도메인의 값을 덮으면 안 된다. */
+    /** hasSource와 pinnedAt은 옮기지 않는다. 폴더 수정이 다른 API의 값을 덮으면 안 된다. */
     public void apply(Folder folder, FolderTagEntity tag) {
         this.tag = tag;
         this.name = folder.getName();
@@ -105,6 +115,11 @@ public class FolderEntity extends BaseTimeEntity {
         this.hasSource = hasSource;
     }
 
+    /** 고정하면 시각을 남기고, 해제하면 지운다. 이미 고정한 폴더를 다시 고정하면 시각을 새로 쓴다. */
+    public void updatePinnedAt(Instant pinnedAt) {
+        this.pinnedAt = pinnedAt;
+    }
+
     public Folder toDomain() {
         return Folder.restore(
                 id,
@@ -116,6 +131,7 @@ public class FolderEntity extends BaseTimeEntity {
                 status,
                 deleted,
                 hasSource,
+                pinnedAt,
                 getCreatedAt(),
                 getUpdatedAt()
         );

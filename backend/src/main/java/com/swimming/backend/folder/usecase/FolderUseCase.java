@@ -7,6 +7,7 @@ import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
+import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
@@ -76,6 +77,13 @@ public class FolderUseCase {
                 request.targetDate(),
                 request.status()
         ));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public FolderResponse pin(Long userId, Long folderId, PinFolderRequest request) {
+        return FolderResponse.from(
+                folderService.pin(userId, folderId, request.pinned())
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

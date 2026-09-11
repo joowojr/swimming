@@ -9,6 +9,7 @@ import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.FolderTagResponse;
+import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.usecase.FolderUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
@@ -78,6 +79,7 @@ class FolderControllerTest {
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(3L, "취준"),
                 false,
+                null,
                 Instant.parse("2026-08-19T10:00:00Z"),
                 Instant.parse("2026-08-19T10:00:00Z")
         ));
@@ -118,6 +120,7 @@ class FolderControllerTest {
                 FolderStatus.IN_PROGRESS,
                 new FolderTagResponse(4L, "포트폴리오"),
                 false,
+                null,
                 Instant.parse("2026-08-20T10:00:00Z"),
                 Instant.parse("2026-08-20T10:00:00Z")
         ));
@@ -252,6 +255,45 @@ class FolderControllerTest {
     }
 
     @Test
+    @DisplayName("폴더를 고정하면 고정한 시각을 담아 200으로 반환한다")
+    void pinsFolder() throws Exception {
+        when(folderUseCase.pin(1L, 10L, new PinFolderRequest(true)))
+                .thenReturn(new FolderResponse(
+                        10L,
+                        "프로젝트",
+                        "설명",
+                        null,
+                        FolderStatus.IN_PROGRESS,
+                        null,
+                        false,
+                        Instant.parse("2026-09-11T10:00:00Z"),
+                        Instant.parse("2026-08-19T10:00:00Z"),
+                        Instant.parse("2026-09-11T10:00:00Z")
+                ));
+
+        mockMvc.perform(patch("/api/folders/10/pin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"pinned":true}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.pinnedAt").value("2026-09-11T10:00:00Z"));
+        verify(folderUseCase).pin(1L, 10L, new PinFolderRequest(true));
+    }
+
+    @Test
+    @DisplayName("고정 여부를 빠뜨리면 400으로 반환한다")
+    void rejectsPinRequestWithoutPinnedField() throws Exception {
+        mockMvc.perform(patch("/api/folders/10/pin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("소유하지 않은 프로젝트는 찾을 수 없음으로 반환한다")
     void returnsNotFoundWithoutRevealingOwnership() throws Exception {
         when(folderUseCase.getOne(1L, 10L))
@@ -288,6 +330,7 @@ class FolderControllerTest {
                 status,
                 null,
                 false,
+                null,
                 Instant.parse("2026-08-19T10:00:00Z"),
                 Instant.parse("2026-08-19T10:00:00Z")
         );

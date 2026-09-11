@@ -220,7 +220,7 @@ const FolderHeader = memo(function FolderHeader({
           <DeleteIconButton
             className={styles['compact-delete-button']}
             iconSize={14}
-            label="폴더 삭제"
+            label="삭제"
             active={isConfirmingDelete}
             disabled={isDeleting}
             onClick={() => {
@@ -228,7 +228,7 @@ const FolderHeader = memo(function FolderHeader({
               setDeleteError(null)
             }}
           >
-            <span>{isConfirmingDelete ? '취소' : '폴더 삭제'}</span>
+            <span>{isConfirmingDelete ? '취소' : '삭제'}</span>
           </DeleteIconButton>
         </div>
       </div>

@@ -33,6 +33,22 @@ public class KnowledgeNodeService {
         );
     }
 
+    /** 이미 계산된 title embedding과 Subject 노드를 한 트랜잭션으로 저장한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public KnowledgeNode createSubjectWithEmbedding(
+            Long userId,
+            String title,
+            String description,
+            float[] titleEmbedding,
+            String embeddingModel
+    ) {
+        return nodeRepository.createSubjectWithEmbedding(
+                KnowledgeNode.create(userId, NodeType.SUBJECT, title, description),
+                titleEmbedding,
+                embeddingModel
+        );
+    }
+
     /**
      * 같은 타입 노드의 이름만 모아 준다. 프롬프트에 넘길 참고 목록처럼 노드 자체가
      * 필요 없는 자리에서 쓴다.
@@ -66,6 +82,21 @@ public class KnowledgeNodeService {
     ) {
         return nodeRepository.findByUserIdAndNodeTypeAndNormalizedTitle(
                 userId, NodeType.SUBJECT, normalizedTitle
+        );
+    }
+
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
+    public List<KnowledgeNode> findSimilarSubjects(
+            Long userId,
+            float[] titleEmbedding,
+            String embeddingModel,
+            int limit
+    ) {
+        return nodeRepository.findSimilarSubjects(
+                userId, titleEmbedding, embeddingModel, limit
         );
     }
 

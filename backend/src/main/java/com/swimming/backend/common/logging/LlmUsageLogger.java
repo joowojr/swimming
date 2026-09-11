@@ -38,9 +38,11 @@ public class LlmUsageLogger {
         Usage usage = usageOf(response);
 
         log.info(
-                "[{}] tokens prompt={} completion={} total={} | chars system={} user={} | {}",
+                "[{}] tokens prompt={} cacheRead={} cacheWrite={} completion={} total={} | chars system={} user={} | {}",
                 feature,
                 tokenCount(usage == null ? null : usage.getPromptTokens()),
+                tokenCount(usage == null ? null : usage.getCacheReadInputTokens()),
+                tokenCount(usage == null ? null : usage.getCacheWriteInputTokens()),
                 tokenCount(usage == null ? null : usage.getCompletionTokens()),
                 tokenCount(usage == null ? null : usage.getTotalTokens()),
                 length(systemPrompt),
@@ -57,6 +59,10 @@ public class LlmUsageLogger {
     }
 
     private int tokenCount(Integer value) {
+        return value == null ? UNKNOWN : value;
+    }
+
+    private long tokenCount(Long value) {
         return value == null ? UNKNOWN : value;
     }
 

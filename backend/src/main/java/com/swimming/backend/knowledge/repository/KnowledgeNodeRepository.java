@@ -34,5 +34,18 @@ public interface KnowledgeNodeRepository {
             String normalizedTitle
     );
 
+    KnowledgeNode createSubjectWithEmbedding(
+            KnowledgeNode subject,
+            float[] titleEmbedding,
+            String embeddingModel
+    );
+
+    List<KnowledgeNode> findSimilarSubjects(
+            Long userId,
+            float[] titleEmbedding,
+            String embeddingModel,
+            int limit
+    );
+
     void deleteById(UUID id);
 }

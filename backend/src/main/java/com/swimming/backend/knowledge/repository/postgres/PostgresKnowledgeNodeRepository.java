@@ -58,13 +58,22 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
     }
 
     @Override
-    public Optional<KnowledgeNode> findByUserIdAndNodeTypeAndNormalizedTitle(
+    public List<KnowledgeNode> findAllByNormalizedTitles(
             Long userId,
             NodeType nodeType,
-            String normalizedTitle
+            Collection<String> normalizedTitles
     ) {
-        return jpaRepository.findByUserIdAndNodeTypeAndNormalizedTitleAndDeletedFalse(userId, nodeType, normalizedTitle)
-                .map(PostgresKnowledgeNodeRepository::toDomain);
+        if (normalizedTitles.isEmpty()) {
+            return List.of();
+        }
+
+        return jpaRepository
+                .findAllByUserIdAndNodeTypeAndNormalizedTitleInAndDeletedFalse(
+                        userId, nodeType, normalizedTitles
+                )
+                .stream()
+                .map(PostgresKnowledgeNodeRepository::toDomain)
+                .toList();
     }
 
     @Override

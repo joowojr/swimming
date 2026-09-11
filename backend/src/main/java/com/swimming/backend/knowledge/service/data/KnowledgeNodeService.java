@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -76,13 +79,24 @@ public class KnowledgeNodeService {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
-    public Optional<KnowledgeNode> findSubjectByNormalizedTitle(
+    /**
+     * 정규화한 제목으로 Subject를 한 번에 찾는다.
+     *
+     * @return 정규화 제목을 키로 한 맵. 찾지 못한 제목은 들어 있지 않다
+     */
+    public Map<String, KnowledgeNode> findSubjectsByNormalizedTitles(
             Long userId,
-            String normalizedTitle
+            Collection<String> normalizedTitles
     ) {
-        return nodeRepository.findByUserIdAndNodeTypeAndNormalizedTitle(
-                userId, NodeType.SUBJECT, normalizedTitle
-        );
+        return nodeRepository
+                .findAllByNormalizedTitles(userId, NodeType.SUBJECT, normalizedTitles)
+                .stream()
+                .collect(Collectors.toMap(
+                        KnowledgeNode::getNormalizedTitle,
+                        node -> node,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
     }
 
     @Transactional(

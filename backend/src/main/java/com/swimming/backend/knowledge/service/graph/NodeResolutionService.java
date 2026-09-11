@@ -71,15 +71,17 @@ public class NodeResolutionService {
         Map<String, ResolvedNode> resolved = new LinkedHashMap<>();
         List<Candidate> unresolved = new ArrayList<>();
 
+        Map<String, KnowledgeNode> exactMatches = nodeService.findSubjectsByNormalizedTitles(
+                source.getUserId(),
+                candidates.stream().map(Candidate::normalized).toList()
+        );
         for (Candidate candidate : candidates) {
-            nodeService.findSubjectByNormalizedTitle(source.getUserId(), candidate.normalized())
-                    .ifPresentOrElse(
-                            node -> resolved.put(
-                                    candidate.normalized(),
-                                    ResolvedNode.exact(candidate.value(), node)
-                            ),
-                            () -> unresolved.add(candidate)
-                    );
+            KnowledgeNode node = exactMatches.get(candidate.normalized());
+            if (node == null) {
+                unresolved.add(candidate);
+                continue;
+            }
+            resolved.put(candidate.normalized(), ResolvedNode.exact(candidate.value(), node));
         }
 
         if (!unresolved.isEmpty()) {
@@ -138,14 +140,14 @@ public class NodeResolutionService {
             float[] summaryEmbedding,
             List<Candidate> unresolved
     ) {
-        CompletableFuture<List<KnowledgeNode>> sourceSubjectsFuture = CompletableFuture.supplyAsync(
+        CompletableFuture<List<KnowledgeNode>> sourceSearchFuture = CompletableFuture.supplyAsync(
                 () -> subjectsFromSimilarSources(source, summaryEmbedding));
-        CompletableFuture<List<KnowledgeNode>> directSubjectsFuture = CompletableFuture.supplyAsync(
+        CompletableFuture<List<KnowledgeNode>> subjectSearchFuture = CompletableFuture.supplyAsync(
                 () -> subjectsFromEmbedding(source.getUserId(), unresolved));
-        CompletableFuture.allOf(sourceSubjectsFuture, directSubjectsFuture).join();
+        CompletableFuture.allOf(sourceSearchFuture, subjectSearchFuture).join();
 
         List<KnowledgeNode> existingSubjects = unionSubjects(
-                directSubjectsFuture.join(), sourceSubjectsFuture.join());
+                subjectSearchFuture.join(), sourceSearchFuture.join());
 
         NodeResolutionInput input = new NodeResolutionInput(
                 summary,
@@ -272,6 +274,19 @@ public class NodeResolutionService {
             throw new IllegalStateException("node resolution decision count does not match candidates");
         }
 
+        // LLM을 기다리는 동안 다른 요청이 같은 Subject를 만들었을 수 있다. 신규 판정 후보를
+        // 모아 여기서 한 번에 다시 읽는다. 후보마다 읽으면 그만큼 왕복이 생긴다.
+        Map<String, KnowledgeNode> createdMeanwhile = nodeService.findSubjectsByNormalizedTitles(
+                userId,
+                decisions.values().stream()
+                        .filter(decision -> decision.action() == NodeResolutionResult.Action.CREATE)
+                        .map(NodeResolutionService::newSubjectTitle)
+                        .map(NodeTitleNormalizer::normalize)
+                        .filter(normalized -> !normalized.isEmpty())
+                        .distinct()
+                        .toList()
+        );
+
         List<ResolvedNode> resolved = new ArrayList<>();
         for (Candidate candidate : unresolved) {
             NodeResolutionResult.Decision decision = decisions.get(candidate.value());
@@ -281,10 +296,15 @@ public class NodeResolutionService {
 
             resolved.add(switch (decision.action()) {
                 case REUSE -> reuse(candidate, decision, existingSubjects);
-                case CREATE -> create(userId, candidate, decision);
+                case CREATE -> create(userId, candidate, decision, createdMeanwhile);
             });
         }
         return resolved;
+    }
+
+    /** 신규 판정이 내놓은 제목. 형식이 어긋나면 {@link #create}가 걸러내므로 여기서는 비워 둔다. */
+    private static String newSubjectTitle(NodeResolutionResult.Decision decision) {
+        return decision.value() == null ? "" : decision.value().strip();
     }
 
     /** LLM이 선택한 Subject가 제공된 Context에 속하는지 확인하고 재사용한다. */
@@ -306,7 +326,8 @@ public class NodeResolutionService {
     private ResolvedNode create(
             Long userId,
             Candidate candidate,
-            NodeResolutionResult.Decision decision
+            NodeResolutionResult.Decision decision,
+            Map<String, KnowledgeNode> createdMeanwhile
     ) {
         if (decision.subjectIndex() != 0 || !StringUtils.hasText(decision.value())) {
             throw new IllegalStateException("node resolution returned an invalid new subject");
@@ -318,9 +339,11 @@ public class NodeResolutionService {
             throw new IllegalStateException("node resolution returned an empty new subject");
         }
 
-        return nodeService.findSubjectByNormalizedTitle(userId, normalized)
-                .map(node -> ResolvedNode.exact(candidate.value(), node))
-                .orElseGet(() -> createSubject(userId, candidate.value(), value));
+        KnowledgeNode existing = createdMeanwhile.get(normalized);
+        if (existing != null) {
+            return ResolvedNode.exact(candidate.value(), existing);
+        }
+        return createSubject(userId, candidate.value(), value);
     }
 
     /** Subject title embedding을 먼저 계산하고, 노드 생성 직후 DB에 저장한다. */

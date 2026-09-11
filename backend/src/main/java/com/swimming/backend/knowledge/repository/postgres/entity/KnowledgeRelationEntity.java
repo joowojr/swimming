@@ -79,11 +79,21 @@ public class KnowledgeRelationEntity extends BaseTimeEntity {
         this.evidence = evidence;
     }
 
-    public void reinforce(
+    /**
+     * 다시 관찰한 내용을 이 관계에 반영한다.
+     *
+     * <p>사용자가 만든 관계에 AI 관찰이 오면 아무것도 하지 않는다. 사람이 직접 이은 것을
+     * 자동 관찰이 덮지 않게 한다.
+     */
+    public void applyObservation(
             RelationOrigin origin,
             Double confidence,
             String evidence
     ) {
+        if (this.origin == RelationOrigin.USER && origin != RelationOrigin.USER) {
+            return;
+        }
+
         this.origin = origin;
         this.confidence = confidence;
         this.evidence = evidence;

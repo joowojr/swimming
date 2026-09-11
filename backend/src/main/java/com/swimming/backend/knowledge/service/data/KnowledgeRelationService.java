@@ -31,34 +31,40 @@ public class KnowledgeRelationService {
      * 같은 관계가 이미 있으면 근거만 갱신한다.
      *
      * <p>여러 문서가 같은 개념을 다루면 같은 관계를 반복해서 관찰하게 된다. 그때마다 행을
-     * 늘리지 않고 마지막 관찰로 덮는다. 사용자가 만든 관계는
-     * {@link KnowledgeRelation#reinforce}가 지켜 준다.
+     * 늘리지 않고 마지막 관찰로 덮는다. 사용자가 만든 관계는 저장소가 기존 행에 관찰을
+     * 반영할 때 걸러낸다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public KnowledgeRelation connect(KnowledgeNode from, KnowledgeNode to, RelationOrigin origin) {
-        RelationType relationType =
-                RelationType.between(from.getNodeType(), to.getNodeType());
-
-        return relationRepository.find(from.getId(), to.getId(), relationType)
-                .map(existing -> {
-                    existing.reinforce(origin, null, null);
-                    return relationRepository.save(existing);
-                })
-                .orElseGet(() -> relationRepository.save(
-                        KnowledgeRelation.create(from, to, relationType, origin, null, null)
-                ));
+        return connectAll(from, List.of(to), origin).getFirst();
     }
 
-    /** 한 노드에서 같은 타입의 여러 노드로 잇는다. Source → 여러 Subject처럼 쓴다. */
+    /**
+     * 한 노드에서 같은 타입의 여러 노드로 잇는다. Source → 여러 Subject처럼 쓴다.
+     *
+     * <p>대상마다 저장을 부르지 않고 한 번에 넘긴다. Subject 수만큼 왕복하던 것을 묶음당
+     * 조회 한 번과 저장 한 번으로 줄인다.
+     */
     @Transactional(propagation = Propagation.REQUIRED)
     public List<KnowledgeRelation> connectAll(
             KnowledgeNode from,
             List<KnowledgeNode> targets,
             RelationOrigin origin
     ) {
-        return targets.stream()
-                .map(to -> connect(from, to, origin))
-                .toList();
+        if (targets.isEmpty()) {
+            return List.of();
+        }
+
+        return relationRepository.saveAll(targets.stream()
+                .map(to -> KnowledgeRelation.create(
+                        from,
+                        to,
+                        RelationType.between(from.getNodeType(), to.getNodeType()),
+                        origin,
+                        null,
+                        null
+                ))
+                .toList());
     }
 
     /** 이 노드들에서 나가는 관계. Source가 다루는 개념처럼 정방향으로 읽는다. */

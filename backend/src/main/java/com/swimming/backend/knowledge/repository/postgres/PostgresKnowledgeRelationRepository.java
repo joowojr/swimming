@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,43 +24,77 @@ public class PostgresKnowledgeRelationRepository implements KnowledgeRelationRep
 
     /**
      * 자연키가 같은 Relation이 있으면 근거를 갱신하고 없으면 새로 만든다.
+     *
+     * <p>(fromNodeId, relationType) 묶음마다 기존 행을 한 번에 읽고, 갱신 대상과 신규 대상을
+     * 함께 {@code saveAll}로 넘긴다. 한 건씩 조회하면 Source 하나를 저장할 때마다 Subject 수만큼
+     * 왕복이 생긴다.
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
-    public KnowledgeRelation save(KnowledgeRelation relation) {
-        KnowledgeRelationEntity entity = jpaRepository
-                .findByFromNodeIdAndToNodeIdAndRelationType(
-                        relation.getFromNodeId(),
-                        relation.getToNodeId(),
-                        relation.getRelationType()
-                )
-                .orElseGet(() -> KnowledgeRelationEntity.builder()
-                        .fromNodeId(relation.getFromNodeId())
-                        .toNodeId(relation.getToNodeId())
-                        .relationType(relation.getRelationType())
-                        .origin(relation.getOrigin())
-                        .confidence(relation.getConfidence())
-                        .evidence(relation.getEvidence())
-                        .build());
+    public List<KnowledgeRelation> saveAll(List<KnowledgeRelation> relations) {
+        if (relations.isEmpty()) {
+            return List.of();
+        }
 
-        entity.reinforce(
+        return relations.stream()
+                .collect(Collectors.groupingBy(
+                        relation -> new Lookup(relation.getFromNodeId(), relation.getRelationType()),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .entrySet().stream()
+                .flatMap(group -> saveGroup(group.getKey(), group.getValue()).stream())
+                .toList();
+    }
+
+    /**
+     * from과 relationType이 같은 묶음 하나를 조회 한 번과 저장 한 번으로 처리한다.
+     *
+     * <p>묶음 안에서는 자연키 가운데 toNodeId만 달라지므로 그것으로 기존 행과 맞춘다. 같은
+     * toNodeId가 여러 번 들어오면 마지막 관찰만 남긴다. 한 건씩 저장하던 때는 뒤에 온 것이
+     * 앞의 것을 덮었고, 한 번에 저장하면서 중복을 그대로 두면 같은 자연키로 두 행을 만들어
+     * 유니크 제약에 걸린다.
+     */
+    private List<KnowledgeRelation> saveGroup(Lookup lookup, List<KnowledgeRelation> group) {
+        Map<UUID, KnowledgeRelation> requested = new LinkedHashMap<>();
+        group.forEach(relation -> requested.put(relation.getToNodeId(), relation));
+
+        Map<UUID, KnowledgeRelationEntity> existing = jpaRepository
+                .findAllByFromNodeIdAndToNodeIdInAndRelationType(
+                        lookup.fromNodeId(), requested.keySet(), lookup.relationType()
+                )
+                .stream()
+                .collect(Collectors.toMap(
+                        KnowledgeRelationEntity::getToNodeId, entity -> entity
+                ));
+
+        List<KnowledgeRelationEntity> entities = requested.values().stream()
+                .map(relation -> merge(existing.get(relation.getToNodeId()), relation))
+                .toList();
+
+        return jpaRepository.saveAll(entities).stream()
+                .map(PostgresKnowledgeRelationRepository::toDomain)
+                .toList();
+    }
+
+    private KnowledgeRelationEntity merge(KnowledgeRelationEntity existing, KnowledgeRelation relation) {
+        if (existing == null) {
+            return KnowledgeRelationEntity.builder()
+                    .fromNodeId(relation.getFromNodeId())
+                    .toNodeId(relation.getToNodeId())
+                    .relationType(relation.getRelationType())
+                    .origin(relation.getOrigin())
+                    .confidence(relation.getConfidence())
+                    .evidence(relation.getEvidence())
+                    .build();
+        }
+
+        existing.applyObservation(
                 relation.getOrigin(),
                 relation.getConfidence(),
                 relation.getEvidence()
         );
-
-        return toDomain(jpaRepository.save(entity));
-    }
-
-    @Override
-    public Optional<KnowledgeRelation> find(
-            UUID fromNodeId,
-            UUID toNodeId,
-            RelationType relationType
-    ) {
-        return jpaRepository
-                .findByFromNodeIdAndToNodeIdAndRelationType(fromNodeId, toNodeId, relationType)
-                .map(PostgresKnowledgeRelationRepository::toDomain);
+        return existing;
     }
 
     @Override
@@ -113,5 +149,8 @@ public class PostgresKnowledgeRelationRepository implements KnowledgeRelationRep
                 entity.getEvidence(),
                 entity.getCreatedAt()
         );
+    }
+
+    private record Lookup(UUID fromNodeId, RelationType relationType) {
     }
 }

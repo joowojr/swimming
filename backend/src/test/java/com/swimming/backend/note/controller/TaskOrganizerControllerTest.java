@@ -19,6 +19,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -43,17 +44,32 @@ class TaskOrganizerControllerTest {
     }
 
     @Test
-    @DisplayName("Task Organizer Preview 응답에 confidence를 노출하지 않는다")
+    @DisplayName("Preview는 명시된 날짜만 반환하고 confidence를 노출하지 않는다")
     void returnsPreviewWithoutConfidence() throws Exception {
-        TaskOrganizeRequest request = new TaskOrganizeRequest("메모", null, null);
+        TaskOrganizeRequest request = new TaskOrganizeRequest(
+                7L, "메모", null, null, LocalDate.of(2026, 9, 9)
+        );
         when(taskOrganizerUseCase.preview(1L, request)).thenReturn(
                 new TaskOrganizeResponse(
-                        List.of(new TaskOrganizeResponse.TaskSuggestionResponse(
-                                "원문",
-                                10L,
-                                "Swimming",
-                                "정리된 Task"
-                        )),
+                        1L,
+                        List.of(
+                                new TaskOrganizeResponse.TaskSuggestionResponse(
+                                        "item-1",
+                                        "내일 처리할 원문",
+                                        10L,
+                                        "Swimming",
+                                        "날짜가 있는 Task",
+                                        LocalDate.of(2026, 9, 10)
+                                ),
+                                new TaskOrganizeResponse.TaskSuggestionResponse(
+                                        "item-2",
+                                        "날짜 없는 원문",
+                                        10L,
+                                        "Swimming",
+                                        "날짜가 없는 Task",
+                                        null
+                                )
+                        ),
                         List.of()
                 )
         );
@@ -61,20 +77,37 @@ class TaskOrganizerControllerTest {
         mockMvc.perform(post("/api/task-organizer/preview")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"memo":"메모"}
+                                {"noteId":7,"memo":"메모","currentDate":"2026-09-09"}
                                 """))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.runId").value(1L))
+                .andExpect(jsonPath("$.suggestions[0].itemId").value("item-1"))
                 .andExpect(jsonPath("$.suggestions[0].folderId").value(10L))
-                .andExpect(jsonPath("$.suggestions[0].title").value("정리된 Task"))
+                .andExpect(jsonPath("$.suggestions[0].title").value("날짜가 있는 Task"))
+                .andExpect(jsonPath("$.suggestions[0].planDate").value("2026-09-10"))
+                .andExpect(jsonPath("$.suggestions[1].planDate").isEmpty())
                 .andExpect(jsonPath("$.suggestions[0].confidence").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("Task Organizer Preview 요청에는 사용자 로컬 기준일이 필요하다")
+    void requiresCurrentDateForPreview() throws Exception {
+        mockMvc.perform(post("/api/task-organizer/preview")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"memo":"내일 로그인 오류 수정"}
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("승인한 Task를 생성하고 sourceText는 응답에 노출하지 않는다")
     void confirmsTasksWithoutExposingSourceText() throws Exception {
         TaskOrganizeConfirmRequest request = new TaskOrganizeConfirmRequest(
+                1L,
                 7L,
                 List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                        "item-1",
                         "원문",
                         10L,
                         "정리된 Task"
@@ -97,8 +130,10 @@ class TaskOrganizerControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "runId":1,
                                   "noteId":7,
                                   "tasks":[{
+                                    "itemId":"item-1",
                                     "sourceText":"원문",
                                     "folderId":10,
                                     "title":"정리된 Task"
@@ -115,8 +150,10 @@ class TaskOrganizerControllerTest {
     @DisplayName("미분류 Task의 null folderId를 확정 요청과 응답에서 허용한다")
     void confirmsUnclassifiedTask() throws Exception {
         TaskOrganizeConfirmRequest request = new TaskOrganizeConfirmRequest(
+                1L,
                 7L,
                 List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                        "item-1",
                         "운동화 주문",
                         null,
                         "운동화 주문"
@@ -139,8 +176,10 @@ class TaskOrganizerControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "runId":1,
                                   "noteId":7,
                                   "tasks":[{
+                                    "itemId":"item-1",
                                     "sourceText":"운동화 주문",
                                     "folderId":null,
                                     "title":"운동화 주문"

@@ -2,11 +2,13 @@ package com.swimming.backend.task.domain;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class TaskPlacement {
 
     private static final long ORDER_RANK_GAP = 1024L;
@@ -15,6 +17,8 @@ public class TaskPlacement {
     private final TaskMatrixSection sourceSection;
     private final TaskMatrixSection targetSection;
     private final List<Task> targetTasks;
+    private final Long requestedPreviousTaskId;
+    private final Long requestedNextTaskId;
     private final Task previousTask;
     private final Task nextTask;
 
@@ -25,10 +29,12 @@ public class TaskPlacement {
             Long previousTaskId,
             Long nextTaskId
     ) {
-        validateAnchorIds(movingTask.getId(), previousTaskId, nextTaskId);
         this.movingTask = movingTask;
         this.sourceSection = TaskMatrixSection.from(movingTask.isPriority(), movingTask.isUrgent());
         this.targetSection = targetSection;
+        this.requestedPreviousTaskId = previousTaskId;
+        this.requestedNextTaskId = nextTaskId;
+        validateAnchorIds(movingTask.getId(), previousTaskId, nextTaskId);
         this.targetTasks = targetTasks.stream()
                 .filter(task -> !Objects.equals(task.getId(), movingTask.getId()))
                 .sorted(Comparator.comparingLong(Task::getMatrixRank)
@@ -73,7 +79,11 @@ public class TaskPlacement {
             rank = calculateRank();
         }
         if (rank == null) {
-            throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT);
+            throw placementError(
+                    ErrorCode.TASK_PLACEMENT_CONFLICT,
+                    "rank-unavailable-after-rebalance",
+                    null
+            );
         }
         movingTask.moveTo(targetSection, rank);
         return new TaskPlacementChange(
@@ -91,7 +101,11 @@ public class TaskPlacement {
         return targetTasks.stream()
                 .filter(task -> Objects.equals(task.getId(), taskId))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT));
+                .orElseThrow(() -> placementError(
+                        ErrorCode.TASK_PLACEMENT_CONFLICT,
+                        "anchor-not-found",
+                        taskId
+                ));
     }
 
     private void validateTargetSections() {
@@ -99,7 +113,11 @@ public class TaskPlacement {
                 task.isPriority() != targetSection.isPriority()
                         || task.isUrgent() != targetSection.isUrgent());
         if (invalidSection) {
-            throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT);
+            throw placementError(
+                    ErrorCode.TASK_PLACEMENT_CONFLICT,
+                    "target-section-mismatch",
+                    null
+            );
         }
     }
 
@@ -107,33 +125,53 @@ public class TaskPlacement {
         if (Objects.equals(movingTaskId, previousTaskId)
                 || Objects.equals(movingTaskId, nextTaskId)
                 || (previousTaskId != null && Objects.equals(previousTaskId, nextTaskId))) {
-            throw new BusinessException(ErrorCode.INVALID_TASK_PLACEMENT);
+            throw placementError(
+                    ErrorCode.INVALID_TASK_PLACEMENT,
+                    "invalid-anchor-ids",
+                    null
+            );
         }
     }
 
     private void validateAdjacent() {
         if (previousTask == null && nextTask == null) {
             if (!targetTasks.isEmpty()) {
-                throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT);
+                throw placementError(
+                        ErrorCode.TASK_PLACEMENT_CONFLICT,
+                        "anchors-missing-for-nonempty-section",
+                        null
+                );
             }
             return;
         }
         if (previousTask == null) {
             if (!Objects.equals(targetTasks.getFirst().getId(), nextTask.getId())) {
-                throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT);
+                throw placementError(
+                        ErrorCode.TASK_PLACEMENT_CONFLICT,
+                        "next-anchor-is-not-first",
+                        nextTask.getId()
+                );
             }
             return;
         }
         if (nextTask == null) {
             if (!Objects.equals(targetTasks.getLast().getId(), previousTask.getId())) {
-                throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT);
+                throw placementError(
+                        ErrorCode.TASK_PLACEMENT_CONFLICT,
+                        "previous-anchor-is-not-last",
+                        previousTask.getId()
+                );
             }
             return;
         }
         int previousIndex = targetTasks.indexOf(previousTask);
         int nextIndex = targetTasks.indexOf(nextTask);
         if (nextIndex != previousIndex + 1) {
-            throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT);
+            throw placementError(
+                    ErrorCode.TASK_PLACEMENT_CONFLICT,
+                    "anchors-are-not-adjacent",
+                    null
+            );
         }
     }
 
@@ -169,7 +207,27 @@ public class TaskPlacement {
                 rank = Math.subtractExact(rank, ORDER_RANK_GAP);
             }
         } catch (ArithmeticException exception) {
+            log.debug(
+                    "Task placement failed: taskId={}, sourceSection={}, targetSection={}, "
+                            + "previousTaskId={}, nextTaskId={}, reason=rebalance-overflow",
+                    movingTask.getId(), sourceSection, targetSection,
+                    requestedPreviousTaskId, requestedNextTaskId, exception
+            );
             throw new BusinessException(ErrorCode.TASK_PLACEMENT_CONFLICT, exception);
         }
+    }
+
+    private BusinessException placementError(
+            ErrorCode errorCode,
+            String reason,
+            Long relatedTaskId
+    ) {
+        log.debug(
+                "Task placement rejected: taskId={}, sourceSection={}, targetSection={}, "
+                        + "previousTaskId={}, nextTaskId={}, relatedTaskId={}, reason={}, errorCode={}",
+                movingTask.getId(), sourceSection, targetSection,
+                requestedPreviousTaskId, requestedNextTaskId, relatedTaskId, reason, errorCode
+        );
+        return new BusinessException(errorCode);
     }
 }

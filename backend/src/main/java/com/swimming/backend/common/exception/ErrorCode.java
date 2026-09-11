@@ -54,6 +54,7 @@ public enum ErrorCode {
     INVALID_NOTE_CONTEXT(HttpStatus.BAD_REQUEST, "노트 컨텍스트가 올바르지 않습니다"),
     INVALID_TASK_ORGANIZER_SELECTION(HttpStatus.BAD_REQUEST, "할 일 정리 선택 항목이 원본 노트와 일치하지 않습니다"),
     INVALID_TASK_ORGANIZER_CONTEXT(HttpStatus.BAD_REQUEST, "할 일 정리 참조 범위가 올바르지 않습니다"),
+    INVALID_TASK_ORGANIZER_RUN(HttpStatus.BAD_REQUEST, "할 일 정리 실행 기록이 올바르지 않습니다"),
     EMPTY_TASK_ORGANIZER_CONTEXT(HttpStatus.BAD_REQUEST, "참조할 폴더가 없습니다"),
 
     // PLACE DOMAIN

@@ -34,6 +34,7 @@ class TaskOrganizerInputSerializerTest {
         assertThat(TaskOrganizerInputSerializer.serialize(input)).isEqualTo(
                 "<task-organizer-input>"
                         + "<memo><![CDATA[로그인 흐름 정리]]></memo>"
+                        + "<current-date>2026-09-09</current-date>"
                         + "<folders>"
                         + "<folder id=\"10\"><name>Swimming</name><description>생산성 서비스</description>"
                         + "<tasks>로그인 API 수정\nOrganizer 테스트</tasks></folder>"

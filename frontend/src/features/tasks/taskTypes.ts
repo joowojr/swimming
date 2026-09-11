@@ -1,6 +1,6 @@
 // 이동 응답에만 필요한 타입 참조다. C안(캘린더 날짜를 task 컬럼으로)으로 가면 이 import가 사라진다.
 // TODO(task-owns-plan-date): docs/backlog/task-owns-plan-date.md
-import type { DailyPlan } from '../plans/dailyPlanTypes'
+import type { DailyPlan } from '../calendar/dailyPlanTypes'
 
 export type TaskStatus = 'TODO' | 'DOING' | 'DONE' | 'HOLD'
 /** 할 일 목록 정렬. 기준은 생성 시각이고 목록을 좁히지 않으므로 필터와 분리한다. */

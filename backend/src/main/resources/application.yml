@@ -39,7 +39,7 @@ app:
       kasi:
         base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo
         # 공공데이터포털의 Encoding 인증키를 그대로 사용한다.
-        service-key: ${KASI_HOLIDAY_SERVICE_KEY:}
+        service-key: ${KASI_HOLIDAY_API_KEY:}
         connect-timeout: 3s
         response-timeout: 5s
   prompt:

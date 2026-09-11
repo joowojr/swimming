@@ -376,3 +376,16 @@ span.task-title-editor.is-priority.is-urgent button::before {
         animation-duration: 1.5s;
     }
 }
+
+/* 공휴일은 날짜 텍스트 색으로만 알린다. 명칭은 폭이 있는 우측 패널이 맡는다.
+   선택한 날짜는 배경이 반전되므로 그때는 색을 덮지 않는다.
+   error가 아니라 tertiary 계열을 쓴다. 공휴일은 오류나 경고가 아니다. */
+.day[data-holiday='true']:not([data-selected='true']) {
+    color: var(--color-on-tertiary-container);
+}
+
+.todoHeader .holidayNames {
+    margin-top: var(--space-1);
+    color: var(--color-on-tertiary-container);
+    font-size: var(--text-body-sm-size);
+}

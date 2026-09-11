@@ -21,6 +21,7 @@ import {formatLocalDate, parseLocalDate} from '../../lib/date'
 import {monthRange} from './planDate'
 import {joinPlanItems} from './planItems'
 import {useDailyPlanStore} from '../../store/dailyPlanStore'
+import {useHolidayStore} from '../../store/holidayStore'
 import {useFolderStore} from '../../store/folderStore.ts'
 import {usePinboardViewStore} from '../../store/pinboardViewStore'
 import {useTaskStore} from '../../store/taskStore'
@@ -106,6 +107,8 @@ export default function DailyPlanner() {
     const tasksById = useTaskStore((state) => state.byId)
     const upsertTasks = useTaskStore((state) => state.upsert)
     const folders = useFolderStore((state) => state.folders)
+    const holidayNamesByDate = useHolidayStore((state) => state.namesByDate)
+    const loadHolidayMonth = useHolidayStore((state) => state.loadMonth)
 
     const calendarDays = useMemo(
         () => (calendarView === 'week'
@@ -122,6 +125,22 @@ export default function DailyPlanner() {
         if (loadedMonths.has(visibleMonthKey)) return
         void loadMonth(visibleMonthKey, fromDate, toDate).catch(() => {})
     }, [visibleMonthKey, fromDate, toDate, loadMonth, loadedMonths])
+
+    // 주간 화면이 월 경계를 넘으면 두 달이 보인다. 보이는 날짜에서 달을 뽑아 그만큼 조회한다.
+    const visibleHolidayMonths = useMemo(
+        () => [...new Set(calendarDays
+            .filter((date): date is Date => date !== null)
+            .map((date) => formatLocalDate(date).slice(0, 7)))],
+        [calendarDays],
+    )
+
+    useEffect(() => {
+        for (const monthKey of visibleHolidayMonths) {
+            void loadHolidayMonth(monthKey)
+        }
+    }, [visibleHolidayMonths, loadHolidayMonth])
+
+    const selectedHolidayNames = holidayNamesByDate[selectedDate] ?? []
 
     // 캘린더 항목(멤버십) + task(가변 속성) + 폴더(이름)를 여기서 합친다.
     const items = useMemo(
@@ -250,6 +269,8 @@ export default function DailyPlanner() {
                         const selected = dateValue === selectedDate
                         const isToday = dateValue === today
                         const dateItemCount = (entriesByDate[dateValue] ?? []).length
+                        const holidayNames = holidayNamesByDate[dateValue] ?? []
+                        const holidayLabel = holidayNames.join(', ')
                         return (
                             <button
                                 type="button"
@@ -257,8 +278,11 @@ export default function DailyPlanner() {
                                 className={styles.day}
                                 data-selected={selected}
                                 data-today={isToday}
+                                data-holiday={holidayNames.length > 0 || undefined}
                                 aria-selected={selected}
-                                aria-label={`${dateValue}${dateItemCount > 0 ? `, 할 일 ${dateItemCount}개` : ''}`}
+                                // 색만으로는 공휴일이 전달되지 않는다. 이름을 함께 읽힌다.
+                                aria-label={`${dateValue}${holidayLabel ? `, ${holidayLabel}` : ''}${dateItemCount > 0 ? `, 할 일 ${dateItemCount}개` : ''}`}
+                                title={holidayLabel || undefined}
                                 onClick={() => selectDate(dateValue)}
                                 key={dateValue}
                             >
@@ -277,6 +301,9 @@ export default function DailyPlanner() {
                 <header className={styles.todoHeader}>
                     <div>
                         <h1 id="daily-planner-title">{selectedDateFormatter.format(parseLocalDate(selectedDate))}</h1>
+                        {selectedHolidayNames.length > 0 && (
+                            <p className={styles.holidayNames}>{selectedHolidayNames.join(', ')}</p>
+                        )}
                     </div>
                     <span className={styles.taskCount}>{items.length}개</span>
                 </header>

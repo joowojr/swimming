@@ -4,6 +4,6 @@ import type { GraphNodeType } from './graphTypes'
 export const NODE_TYPE_LABEL: Record<GraphNodeType, string> = {
   FOLDER: '폴더',
   SOURCE: '문서',
-  SUBJECT: '태그',
-  TOPIC: '목적',
+  SUBJECT: '키워드',
+  TOPIC: '주제',
 }

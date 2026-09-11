@@ -115,7 +115,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]))
 
     // 축소 상태에서는 전체 Subject를 한 덩어리로 만들지 않는다. Topic마다 직접 이어진
-    // Subject만 세어 요약해야 어떤 목적에 딸린 태그인지 공간적으로 남는다.
+    // Subject만 세어 요약해야 어떤 주제에 딸린 키워드인지 공간적으로 남는다.
     const subjectSummaries = showAllSubjects || showSubjectDetails
       ? []
       : positionedNodes
@@ -194,7 +194,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
           subjectSummary: subjectSummary !== undefined,
         },
         ariaLabel: subjectSummary
-          ? `${subjectSummary.topicTitle}의 태그 ${subjectSummary.count}개 펼쳐 보기`
+          ? `${subjectSummary.topicTitle}의 키워드 ${subjectSummary.count}개 펼쳐 보기`
           : undefined,
       }
     })
@@ -285,7 +285,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     return (
       <div className={styles.state}>
         <p>아직 이어 볼 것이 없어요.</p>
-        <p className={styles.hint}>링크를 저장하면 문서와 개념이 여기에 이어집니다.</p>
+        <p className={styles.hint}>링크를 저장하면 문서와 키워드가 여기에 이어집니다.</p>
       </div>
     )
   }
@@ -336,8 +336,8 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
           <div className={styles.legend}>
             <span data-type="FOLDER">폴더</span>
             <span data-type="SOURCE">문서</span>
-            <span data-type="TOPIC">목적</span>
-            <span data-type="SUBJECT">태그</span>
+            <span data-type="TOPIC">주제</span>
+            <span data-type="SUBJECT">키워드</span>
           </div>
 
           {state.graph.truncated && (

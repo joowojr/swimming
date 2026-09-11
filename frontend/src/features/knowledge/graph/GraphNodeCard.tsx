@@ -24,7 +24,7 @@ export type KnowledgeFlowNode = Node<KnowledgeNodeData, 'knowledge'>
 
 /**
  * 노드 하나. 타입 구분은 인지를 돕는 정도로만 쓴다(UX §6.3).
- * Subject는 여러 문서가 함께 가리키는 개념이라 칩, Topic은 문서 하나가 만든 목적이라 카드다.
+ * Subject는 여러 문서가 함께 가리키는 키워드라 칩, Topic은 문서 하나가 만든 주제라 카드다.
  */
 export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlowNode>) {
   const { node, dimmed, sourceCard, axis, subjectSummary, order } = data

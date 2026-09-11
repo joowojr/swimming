@@ -228,14 +228,28 @@ distribution at `/media/*`. CloudFront passes the request path to the origin
 unchanged, so an object must be stored under the `media/` prefix for
 `/media/intro.mp4` to resolve.
 
-Use the upload script rather than `aws s3 cp` by hand. It computes the content
-hash, applies the cache headers, and prints the key to paste into the seed
-migration.
+Use the upload script rather than `aws s3 cp` by hand. It preserves and uploads
+the source background video, creates a lightweight thumbnail video, uploads both
+content-addressed assets to the selected bucket, and creates or updates the
+matching city/place rows in the repeatable seed migration. The local machine
+needs `ffmpeg`, `ffprobe`, the AWS CLI, and valid AWS credentials.
 
 ```bash
-infra/scripts/upload-media.sh ~/videos/lisbon.mp4 1_lisbon_1
-# → cities/videos/places/1_lisbon_1.a1b2c3d4.mp4
+infra/scripts/upload-media.sh \
+  --file ~/videos/lisbon.mov \
+  --bucket swimming-media-production \
+  --place-id 1 \
+  --city-id 1 \
+  --place-name "Café da Garagem" \
+  --logical-name 1_lisbon_1 \
+  --city-name Lisbon \
+  --country-code PT \
+  --timezone Europe/Lisbon
 ```
+
+The source background must be an H.264/yuv420p MP4 and is never overwritten or
+re-encoded. The generated thumbnail is an H.264 MP4 (up to 640x360, 15 fps,
+without audio). The seed file is changed only after both uploads succeed.
 
 ### Keys carry a content hash
 
@@ -244,11 +258,14 @@ Object keys end in the first 8 hex characters of the file's sha256:
 ```
 media/cities/videos/places/1_lisbon_1.a1b2c3d4.mp4   S3 object key
      cities/videos/places/1_lisbon_1.a1b2c3d4.mp4    places.background_asset_key
+media/cities/thumbnails/places/1_lisbon_1.e5f6a7b8.mp4   S3 object key
+     cities/thumbnails/places/1_lisbon_1.e5f6a7b8.mp4    places.thumbnail_asset_key
 ```
 
-Replacing a video means uploading under a new key and updating
-`background_asset_key` in `backend/src/main/resources/db/migration/R__seed_places.sql`.
-No invalidation is needed - the new key was never cached anywhere.
+Replacing a video makes the script upload both outputs under new keys and update
+`background_asset_key` and `thumbnail_asset_key` in
+`backend/src/main/resources/db/migration/R__seed_places.sql`. No invalidation is
+needed - the new keys were never cached anywhere.
 
 This is not a stylistic choice. `immutable` tells browsers not to revalidate for
 a year, so reusing a filename for new content leaves returning visitors playing

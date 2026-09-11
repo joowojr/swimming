@@ -16,6 +16,7 @@ import { getFolderGraph } from './graphApi'
 import { layoutGraph, rootNodeId } from './graphLayout'
 import type { LayoutOptions } from './graphLayout'
 import { neighborsOf, touchesNode } from './graphNeighbors'
+import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
 import type { SourceCard } from '../knowledgeTypes'
 import styles from './KnowledgeGraph.module.css'
@@ -95,6 +96,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
       ? neighborsOf(selectedNodeId, graph.edges, sourceNodeIds)
       : null
 
+    const topicNumbers = numberTopics(graph)
     const positionedNodes = layoutGraph(graph, layout)
     const selectedSubjectId = graph.nodes.some(
       (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
@@ -164,6 +166,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
         nodeId: summary.id,
         type: 'SUBJECT' as const,
         title: `+${summary.count}`,
+        createdAt: null,
       },
       x: summary.x,
       y: summary.y,
@@ -186,6 +189,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
             && !highlighted.has(node.nodeId)
             && !summaryIsHighlighted,
           sourceCard: sourcesById.get(node.nodeId),
+          order: topicNumbers.get(node.nodeId),
           axis: layout.axis,
           subjectSummary: subjectSummary !== undefined,
         },
@@ -249,7 +253,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
 
   const selectedNode = graph?.nodes.find((node) => node.nodeId === selectedNodeId)
     ?? (selectedNodeId === rootNodeId && graph
-      ? { nodeId: rootNodeId, type: 'FOLDER' as const, title: graph.root.title }
+      ? { nodeId: rootNodeId, type: 'FOLDER' as const, title: graph.root.title, createdAt: null }
       : undefined)
 
   if (state.status === 'loading') {

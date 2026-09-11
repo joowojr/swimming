@@ -29,6 +29,22 @@
   -webkit-line-clamp: 2;
 }
 
+/* 링크를 저장한 순서. 제목과 같은 줄에 두어 카드 높이를 늘리지 않는다. */
+.order {
+  display: inline-flex;
+  min-width: 1.125rem;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  line-height: 1.125rem;
+  background: var(--color-surface-container-lowest);
+}
+
 .node[data-type='SOURCE'] .title {
   -webkit-line-clamp: 1;
 }

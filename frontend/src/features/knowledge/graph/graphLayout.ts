@@ -113,6 +113,7 @@ export function layoutGraph(
       nodeId: rootNodeId,
       type: 'FOLDER',
       title: graph.root.title,
+      createdAt: null,
     })
   }
 

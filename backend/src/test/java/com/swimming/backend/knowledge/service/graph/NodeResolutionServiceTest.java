@@ -258,6 +258,57 @@ class NodeResolutionServiceTest {
     }
 
     @Test
+    @DisplayName("후보가 여러 개여도 정규화 제목 조회는 단계마다 한 번씩만 한다")
+    void 정규화_조회를_묶어서_한다() {
+        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                ),
+                new NodeResolutionResult.Decision(
+                        "saml", NodeResolutionResult.Action.CREATE, 0, "SAML"
+                ),
+                new NodeResolutionResult.Decision(
+                        "scim", NodeResolutionResult.Action.CREATE, 0, "SCIM"
+                )
+        )));
+        nodes.normalizedTitleLookupCount = 0;
+
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"),
+                SUMMARY,
+                List.of("aws-oidc", "oidc protocol", "saml", "scim")
+        );
+
+        assertThat(result).hasSize(4);
+        // 후보 4개에 신규 판정 3개인데도 정규화 조회는 LLM 앞뒤로 한 번씩 두 번뿐이다.
+        assertThat(nodes.normalizedTitleLookupCount).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("LLM을 기다리는 사이 같은 Subject가 생기면 새로 만들지 않고 재사용한다")
+    void 동시에_생긴_중복은_재사용한다() {
+        when(llmService.resolve(any())).thenAnswer(invocation -> {
+            // LLM이 도는 동안 다른 요청이 같은 Subject를 만든 상황.
+            nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "OpenID Connect", null));
+            return new NodeResolutionResult(List.of(
+                    new NodeResolutionResult.Decision(
+                            "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                    )
+            ));
+        });
+
+        ResolvedNode result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"),
+                SUMMARY,
+                List.of("oidc protocol")
+        ).getFirst();
+
+        assertThat(result.match()).isEqualTo(ResolvedNode.Match.EXACT);
+        assertThat(result.node().getTitle()).isEqualTo("OpenID Connect");
+    }
+
+    @Test
     @DisplayName("LLM은 Context에 제공하지 않은 Subject index를 재사용할 수 없다")
     void rejectsUnknownSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(

@@ -58,17 +58,25 @@ public final class InMemoryKnowledgeRepositories {
                     .toList();
         }
 
+        /** 정규화 제목 조회 왕복 횟수. 후보 수와 무관하게 1이어야 한다. */
+        public int normalizedTitleLookupCount = 0;
+
         @Override
-        public Optional<KnowledgeNode> findByUserIdAndNodeTypeAndNormalizedTitle(
-                Long userId, NodeType nodeType, String normalizedTitle
+        public List<KnowledgeNode> findAllByNormalizedTitles(
+                Long userId, NodeType nodeType, Collection<String> normalizedTitles
         ) {
+            normalizedTitleLookupCount++;
+            if (normalizedTitles.isEmpty()) {
+                return List.of();
+            }
+            Set<String> wanted = Set.copyOf(normalizedTitles);
             return stored.values().stream()
                     .filter(node -> node.getUserId().equals(userId)
                             && node.getNodeType() == nodeType
                             && !node.isDeleted()
-                            && Objects.equals(node.getNormalizedTitle(), normalizedTitle))
-                    .findFirst()
-                    .map(Nodes::copy);
+                            && wanted.contains(node.getNormalizedTitle()))
+                    .map(Nodes::copy)
+                    .toList();
         }
 
         @Override

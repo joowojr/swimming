@@ -26,6 +26,12 @@ public interface KnowledgeNodeJpaRepository extends JpaRepository<KnowledgeNodeE
             NodeType nodeType
     );
 
+    List<KnowledgeNodeEntity> findAllByUserIdAndNodeTypeAndNormalizedTitleInAndDeletedFalse(
+            Long userId,
+            NodeType nodeType,
+            Collection<String> normalizedTitles
+    );
+
     Optional<KnowledgeNodeEntity> findByUserIdAndNodeTypeAndNormalizedTitleAndDeletedFalse(
             Long userId,
             NodeType nodeType,

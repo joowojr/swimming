@@ -4,7 +4,7 @@ import type { TaskCacheEntry, TaskSort } from '../features/tasks/taskTypes'
 
 /**
  * 역할: task의 단일 출처. 제목·상태·중요·즉시를 한곳에서 들고 있어,
- * 계획·매트릭스·폴더 목록이 같은 task를 각자 복제해 두지 않게 한다.
+ * 캘린더·매트릭스·폴더 목록이 같은 task를 각자 복제해 두지 않게 한다.
  * 목록 순서(allIds)는 전체 조회로만 채운다. 다른 응답에 실려 온 task는 캐시만 채우고 순서에 끼어들지 않는다.
  */
 type TaskLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -68,7 +68,7 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
     listRevision: current.listRevision + 1,
   })),
 
-  // 계획·매트릭스·폴더 상세 응답에 실려 온 task를 캐시에 넣는다.
+  // 캘린더·매트릭스·폴더 상세 응답에 실려 온 task를 캐시에 넣는다.
   // 변경 응답 하나를 반영할 때도 upsert([task])를 쓴다. 목록 순서는 건드리지 않는다.
   upsert: (tasks) => set((current) => ({
     byId: { ...current.byId, ...toById(tasks) },

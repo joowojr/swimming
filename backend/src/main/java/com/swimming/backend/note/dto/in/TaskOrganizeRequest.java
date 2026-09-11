@@ -1,6 +1,9 @@
 package com.swimming.backend.note.dto.in;
 
 import com.swimming.backend.note.domain.NoteContextType;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.LocalDate;
 
 /**
  * 참조 범위를 좁히기 위한 컨텍스트를 함께 받는다.
@@ -14,9 +17,11 @@ import com.swimming.backend.note.domain.NoteContextType;
  * <p>{@code contextType} 이 null 이면 {@code DEFAULT} 로 본다.
  */
 public record TaskOrganizeRequest(
+        @NotNull Long noteId,
         String memo,
         NoteContextType contextType,
-        Long contextId
+        Long contextId,
+        @NotNull LocalDate currentDate
 ) {
     public NoteContextType contextTypeOrDefault() {
         return contextType == null ? NoteContextType.DEFAULT : contextType;

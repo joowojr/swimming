@@ -2,7 +2,7 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.plan.service.DailyPlanService;
+import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.place.service.PlaceService;
 import com.swimming.backend.place.service.PlaceVideoService;
@@ -126,6 +126,9 @@ public class SessionUseCase {
                         placeVideoService.resolveBackgroundUrl(
                                 sessionRows.getFirst().backgroundAssetKey()
                         ),
+                        placeVideoService.resolveThumbnailUrl(
+                                sessionRows.getFirst().thumbnailAssetKey()
+                        ),
                         getTasks(sessionRows, tasksById)
                 ))
                 .toList();
@@ -224,6 +227,7 @@ public class SessionUseCase {
         return SessionDetailResponse.from(
                 first,
                 placeVideoService.resolveBackgroundUrl(first.backgroundAssetKey()),
+                placeVideoService.resolveThumbnailUrl(first.thumbnailAssetKey()),
                 getTasks(userId, rows)
         );
     }

@@ -7,7 +7,7 @@ import DeleteIconButton from '../../components/DeleteIconButton'
 import FolderLink from '../../components/FolderLink'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
-import TaskPickerModal from '../plans/TaskPickerModal'
+import TaskPickerModal from '../calendar/TaskPickerModal'
 import TaskList from './TaskList'
 import TaskMatrix from './TaskMatrix'
 import type { Folder } from '../folders/folderTypes'
@@ -248,7 +248,7 @@ export default function TasksPage({ folders }: TasksPageProps) {
           onAdd={async () => undefined}
           onAddTask={async (title, folderId, priority, urgent, planDate) => {
             await createTaskWithOptionalPlan({ title, priority, urgent, folderId, planDate })
-            // 생성 응답에 계획 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
+            // 생성 응답에 캘린더 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
             if (planDate) invalidatePlanDate(planDate)
             setTaskReloadKey((key) => key + 1)
           }}

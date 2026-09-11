@@ -13,7 +13,8 @@ public record SessionDetailPlaceResponse(
 ) {
     public static SessionDetailPlaceResponse from(
             SessionWithPlaceRow row,
-            String backgroundAssetUrl
+            String backgroundAssetUrl,
+            String thumbnailAssetUrl
     ) {
         return new SessionDetailPlaceResponse(
                 row.placeId(),
@@ -23,7 +24,9 @@ public record SessionDetailPlaceResponse(
                 new BackgroundAssetResponse(
                         row.backgroundAssetType(),
                         row.backgroundAssetKey(),
-                        backgroundAssetUrl
+                        backgroundAssetUrl,
+                        row.thumbnailAssetKey(),
+                        thumbnailAssetUrl
                 ),
                 row.defaultMusicUrl()
         );

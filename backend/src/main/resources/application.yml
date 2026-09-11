@@ -7,6 +7,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+      hibernate.type.json_format_mapper: org.hibernate.type.format.jackson.Jackson3JsonFormatMapper
   sql:
     init:
       mode: never
@@ -33,6 +34,14 @@ spring:
       # spring.config.import 로 끌어다 쓰고, 그 파일이 유일한 출처가 된다.
 
 app:
+  calendar:
+    holiday:
+      kasi:
+        base-url: https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo
+        # 공공데이터포털의 Encoding 인증키를 그대로 사용한다.
+        service-key: ${KASI_HOLIDAY_API_KEY:}
+        connect-timeout: 3s
+        response-timeout: 5s
   prompt:
     locations:
       task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer/classify.md}
@@ -46,6 +55,7 @@ app:
   knowledge:
     resolution:
       similar-source-limit: 5
+      subject-top-k: 3
     digest:
       # LLM 입력 상한. 이보다 짧은 문서는 손대지 않고 통째로 넣는다.
       max-input-length: 40000

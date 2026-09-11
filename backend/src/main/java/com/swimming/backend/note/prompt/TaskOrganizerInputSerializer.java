@@ -2,6 +2,10 @@ package com.swimming.backend.note.prompt;
 
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 public final class TaskOrganizerInputSerializer {
     private TaskOrganizerInputSerializer() {
     }
@@ -12,8 +16,8 @@ public final class TaskOrganizerInputSerializer {
         xml.append("<task-organizer-input>");
 
         appendMemo(xml, input);
+        appendCurrentDate(xml, input);
         appendFolders(xml, input);
-        appendTasks(xml, input);
 
         xml.append("</task-organizer-input>");
 
@@ -42,13 +46,35 @@ public final class TaskOrganizerInputSerializer {
                 .append("]]></memo>");
     }
 
+    private static void appendCurrentDate(
+            StringBuilder xml,
+            TaskOrganizerInput input
+    ) {
+        if (input.currentDate() != null) {
+            xml.append("<current-date>")
+                    .append(input.currentDate())
+                    .append("</current-date>");
+        }
+    }
+
     private static void appendFolders(
             StringBuilder xml,
             TaskOrganizerInput input
     ) {
+        Map<Long, List<String>> taskTitlesByFolderId = input.tasks().stream()
+                .collect(Collectors.groupingBy(
+                        task -> task.folderId(),
+                        Collectors.mapping(task -> task.title(), Collectors.toList())
+                ));
+
         xml.append("<folders>");
 
-        for (var folder : input.folders()) {
+        for (int folderIndex = 0; folderIndex < input.folders().size(); folderIndex++) {
+            if (folderIndex > 0) {
+                xml.append('\n');
+            }
+
+            var folder = input.folders().get(folderIndex);
             xml.append("<folder id=\"")
                     .append(folder.id())
                     .append("\">");
@@ -61,31 +87,22 @@ public final class TaskOrganizerInputSerializer {
                     .append(escapeXml(folder.description()))
                     .append("</description>");
 
+            List<String> taskTitles = taskTitlesByFolderId.getOrDefault(
+                    folder.id(),
+                    List.of()
+            );
+            if (!taskTitles.isEmpty()) {
+                xml.append("<tasks>")
+                        .append(taskTitles.stream()
+                                .map(TaskOrganizerInputSerializer::escapeXml)
+                                .collect(Collectors.joining("\n")))
+                        .append("</tasks>");
+            }
+
             xml.append("</folder>");
         }
 
         xml.append("</folders>");
-    }
-
-    private static void appendTasks(
-            StringBuilder xml,
-            TaskOrganizerInput input
-    ) {
-        xml.append("<tasks>");
-
-        for (var task : input.tasks()) {
-            xml.append("<task folderId=\"")
-                    .append(task.folderId())
-                    .append("\">");
-
-            xml.append("<title>")
-                    .append(escapeXml(task.title()))
-                    .append("</title>");
-
-            xml.append("</task>");
-        }
-
-        xml.append("</tasks>");
     }
 
     private static String escapeXml(String value) {

@@ -92,7 +92,19 @@ export default function DiveSessionFeedPage() {
           <div className={styles.grid}>
             {sessions.map((session) => (
             <Link className={styles.card} key={session.id} to={`/sessions/${session.id}`}>
-              <div className={`${styles.thumbnail} ${styles[`thumbnail-${session.status.toLowerCase()}`]}`}>
+              <div className={`${styles.thumbnail} ${styles[`thumbnail-${session.status.toLowerCase()}`]} ${session.place.backgroundAsset.thumbnailUrl ? styles['has-thumbnail-video'] : ''}`}>
+                {session.place.backgroundAsset.thumbnailUrl && (
+                  <video
+                    className={styles['thumbnail-video']}
+                    src={session.place.backgroundAsset.thumbnailUrl}
+                    aria-hidden="true"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                )}
                 <StatusIcon status={session.status} />
                 <span>{statusLabels[session.status]}</span>
                 <strong>{formatDuration(session.actualDurationSec ?? session.plannedDurationSec)}</strong>
@@ -121,8 +133,8 @@ export default function DiveSessionFeedPage() {
                   </span>
                 </div>
                 <div className={styles.meta}>
-                  <span><IconMapPin size={15} aria-hidden="true" />{session.place.cityName} · {session.place.name}</span>
-                  <span><IconClock size={15} aria-hidden="true" />{formatDateTime(session.startedAt)}</span>
+                  <span><IconClock size={15} aria-hidden="true"/>{formatDateTime(session.startedAt)}</span>
+                  <span><IconMapPin size={15} aria-hidden="true"/>{session.place.cityName} · {session.place.name}</span>
                 </div>
               </div>
             </Link>

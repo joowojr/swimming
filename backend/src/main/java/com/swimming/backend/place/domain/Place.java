@@ -11,6 +11,7 @@ public class Place {
     private final String name;
     private final BackgroundAssetType backgroundAssetType;
     private final String backgroundAssetKey;
+    private final String thumbnailAssetKey;
     private final String defaultMusicUrl;
 
     @Builder
@@ -20,6 +21,7 @@ public class Place {
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
+            String thumbnailAssetKey,
             String defaultMusicUrl
     ) {
         this.id = id;
@@ -27,6 +29,7 @@ public class Place {
         this.name = name;
         this.backgroundAssetType = backgroundAssetType;
         this.backgroundAssetKey = backgroundAssetKey;
+        this.thumbnailAssetKey = thumbnailAssetKey;
         this.defaultMusicUrl = defaultMusicUrl;
     }
 
@@ -36,6 +39,7 @@ public class Place {
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
+            String thumbnailAssetKey,
             String defaultMusicUrl
     ) {
         return Place.builder()
@@ -44,6 +48,7 @@ public class Place {
                 .name(name)
                 .backgroundAssetType(backgroundAssetType)
                 .backgroundAssetKey(backgroundAssetKey)
+                .thumbnailAssetKey(thumbnailAssetKey)
                 .defaultMusicUrl(defaultMusicUrl)
                 .build();
     }

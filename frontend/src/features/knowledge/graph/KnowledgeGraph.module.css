@@ -79,6 +79,13 @@
   opacity: .55;
 }
 
+/* 축소 시 Topic과 그 태그 묶음의 관계만 가볍게 남긴다. */
+.edge-summary :global(.react-flow__edge-path) {
+  stroke: var(--color-tone-fountain);
+  stroke-dasharray: 2 4;
+  opacity: .72;
+}
+
 /* 고른 노드에 닿는 선. 이때만 선이 앞으로 나온다. */
 .edge-active :global(.react-flow__edge-path) {
   stroke: var(--color-primary);

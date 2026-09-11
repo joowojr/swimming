@@ -2,8 +2,15 @@ name: Terraform plan
 
 on:
   pull_request:
+    # 문서와 다이어그램만 바뀐 PR에는 plan을 돌리지 않는다. '!' 패턴은 순서대로
+    # 적용되므로 포함 규칙 뒤에 와야 한다.
     paths:
       - 'infra/terraform/**'
+      - '!infra/terraform/**/*.md'
+      - '!infra/terraform/**/*.drawio'
+      - '!infra/terraform/**/*.png'
+      - '!infra/terraform/**/*.jpg'
+      - '!infra/terraform/**/*.svg'
       - '.github/workflows/terraform.yml'
 
 # A plan takes the S3 state lock (use_lockfile = true), so runs are serialised.

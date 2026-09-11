@@ -228,7 +228,7 @@ class SessionServiceTest {
                 5L, 1L, SessionType.PERSONAL, 20L, taskId, null, null,
                 1500, 1500, 0, 1, null, STARTED_AT, null, SessionStatus.IN_PROGRESS, null,
                 3L, "Lisbon", "PT", "Europe/Lisbon", "Alfama Cafe", BackgroundAssetType.VIDEO,
-                "places/video/alfama.mp4", null
+                "places/video/alfama.mp4", "places/thumbnails/alfama.mp4", null
         );
     }
 }

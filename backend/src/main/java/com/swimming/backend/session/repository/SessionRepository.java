@@ -39,6 +39,7 @@ public interface SessionRepository extends JpaRepository<SessionEntity, Long> {
                 place.name,
                 place.backgroundAssetType,
                 place.backgroundAssetKey,
+                place.thumbnailAssetKey,
                 place.defaultMusicUrl
             )
             from SessionEntity session
@@ -75,6 +76,7 @@ public interface SessionRepository extends JpaRepository<SessionEntity, Long> {
                 place.name,
                 place.backgroundAssetType,
                 place.backgroundAssetKey,
+                place.thumbnailAssetKey,
                 place.defaultMusicUrl
             )
             from SessionEntity session
@@ -115,6 +117,7 @@ public interface SessionRepository extends JpaRepository<SessionEntity, Long> {
                 place.name,
                 place.backgroundAssetType,
                 place.backgroundAssetKey,
+                place.thumbnailAssetKey,
                 place.defaultMusicUrl
             )
             from SessionEntity session

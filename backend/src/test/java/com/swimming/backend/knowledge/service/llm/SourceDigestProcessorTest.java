@@ -145,7 +145,7 @@ class SourceDigestProcessorTest {
         KnowledgeSource saved = sources.findById(source.getId()).orElseThrow();
         assertThat(saved.getProcessingStatus()).isEqualTo(SourceProcessingStatus.COMPLETED);
         assertThat(saved.getSummary()).isEqualTo("Spring AI에서 MCP Server를 구성하는 방법을 설명한다.");
-        assertThat(saved.getAnalysisVersion()).isEqualTo(4);
+        assertThat(saved.getAnalysisVersion()).isEqualTo(5);
     }
 
     @Test

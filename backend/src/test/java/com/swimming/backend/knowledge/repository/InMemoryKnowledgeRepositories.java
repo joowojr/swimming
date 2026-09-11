@@ -20,6 +20,8 @@ public final class InMemoryKnowledgeRepositories {
     public static class Nodes implements KnowledgeNodeRepository {
 
         final Map<UUID, KnowledgeNode> stored = new LinkedHashMap<>();
+        final Map<UUID, float[]> titleEmbeddings = new HashMap<>();
+        final Map<UUID, String> titleEmbeddingModels = new HashMap<>();
 
         @Override
         public KnowledgeNode save(KnowledgeNode node) {
@@ -56,22 +58,107 @@ public final class InMemoryKnowledgeRepositories {
                     .toList();
         }
 
+        /** 정규화 제목 조회 왕복 횟수. 후보 수와 무관하게 1이어야 한다. */
+        public int normalizedTitleLookupCount = 0;
+
         @Override
-        public Optional<KnowledgeNode> findByUserIdAndNodeTypeAndNormalizedTitle(
-                Long userId, NodeType nodeType, String normalizedTitle
+        public List<KnowledgeNode> findAllByNormalizedTitles(
+                Long userId, NodeType nodeType, Collection<String> normalizedTitles
         ) {
+            normalizedTitleLookupCount++;
+            if (normalizedTitles.isEmpty()) {
+                return List.of();
+            }
+            Set<String> wanted = Set.copyOf(normalizedTitles);
             return stored.values().stream()
                     .filter(node -> node.getUserId().equals(userId)
                             && node.getNodeType() == nodeType
                             && !node.isDeleted()
-                            && Objects.equals(node.getNormalizedTitle(), normalizedTitle))
-                    .findFirst()
-                    .map(Nodes::copy);
+                            && wanted.contains(node.getNormalizedTitle()))
+                    .map(Nodes::copy)
+                    .toList();
+        }
+
+        @Override
+        public KnowledgeNode createSubjectWithEmbedding(
+                KnowledgeNode subject,
+                float[] titleEmbedding,
+                String embeddingModel
+        ) {
+            if (subject.getNodeType() != NodeType.SUBJECT) {
+                throw new IllegalArgumentException("title embedding can only be stored for a subject");
+            }
+            KnowledgeNode saved = save(subject);
+            titleEmbeddings.put(saved.getId(), titleEmbedding.clone());
+            titleEmbeddingModels.put(saved.getId(), embeddingModel);
+            return saved;
+        }
+
+        public void saveTitleEmbedding(
+                Long userId,
+                UUID subjectId,
+                float[] titleEmbedding,
+                String embeddingModel
+        ) {
+            KnowledgeNode subject = stored.get(subjectId);
+            if (subject == null || subject.isDeleted()
+                    || !subject.getUserId().equals(userId)
+                    || subject.getNodeType() != NodeType.SUBJECT) {
+                throw new IllegalStateException("failed to update subject title embedding: " + subjectId);
+            }
+            titleEmbeddings.put(subjectId, titleEmbedding.clone());
+            titleEmbeddingModels.put(subjectId, embeddingModel);
+        }
+
+        @Override
+        public List<KnowledgeNode> findSimilarSubjects(
+                Long userId,
+                float[] titleEmbedding,
+                String embeddingModel,
+                int limit
+        ) {
+            return stored.values().stream()
+                    .filter(node -> node.getUserId().equals(userId)
+                            && node.getNodeType() == NodeType.SUBJECT
+                            && !node.isDeleted()
+                            && Objects.equals(titleEmbeddingModels.get(node.getId()), embeddingModel)
+                            && titleEmbeddings.containsKey(node.getId()))
+                    .sorted(Comparator.comparingDouble(node ->
+                            -cosine(titleEmbedding, titleEmbeddings.get(node.getId()))))
+                    .limit(limit)
+                    .map(Nodes::copy)
+                    .toList();
+        }
+
+        public float[] titleEmbeddingOf(UUID subjectId) {
+            float[] embedding = titleEmbeddings.get(subjectId);
+            return embedding == null ? null : embedding.clone();
+        }
+
+        public String titleEmbeddingModelOf(UUID subjectId) {
+            return titleEmbeddingModels.get(subjectId);
         }
 
         @Override
         public void deleteById(UUID id) {
             stored.remove(id);
+            titleEmbeddings.remove(id);
+            titleEmbeddingModels.remove(id);
+        }
+
+        private static double cosine(float[] left, float[] right) {
+            double dot = 0;
+            double leftNorm = 0;
+            double rightNorm = 0;
+            for (int index = 0; index < left.length; index++) {
+                dot += left[index] * right[index];
+                leftNorm += left[index] * left[index];
+                rightNorm += right[index] * right[index];
+            }
+            if (leftNorm == 0 || rightNorm == 0) {
+                return 0;
+            }
+            return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
         }
 
         /**
@@ -369,17 +456,47 @@ public final class InMemoryKnowledgeRepositories {
             return from + ":" + to + ":" + relationType;
         }
 
-        @Override
-        public KnowledgeRelation save(KnowledgeRelation relation) {
-            String key = key(relation.getFromNodeId(), relation.getToNodeId(), relation.getRelationType());
-            stored.put(key, copy(relation));
-            return copy(relation);
-        }
+        /** (fromNodeId, relationType) 묶음당 조회 한 번. 실제 저장소의 왕복 횟수를 센다. */
+        public int lookupCount = 0;
 
         @Override
-        public Optional<KnowledgeRelation> find(UUID fromNodeId, UUID toNodeId, RelationType relationType) {
-            return Optional.ofNullable(stored.get(key(fromNodeId, toNodeId, relationType)))
-                    .map(Relations::copy);
+        public List<KnowledgeRelation> saveAll(List<KnowledgeRelation> relations) {
+            if (relations.isEmpty()) {
+                return List.of();
+            }
+
+            Map<String, KnowledgeRelation> requested = new LinkedHashMap<>();
+            relations.forEach(relation -> requested.put(
+                    key(relation.getFromNodeId(), relation.getToNodeId(), relation.getRelationType()),
+                    relation
+            ));
+
+            lookupCount += (int) requested.values().stream()
+                    .map(relation -> relation.getFromNodeId() + ":" + relation.getRelationType())
+                    .distinct()
+                    .count();
+
+            return requested.entrySet().stream()
+                    .map(entry -> {
+                        KnowledgeRelation existing = stored.get(entry.getKey());
+                        KnowledgeRelation merged = merge(existing, entry.getValue());
+                        stored.put(entry.getKey(), merged);
+                        return copy(merged);
+                    })
+                    .toList();
+        }
+
+        /** 사용자가 만든 관계는 AI 재관찰로 덮어쓰지 않는다. */
+        private static KnowledgeRelation merge(KnowledgeRelation existing, KnowledgeRelation observed) {
+            if (existing == null) {
+                return copy(observed);
+            }
+
+            KnowledgeRelation merged = copy(existing);
+            merged.applyObservation(
+                    observed.getOrigin(), observed.getConfidence(), observed.getEvidence()
+            );
+            return merged;
         }
 
         @Override

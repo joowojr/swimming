@@ -1,8 +1,5 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,6 +9,9 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.Optional;
 
@@ -37,14 +37,16 @@ public class LambdaPageRendererClient {
 
     private final KnowledgeFetchProperties properties;
     private final LambdaClient lambdaClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public LambdaPageRendererClient(
             KnowledgeFetchProperties properties,
-            LambdaClient lambdaClient
+            LambdaClient lambdaClient,
+            ObjectMapper objectMapper
     ) {
         this.properties = properties;
         this.lambdaClient = lambdaClient;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -90,12 +92,12 @@ public class LambdaPageRendererClient {
 
             if (body.hasNonNull("error")) {
                 log.info(
-                        "[source-render] rejected url={} error={}", url, body.get("error").asText()
+                        "[source-render] rejected url={} error={}", url, body.get("error").asString()
                 );
                 return Optional.empty();
             }
 
-            String html = body.path("html").asText(null);
+            String html = body.path("html").asString(null);
             if (!StringUtils.hasText(html)) {
                 return Optional.empty();
             }

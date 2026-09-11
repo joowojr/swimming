@@ -15,6 +15,7 @@ import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.dto.out.FolderContext;
 import com.swimming.backend.note.dto.out.TaskContext;
 import com.swimming.backend.note.service.TaskOrganizerService;
+import com.swimming.backend.note.service.TaskOrganizerRunService;
 import com.swimming.backend.note.service.NoteService;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +43,7 @@ public class TaskOrganizerUseCase {
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
     private final TaskOrganizerService taskOrganizerService;
+    private final TaskOrganizerRunService taskOrganizerRunService;
     private final NoteService noteService;
     private final FolderService folderService;
     private final SessionService sessionService;
@@ -49,6 +52,7 @@ public class TaskOrganizerUseCase {
             Long userId,
             TaskOrganizeRequest request
     ) {
+        noteService.getExisting(userId, request.noteId());
         NoteContextType contextType = request.contextTypeOrDefault();
 
         List<TaskOrganizerContextRow> contextRows =
@@ -68,22 +72,26 @@ public class TaskOrganizerUseCase {
 
         TaskOrganizerInput input = new TaskOrganizerInput(
                 request.memo(),
+                request.currentDate(),
                 List.copyOf(foldersById.values()),
                 recentTasksByFolder(contextRows)
         );
 
         // 폴더가 하나로 정해져 있으면 분류를 시키지 않는다. 추출만 하고 그 폴더로 확정한다.
         if (contextType == NoteContextType.FOLDER) {
-            return toResponse(
+            var execution = taskOrganizerService.extract(input);
+            TaskOrganizeResponse preview = toResponse(
                     foldersById.get(request.contextId()),
-                    taskOrganizerService.extract(input)
+                    execution.output()
             );
+            return savePreview(userId, request, contextType, input, preview, execution.call());
         }
 
-        TaskOrganizeResult result =
+        var execution =
                 taskOrganizerService.organize(input);
+        TaskOrganizeResponse preview = toResponse(foldersById, execution.output());
 
-        return toResponse(foldersById, result);
+        return savePreview(userId, request, contextType, input, preview, execution.call());
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -114,6 +122,10 @@ public class TaskOrganizerUseCase {
                 request.tasks().stream()
                         .map(approvedTask -> createTask(userId, request.noteId(), approvedTask))
                         .toList();
+
+        taskOrganizerRunService.confirm(
+                userId, request.noteId(), request, createdTasks
+        );
 
         return new TaskOrganizeConfirmResponse(createdTasks);
     }
@@ -192,21 +204,26 @@ public class TaskOrganizerUseCase {
                             foldersById.get(suggestion.folderId());
 
                     return new TaskOrganizeResponse.TaskSuggestionResponse(
+                            UUID.randomUUID().toString(),
                             suggestion.sourceText(),
                             folder.id(),
                             folder.name(),
-                            suggestion.title()
+                            suggestion.title(),
+                            suggestion.planDate()
                     );
                 })
                 .toList();
 
         return new TaskOrganizeResponse(
+                null,
                 suggestions,
                 result.unclassified()
                         .stream()
                         .map(item -> new TaskOrganizeResponse.UnclassifiedResponse(
+                                UUID.randomUUID().toString(),
                                 item.sourceText(),
-                                item.title()
+                                item.title(),
+                                item.planDate()
                         ))
                         .toList()
         );
@@ -220,22 +237,49 @@ public class TaskOrganizerUseCase {
         var suggestions = result.tasks()
                 .stream()
                 .map(task -> new TaskOrganizeResponse.TaskSuggestionResponse(
+                        UUID.randomUUID().toString(),
                         task.sourceText(),
                         folder.id(),
                         folder.name(),
-                        task.title()
+                        task.title(),
+                        task.planDate()
                 ))
                 .toList();
 
         return new TaskOrganizeResponse(
+                null,
                 suggestions,
                 result.unclassified()
                         .stream()
                         .map(item -> new TaskOrganizeResponse.UnclassifiedResponse(
+                                UUID.randomUUID().toString(),
                                 item.sourceText(),
-                                item.title()
+                                item.title(),
+                                item.planDate()
                         ))
                         .toList()
+        );
+    }
+
+    private TaskOrganizeResponse savePreview(
+            Long userId,
+            TaskOrganizeRequest request,
+            NoteContextType contextType,
+            TaskOrganizerInput input,
+            TaskOrganizeResponse preview,
+            com.swimming.backend.note.dto.out.LlmCallSnapshot call
+    ) {
+        Long runId = taskOrganizerRunService.savePreview(
+                userId,
+                request.noteId(),
+                contextType,
+                request.contextId(),
+                input,
+                preview,
+                call
+        );
+        return new TaskOrganizeResponse(
+                runId, preview.suggestions(), preview.unclassified()
         );
     }
 

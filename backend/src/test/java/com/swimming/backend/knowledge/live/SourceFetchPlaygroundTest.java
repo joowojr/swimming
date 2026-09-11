@@ -12,6 +12,7 @@ import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -132,7 +133,11 @@ class SourceFetchPlaygroundTest {
                 properties,
                 new HtmlToMarkdownConverter(),
                 render
-                        ? Optional.of(new LambdaPageRendererClient(properties, lambdaClient(properties)))
+                        ? Optional.of(new LambdaPageRendererClient(
+                                properties,
+                                lambdaClient(properties),
+                                new ObjectMapper()
+                        ))
                         : Optional.empty()
         );
     }

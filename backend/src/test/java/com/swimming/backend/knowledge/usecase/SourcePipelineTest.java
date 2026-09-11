@@ -76,11 +76,12 @@ class SourcePipelineTest {
         when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
             List<String> candidates = invocation.getArgument(2);
             return candidates.stream()
-                    .map(candidate -> nodes.findByUserIdAndNodeTypeAndNormalizedTitle(
+                    .map(candidate -> nodes.findAllByNormalizedTitles(
                                     USER_ID,
                                     NodeType.SUBJECT,
-                                    NodeTitleNormalizer.normalize(candidate)
+                                    List.of(NodeTitleNormalizer.normalize(candidate))
                             )
+                            .stream().findFirst()
                             .map(node -> ResolvedNode.exact(candidate, node))
                             .orElseGet(() -> ResolvedNode.created(
                                     candidate,

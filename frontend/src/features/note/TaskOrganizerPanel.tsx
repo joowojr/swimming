@@ -11,7 +11,7 @@ import type { ProjectOption } from './noteViewTypes'
 import styles from './NoteCard.module.css'
 import type { NoteContextType } from './noteTypes'
 
-/** 역할: AI 미리보기, Task 등록, 계획 연결의 2~3단계 흐름과 API 호출을 독립적으로 관리한다. */
+/** 역할: AI 미리보기, Task 등록, 캘린더 연결의 2~3단계 흐름과 API 호출을 독립적으로 관리한다. */
 interface TaskOrganizerPanelProps {
   source: {
     noteId: number
@@ -30,6 +30,7 @@ interface PreviewTaskItem {
   title: string
   folderId: number | null
   folderName: string | null
+  planDate: string | null
   selected: boolean
 }
 
@@ -46,6 +47,7 @@ type OrganizerState =
   | { kind: 'loading'; messageIndex: number }
   | {
       kind: 'preview'
+      runId: number
       items: PreviewTaskItem[]
       editingProjectItemId: string | null
       message: string | null
@@ -69,20 +71,22 @@ const LOADING_MESSAGES = [
 
 function toPreviewItems(preview: TaskOrganizeResponse): PreviewTaskItem[] {
   return [
-    ...preview.suggestions.map((suggestion, index) => ({
-      id: `suggestion-${index}`,
+    ...preview.suggestions.map((suggestion) => ({
+      id: suggestion.itemId,
       sourceText: suggestion.sourceText,
       title: suggestion.title,
       folderId: suggestion.folderId,
       folderName: suggestion.folderName,
+      planDate: suggestion.planDate,
       selected: true,
     })),
-    ...preview.unclassified.map((item, index) => ({
-      id: `unclassified-${index}`,
+    ...preview.unclassified.map((item) => ({
+      id: item.itemId,
       sourceText: item.sourceText,
       title: item.title,
       folderId: null,
       folderName: null,
+      planDate: item.planDate,
       selected: true,
     })),
   ]
@@ -111,7 +115,9 @@ export default function TaskOrganizerPanel({
     let cancelled = false
 
     void previewTaskOrganization({
+      noteId: source.noteId,
       memo: source.memo,
+      currentDate: formatLocalDate(new Date()),
       contextType: source.contextType,
       contextId: source.contextId,
     })
@@ -119,6 +125,7 @@ export default function TaskOrganizerPanel({
         if (!cancelled) {
           setState({
             kind: 'preview',
+            runId: preview.runId,
             items: toPreviewItems(preview),
             editingProjectItemId: null,
             message: null,
@@ -133,7 +140,7 @@ export default function TaskOrganizerPanel({
     return () => {
       cancelled = true
     }
-  }, [onFinish, source.memo, source.contextType, source.contextId])
+  }, [onFinish, source.noteId, source.memo, source.contextType, source.contextId])
 
   useEffect(() => {
     if (state.kind !== 'loading') return
@@ -204,8 +211,10 @@ export default function TaskOrganizerPanel({
 
     try {
       const response = await confirmTaskOrganization({
+        runId: state.runId,
         noteId: source.noteId,
         tasks: selectedItems.map((item) => ({
+          itemId: item.id,
           sourceText: item.sourceText,
           folderId: item.folderId,
           title: item.title.trim(),
@@ -216,14 +225,14 @@ export default function TaskOrganizerPanel({
       const today = formatLocalDate(new Date())
       setState({
         kind: 'plan-link',
-        items: response.createdTasks.map((task) => ({
+        items: response.createdTasks.map((task, index) => ({
           id: task.id,
           title: task.title,
           folderId: task.folderId,
           folderName: task.folderId === null
             ? null
             : folders.find((folder) => folder.id === task.folderId)?.name ?? '폴더',
-          planDate: today,
+          planDate: selectedItems[index]?.planDate ?? today,
           selected: true,
         })),
         editingPlanDateTaskId: null,
@@ -232,7 +241,7 @@ export default function TaskOrganizerPanel({
       })
     } catch {
       setState((current) => current.kind === 'preview'
-        ? { ...current, isConfirming: false, message: '할 일을 만들지 못했어요. 선택 내용을 그대로 유지했어요.' }
+        ? { ...current, isConfirming: false, message: '할 일을 만들지 못했습니다. 다시 시도해주세요' }
         : current)
     }
   }
@@ -267,7 +276,7 @@ export default function TaskOrganizerPanel({
       }
       const shouldArchive = linkedCount / totalTaskCount >= 0.8
       onFinish(
-        `${linkedCount}개 할 일을 계획에 연결했어요`,
+        `${linkedCount}개 할 일을 캘린더에 연결했어요`,
         shouldArchive ? { suggestArchiveNoteId: source.noteId } : undefined,
       )
     } catch {
@@ -278,7 +287,7 @@ export default function TaskOrganizerPanel({
             isLinking: false,
             message: linkedCount > 0
               ? `${linkedCount}개는 연결했어요. 남은 할 일을 다시 연결해 주세요.`
-              : '계획에 연결하지 못했어요. 날짜와 선택 내용을 그대로 유지했어요.',
+              : '캘린더에 연결하지 못했습니다. 다시 시도해주세요',
           }
         : current)
     }
@@ -310,7 +319,7 @@ export default function TaskOrganizerPanel({
     return (
       <section className={styles['organize-preview']} aria-labelledby="plan-link-title" aria-busy={state.isLinking}>
         <div className={styles['organize-preview-heading']}>
-          <h4 id="plan-link-title">계획에 연결하기</h4>
+          <h4 id="plan-link-title">캘린더에 연결하기</h4>
           <span>{selectedCount}개 선택</span>
         </div>
         <p className={styles['organize-preview-guide']}>만든 할 일을 진행할 날짜에 연결해 두세요.</p>
@@ -324,7 +333,7 @@ export default function TaskOrganizerPanel({
                     <span className={styles['plan-link-task-title']}>{item.title}</span>
                     {state.editingPlanDateTaskId === item.id ? (
                       <input ref={planDateInputRef} className={styles['plan-link-date-input']} type="date" value={item.planDate}
-                        required disabled={state.isLinking} aria-label={`${item.title} 계획 날짜`}
+                        required disabled={state.isLinking} aria-label={`${item.title} 캘린더 날짜`}
                         onChange={(event) => updatePlanLinkItem(item.id, (current) => ({ ...current, planDate: event.target.value || current.planDate }))}
                         onBlur={() => setState((current) => current.kind === 'plan-link' ? { ...current, editingPlanDateTaskId: null } : current)}
                         onKeyDown={(event) => {
@@ -334,7 +343,7 @@ export default function TaskOrganizerPanel({
                         }} />
                     ) : (
                       <button type="button" className={styles['plan-link-date-action']} disabled={state.isLinking || !item.selected}
-                        aria-label={`${item.title} 계획 날짜 ${formatPlanDate(item.planDate)}. 두 번 눌러 변경`} title="두 번 눌러 날짜 변경"
+                        aria-label={`${item.title} 캘린더 날짜 ${formatPlanDate(item.planDate)}. 두 번 눌러 변경`} title="두 번 눌러 날짜 변경"
                         onDoubleClick={() => setState((current) => current.kind === 'plan-link' ? { ...current, editingPlanDateTaskId: item.id } : current)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
@@ -351,7 +360,7 @@ export default function TaskOrganizerPanel({
                 </div>
                 <button type="button" className={styles['organize-exclude-action']} disabled={state.isLinking}
                   onClick={() => updatePlanLinkItem(item.id, (current) => ({ ...current, selected: !current.selected }))}
-                  aria-label={item.selected ? `${item.title} 계획 연결에서 빼기` : `${item.title} 계획 연결에 다시 포함`}
+                  aria-label={item.selected ? `${item.title} 캘린더 연결에서 빼기` : `${item.title} 캘린더 연결에 다시 포함`}
                   title={item.selected ? '연결에서 빼기' : '다시 포함'}>
                   {item.selected ? <IconMinus size={16} aria-hidden="true" /> : <IconPlus size={16} aria-hidden="true" />}
                 </button>
@@ -361,8 +370,8 @@ export default function TaskOrganizerPanel({
         </div>
         {state.message && <p className={styles['organize-preview-message']} role="status">{state.message}</p>}
         <div className={styles['organize-preview-actions']}>
-          <ActionButton className={styles['organize-confirm-action']} isLoading={state.isLinking} loadingLabel="계획에 연결하는 중"
-            disabled={selectedCount === 0} onClick={handleLinkPlan}>{selectedCount}개 계획에 연결하기</ActionButton>
+          <ActionButton className={styles['organize-confirm-action']} isLoading={state.isLinking} loadingLabel="캘린더에 연결하는 중"
+            disabled={selectedCount === 0} onClick={handleLinkPlan}>{selectedCount}개 캘린더에 연결하기</ActionButton>
           <ActionButton className={styles['organize-cancel-action']} variant="plain" disabled={state.isLinking}
             onClick={() => onFinish('할 일을 만들었어요')}>나중에</ActionButton>
         </div>

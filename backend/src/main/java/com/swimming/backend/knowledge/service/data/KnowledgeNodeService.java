@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,6 +33,22 @@ public class KnowledgeNodeService {
     ) {
         return nodeRepository.save(
                 KnowledgeNode.create(userId, nodeType, title, description)
+        );
+    }
+
+    /** 이미 계산된 title embedding과 Subject 노드를 한 트랜잭션으로 저장한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public KnowledgeNode createSubjectWithEmbedding(
+            Long userId,
+            String title,
+            String description,
+            float[] titleEmbedding,
+            String embeddingModel
+    ) {
+        return nodeRepository.createSubjectWithEmbedding(
+                KnowledgeNode.create(userId, NodeType.SUBJECT, title, description),
+                titleEmbedding,
+                embeddingModel
         );
     }
 
@@ -60,12 +79,38 @@ public class KnowledgeNodeService {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
-    public Optional<KnowledgeNode> findSubjectByNormalizedTitle(
+    /**
+     * 정규화한 제목으로 Subject를 한 번에 찾는다.
+     *
+     * @return 정규화 제목을 키로 한 맵. 찾지 못한 제목은 들어 있지 않다
+     */
+    public Map<String, KnowledgeNode> findSubjectsByNormalizedTitles(
             Long userId,
-            String normalizedTitle
+            Collection<String> normalizedTitles
     ) {
-        return nodeRepository.findByUserIdAndNodeTypeAndNormalizedTitle(
-                userId, NodeType.SUBJECT, normalizedTitle
+        return nodeRepository
+                .findAllByNormalizedTitles(userId, NodeType.SUBJECT, normalizedTitles)
+                .stream()
+                .collect(Collectors.toMap(
+                        KnowledgeNode::getNormalizedTitle,
+                        node -> node,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+    }
+
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            readOnly = true
+    )
+    public List<KnowledgeNode> findSimilarSubjects(
+            Long userId,
+            float[] titleEmbedding,
+            String embeddingModel,
+            int limit
+    ) {
+        return nodeRepository.findSimilarSubjects(
+                userId, titleEmbedding, embeddingModel, limit
         );
     }
 

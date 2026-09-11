@@ -76,7 +76,7 @@ class KnowledgeRelationTest {
 
     @Test
     @DisplayName("같은 관계를 AI가 다시 관찰하면 근거를 갱신한다")
-    void reinforcesRelation() {
+    void appliesObservation() {
         KnowledgeNode topic = node(NodeType.TOPIC, "MCP 서버 구현하기");
         KnowledgeNode subject = node(NodeType.SUBJECT, "Tool Calling");
 
@@ -89,7 +89,7 @@ class KnowledgeRelationTest {
                 null
         );
 
-        relation.reinforce(RelationOrigin.AI, 0.95, "{\"sourceCount\":2}");
+        relation.applyObservation(RelationOrigin.AI, 0.95, "{\"sourceCount\":2}");
 
         assertThat(relation.getConfidence()).isEqualTo(0.95);
         assertThat(relation.getEvidence()).isEqualTo("{\"sourceCount\":2}");
@@ -110,7 +110,7 @@ class KnowledgeRelationTest {
                 null
         );
 
-        relation.reinforce(RelationOrigin.AI, 0.3, "{\"sourceCount\":1}");
+        relation.applyObservation(RelationOrigin.AI, 0.3, "{\"sourceCount\":1}");
 
         assertThat(relation.getOrigin()).isEqualTo(RelationOrigin.USER);
         assertThat(relation.getConfidence()).isNull();

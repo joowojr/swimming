@@ -37,6 +37,9 @@ public class PlaceUseCase {
                                         place,
                                         placeVideoService.resolveBackgroundUrl(
                                                 place.getBackgroundAssetKey()
+                                        ),
+                                        placeVideoService.resolveThumbnailUrl(
+                                                place.getThumbnailAssetKey()
                                         )
                                 ))
                                 .toList()

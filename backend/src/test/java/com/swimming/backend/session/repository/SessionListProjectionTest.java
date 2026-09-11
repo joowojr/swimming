@@ -77,6 +77,7 @@ class SessionListProjectionTest {
                 "Alfama Cafe",
                 BackgroundAssetType.VIDEO,
                 "places/video/alfama.mp4",
+                "places/thumbnails/alfama.mp4",
                 null
         ));
         TaskEntity firstTask = saveTask(user, "첫 Task", 0);

@@ -28,10 +28,28 @@ public interface KnowledgeNodeRepository {
      * Subject / Topic resolution의 매칭 단계에서 사용한다.
      * 인자는 {@link com.swimming.backend.knowledge.domain.NodeTitleNormalizer}를 거친 값이다.
      */
-    Optional<KnowledgeNode> findByUserIdAndNodeTypeAndNormalizedTitle(
+    /**
+     * 표기를 정규화한 제목으로 여러 노드를 한 번에 찾는다.
+     *
+     * <p>후보마다 따로 찾으면 후보 수만큼 왕복이 생긴다. 찾지 못한 제목은 결과에 없다.
+     */
+    List<KnowledgeNode> findAllByNormalizedTitles(
             Long userId,
             NodeType nodeType,
-            String normalizedTitle
+            Collection<String> normalizedTitles
+    );
+
+    KnowledgeNode createSubjectWithEmbedding(
+            KnowledgeNode subject,
+            float[] titleEmbedding,
+            String embeddingModel
+    );
+
+    List<KnowledgeNode> findSimilarSubjects(
+            Long userId,
+            float[] titleEmbedding,
+            String embeddingModel,
+            int limit
     );
 
     void deleteById(UUID id);

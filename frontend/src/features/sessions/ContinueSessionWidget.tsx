@@ -3,8 +3,8 @@ import { IconArrowRight, IconClock, IconMapPin, IconPlayerPlay } from '@tabler/i
 import { Link, useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
-import type { DailyPlanItem } from '../plans/dailyPlanTypes'
-import { getTodayPlanItems } from '../plans/todayPlan'
+import type { DailyPlanItem } from '../calendar/dailyPlanTypes'
+import { getTodayPlanItems } from '../calendar/todayPlan'
 import CreateSessionModal from './CreateSessionModal'
 import { useActiveSessionStore } from '../../store/activeSessionStore'
 import { pickRandomPlace, usePlaceStore } from '../../store/placeStore'
@@ -59,7 +59,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
       const apiMessage = typeof error === 'object' && error !== null
           ? (error as ApiError).message
           : undefined
-      setStartError(apiMessage ?? '오늘 계획을 불러오지 못했습니다. 다시 시도해 주세요.')
+      setStartError(apiMessage ?? '오늘 캘린더을 불러오지 못했습니다. 다시 시도해 주세요.')
     } finally {
       setIsPreparingStart(false)
     }
@@ -81,7 +81,14 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
       >
         <div className={styles.thumbnail} aria-hidden="true">
           {background?.url && (background.type === 'VIDEO' ? (
-              <video src={background.url} autoPlay muted loop playsInline preload="metadata" />
+              <video
+                src={background.thumbnailUrl ?? background.url}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+              />
           ) : (
               <img src={background.url} alt="" />
           ))}

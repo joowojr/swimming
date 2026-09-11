@@ -5,13 +5,13 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.domain.TaskStatus;
-import com.swimming.backend.task.dto.in.CreateTaskRequest;
+import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
-import com.swimming.backend.plan.dto.DailyPlanResponse;
+import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
@@ -67,14 +67,15 @@ class TaskControllerTest {
     @Test
     @DisplayName("Task 생성 시 Location 헤더와 생성 결과를 반환한다")
     void createsTaskWithLocationHeader() throws Exception {
-        CreateTaskRequest request = new CreateTaskRequest("API 명세 작성");
-        when(taskUseCase.create(1L, 10L, request))
+        CreateTaskWithPlanRequest request = new CreateTaskWithPlanRequest(
+                "API 명세 작성", 10L, false, false, null);
+        when(taskUseCase.createWithOptionalPlan(1L, request))
                 .thenReturn(response(1L, "API 명세 작성", TaskStatus.TODO, 0));
 
-        mockMvc.perform(post("/api/folders/10/tasks")
+        mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"API 명세 작성"}
+                                {"title":"API 명세 작성","folderId":10}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/tasks/1"))

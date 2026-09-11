@@ -5,6 +5,8 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.repository.KnowledgeNodeRepository;
 import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeNodeEntity;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository {
 
     private final KnowledgeNodeJpaRepository jpaRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public KnowledgeNode save(KnowledgeNode node) {
@@ -55,18 +58,95 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
     }
 
     @Override
-    public Optional<KnowledgeNode> findByUserIdAndNodeTypeAndNormalizedTitle(
+    public List<KnowledgeNode> findAllByNormalizedTitles(
             Long userId,
             NodeType nodeType,
-            String normalizedTitle
+            Collection<String> normalizedTitles
     ) {
-        return jpaRepository.findByUserIdAndNodeTypeAndNormalizedTitleAndDeletedFalse(userId, nodeType, normalizedTitle)
-                .map(PostgresKnowledgeNodeRepository::toDomain);
+        if (normalizedTitles.isEmpty()) {
+            return List.of();
+        }
+
+        return jpaRepository
+                .findAllByUserIdAndNodeTypeAndNormalizedTitleInAndDeletedFalse(
+                        userId, nodeType, normalizedTitles
+                )
+                .stream()
+                .map(PostgresKnowledgeNodeRepository::toDomain)
+                .toList();
+    }
+
+    @Override
+    public KnowledgeNode createSubjectWithEmbedding(
+            KnowledgeNode subject,
+            float[] titleEmbedding,
+            String embeddingModel
+    ) {
+        if (subject.getNodeType() != NodeType.SUBJECT) {
+            throw new IllegalArgumentException("title embedding can only be stored for a subject");
+        }
+
+        return jdbcTemplate.queryForObject(
+                """
+                insert into knowledge_node (
+                    id, user_id, node_type, title, normalized_title, description,
+                    is_deleted, title_embedding, title_embedding_model,
+                    created_at, updated_at
+                ) values (?, ?, 'SUBJECT', ?, ?, ?, false, cast(? as vector), ?,
+                          current_timestamp, current_timestamp)
+                returning created_at, updated_at
+                """,
+                (resultSet, rowNumber) -> KnowledgeNode.restore(
+                        subject.getId(),
+                        subject.getUserId(),
+                        subject.getNodeType(),
+                        subject.getTitle(),
+                        subject.getDescription(),
+                        false,
+                        resultSet.getTimestamp("created_at").toInstant(),
+                        resultSet.getTimestamp("updated_at").toInstant()
+                ),
+                subject.getId(),
+                subject.getUserId(),
+                subject.getTitle(),
+                subject.getNormalizedTitle(),
+                subject.getDescription(),
+                vectorLiteral(titleEmbedding),
+                embeddingModel
+        );
+    }
+
+    @Override
+    public List<KnowledgeNode> findSimilarSubjects(
+            Long userId,
+            float[] titleEmbedding,
+            String embeddingModel,
+            int limit
+    ) {
+        return jpaRepository.findSimilarSubjects(
+                        userId,
+                        vectorLiteral(titleEmbedding),
+                        embeddingModel,
+                        PageRequest.of(0, limit)
+                ).stream()
+                .map(PostgresKnowledgeNodeRepository::toDomain)
+                .toList();
     }
 
     @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
+    }
+
+    private String vectorLiteral(float[] embedding) {
+        StringBuilder literal = new StringBuilder("[");
+        for (int index = 0; index < embedding.length; index++) {
+            if (index > 0) {
+                literal.append(',');
+            }
+            literal.append(Float.toString(embedding[index]));
+        }
+        return literal.append(']').toString();
     }
 
     static KnowledgeNodeEntity toEntity(KnowledgeNode node) {

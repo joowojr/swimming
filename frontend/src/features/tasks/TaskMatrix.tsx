@@ -7,11 +7,11 @@ import ChecklistCard from '../../components/ChecklistCard'
 import FolderLink from '../../components/FolderLink'
 import InlineEditableText from '../../components/InlineEditableText'
 import TaskMenu, { TaskFlagMenuItems } from '../../components/TaskMenu'
-import type { DailyPlanItem } from '../plans/dailyPlanTypes'
-import { ensureTodayPlanItem } from '../plans/todayPlan'
+import type { DailyPlanItem } from '../calendar/dailyPlanTypes'
+import { ensureTodayPlanItem } from '../calendar/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskInfoModal from './TaskInfoModal'
-import TaskPickerModal from '../plans/TaskPickerModal'
+import TaskPickerModal from '../calendar/TaskPickerModal'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { useDailyPlanStore } from '../../store/dailyPlanStore'
 import { useTaskStore } from '../../store/taskStore'
@@ -520,7 +520,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
               folderId,
               planDate,
             })
-            // 생성 응답에 계획 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
+            // 생성 응답에 캘린더 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
             if (planDate) invalidatePlanDate(planDate)
             await loadTasks()
           }}

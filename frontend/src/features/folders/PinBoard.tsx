@@ -1,10 +1,8 @@
-import { useState } from 'react'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import { useAuthStore } from '../../store/authStore'
-import { EMPTY_TASK_FILTER } from '../tasks/taskFilter'
-import type { TaskFilter } from '../tasks/taskFilter'
-import DailyPlanner from '../plans/DailyPlanner.tsx'
+import { usePinboardViewStore } from '../../store/pinboardViewStore'
+import DailyPlanner from '../calendar/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import NoteCard from '../note/NoteCard.tsx'
 import type { Folder, FolderLoadStatus } from './folderTypes.ts'
@@ -16,8 +14,6 @@ interface PinBoardProps {
   status: FolderLoadStatus
   onRetry: () => void
 }
-
-type PlannerView = 'daily' | 'matrix'
 
 const PLANNER_VIEW_OPTIONS = [
   { value: 'daily', label: '캘린더' },
@@ -40,8 +36,10 @@ export default function PinBoard({
   const { user } = useAuthStore()
   // 닉네임이 비어 있으면 이메일 아이디를 대신 부른다.
   const displayName = user?.nickname || user?.email?.split('@')[0]
-  const [plannerView, setPlannerView] = useState<PlannerView>('daily')
-  const [taskFilter, setTaskFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
+  const plannerView = usePinboardViewStore((state) => state.plannerView)
+  const setPlannerView = usePinboardViewStore((state) => state.setPlannerView)
+  const matrixFilter = usePinboardViewStore((state) => state.matrixFilter)
+  const setMatrixFilter = usePinboardViewStore((state) => state.setMatrixFilter)
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -112,8 +110,8 @@ export default function PinBoard({
                       />
                       {plannerView === 'matrix' && (
                         <TaskFilterMenu
-                          value={taskFilter}
-                          onChange={setTaskFilter}
+                          value={matrixFilter}
+                          onChange={setMatrixFilter}
                           showFlags={false}
                           triggerClassName={styles['planner-filter']}
                         />
@@ -121,7 +119,7 @@ export default function PinBoard({
                     </div>
                     {plannerView === 'daily'
                       ? <DailyPlanner/>
-                      : <TaskMatrix statusFilter={taskFilter.status}/>}
+                      : <TaskMatrix statusFilter={matrixFilter.status}/>}
                   </div>
                 </div>
 

@@ -26,11 +26,15 @@ jobs:
         id: filter
         with:
           filters: |
+            # 마크다운만 바뀐 커밋은 빌드를 돌리지 않는다. '!' 패턴은 순서대로
+            # 적용되므로 포함 규칙 뒤에 와야 한다.
             backend:
               - 'backend/**'
+              - '!**/*.md'
               - '.github/workflows/ci.yml'
             frontend:
               - 'frontend/**'
+              - '!**/*.md'
               - '.github/workflows/ci.yml'
 
   backend:

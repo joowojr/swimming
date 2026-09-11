@@ -43,6 +43,9 @@ public class PlaceEntity extends BaseTimeEntity {
     @Column(name = "background_asset_key", nullable = false, length = 2048)
     private String backgroundAssetKey;
 
+    @Column(name = "thumbnail_asset_key", length = 2048)
+    private String thumbnailAssetKey;
+
     @Column(name = "default_music_url", length = 2048)
     private String defaultMusicUrl;
 
@@ -52,12 +55,14 @@ public class PlaceEntity extends BaseTimeEntity {
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
+            String thumbnailAssetKey,
             String defaultMusicUrl
     ) {
         this.city = city;
         this.name = name;
         this.backgroundAssetType = backgroundAssetType;
         this.backgroundAssetKey = backgroundAssetKey;
+        this.thumbnailAssetKey = thumbnailAssetKey;
         this.defaultMusicUrl = defaultMusicUrl;
     }
 
@@ -66,6 +71,7 @@ public class PlaceEntity extends BaseTimeEntity {
             String name,
             BackgroundAssetType backgroundAssetType,
             String backgroundAssetKey,
+            String thumbnailAssetKey,
             String defaultMusicUrl
     ) {
         return PlaceEntity.builder()
@@ -73,6 +79,7 @@ public class PlaceEntity extends BaseTimeEntity {
                 .name(name)
                 .backgroundAssetType(backgroundAssetType)
                 .backgroundAssetKey(backgroundAssetKey)
+                .thumbnailAssetKey(thumbnailAssetKey)
                 .defaultMusicUrl(defaultMusicUrl)
                 .build();
     }
@@ -84,6 +91,7 @@ public class PlaceEntity extends BaseTimeEntity {
                 name,
                 backgroundAssetType,
                 backgroundAssetKey,
+                thumbnailAssetKey,
                 defaultMusicUrl
         );
     }

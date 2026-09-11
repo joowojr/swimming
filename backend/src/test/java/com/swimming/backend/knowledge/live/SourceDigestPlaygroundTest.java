@@ -51,6 +51,7 @@ import org.springframework.ai.ollama.api.OllamaApi;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.core.io.DefaultResourceLoader;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -409,7 +410,11 @@ class SourceDigestPlaygroundTest {
         return new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
-                Optional.of(new LambdaPageRendererClient(properties, lambdaClient(properties)))
+                Optional.of(new LambdaPageRendererClient(
+                        properties,
+                        lambdaClient(properties),
+                        new ObjectMapper()
+                ))
         );
     }
 

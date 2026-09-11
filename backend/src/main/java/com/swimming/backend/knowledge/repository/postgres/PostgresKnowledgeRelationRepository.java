@@ -89,7 +89,7 @@ public class PostgresKnowledgeRelationRepository implements KnowledgeRelationRep
                     .build();
         }
 
-        existing.reinforce(
+        existing.applyObservation(
                 relation.getOrigin(),
                 relation.getConfidence(),
                 relation.getEvidence()

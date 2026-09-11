@@ -161,7 +161,8 @@ class TaskOrganizerServiceTest {
                             openAiClient,
                             promptRepository,
                             new OpenAiChatOptionsFactory(openAiProperties(evalModel.id())),
-                            usageLogger
+                            usageLogger,
+                            openAiProperties(evalModel.id())
                     );
                 }
                 case OLLAMA -> {
@@ -176,7 +177,8 @@ class TaskOrganizerServiceTest {
                             ollamaClient,
                             promptRepository,
                             new OllamaChatOptionsFactory(ollamaProperties(evalModel.id())),
-                            usageLogger
+                            usageLogger,
+                            ollamaProperties(evalModel.id())
                     );
                 }
                 default -> throw new IllegalStateException(
@@ -204,7 +206,10 @@ class TaskOrganizerServiceTest {
                         primaryClient,
                         promptRepository(PROMPT_VERSIONS.get(version)),
                         optionsFactory,
-                        usageLogger
+                        usageLogger,
+                        primary.provider() == LlmProvider.OPENAI
+                                ? openAiProperties(primary.id())
+                                : ollamaProperties(primary.id())
                 )
         ));
         promptVariants = Collections.unmodifiableMap(variants);
@@ -342,7 +347,7 @@ class TaskOrganizerServiceTest {
                     String error = null;
 
                     try {
-                        output = service.extract(scenario.input());
+                        output = service.extract(scenario.input()).output();
                         assertStructurallyValid(scenario.input(), output);
                         assertBucketLabels(scenario, output);
                         passCount.merge(key, 1, Integer::sum);
@@ -478,7 +483,7 @@ class TaskOrganizerServiceTest {
         long startedAt = System.nanoTime();
 
         try {
-            TaskOrganizeResult output = service.organize(scenario.input());
+            TaskOrganizeResult output = service.organize(scenario.input()).output();
             assertStructurallyValid(scenario.input(), output);
             return result(scenario, label, run, startedAt, output, null);
         } catch (Exception | AssertionError failure) {

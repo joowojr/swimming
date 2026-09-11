@@ -12,7 +12,10 @@ import com.swimming.backend.note.dto.in.TaskOrganizeResponse;
 import com.swimming.backend.note.dto.out.TaskExtractResult;
 import com.swimming.backend.note.dto.out.TaskOrganizeResult;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
+import com.swimming.backend.note.dto.out.TaskOrganizerExecution;
+import com.swimming.backend.note.dto.out.LlmCallSnapshot;
 import com.swimming.backend.note.service.TaskOrganizerService;
+import com.swimming.backend.note.service.TaskOrganizerRunService;
 import com.swimming.backend.note.service.NoteService;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
@@ -26,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +48,7 @@ class TaskOrganizerUseCaseTest {
     private TaskService taskService;
     private TaskOrderingService taskOrderingService;
     private TaskOrganizerService taskOrganizerService;
+    private TaskOrganizerRunService taskOrganizerRunService;
     private NoteService noteService;
     private FolderService folderService;
     private SessionService sessionService;
@@ -54,6 +59,7 @@ class TaskOrganizerUseCaseTest {
         taskService = mock(TaskService.class);
         taskOrderingService = mock(TaskOrderingService.class);
         taskOrganizerService = mock(TaskOrganizerService.class);
+        taskOrganizerRunService = mock(TaskOrganizerRunService.class);
         noteService = mock(NoteService.class);
         folderService = mock(FolderService.class);
         sessionService = mock(SessionService.class);
@@ -61,10 +67,14 @@ class TaskOrganizerUseCaseTest {
                 taskService,
                 taskOrderingService,
                 taskOrganizerService,
+                taskOrganizerRunService,
                 noteService,
                 folderService,
                 sessionService
         );
+        when(taskOrganizerRunService.savePreview(
+                anyLong(), anyLong(), any(), any(), any(), any(), any()
+        )).thenReturn(1L);
     }
 
     @Test
@@ -76,22 +86,29 @@ class TaskOrganizerUseCaseTest {
                 row(20L, "Task 없는 프로젝트", null, null, null)
         ));
         when(taskOrganizerService.organize(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new TaskOrganizeResult(
+                .thenReturn(execution(new TaskOrganizeResult(
                         List.of(new TaskOrganizeResult.TaskSuggestion(
                                 "CREATE_TASK",
                                 "할 일 정리 버튼 연결",
                                 10L,
-                                "Task Organizer API 연결"
+                                "Task Organizer API 연결",
+                                LocalDate.of(2026, 9, 10)
                         )),
                         List.of(new TaskOrganizeResult.UnclassifiedItem(
                                 "운동화 주문",
                                 "운동화 주문"
                         ))
-                ));
+                )));
 
         TaskOrganizeResponse response = taskOrganizerUseCase.preview(
                 1L,
-                new TaskOrganizeRequest("할 일 정리 버튼 연결\n운동화 주문", null, null)
+                new TaskOrganizeRequest(
+                        7L,
+                        "할 일 정리 버튼 연결\n운동화 주문",
+                        null,
+                        null,
+                        LocalDate.of(2026, 9, 9)
+                )
         );
 
         ArgumentCaptor<TaskOrganizerInput> inputCaptor =
@@ -103,20 +120,16 @@ class TaskOrganizerUseCaseTest {
                 .containsExactly(10L, 20L);
         assertThat(input.tasks()).extracting(task -> task.id())
                 .containsExactly(1L, 2L);
-        assertThat(response.suggestions()).containsExactly(
-                new TaskOrganizeResponse.TaskSuggestionResponse(
-                        "할 일 정리 버튼 연결",
-                        10L,
-                        "Swimming",
-                        "Task Organizer API 연결"
-                )
-        );
-        assertThat(response.unclassified()).containsExactly(
-                new TaskOrganizeResponse.UnclassifiedResponse(
-                        "운동화 주문",
-                        "운동화 주문"
-                )
-        );
+        assertThat(input.currentDate()).isEqualTo(LocalDate.of(2026, 9, 9));
+        assertThat(response.suggestions())
+                .extracting("sourceText", "folderId", "folderName", "title", "planDate")
+                .containsExactly(tuple(
+                        "할 일 정리 버튼 연결", 10L, "Swimming",
+                        "Task Organizer API 연결", LocalDate.of(2026, 9, 10)
+                ));
+        assertThat(response.unclassified())
+                .extracting("sourceText", "title")
+                .containsExactly(tuple("운동화 주문", "운동화 주문"));
         verify(taskService).getTaskOrganizerContext(1L);
     }
 
@@ -127,7 +140,7 @@ class TaskOrganizerUseCaseTest {
                 row(10L, "Swimming", null, null, null)
         ));
         when(taskOrganizerService.organize(any()))
-                .thenReturn(new TaskOrganizeResult(
+                .thenReturn(execution(new TaskOrganizeResult(
                         List.of(
                                 new TaskOrganizeResult.TaskSuggestion(
                                         "CREATE_TASK",
@@ -152,27 +165,19 @@ class TaskOrganizerUseCaseTest {
                                 "미분류 원문",
                                 "미분류 항목"
                         ))
-                ));
+                )));
 
         TaskOrganizeResponse response = taskOrganizerUseCase.preview(
                 1L,
-                new TaskOrganizeRequest("정상 원문\n잘못된 ID 원문\nID 없는 원문\n미분류 원문", null, null)
+                request("정상 원문\n잘못된 ID 원문\nID 없는 원문\n미분류 원문", null, null)
         );
 
-        assertThat(response.suggestions()).containsExactly(
-                new TaskOrganizeResponse.TaskSuggestionResponse(
-                        "정상 원문",
-                        10L,
-                        "Swimming",
-                        "정상 Task"
-                )
-        );
-        assertThat(response.unclassified()).containsExactly(
-                new TaskOrganizeResponse.UnclassifiedResponse(
-                        "미분류 원문",
-                        "미분류 항목"
-                )
-        );
+        assertThat(response.suggestions())
+                .extracting("sourceText", "folderId", "folderName", "title")
+                .containsExactly(tuple("정상 원문", 10L, "Swimming", "정상 Task"));
+        assertThat(response.unclassified())
+                .extracting("sourceText", "title")
+                .containsExactly(tuple("미분류 원문", "미분류 항목"));
     }
 
     @Test
@@ -196,9 +201,9 @@ class TaskOrganizerUseCaseTest {
 
         TaskOrganizeConfirmResponse response = taskOrganizerUseCase.confirm(
                 1L,
-                new TaskOrganizeConfirmRequest(
-                        7L,
+                confirmRequest(
                         List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                "장소조회 캐시 테스트 아직 못함",
                                 "장소조회 캐시 테스트 아직 못함",
                                 10L,
                                 "장소 조회 캐시 테스트"
@@ -243,9 +248,9 @@ class TaskOrganizerUseCaseTest {
 
         TaskOrganizeConfirmResponse response = taskOrganizerUseCase.confirm(
                 1L,
-                new TaskOrganizeConfirmRequest(
-                        7L,
+                confirmRequest(
                         List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                "운동화 주문",
                                 "운동화 주문",
                                 null,
                                 "운동화 주문"
@@ -287,13 +292,14 @@ class TaskOrganizerUseCaseTest {
 
         taskOrganizerUseCase.confirm(
                 1L,
-                new TaskOrganizeConfirmRequest(
-                        7L,
+                confirmRequest(
                         List.of(
                                 new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "캐시 테스트",
                                         "캐시 테스트", 10L, "캐시 테스트"
                                 ),
                                 new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "운동화 주문",
                                         "운동화 주문", null, "운동화 주문"
                                 )
                         )
@@ -315,13 +321,14 @@ class TaskOrganizerUseCaseTest {
 
         assertThatThrownBy(() -> taskOrganizerUseCase.confirm(
                 1L,
-                new TaskOrganizeConfirmRequest(
-                        7L,
+                confirmRequest(
                         List.of(
                                 new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "다른 프로젝트 Task",
                                         "다른 프로젝트 Task", 99L, "다른 프로젝트 Task"
                                 ),
                                 new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                        "운동화 주문",
                                         "운동화 주문", null, "운동화 주문"
                                 )
                         )
@@ -354,9 +361,9 @@ class TaskOrganizerUseCaseTest {
 
         taskOrganizerUseCase.confirm(
                 1L,
-                new TaskOrganizeConfirmRequest(
-                        7L,
+                confirmRequest(
                         List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                "장소조회 캐시 테스트 아직 못함",
                                 "장소조회 캐시 테스트 아직 못함",
                                 10L,
                                 "장소 조회 캐시 테스트"
@@ -376,9 +383,9 @@ class TaskOrganizerUseCaseTest {
 
         assertThatThrownBy(() -> taskOrganizerUseCase.confirm(
                 1L,
-                new TaskOrganizeConfirmRequest(
-                        7L,
+                confirmRequest(
                         List.of(new TaskOrganizeConfirmRequest.ApprovedTaskRequest(
+                                "변경된 원문",
                                 "변경된 원문",
                                 10L,
                                 "Task"
@@ -436,13 +443,25 @@ class TaskOrganizerUseCaseTest {
     void folder_컨텍스트는_추출_경로를_쓴다() {
         when(taskService.getTaskOrganizerContext(1L, List.of(7L)))
                 .thenReturn(List.of(row(7L, "사이드 프로젝트")));
-        when(taskOrganizerService.extract(any())).thenReturn(new TaskExtractResult(
-                List.of(new TaskExtractResult.ExtractedTask("우유 사기", "우유 구매")),
+        when(taskOrganizerService.extract(any())).thenReturn(execution(new TaskExtractResult(
+                List.of(new TaskExtractResult.ExtractedTask(
+                        "내일 우유 사기",
+                        "우유 구매",
+                        LocalDate.of(2026, 9, 10)
+                )),
                 List.of(new TaskExtractResult.UnclassifiedItem("무릎이 뻐근함", "무릎 상태"))
-        ));
+        )));
 
         TaskOrganizeResponse response = taskOrganizerUseCase.preview(
-                1L, new TaskOrganizeRequest("메모", NoteContextType.FOLDER, 7L));
+                1L,
+                new TaskOrganizeRequest(
+                        7L,
+                        "내일 우유 사기",
+                        NoteContextType.FOLDER,
+                        7L,
+                        LocalDate.of(2026, 9, 9)
+                )
+        );
 
         verify(folderService).validateOwnership(1L, 7L);
         verify(taskService).getTaskOrganizerContext(1L, List.of(7L));
@@ -451,8 +470,13 @@ class TaskOrganizerUseCaseTest {
         verify(taskOrganizerService, never()).organize(any());
 
         assertThat(response.suggestions())
-                .extracting("folderId", "folderName", "title")
-                .containsExactly(tuple(7L, "사이드 프로젝트", "우유 구매"));
+                .extracting("folderId", "folderName", "title", "planDate")
+                .containsExactly(tuple(
+                        7L,
+                        "사이드 프로젝트",
+                        "우유 구매",
+                        LocalDate.of(2026, 9, 10)
+                ));
         assertThat(response.unclassified())
                 .extracting("title")
                 .containsExactly("무릎 상태");
@@ -471,10 +495,10 @@ class TaskOrganizerUseCaseTest {
         when(taskService.getTaskOrganizerContext(1L, List.of(3L, 4L)))
                 .thenReturn(List.of(row(3L, "폴더3"), row(4L, "폴더4")));
         when(taskOrganizerService.organize(any()))
-                .thenReturn(new TaskOrganizeResult(List.of(), List.of()));
+                .thenReturn(execution(new TaskOrganizeResult(List.of(), List.of())));
 
         taskOrganizerUseCase.preview(
-                1L, new TaskOrganizeRequest("메모", NoteContextType.SESSION, 50L));
+                1L, request("메모", NoteContextType.SESSION, 50L));
 
         verify(sessionService).getTaskIds(1L, 50L);
         // 폴더가 여럿이므로 분류 경로를 그대로 쓴다
@@ -493,7 +517,7 @@ class TaskOrganizerUseCaseTest {
     @DisplayName("FOLDER·SESSION 인데 contextId 가 없으면 400 이다")
     void contextId_가_없으면_거절한다() {
         assertThatThrownBy(() -> taskOrganizerUseCase.preview(
-                1L, new TaskOrganizeRequest("메모", NoteContextType.FOLDER, null)))
+                1L, request("메모", NoteContextType.FOLDER, null)))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TASK_ORGANIZER_CONTEXT);
 
@@ -504,7 +528,7 @@ class TaskOrganizerUseCaseTest {
     @DisplayName("DEFAULT 인데 contextId 가 오면 400 이다")
     void default_에_contextId_가_오면_거절한다() {
         assertThatThrownBy(() -> taskOrganizerUseCase.preview(
-                1L, new TaskOrganizeRequest("메모", NoteContextType.DEFAULT, 7L)))
+                1L, request("메모", NoteContextType.DEFAULT, 7L)))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TASK_ORGANIZER_CONTEXT);
     }
@@ -516,10 +540,36 @@ class TaskOrganizerUseCaseTest {
         when(taskService.getFolderIds(1L, List.of(101L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> taskOrganizerUseCase.preview(
-                1L, new TaskOrganizeRequest("메모", NoteContextType.SESSION, 50L)))
+                1L, request("메모", NoteContextType.SESSION, 50L)))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMPTY_TASK_ORGANIZER_CONTEXT);
 
         verify(taskOrganizerService, never()).organize(any());
+    }
+
+    private static <T> TaskOrganizerExecution<T> execution(T output) {
+        return new TaskOrganizerExecution<>(
+                output,
+                new LlmCallSnapshot(
+                        "ORGANIZE", "OPENAI", "test-model", "prompt-hash",
+                        10L, 100, 20L, 5L, 10
+                )
+        );
+    }
+
+    private static TaskOrganizeRequest request(
+            String memo,
+            NoteContextType contextType,
+            Long contextId
+    ) {
+        return new TaskOrganizeRequest(
+                7L, memo, contextType, contextId, LocalDate.of(2026, 9, 9)
+        );
+    }
+
+    private static TaskOrganizeConfirmRequest confirmRequest(
+            List<TaskOrganizeConfirmRequest.ApprovedTaskRequest> tasks
+    ) {
+        return new TaskOrganizeConfirmRequest(1L, 7L, tasks);
     }
 }

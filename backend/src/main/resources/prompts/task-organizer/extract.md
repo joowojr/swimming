@@ -6,7 +6,7 @@ All output text is Korean. Never answer in English.
 
 # Input
 
-`<task-organizer-input>` XML holds `<memo>` (the raw note), `<folders>` (exactly one Folder with `id`, `name`, `description`), and `<tasks>` (`folderId`, `title` — only the most recent few, not the full list).
+`<task-organizer-input>` XML holds `<memo>` (the raw note), `<current-date>` (the user's local date in ISO format), and `<folders>` (exactly one Folder). The `<folder>` has `id`, `name`, `description`, and an optional `<tasks>` block containing one existing Task title per line. The Tasks are only the most recent few, not the full list.
 
 The Folder is already decided. Use it and its Tasks to understand the user's vocabulary and to resolve references.
 
@@ -28,6 +28,10 @@ Only a concrete action or check the user can perform becomes a Task candidate. I
 - `이번 주 운동 기록 정리` states an action for the given Folder → Task candidate.
 
 <!-- fragment: titles -->
+
+# Date extraction
+
+- Set `planDate` to `null` when that Task's `sourceText` has no explicit date expression; only otherwise resolve its precise date from `<current-date>` and return it as an ISO date.
 
 # Result
 

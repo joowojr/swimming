@@ -31,8 +31,8 @@ public class KnowledgeRelationService {
      * 같은 관계가 이미 있으면 근거만 갱신한다.
      *
      * <p>여러 문서가 같은 개념을 다루면 같은 관계를 반복해서 관찰하게 된다. 그때마다 행을
-     * 늘리지 않고 마지막 관찰로 덮는다. 사용자가 만든 관계는
-     * {@link KnowledgeRelation#reinforce}가 지켜 준다.
+     * 늘리지 않고 마지막 관찰로 덮는다. 사용자가 만든 관계는 저장소가 기존 행에 관찰을
+     * 반영할 때 걸러낸다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public KnowledgeRelation connect(KnowledgeNode from, KnowledgeNode to, RelationOrigin origin) {

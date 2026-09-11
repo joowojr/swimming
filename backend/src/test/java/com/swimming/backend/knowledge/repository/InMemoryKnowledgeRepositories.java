@@ -485,7 +485,7 @@ public final class InMemoryKnowledgeRepositories {
             }
 
             KnowledgeRelation merged = copy(existing);
-            merged.reinforce(
+            merged.applyObservation(
                     observed.getOrigin(), observed.getConfidence(), observed.getEvidence()
             );
             return merged;

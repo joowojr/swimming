@@ -153,6 +153,7 @@ must match `backend/.env.example`:
   "GOOGLE_CLIENT_ID": "REPLACE_ME.apps.googleusercontent.com",
   "OPENAI_API_KEY": "REPLACE_ME",
   "PLACE_CDN_BASE_URL": "https://swimming-now.kro.kr",
+  "KASI_HOLIDAY_API_KEY": "REPLACE_ME",
   "AWS_REGION": "ap-northeast-2",
   "KNOWLEDGE_FETCH_RENDER_ENABLED": "true",
   "KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME": "swimming-prod-page-renderer"

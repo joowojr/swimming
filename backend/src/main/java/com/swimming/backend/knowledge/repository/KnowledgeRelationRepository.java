@@ -5,7 +5,6 @@ import com.swimming.backend.knowledge.domain.RelationType;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -14,13 +13,13 @@ import java.util.UUID;
  */
 public interface KnowledgeRelationRepository {
 
-    KnowledgeRelation save(KnowledgeRelation relation);
-
-    Optional<KnowledgeRelation> find(
-            UUID fromNodeId,
-            UUID toNodeId,
-            RelationType relationType
-    );
+    /**
+     * 자연키가 같은 Relation이 있으면 근거를 갱신하고 없으면 새로 만든다.
+     *
+     * <p>(fromNodeId, relationType)이 같은 것끼리 묶어 조회를 한 번으로 줄인다. 같은 자연키가
+     * 여러 번 들어오면 마지막 관찰만 남는다.
+     */
+    List<KnowledgeRelation> saveAll(List<KnowledgeRelation> relations);
 
     List<KnowledgeRelation> findAllByFromNodeIdIn(
             Collection<UUID> fromNodeIds,

@@ -6,14 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface KnowledgeRelationJpaRepository extends JpaRepository<KnowledgeRelationEntity, Long> {
 
-    Optional<KnowledgeRelationEntity> findByFromNodeIdAndToNodeIdAndRelationType(
+    List<KnowledgeRelationEntity> findAllByFromNodeIdAndToNodeIdInAndRelationType(
             UUID fromNodeId,
-            UUID toNodeId,
+            Collection<UUID> toNodeIds,
             RelationType relationType
     );
 

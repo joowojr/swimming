@@ -448,17 +448,47 @@ public final class InMemoryKnowledgeRepositories {
             return from + ":" + to + ":" + relationType;
         }
 
-        @Override
-        public KnowledgeRelation save(KnowledgeRelation relation) {
-            String key = key(relation.getFromNodeId(), relation.getToNodeId(), relation.getRelationType());
-            stored.put(key, copy(relation));
-            return copy(relation);
-        }
+        /** (fromNodeId, relationType) 묶음당 조회 한 번. 실제 저장소의 왕복 횟수를 센다. */
+        public int lookupCount = 0;
 
         @Override
-        public Optional<KnowledgeRelation> find(UUID fromNodeId, UUID toNodeId, RelationType relationType) {
-            return Optional.ofNullable(stored.get(key(fromNodeId, toNodeId, relationType)))
-                    .map(Relations::copy);
+        public List<KnowledgeRelation> saveAll(List<KnowledgeRelation> relations) {
+            if (relations.isEmpty()) {
+                return List.of();
+            }
+
+            Map<String, KnowledgeRelation> requested = new LinkedHashMap<>();
+            relations.forEach(relation -> requested.put(
+                    key(relation.getFromNodeId(), relation.getToNodeId(), relation.getRelationType()),
+                    relation
+            ));
+
+            lookupCount += (int) requested.values().stream()
+                    .map(relation -> relation.getFromNodeId() + ":" + relation.getRelationType())
+                    .distinct()
+                    .count();
+
+            return requested.entrySet().stream()
+                    .map(entry -> {
+                        KnowledgeRelation existing = stored.get(entry.getKey());
+                        KnowledgeRelation merged = merge(existing, entry.getValue());
+                        stored.put(entry.getKey(), merged);
+                        return copy(merged);
+                    })
+                    .toList();
+        }
+
+        /** 사용자가 만든 관계는 AI 재관찰로 덮어쓰지 않는다. */
+        private static KnowledgeRelation merge(KnowledgeRelation existing, KnowledgeRelation observed) {
+            if (existing == null) {
+                return copy(observed);
+            }
+
+            KnowledgeRelation merged = copy(existing);
+            merged.reinforce(
+                    observed.getOrigin(), observed.getConfidence(), observed.getEvidence()
+            );
+            return merged;
         }
 
         @Override

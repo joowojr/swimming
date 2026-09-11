@@ -11,6 +11,7 @@ import com.swimming.backend.note.dto.out.LlmCallSnapshot;
 import com.swimming.backend.note.dto.out.TaskOrganizerInput;
 import com.swimming.backend.note.repository.TaskOrganizerRunRepository;
 import com.swimming.backend.note.repository.entity.TaskOrganizerRunEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,18 +24,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TaskOrganizerRunService {
 
     private final TaskOrganizerRunRepository repository;
     private final ObjectMapper objectMapper;
-
-    public TaskOrganizerRunService(
-            TaskOrganizerRunRepository repository,
-            ObjectMapper objectMapper
-    ) {
-        this.repository = repository;
-        this.objectMapper = objectMapper;
-    }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Long savePreview(

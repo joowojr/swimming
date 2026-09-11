@@ -1,9 +1,9 @@
 import { create } from 'zustand'
-import { addDailyPlanItems, deleteDailyPlanItem, getDailyPlans } from '../features/plans/dailyPlanApi'
+import { addDailyPlanItems, deleteDailyPlanItem, getDailyPlans } from '../features/calendar/dailyPlanApi'
 import { parseLocalDate } from '../lib/date'
-import { monthKeyOf, monthRange } from '../features/plans/planDate'
-import { toPlanEntries, toTaskEntries } from '../features/plans/planItems'
-import type { CreateDailyPlanItemsRequest, DailyPlan, PlanEntry } from '../features/plans/dailyPlanTypes'
+import { monthKeyOf, monthRange } from '../features/calendar/planDate'
+import { toPlanEntries, toTaskEntries } from '../features/calendar/planItems'
+import type { CreateDailyPlanItemsRequest, DailyPlan, PlanEntry } from '../features/calendar/dailyPlanTypes'
 import { useTaskStore } from './taskStore'
 
 /**

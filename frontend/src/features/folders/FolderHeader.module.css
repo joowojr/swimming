@@ -75,6 +75,62 @@
   content: '';
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+}
+
+.pin-button {
+  display: inline-flex;
+  min-width: 1.875rem;
+  min-height: 1.875rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-default);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-short),
+    border-color var(--transition-short),
+    background-color var(--transition-short);
+}
+
+.pin-button[data-pinned] {
+  border-color: var(--color-hairline);
+  color: var(--color-primary);
+  background: var(--color-surface-container-highest);
+}
+
+.pin-button:disabled {
+  cursor: progress;
+  opacity: .6;
+}
+
+.pin-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pin-button:hover:not(:disabled) {
+    border-color: var(--color-hairline);
+    color: var(--color-primary);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-button {
+    transition: none;
+  }
+}
+
 .compact-delete-button {
   min-width: 1.875rem;
   min-height: 1.875rem;

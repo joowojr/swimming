@@ -9,12 +9,6 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 DEFAULT_TIMEOUT_MS = 20_000
-DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/58.0.3029.110 Safari/537.3"
-)
-
 # 동기 invoke 응답 페이로드 상한이 6MB다. 백엔드의 max-body-bytes와 같은 4MB로 자른다.
 MAX_HTML_BYTES = 4 * 1024 * 1024
 
@@ -65,7 +59,12 @@ def handler(event, context):
         print(f"[render] launch failed reason={exception}")
         return {"error": "LAUNCH_FAILED"}
 
-    browser_context = browser.new_context(user_agent=DEFAULT_USER_AGENT)
+    user_agent = (event or {}).get("userAgent")
+    browser_context = (
+        browser.new_context(user_agent=user_agent)
+        if user_agent
+        else browser.new_context()
+    )
     page = browser_context.new_page()
 
     try:

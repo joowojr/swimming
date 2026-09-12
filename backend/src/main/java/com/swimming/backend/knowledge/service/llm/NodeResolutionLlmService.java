@@ -4,9 +4,9 @@ import com.swimming.backend.common.config.llm.ChatOptionsFactory;
 import com.swimming.backend.common.logging.LlmUsageLogger;
 import com.swimming.backend.common.prompt.PromptKey;
 import com.swimming.backend.common.prompt.PromptRepository;
-import com.swimming.backend.knowledge.dto.out.NodeResolutionInput;
-import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
-import com.swimming.backend.knowledge.prompt.NodeResolutionInputSerializer;
+import com.swimming.backend.knowledge.dto.out.NodeResolutionInputV2;
+import com.swimming.backend.knowledge.dto.out.NodeResolutionResultV2;
+import com.swimming.backend.knowledge.prompt.NodeResolutionInputV2Serializer;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
@@ -32,9 +32,9 @@ public class NodeResolutionLlmService {
         this.usageLogger = usageLogger;
     }
 
-    public NodeResolutionResult resolve(NodeResolutionInput input) {
-        String systemPrompt = promptRepository.get(PromptKey.NODE_RESOLUTION);
-        String userMessage = NodeResolutionInputSerializer.serialize(input);
+    public NodeResolutionResultV2 resolveV2(NodeResolutionInputV2 input) {
+        String systemPrompt = promptRepository.get(PromptKey.NODE_RESOLUTION_V2);
+        String userMessage = NodeResolutionInputV2Serializer.serialize(input);
 
         var response = chatClient.prompt()
                 .system(systemPrompt)
@@ -42,20 +42,17 @@ public class NodeResolutionLlmService {
                 .options(chatOptionsFactory.create())
                 .call()
                 .responseEntity(
-                        NodeResolutionResult.class,
+                        NodeResolutionResultV2.class,
                         spec -> spec.useProviderStructuredOutput().validateSchema()
                 );
 
         usageLogger.log(
-                LOG_FEATURE,
+                LOG_FEATURE + "-v2",
                 response.getResponse(),
                 systemPrompt,
                 userMessage,
-                "candidates=%d existing=%d".formatted(
-                        input.candidates().size(), input.existingSubjects().size()
-                )
+                "candidates=%d".formatted(input.candidates().size())
         );
-
         return response.getEntity();
     }
 }

@@ -7,8 +7,8 @@ import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeTitleNormalizer;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
-import com.swimming.backend.knowledge.dto.out.NodeResolutionInput;
-import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
+import com.swimming.backend.knowledge.dto.out.NodeResolutionInputV2;
+import com.swimming.backend.knowledge.dto.out.NodeResolutionResultV2;
 import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.SimilarSource;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.IntStream;
 
 /**
  * Subject 후보를 실제 노드로 확정한다.
@@ -101,7 +100,7 @@ public class NodeResolutionService {
         );
 
         if (!unresolved.isEmpty()) {
-            for (ResolvedNode item : resolveSemantically(
+            for (ResolvedNode item : resolveSemanticallyV2(
                     source, summary, summaryEmbedding, unresolved
             )) {
                 resolved.put(NodeTitleNormalizer.normalize(item.candidate()), item);
@@ -188,55 +187,182 @@ public class NodeResolutionService {
         return List.copyOf(unique.values());
     }
 
-    /** Source 검색과 Subject 직접 검색을 병렬 실행하고 합집합을 Context로 제공한다. */
-    private List<ResolvedNode> resolveSemantically(
+    /** v2: 후보별 임베딩 검색 결과를 후보 내부 매칭으로 보존한다. */
+    private List<ResolvedNode> resolveSemanticallyV2(
             KnowledgeSource source,
             String summary,
             float[] summaryEmbedding,
             List<Candidate> unresolved
     ) {
-        CompletableFuture<List<KnowledgeNode>> sourceSearchFuture = CompletableFuture.supplyAsync(
-                () -> subjectsFromSimilarSources(source, summaryEmbedding));
         CompletableFuture<CandidateSearchResults> subjectSearchFuture = CompletableFuture.supplyAsync(
                 () -> subjectsFromEmbedding(source.getUserId(), unresolved));
-        CompletableFuture.allOf(sourceSearchFuture, subjectSearchFuture).join();
+        CompletableFuture<List<KnowledgeNode>> sourceSearchFuture = CompletableFuture.supplyAsync(
+                () -> subjectsFromSimilarSources(source, summaryEmbedding));
+        CandidateSearchResults searchResults = subjectSearchFuture.join();
+        List<KnowledgeNode> contextSubjects = sourceSearchFuture.join();
+        List<NodeResolutionInputV2.Candidate> candidates = new ArrayList<>();
+        Map<Integer, List<KnowledgeNode>> subjectsByCandidate = searchResults.byCandidate();
+        Map<Integer, KnowledgeNode> reusableSubjectsByIndex = new LinkedHashMap<>();
+        Map<UUID, Integer> reuseIndexBySubjectId = new LinkedHashMap<>();
+        int nextReuseIndex = 1;
 
-        CandidateSearchResults candidateSearchResults = subjectSearchFuture.join();
-        List<KnowledgeNode> reusableSubjects = unionSubjects(
-                candidateSearchResults.subjects(), sourceSearchFuture.join());
-
-        // 프롬프트의 reusable-subjects가 R1부터 이 순서로 나간다.
-        if (reusableSubjects.isEmpty()) {
-            log.info("[node-resolution] sourceId={} has no reusable subject", source.getId());
-        } else {
-            log.info(
-                    "[node-resolution] sourceId={} reusableSubjects(R1..R{})={}",
-                    source.getId(), reusableSubjects.size(), titlesOf(reusableSubjects)
-            );
+        for (int candidateIndex = 0; candidateIndex < unresolved.size(); candidateIndex++) {
+            List<KnowledgeNode> matches = subjectsByCandidate.getOrDefault(candidateIndex, List.of());
+            List<NodeResolutionInputV2.Match> indexedMatches = new ArrayList<>();
+            for (KnowledgeNode match : matches) {
+                Integer reuseIndex = reuseIndexBySubjectId.get(match.getId());
+                if (reuseIndex == null) {
+                    reuseIndex = nextReuseIndex++;
+                    reuseIndexBySubjectId.put(match.getId(), reuseIndex);
+                    reusableSubjectsByIndex.put(reuseIndex, match);
+                }
+                indexedMatches.add(new NodeResolutionInputV2.Match(
+                        reuseIndex, match.getTitle()));
+            }
+            candidates.add(new NodeResolutionInputV2.Candidate(
+                    candidateIndex + 1,
+                    unresolved.get(candidateIndex).value(),
+                    indexedMatches
+            ));
         }
 
-        NodeResolutionInput input = new NodeResolutionInput(
-                summary,
-                IntStream.range(0, unresolved.size())
-                        .mapToObj(index -> new NodeResolutionInput.Candidate(
-                                index + 1, unresolved.get(index).value()
-                        ))
-                        .toList(),
-                IntStream.range(0, reusableSubjects.size())
-                        .mapToObj(index -> new NodeResolutionInput.ExistingSubject(
-                                index + 1, reusableSubjects.get(index).getTitle()
-                        ))
-                .toList()
-        );
+        List<NodeResolutionInputV2.ContextSubject> indexedContextSubjects = new ArrayList<>();
+        for (KnowledgeNode contextSubject : contextSubjects) {
+            if (reuseIndexBySubjectId.containsKey(contextSubject.getId())) {
+                continue;
+            }
+            int reuseIndex = nextReuseIndex++;
+            reuseIndexBySubjectId.put(contextSubject.getId(), reuseIndex);
+            reusableSubjectsByIndex.put(reuseIndex, contextSubject);
+            indexedContextSubjects.add(new NodeResolutionInputV2.ContextSubject(
+                    reuseIndex, contextSubject.getTitle()));
+        }
 
-        NodeResolutionResult result = resolutionLlmService.resolve(input);
-        List<ResolvedNode> resolved = materialize(
-                source.getUserId(), unresolved, reusableSubjects, result);
+        NodeResolutionResultV2 result = resolutionLlmService.resolveV2(
+                new NodeResolutionInputV2(
+                        summary,
+                        candidates,
+                        indexedContextSubjects
+                ));
+        List<ResolvedNode> resolved = materializeV2(
+                source.getUserId(), unresolved, reusableSubjectsByIndex, result);
         log.info(
-                "[node-resolution] sourceId={} finished resolvedSubjects={}",
-                source.getId(), resolved.stream().map(item -> item.node().getTitle()).toList()
+                "[node-resolution-v2] sourceId={} finished resolvedSubjects={}",
+                source.getId(),
+                resolved.stream().map(item -> item.node().getTitle()).toList()
         );
         return resolved;
+    }
+
+    private List<ResolvedNode> materializeV2(
+            Long userId,
+            List<Candidate> unresolved,
+            Map<Integer, KnowledgeNode> reusableSubjectsByIndex,
+            NodeResolutionResultV2 result
+    ) {
+        if (result == null || result.decisions() == null) {
+            throw new IllegalStateException("node resolution v2 result is empty");
+        }
+
+        Map<Integer, NodeResolutionResultV2.Decision> decisions = new LinkedHashMap<>();
+        for (NodeResolutionResultV2.Decision decision : result.decisions()) {
+            if (decision == null || decision.reuseIndex() < 0
+                    || decision.candidateIndex() < 1
+                    || decision.candidateIndex() > unresolved.size()) {
+                continue;
+            }
+            decisions.putIfAbsent(decision.candidateIndex(), decision);
+        }
+
+        Map<String, KnowledgeNode> createdMeanwhile = nodeService.findSubjectsByNormalizedTitles(
+                userId,
+                decisions.values().stream()
+                        .filter(decision -> decision.reuseIndex() == 0)
+                        .map(NodeResolutionService::newSubjectTitleV2)
+                        .map(NodeTitleNormalizer::normalize)
+                        .filter(normalized -> !normalized.isEmpty())
+                        .distinct()
+                        .toList()
+        );
+        Map<String, float[]> embeddingsByNormalizedTitle = embedNewSubjectTitles(
+                decisions.values(), createdMeanwhile);
+        Map<String, KnowledgeNode> availableCreatedSubjects = new LinkedHashMap<>(createdMeanwhile);
+
+        List<ResolvedNode> resolved = new ArrayList<>();
+        for (int index = 0; index < unresolved.size(); index++) {
+            NodeResolutionResultV2.Decision decision = decisions.get(index + 1);
+            if (decision == null) {
+                continue;
+            }
+            Candidate candidate = unresolved.get(index);
+            if (decision.reuseIndex() > 0) {
+                KnowledgeNode matched = reusableSubjectsByIndex.get(decision.reuseIndex());
+                if (matched == null) {
+                    continue;
+                }
+                resolved.add(ResolvedNode.semantic(
+                        candidate.value(), matched));
+            } else if (decision.reuseIndex() == 0) {
+                String title = newSubjectTitleV2(decision);
+                String normalizedTitle = NodeTitleNormalizer.normalize(title);
+                if (!normalizedTitle.isEmpty()) {
+                    KnowledgeNode existing = availableCreatedSubjects.get(normalizedTitle);
+                    if (existing != null) {
+                        resolved.add(ResolvedNode.exact(candidate.value(), existing));
+                        continue;
+                    }
+                    float[] titleEmbedding = embeddingsByNormalizedTitle.get(normalizedTitle);
+                    if (titleEmbedding == null) {
+                        continue;
+                    }
+                    ResolvedNode created = createSubject(
+                            userId, candidate.value(), title, titleEmbedding);
+                    availableCreatedSubjects.put(normalizedTitle, created.node());
+                    resolved.add(created);
+                }
+            }
+        }
+        if (resolved.isEmpty()) {
+            throw new IllegalStateException("node resolution v2 returned no usable decision");
+        }
+        return resolved;
+    }
+
+    private static String newSubjectTitleV2(NodeResolutionResultV2.Decision decision) {
+        return decision.value() == null ? "" : decision.value().strip();
+    }
+
+    /** 실제로 새로 만들 Subject 제목만 한 번에 임베딩한다. */
+    private Map<String, float[]> embedNewSubjectTitles(
+            java.util.Collection<NodeResolutionResultV2.Decision> decisions,
+            Map<String, KnowledgeNode> existingSubjects
+    ) {
+        Map<String, String> titlesByNormalizedTitle = new LinkedHashMap<>();
+        for (NodeResolutionResultV2.Decision decision : decisions) {
+            if (decision.reuseIndex() != 0) {
+                continue;
+            }
+            String title = newSubjectTitleV2(decision);
+            String normalizedTitle = NodeTitleNormalizer.normalize(title);
+            if (!normalizedTitle.isEmpty() && !existingSubjects.containsKey(normalizedTitle)) {
+                titlesByNormalizedTitle.putIfAbsent(normalizedTitle, title);
+            }
+        }
+        if (titlesByNormalizedTitle.isEmpty()) {
+            return Map.of();
+        }
+
+        List<float[]> embeddings = embeddingClient.embed(titlesByNormalizedTitle.values().stream()
+                .map(this::embeddingText)
+                .toList());
+        validateEmbeddings(embeddings, titlesByNormalizedTitle.size());
+
+        Map<String, float[]> embeddingsByNormalizedTitle = new LinkedHashMap<>();
+        int index = 0;
+        for (String normalizedTitle : titlesByNormalizedTitle.keySet()) {
+            embeddingsByNormalizedTitle.put(normalizedTitle, embeddings.get(index++));
+        }
+        return embeddingsByNormalizedTitle;
     }
 
     private List<KnowledgeNode> subjectsFromSimilarSources(
@@ -288,7 +414,6 @@ public class NodeResolutionService {
         validateEmbeddings(embeddings, inputs.size());
 
         Map<Integer, List<KnowledgeNode>> byCandidate = new LinkedHashMap<>();
-        Map<String, KnowledgeNode> selected = new LinkedHashMap<>();
         for (int candidateIndex = 0; candidateIndex < unresolved.size(); candidateIndex++) {
             List<KnowledgeNode> similar = vectorSearchService.findSimilarSubjects(
                     userId,
@@ -302,23 +427,8 @@ public class NodeResolutionService {
                     titlesOf(similar)
             );
             byCandidate.put(candidateIndex, List.copyOf(similar));
-            similar.forEach(subject -> selected.putIfAbsent(
-                    NodeTitleNormalizer.normalize(subject.getTitle()), subject));
         }
-        return new CandidateSearchResults(byCandidate, List.copyOf(selected.values()));
-    }
-
-    /** 직접 Subject 검색 순서를 우선하고 Source 검색 결과를 뒤에 더한다. */
-    private List<KnowledgeNode> unionSubjects(
-            List<KnowledgeNode> directSubjects,
-            List<KnowledgeNode> sourceSubjects
-    ) {
-        Map<String, KnowledgeNode> union = new LinkedHashMap<>();
-        directSubjects.forEach(subject -> union.putIfAbsent(
-                NodeTitleNormalizer.normalize(subject.getTitle()), subject));
-        sourceSubjects.forEach(subject -> union.putIfAbsent(
-                NodeTitleNormalizer.normalize(subject.getTitle()), subject));
-        return List.copyOf(union.values());
+        return new CandidateSearchResults(byCandidate);
     }
 
     private static List<String> titlesOf(List<KnowledgeNode> nodes) {
@@ -361,137 +471,13 @@ public class NodeResolutionService {
         return subjects;
     }
 
-    /**
-     * LLM 결정을 검증하고 재사용 또는 생성된 실제 Subject 노드로 확정한다.
-     *
-     * <p>어긋난 결정은 그 후보만 버리고 나머지로 계속한다. 후보 하나 때문에 링크 저장 전체가
-     * 실패하지 않게 하려는 것이다. 다만 쓸 수 있는 결정이 하나도 없으면 응답을 통째로
-     * 잘못 이해한 것이므로 실패로 두어 재시도 여지를 남긴다.
-     */
-    private List<ResolvedNode> materialize(
+    /** 미리 계산한 Subject title embedding과 새 노드를 함께 저장한다. */
+    private ResolvedNode createSubject(
             Long userId,
-            List<Candidate> unresolved,
-            List<KnowledgeNode> existingSubjects,
-            NodeResolutionResult result
+            String candidate,
+            String title,
+            float[] titleEmbedding
     ) {
-        if (result == null || result.decisions() == null) {
-            throw new IllegalStateException("node resolution result is empty");
-        }
-
-        Map<Integer, NodeResolutionResult.Decision> decisions = new LinkedHashMap<>();
-        for (NodeResolutionResult.Decision decision : result.decisions()) {
-            String rejection = rejectionOf(decision, unresolved.size(), existingSubjects.size());
-            if (rejection != null) {
-                log.info("[node-resolution] dropped a decision: {}", rejection);
-                continue;
-            }
-            if (decisions.putIfAbsent(decision.candidateIndex(), decision) != null) {
-                log.info(
-                        "[node-resolution] dropped a duplicate decision for candidate index {}",
-                        decision.candidateIndex()
-                );
-            }
-        }
-
-        // LLM을 기다리는 동안 다른 요청이 같은 Subject를 만들었을 수 있다. 신규 판정 후보를
-        // 모아 여기서 한 번에 다시 읽는다. 후보마다 읽으면 그만큼 왕복이 생긴다.
-        Map<String, KnowledgeNode> createdMeanwhile = nodeService.findSubjectsByNormalizedTitles(
-                userId,
-                decisions.values().stream()
-                        .filter(decision -> decision.action() == NodeResolutionResult.Action.CREATE)
-                        .map(NodeResolutionService::newSubjectTitle)
-                        .map(NodeTitleNormalizer::normalize)
-                        .filter(normalized -> !normalized.isEmpty())
-                        .distinct()
-                        .toList()
-        );
-
-        List<ResolvedNode> resolved = new ArrayList<>();
-        for (int index = 0; index < unresolved.size(); index++) {
-            Candidate candidate = unresolved.get(index);
-            NodeResolutionResult.Decision decision = decisions.get(index + 1);
-            if (decision == null) {
-                log.info("[node-resolution] no decision for candidate: {}", candidate.value());
-                continue;
-            }
-
-            resolved.add(switch (decision.action()) {
-                case REUSE -> reuse(candidate, decision, existingSubjects);
-                case CREATE -> create(userId, candidate, decision, createdMeanwhile);
-            });
-        }
-
-        if (resolved.isEmpty()) {
-            throw new IllegalStateException("node resolution returned no usable decision");
-        }
-        return resolved;
-    }
-
-    /**
-     * 쓸 수 없는 결정이면 이유를, 쓸 수 있으면 {@code null}을 준다.
-     *
-     * <p>노드를 만들기 전에 형식을 모두 확인해 두어야 뒤 단계에서 후보를 버리지 않는다.
-     */
-    private static String rejectionOf(
-            NodeResolutionResult.Decision decision,
-            int candidateCount,
-            int existingSubjectCount
-    ) {
-        if (decision == null || decision.action() == null) {
-            return "missing action";
-        }
-        if (decision.candidateIndex() < 1 || decision.candidateIndex() > candidateCount) {
-            return "unknown candidate index " + decision.candidateIndex();
-        }
-
-        // REUSE의 value는 읽지 않는다. 재사용 대상은 reuseIndex가 정하므로, 모델이 대상 이름을
-        // 적어 보내도 버릴 이유가 없다.
-        return switch (decision.action()) {
-            case REUSE -> decision.reuseIndex() < 1
-                    || decision.reuseIndex() > existingSubjectCount
-                    ? "invalid reuse index for candidate index " + decision.candidateIndex()
-                    : null;
-            case CREATE -> decision.reuseIndex() != 0
-                    || NodeTitleNormalizer.normalize(newSubjectTitle(decision)).isEmpty()
-                    ? "invalid new subject for candidate index " + decision.candidateIndex()
-                    : null;
-        };
-    }
-
-    /** 신규 판정이 내놓은 제목. 형식이 어긋나면 {@link #rejectionOf}가 걸러낸다. */
-    private static String newSubjectTitle(NodeResolutionResult.Decision decision) {
-        return decision.value() == null ? "" : decision.value().strip();
-    }
-
-    /** LLM이 고른 Context 안의 Subject를 재사용한다. */
-    private ResolvedNode reuse(
-            Candidate candidate,
-            NodeResolutionResult.Decision decision,
-            List<KnowledgeNode> existingSubjects
-    ) {
-        KnowledgeNode existing = existingSubjects.get(decision.reuseIndex() - 1);
-        return ResolvedNode.semantic(candidate.value(), existing);
-    }
-
-    /** 신규 Subject를 만든다. 동시에 생성된 중복이 있으면 기존 노드를 재사용한다. */
-    private ResolvedNode create(
-            Long userId,
-            Candidate candidate,
-            NodeResolutionResult.Decision decision,
-            Map<String, KnowledgeNode> createdMeanwhile
-    ) {
-        String value = newSubjectTitle(decision);
-        String normalized = NodeTitleNormalizer.normalize(value);
-        KnowledgeNode existing = createdMeanwhile.get(normalized);
-        if (existing != null) {
-            return ResolvedNode.exact(candidate.value(), existing);
-        }
-        return createSubject(userId, candidate.value(), value);
-    }
-
-    /** Subject title embedding을 먼저 계산하고, 노드 생성 직후 DB에 저장한다. */
-    private ResolvedNode createSubject(Long userId, String candidate, String title) {
-        float[] titleEmbedding = embedOne(embeddingText(title), "subject title");
         KnowledgeNode created = nodeService.createSubjectWithEmbedding(
                 userId, title, null, titleEmbedding, EMBEDDING_MODEL
         );
@@ -507,10 +493,7 @@ public class NodeResolutionService {
     private record Candidate(String value, String normalized) {
     }
 
-    private record CandidateSearchResults(
-            Map<Integer, List<KnowledgeNode>> byCandidate,
-            List<KnowledgeNode> subjects
-    ) {
+    private record CandidateSearchResults(Map<Integer, List<KnowledgeNode>> byCandidate) {
     }
 
 }

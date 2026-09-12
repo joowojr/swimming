@@ -40,9 +40,10 @@ resource "aws_instance" "app" {
   monitoring                  = true
 
   metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+    # IMDSv2 응답이 Docker 네트워크의 추가 홉을 지나 backend 컨테이너까지 도달해야 한다.
+    http_put_response_hop_limit = 2
     instance_metadata_tags      = "disabled"
   }
 

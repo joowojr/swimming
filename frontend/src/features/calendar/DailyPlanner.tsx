@@ -370,7 +370,7 @@ export default function DailyPlanner() {
                                 </li>
                             ))}
                         </ol>
-                        {items.length === 0 && <p className={styles.empty}>이 날짜에는 캘린더된 할 일이 없습니다.</p>}
+                        {items.length === 0 && <p className={styles.empty}>이 날짜에는 추가된 할 일이 없습니다.</p>}
                     </>
                 )}
             </div>

@@ -72,14 +72,14 @@
   stroke: var(--color-border-subtle);
 }
 
-/* 문서가 어떤 목적에 쓰이는지는 개념을 다루는 것과 다른 관계라 선도 다르게 둔다. */
+/* 문서가 어떤 주제에 쓰이는지는 키워드를 다루는 것과 다른 관계라 선도 다르게 둔다. */
 .edge-used-for :global(.react-flow__edge-path) {
   stroke: var(--color-tone-indigo);
   stroke-dasharray: 4 4;
   opacity: .55;
 }
 
-/* 축소 시 Topic과 그 태그 묶음의 관계만 가볍게 남긴다. */
+/* 축소 시 Topic과 그 키워드 묶음의 관계만 가볍게 남긴다. */
 .edge-summary :global(.react-flow__edge-path) {
   stroke: var(--color-tone-fountain);
   stroke-dasharray: 2 4;

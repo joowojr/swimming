@@ -29,6 +29,22 @@
   -webkit-line-clamp: 2;
 }
 
+/* 링크를 저장한 순서. 제목과 같은 줄에 두어 카드 높이를 늘리지 않는다. */
+.order {
+  display: inline-flex;
+  min-width: 1.125rem;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  line-height: 1.125rem;
+  background: var(--color-surface-container-lowest);
+}
+
 .node[data-type='SOURCE'] .title {
   -webkit-line-clamp: 1;
 }
@@ -63,7 +79,7 @@
   background: var(--color-primary);
 }
 
-/* Subject: 여러 문서가 함께 가리키는 개념. 이름만 있으면 되므로 칩이다. */
+/* Subject: 여러 문서가 함께 가리키는 키워드. 이름만 있으면 되므로 칩이다. */
 .node[data-type='SUBJECT'] {
   width: auto;
   max-width: 11rem;
@@ -72,13 +88,13 @@
   background: var(--color-tone-fountain-tint);
 }
 
-/* 축소 상태에서는 태그 열의 자리를 지키면서 숨긴 개수만 한 칩으로 알린다. */
+/* 축소 상태에서는 키워드 열의 자리를 지키면서 숨긴 개수만 한 칩으로 알린다. */
 .node[data-subject-summary] {
   border-style: dashed;
   color: var(--color-mute);
 }
 
-/* Topic: 문서 하나가 만든 적용 목적. Subject와 성격이 달라 톤으로 가른다. */
+/* Topic: 문서 하나가 만든 적용 주제. Subject와 성격이 달라 톤으로 가른다. */
 .node[data-type='TOPIC'] {
   border-color: var(--color-tone-indigo-tint);
   background: var(--color-tone-indigo-tint);

@@ -13,6 +13,11 @@ export interface GraphNode {
   nodeId: string
   type: GraphNodeType
   title: string
+  /**
+   * 이 노드가 그래프에 처음 생긴 시각. SOURCE는 링크를 저장할 때 함께 생기므로 이 값이 곧
+   * 링크 생성 시각이다. Folder 자리표처럼 화면 안에서만 만든 노드는 null이다.
+   */
+  createdAt: string | null
 }
 
 /** 진입점. Folder면 nodeId가 null이고 Folder의 id가 따로 온다. */

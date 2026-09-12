@@ -75,6 +75,60 @@
   content: '';
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+}
+
+/*
+ * 옆의 폴더 삭제 버튼(DeleteIconButton)과 같은 모양이어야 해서 규칙과 토큰을 맞춘다.
+ * 이런 버튼이 한 번 더 생기면 그때 공통 아이콘 버튼으로 추출한다.
+ */
+.pin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.875rem;
+  min-height: 1.875rem;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-short),
+    color var(--transition-short),
+    background-color var(--transition-short),
+    opacity var(--transition-short),
+    transform var(--transition-short);
+}
+
+.pin-button:hover:not(:disabled),
+.pin-button[data-pinned] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+}
+
+.pin-button:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+.pin-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+.pin-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .compact-delete-button {
   min-width: 1.875rem;
   min-height: 1.875rem;

@@ -22,8 +22,8 @@ const AXES: Choice<LayoutAxis>[] = [
 ]
 
 const ORDERS: Choice<ColumnOrder>[] = [
-  { value: 'source-first', label: <>문서 {arrow} 개념</> },
-  { value: 'subject-first', label: <>개념 {arrow} 문서</> },
+  { value: 'source-first', label: <>문서 {arrow} 키워드</> },
+  { value: 'subject-first', label: <>키워드 {arrow} 문서</> },
 ]
 
 const SORTS: Choice<NodeSort>[] = [

@@ -344,7 +344,7 @@ export default function DailyPlanBoard() {
                                                 </li>
                                             ))}
                                         </ol>
-                                        {items.length === 0 && <p className={styles.empty}>아직 캘린더된 할 일이 없습니다.</p>}
+                                        {items.length === 0 && <p className={styles.empty}>아직 추가된 할 일이 없습니다.</p>}
                                         <ModalTriggerButton
                                             className={styles['column-add']}
                                             dialogId="task-picker-dialog"

@@ -55,6 +55,7 @@ app:
   knowledge:
     resolution:
       similar-source-limit: 5
+      similar-source-distance-threshold: 0.5
       subject-top-k: 3
     digest:
       # LLM 입력 상한. 이보다 짧은 문서는 손대지 않고 통째로 넣는다.

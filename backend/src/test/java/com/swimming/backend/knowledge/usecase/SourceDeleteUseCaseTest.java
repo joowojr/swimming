@@ -163,6 +163,21 @@ class SourceDeleteUseCaseTest {
     }
 
     @Test
+    @DisplayName("마지막으로 참조하던 Source를 지우면 Subject도 함께 사라진다")
+    void deletesOrphanSubject() {
+        KnowledgeNode mcp = givenNode(NodeType.SUBJECT, "MCP");
+        KnowledgeSource source = givenSource("문서");
+        digest(source, givenNode(NodeType.TOPIC, "목적"), mcp);
+
+        useCase.delete(USER_ID, source.getId());
+
+        assertThatThrownBy(() -> nodeDetailUseCase.get(USER_ID, mcp.getId()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND);
+    }
+
+    @Test
     @DisplayName("관계 행은 지우지 않는다. 조회가 지운 노드를 거를 뿐이다")
     void keepsRelationRows() {
         KnowledgeSource source = givenSource("문서");

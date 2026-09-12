@@ -3,7 +3,6 @@ package com.swimming.backend.knowledge.service.data;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
-import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
 import com.swimming.backend.knowledge.repository.SourceSearchPageQuery;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -86,22 +84,6 @@ public class KnowledgeSourceService {
     )
     public List<KnowledgeSource> findAllByIds(Collection<UUID> sourceIds) {
         return sourceRepository.findAllByIds(sourceIds);
-    }
-
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
-    public List<UUID> findSimilarSourceIds(
-            Long userId,
-            UUID excludedSourceId,
-            float[] summaryEmbedding,
-            String embeddingModel,
-            int limit
-    ) {
-        return sourceRepository.findSimilarSourceIds(
-                userId, excludedSourceId, summaryEmbedding, embeddingModel, limit
-        );
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

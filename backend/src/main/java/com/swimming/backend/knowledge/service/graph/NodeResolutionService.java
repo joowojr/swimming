@@ -10,9 +10,11 @@ import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.out.NodeResolutionInput;
 import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
 import com.swimming.backend.knowledge.dto.out.ResolvedNode;
+import com.swimming.backend.knowledge.repository.SimilarSource;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.data.KnowledgeVectorSearchService;
 import com.swimming.backend.common.client.EmbeddingClient;
 import com.swimming.backend.knowledge.service.llm.NodeResolutionLlmService;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,7 @@ public class NodeResolutionService {
     private final ResolutionProperties properties;
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
+    private final KnowledgeVectorSearchService vectorSearchService;
     private final KnowledgeRelationService relationService;
     private final NodeResolutionLlmService resolutionLlmService;
 
@@ -68,14 +71,16 @@ public class NodeResolutionService {
 
         List<Candidate> candidates = normalizeCandidates(rawCandidates);
         if (candidates.isEmpty()) {
+            log.info("[node-resolution] sourceId={} has no candidate to resolve", source.getId());
             return List.of();
         }
 
         Map<String, ResolvedNode> resolved = new LinkedHashMap<>();
         List<Candidate> unresolved = new ArrayList<>();
 
-        Map<String, KnowledgeNode> exactMatches = nodeService.findSubjectsByNormalizedTitles(
+        Map<String, KnowledgeNode> exactMatches = exactMatchesInFolder(
                 source.getUserId(),
+                source.getFolderId(),
                 candidates.stream().map(Candidate::normalized).toList()
         );
         for (Candidate candidate : candidates) {
@@ -86,6 +91,14 @@ public class NodeResolutionService {
             }
             resolved.put(candidate.normalized(), ResolvedNode.exact(candidate.value(), node));
         }
+
+        log.info(
+                "[node-resolution] sourceId={} candidates={} matchedByTitle={} unresolved={}",
+                source.getId(),
+                candidates.stream().map(Candidate::value).toList(),
+                resolved.values().stream().map(item -> item.node().getTitle()).toList(),
+                unresolved.stream().map(Candidate::value).toList()
+        );
 
         if (!unresolved.isEmpty()) {
             for (ResolvedNode item : resolveSemantically(
@@ -100,6 +113,43 @@ public class NodeResolutionService {
                 .map(candidate -> resolved.get(candidate.normalized()))
                 .filter(Objects::nonNull)
                 .toList());
+    }
+
+    /** 현재 폴더의 활성 Source가 ABOUT 관계로 사용 중인 Subject만 정확 일치로 인정한다. */
+    private Map<String, KnowledgeNode> exactMatchesInFolder(
+            Long userId,
+            Long folderId,
+            List<String> normalizedTitles
+    ) {
+        Map<String, KnowledgeNode> matches = nodeService.findSubjectsByNormalizedTitles(
+                userId, normalizedTitles);
+        if (matches.isEmpty()) {
+            return Map.of();
+        }
+
+        List<KnowledgeRelation> relations = relationService.findIncoming(
+                matches.values().stream().map(KnowledgeNode::getId).toList(),
+                List.of(RelationType.ABOUT)
+        );
+        Set<UUID> sourceIdsInFolder = sourceService.findAllByIds(
+                        relations.stream().map(KnowledgeRelation::getFromNodeId).distinct().toList()
+                ).stream()
+                .filter(item -> item.getFolderId().equals(folderId))
+                .map(KnowledgeSource::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        Set<UUID> subjectIdsInFolder = relations.stream()
+                .filter(relation -> sourceIdsInFolder.contains(relation.getFromNodeId()))
+                .map(KnowledgeRelation::getToNodeId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        return matches.entrySet().stream()
+                .filter(entry -> subjectIdsInFolder.contains(entry.getValue().getId()))
+                .collect(java.util.stream.Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
     }
 
     /** 텍스트를 임베딩하고 저장 규격인 768차원인지 검증한다. */
@@ -147,12 +197,23 @@ public class NodeResolutionService {
     ) {
         CompletableFuture<List<KnowledgeNode>> sourceSearchFuture = CompletableFuture.supplyAsync(
                 () -> subjectsFromSimilarSources(source, summaryEmbedding));
-        CompletableFuture<List<KnowledgeNode>> subjectSearchFuture = CompletableFuture.supplyAsync(
+        CompletableFuture<CandidateSearchResults> subjectSearchFuture = CompletableFuture.supplyAsync(
                 () -> subjectsFromEmbedding(source.getUserId(), unresolved));
         CompletableFuture.allOf(sourceSearchFuture, subjectSearchFuture).join();
 
-        List<KnowledgeNode> existingSubjects = unionSubjects(
-                subjectSearchFuture.join(), sourceSearchFuture.join());
+        CandidateSearchResults candidateSearchResults = subjectSearchFuture.join();
+        List<KnowledgeNode> reusableSubjects = unionSubjects(
+                candidateSearchResults.subjects(), sourceSearchFuture.join());
+
+        // 프롬프트의 reusable-subjects가 R1부터 이 순서로 나간다.
+        if (reusableSubjects.isEmpty()) {
+            log.info("[node-resolution] sourceId={} has no reusable subject", source.getId());
+        } else {
+            log.info(
+                    "[node-resolution] sourceId={} reusableSubjects(R1..R{})={}",
+                    source.getId(), reusableSubjects.size(), titlesOf(reusableSubjects)
+            );
+        }
 
         NodeResolutionInput input = new NodeResolutionInput(
                 summary,
@@ -161,33 +222,61 @@ public class NodeResolutionService {
                                 index + 1, unresolved.get(index).value()
                         ))
                         .toList(),
-                IntStream.range(0, existingSubjects.size())
+                IntStream.range(0, reusableSubjects.size())
                         .mapToObj(index -> new NodeResolutionInput.ExistingSubject(
-                                index + 1, existingSubjects.get(index).getTitle()
+                                index + 1, reusableSubjects.get(index).getTitle()
                         ))
-                        .toList()
+                .toList()
         );
 
         NodeResolutionResult result = resolutionLlmService.resolve(input);
-        return materialize(source.getUserId(), unresolved, existingSubjects, result);
+        List<ResolvedNode> resolved = materialize(
+                source.getUserId(), unresolved, reusableSubjects, result);
+        log.info(
+                "[node-resolution] sourceId={} finished resolvedSubjects={}",
+                source.getId(), resolved.stream().map(item -> item.node().getTitle()).toList()
+        );
+        return resolved;
     }
 
     private List<KnowledgeNode> subjectsFromSimilarSources(
             KnowledgeSource source,
             float[] summaryEmbedding
     ) {
-        List<UUID> similarSourceIds = sourceService.findSimilarSourceIds(
+        List<SimilarSource> similarSources = vectorSearchService.findSimilarSources(
                 source.getUserId(),
                 source.getId(),
                 summaryEmbedding,
                 EMBEDDING_MODEL,
                 properties.similarSourceLimit()
         );
-        return List.copyOf(subjectsOf(source.getUserId(), similarSourceIds).values());
+        List<SimilarSource> selectedSources = similarSources.stream()
+                .filter(item -> item.distance() <= properties.similarSourceDistanceThreshold())
+                .toList();
+        List<UUID> similarSourceIds = selectedSources.stream()
+                .map(SimilarSource::sourceId)
+                .toList();
+        List<KnowledgeNode> subjects = List.copyOf(
+                subjectsOf(source.getUserId(), similarSourceIds).values());
+        log.info(
+                "[node-resolution] sourceId={} similarSources={} distanceThreshold={} selectedSources={} subjectsFromSources={}",
+                source.getId(),
+                similarSources.stream()
+                        .map(item -> "'%s'(%s, distance=%f)"
+                                .formatted(item.title(), item.sourceId(), item.distance()))
+                        .toList(),
+                properties.similarSourceDistanceThreshold(),
+                selectedSources.stream()
+                        .map(item -> "'%s'(%s, distance=%f)"
+                                .formatted(item.title(), item.sourceId(), item.distance()))
+                        .toList(),
+                titlesOf(subjects)
+        );
+        return subjects;
     }
 
     /** 미해결 후보만 임베딩하고 DB에 저장된 Subject embedding 상위 K개를 수집한다. */
-    private List<KnowledgeNode> subjectsFromEmbedding(
+    private CandidateSearchResults subjectsFromEmbedding(
             Long userId,
             List<Candidate> unresolved
     ) {
@@ -198,18 +287,25 @@ public class NodeResolutionService {
         List<float[]> embeddings = embeddingClient.embed(inputs);
         validateEmbeddings(embeddings, inputs.size());
 
+        Map<Integer, List<KnowledgeNode>> byCandidate = new LinkedHashMap<>();
         Map<String, KnowledgeNode> selected = new LinkedHashMap<>();
         for (int candidateIndex = 0; candidateIndex < unresolved.size(); candidateIndex++) {
-            nodeService.findSimilarSubjects(
-                            userId,
-                            embeddings.get(candidateIndex),
-                            EMBEDDING_MODEL,
-                            properties.subjectTopK()
-                    )
-                    .forEach(subject -> selected.putIfAbsent(
-                            NodeTitleNormalizer.normalize(subject.getTitle()), subject));
+            List<KnowledgeNode> similar = vectorSearchService.findSimilarSubjects(
+                    userId,
+                    embeddings.get(candidateIndex),
+                    EMBEDDING_MODEL,
+                    properties.subjectTopK()
+            );
+            log.info(
+                    "[node-resolution] candidate='{}' subjectsByTitleEmbedding(top{})={}",
+                    unresolved.get(candidateIndex).value(), properties.subjectTopK(),
+                    titlesOf(similar)
+            );
+            byCandidate.put(candidateIndex, List.copyOf(similar));
+            similar.forEach(subject -> selected.putIfAbsent(
+                    NodeTitleNormalizer.normalize(subject.getTitle()), subject));
         }
-        return List.copyOf(selected.values());
+        return new CandidateSearchResults(byCandidate, List.copyOf(selected.values()));
     }
 
     /** 직접 Subject 검색 순서를 우선하고 Source 검색 결과를 뒤에 더한다. */
@@ -223,6 +319,10 @@ public class NodeResolutionService {
         sourceSubjects.forEach(subject -> union.putIfAbsent(
                 NodeTitleNormalizer.normalize(subject.getTitle()), subject));
         return List.copyOf(union.values());
+    }
+
+    private static List<String> titlesOf(List<KnowledgeNode> nodes) {
+        return nodes.stream().map(KnowledgeNode::getTitle).toList();
     }
 
     private String embeddingText(String value) {
@@ -405,6 +505,12 @@ public class NodeResolutionService {
     }
 
     private record Candidate(String value, String normalized) {
+    }
+
+    private record CandidateSearchResults(
+            Map<Integer, List<KnowledgeNode>> byCandidate,
+            List<KnowledgeNode> subjects
+    ) {
     }
 
 }

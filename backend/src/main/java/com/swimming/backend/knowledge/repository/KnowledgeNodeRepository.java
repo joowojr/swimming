@@ -45,13 +45,6 @@ public interface KnowledgeNodeRepository {
             String embeddingModel
     );
 
-    List<KnowledgeNode> findSimilarSubjects(
-            Long userId,
-            float[] titleEmbedding,
-            String embeddingModel,
-            int limit
-    );
-
     int softDeleteAllOwnedByIds(Long userId, Collection<UUID> ids);
 
     void deleteById(UUID id);

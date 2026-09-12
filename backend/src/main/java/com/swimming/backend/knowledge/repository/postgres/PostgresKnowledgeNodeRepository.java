@@ -5,7 +5,6 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.repository.KnowledgeNodeRepository;
 import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeNodeEntity;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -117,20 +116,11 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
     }
 
     @Override
-    public List<KnowledgeNode> findSimilarSubjects(
-            Long userId,
-            float[] titleEmbedding,
-            String embeddingModel,
-            int limit
-    ) {
-        return jpaRepository.findSimilarSubjects(
-                        userId,
-                        vectorLiteral(titleEmbedding),
-                        embeddingModel,
-                        PageRequest.of(0, limit)
-                ).stream()
-                .map(PostgresKnowledgeNodeRepository::toDomain)
-                .toList();
+    public int softDeleteAllOwnedByIds(Long userId, Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return 0;
+        }
+        return jpaRepository.softDeleteAllOwnedByIds(userId, ids);
     }
 
     @Override

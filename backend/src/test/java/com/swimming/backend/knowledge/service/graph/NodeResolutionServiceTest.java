@@ -12,6 +12,7 @@ import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.data.KnowledgeVectorSearchService;
 import com.swimming.backend.common.client.EmbeddingClient;
 import com.swimming.backend.knowledge.service.llm.NodeResolutionLlmService;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,9 +65,11 @@ class NodeResolutionServiceTest {
 
         service = new NodeResolutionService(
                 embeddingClient,
-                new ResolutionProperties(5, 3),
+                new ResolutionProperties(5, 0.5, 3),
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),
+                new KnowledgeVectorSearchService(
+                        new InMemoryKnowledgeRepositories.VectorSearch(nodes, sources)),
                 relationService,
                 llmService
         );
@@ -97,12 +100,18 @@ class NodeResolutionServiceTest {
         return saved;
     }
 
+    private KnowledgeNode subjectInFolder(String title) {
+        KnowledgeNode subject = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, title, null));
+        KnowledgeSource linkedSource = source(USER_ID, "https://a.com/subject/" + title);
+        relationService.connect(linkedSource.getNode(), subject, RelationOrigin.AI);
+        return subject;
+    }
+
     @Test
     @DisplayName("정규화한 이름이 같으면 기존 Subject를 재사용하고 Resolution LLM을 부르지 않는다")
     void reusesExactSubjectBeforeLlm() {
-        KnowledgeNode existing = nodes.save(KnowledgeNode.create(
-                USER_ID, NodeType.SUBJECT, "AWS OIDC", null
-        ));
+        KnowledgeNode existing = subjectInFolder("AWS OIDC");
         KnowledgeSource current = source(USER_ID, "https://a.com/current");
 
         List<ResolvedNode> result = service.resolveSubjects(
@@ -261,7 +270,7 @@ class NodeResolutionServiceTest {
     @Test
     @DisplayName("후보가 여러 개여도 정규화 제목 조회는 단계마다 한 번씩만 한다")
     void 정규화_조회를_묶어서_한다() {
-        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
+        subjectInFolder("AWS OIDC");
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
                         1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
@@ -410,7 +419,7 @@ class NodeResolutionServiceTest {
     @Test
     @DisplayName("미해결 후보는 1부터 순서대로 index를 붙여 LLM에 넘긴다")
     void 후보에_index를_붙여_넘긴다() {
-        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
+        subjectInFolder("AWS OIDC");
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
                         1, NodeResolutionResult.Action.CREATE, 0, "SAML"

@@ -111,23 +111,17 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
-        public List<KnowledgeNode> findSimilarSubjects(
-                Long userId,
-                float[] titleEmbedding,
-                String embeddingModel,
-                int limit
-        ) {
-            return stored.values().stream()
-                    .filter(node -> node.getUserId().equals(userId)
-                            && node.getNodeType() == NodeType.SUBJECT
-                            && !node.isDeleted()
-                            && Objects.equals(titleEmbeddingModels.get(node.getId()), embeddingModel)
-                            && titleEmbeddings.containsKey(node.getId()))
-                    .sorted(Comparator.comparingDouble(node ->
-                            -cosine(titleEmbedding, titleEmbeddings.get(node.getId()))))
-                    .limit(limit)
-                    .map(Nodes::copy)
-                    .toList();
+        public int softDeleteAllOwnedByIds(Long userId, Collection<UUID> ids) {
+            int updated = 0;
+            for (UUID id : ids) {
+                KnowledgeNode node = stored.get(id);
+                if (node != null && node.getUserId().equals(userId) && !node.isDeleted()) {
+                    node.delete();
+                    stored.put(id, copy(node));
+                    updated++;
+                }
+            }
+            return updated;
         }
 
         public float[] titleEmbeddingOf(UUID subjectId) {
@@ -144,21 +138,6 @@ public final class InMemoryKnowledgeRepositories {
             stored.remove(id);
             titleEmbeddings.remove(id);
             titleEmbeddingModels.remove(id);
-        }
-
-        private static double cosine(float[] left, float[] right) {
-            double dot = 0;
-            double leftNorm = 0;
-            double rightNorm = 0;
-            for (int index = 0; index < left.length; index++) {
-                dot += left[index] * right[index];
-                leftNorm += left[index] * left[index];
-                rightNorm += right[index] * right[index];
-            }
-            if (leftNorm == 0 || rightNorm == 0) {
-                return 0;
-            }
-            return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
         }
 
         /**
@@ -242,31 +221,6 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
-        public List<UUID> findSimilarSourceIds(
-                Long userId,
-                UUID excludedSourceId,
-                float[] summaryEmbedding,
-                String embeddingModel,
-                int limit
-        ) {
-            return stored.values().stream()
-                    .filter(source -> source.getUserId().equals(userId))
-                    .filter(source -> !source.getId().equals(excludedSourceId))
-                    .filter(source -> !source.isDeleted())
-                    .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
-                    .filter(source -> summaryEmbeddings.containsKey(source.getId()))
-                    .filter(source -> Objects.equals(
-                            summaryEmbeddingModels.get(source.getId()), embeddingModel
-                    ))
-                    .sorted(Comparator.comparingDouble(source -> cosineDistance(
-                            summaryEmbeddings.get(source.getId()), summaryEmbedding
-                    )))
-                    .limit(limit)
-                    .map(KnowledgeSource::getId)
-                    .toList();
-        }
-
-        @Override
         public void saveSummaryEmbedding(
                 Long userId,
                 UUID sourceId,
@@ -288,20 +242,6 @@ public final class InMemoryKnowledgeRepositories {
 
         public String summaryEmbeddingModelOf(UUID sourceId) {
             return summaryEmbeddingModels.get(sourceId);
-        }
-
-        private double cosineDistance(float[] left, float[] right) {
-            double dot = 0;
-            double leftNorm = 0;
-            double rightNorm = 0;
-
-            for (int index = 0; index < left.length; index++) {
-                dot += left[index] * right[index];
-                leftNorm += left[index] * left[index];
-                rightNorm += right[index] * right[index];
-            }
-
-            return 1 - dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
         }
 
         @Override
@@ -397,6 +337,77 @@ public final class InMemoryKnowledgeRepositories {
                     source.getFailureMessage(), source.isRetryable(),
                     source.getReadAt()
             );
+        }
+    }
+
+    public static class VectorSearch implements KnowledgeVectorSearchRepository {
+
+        private final Nodes nodes;
+        private final Sources sources;
+
+        public VectorSearch(Nodes nodes, Sources sources) {
+            this.nodes = nodes;
+            this.sources = sources;
+        }
+
+        @Override
+        public List<KnowledgeNode> findSimilarSubjects(
+                Long userId,
+                float[] titleEmbedding,
+                String embeddingModel,
+                int limit
+        ) {
+            return nodes.stored.values().stream()
+                    .filter(node -> node.getUserId().equals(userId)
+                            && node.getNodeType() == NodeType.SUBJECT
+                            && !node.isDeleted()
+                            && Objects.equals(nodes.titleEmbeddingModels.get(node.getId()), embeddingModel)
+                            && nodes.titleEmbeddings.containsKey(node.getId()))
+                    .sorted(Comparator.comparingDouble(node -> cosineDistance(
+                            titleEmbedding, nodes.titleEmbeddings.get(node.getId()))))
+                    .limit(limit)
+                    .map(Nodes::copy)
+                    .toList();
+        }
+
+        @Override
+        public List<SimilarSource> findSimilarSources(
+                Long userId,
+                UUID excludedSourceId,
+                float[] summaryEmbedding,
+                String embeddingModel,
+                int limit
+        ) {
+            return sources.stored.values().stream()
+                    .filter(source -> source.getUserId().equals(userId))
+                    .filter(source -> !source.getId().equals(excludedSourceId))
+                    .filter(source -> !source.isDeleted())
+                    .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
+                    .filter(source -> sources.summaryEmbeddings.containsKey(source.getId()))
+                    .filter(source -> Objects.equals(
+                            sources.summaryEmbeddingModels.get(source.getId()), embeddingModel))
+                    .sorted(Comparator.comparingDouble(source -> cosineDistance(
+                            sources.summaryEmbeddings.get(source.getId()), summaryEmbedding)))
+                    .limit(limit)
+                    .map(source -> new SimilarSource(
+                            source.getId(), source.getNode().getTitle(),
+                            cosineDistance(sources.summaryEmbeddings.get(source.getId()), summaryEmbedding)))
+                    .toList();
+        }
+
+        private static double cosineDistance(float[] left, float[] right) {
+            double dot = 0;
+            double leftNorm = 0;
+            double rightNorm = 0;
+            for (int index = 0; index < left.length; index++) {
+                dot += left[index] * right[index];
+                leftNorm += left[index] * left[index];
+                rightNorm += right[index] * right[index];
+            }
+            if (leftNorm == 0 || rightNorm == 0) {
+                return 1;
+            }
+            return 1 - dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
         }
     }
 

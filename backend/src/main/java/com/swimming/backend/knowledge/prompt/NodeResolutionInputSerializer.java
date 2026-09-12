@@ -26,7 +26,6 @@ public final class NodeResolutionInputSerializer {
                 .map(NodeResolutionInput.Candidate::value)
                 .toList());
 
-        // 재사용할 것이 없으면 섹션째 넣지 않는다. 빈 목록은 모델에게 읽을 거리만 늘린다.
         if (!input.existingSubjects().isEmpty()) {
             appendSection(text, "reusable-subjects", "R", input.existingSubjects().stream()
                     .map(NodeResolutionInput.ExistingSubject::value)

@@ -41,26 +41,6 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
             @Param("embeddingModel") String embeddingModel
     );
 
-    @Query(value = """
-            select s.node_id
-              from knowledge_source s
-              join knowledge_node n on n.id = s.node_id
-             where n.user_id = :userId
-               and n.is_deleted = false
-               and s.node_id <> :excludedSourceId
-               and s.processing_status = 'COMPLETED'
-               and s.summary_embedding is not null
-               and s.summary_embedding_model = :embeddingModel
-             order by s.summary_embedding <=> cast(:summaryEmbedding as vector)
-            """, nativeQuery = true)
-    List<UUID> findSimilarSourceIds(
-            @Param("userId") Long userId,
-            @Param("excludedSourceId") UUID excludedSourceId,
-            @Param("summaryEmbedding") String summaryEmbedding,
-            @Param("embeddingModel") String embeddingModel,
-            Pageable pageable
-    );
-
     @Query("""
             select s
             from KnowledgeSourceEntity s, KnowledgeNodeEntity n

@@ -38,7 +38,7 @@ class NodeResolutionInputSerializerTest {
     }
 
     @Test
-    @DisplayName("재사용할 Subject를 찾지 못하면 섹션째 생략한다")
+    @DisplayName("재사용할 Subject를 찾지 못하면 재사용 섹션을 생략한다")
     void omitsEmptyReusableSubjects() {
         String text = NodeResolutionInputSerializer.serialize(new NodeResolutionInput(
                 "요약", List.of(new NodeResolutionInput.Candidate(1, "MCP")), List.of()

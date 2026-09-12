@@ -96,23 +96,6 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
-    public List<UUID> findSimilarSourceIds(
-            Long userId,
-            UUID excludedSourceId,
-            float[] summaryEmbedding,
-            String embeddingModel,
-            int limit
-    ) {
-        return sourceJpaRepository.findSimilarSourceIds(
-                userId,
-                excludedSourceId,
-                vectorLiteral(summaryEmbedding),
-                embeddingModel,
-                PageRequest.of(0, limit)
-        );
-    }
-
-    @Override
     public void saveSummaryEmbedding(
             Long userId,
             UUID sourceId,
@@ -240,6 +223,7 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
         return KnowledgeSourceEntity.builder()
                 .nodeId(source.getId())
                 .folderId(source.getFolderId())
+                .title(source.getNode().getTitle())
                 .url(source.getUrl())
                 .canonicalUrl(source.getCanonicalUrl())
                 .content(source.getContent())

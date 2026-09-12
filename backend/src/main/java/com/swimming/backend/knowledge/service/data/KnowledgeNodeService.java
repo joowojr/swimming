@@ -99,21 +99,6 @@ public class KnowledgeNodeService {
                 ));
     }
 
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
-    public List<KnowledgeNode> findSimilarSubjects(
-            Long userId,
-            float[] titleEmbedding,
-            String embeddingModel,
-            int limit
-    ) {
-        return nodeRepository.findSimilarSubjects(
-                userId, titleEmbedding, embeddingModel, limit
-        );
-    }
-
     /** 행은 남기고 조회에서만 뺀다. 관계는 지우지 않는다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(KnowledgeNode node) {

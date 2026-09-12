@@ -27,6 +27,7 @@ public class ApiRequestLoggingAspect {
 
     private static final int MAX_QUERY_LENGTH = 1000;
     private static final String ANONYMOUS_USER = "anonymous";
+    private static final int MAX_CAUSE_DEPTH = 5;
 
     @Around("@within(org.springframework.web.bind.annotation.RestController)")
     public Object logApiRequest(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -47,14 +48,16 @@ public class ApiRequestLoggingAspect {
             writeLog(
                     request,
                     resolveSuccessStatus(result, response),
-                    startedAt
+                    startedAt,
+                    null
             );
             return result;
         } catch (Throwable throwable) {
             writeLog(
                     request,
                     resolveFailureStatus(throwable, response),
-                    startedAt
+                    startedAt,
+                    throwable
             );
             throw throwable;
         }
@@ -96,20 +99,61 @@ public class ApiRequestLoggingAspect {
     private void writeLog(
             HttpServletRequest request,
             int status,
-            long startedAt
+            long startedAt,
+            Throwable throwable
     ) {
         long durationMs = TimeUnit.NANOSECONDS.toMillis(
                 System.nanoTime() - startedAt
         );
         log.info(
-                "[SWIMMING_API] method={} path={} query=\"{}\" status={} duration_ms={} user_id={}",
+                "[SWIMMING_API] method={} path={} query=\"{}\" status={} duration_ms={} user_id={}{}",
                 sanitizeLogValue(request.getMethod()),
                 sanitizeLogValue(request.getRequestURI()),
                 sanitizeQuery(request.getQueryString()),
                 status,
                 durationMs,
-                currentUserId()
+                currentUserId(),
+                failureSuffix(throwable)
         );
+    }
+
+    /**
+     * 실패한 요청에만 원인을 덧붙인다.
+     *
+     * <p>status만으로는 같은 503이 키 누락인지 timeout인지 구분되지 않는다. ErrorCode 이름과
+     * 예외 타입 사슬을 남겨 그 구분을 만든다.
+     *
+     * <p>예외 <b>메시지</b>는 남기지 않는다. 외부 호출이 던진 예외의 메시지에는 요청 URI가
+     * 통째로 들어 있을 수 있고, 그 URI에 공급자 인증키가 붙어 있다. 타입 이름만으로도
+     * timeout·인증 실패·JSON 오류는 갈린다.
+     */
+    static String failureSuffix(Throwable throwable) {
+        if (throwable == null) {
+            return "";
+        }
+
+        StringBuilder suffix = new StringBuilder();
+        if (throwable instanceof BusinessException businessException) {
+            suffix.append(" error_code=")
+                    .append(businessException.getErrorCode().name());
+        }
+        return suffix.append(" cause=").append(causeChain(throwable)).toString();
+    }
+
+    private static String causeChain(Throwable throwable) {
+        StringBuilder chain = new StringBuilder();
+        Throwable current = throwable;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (!chain.isEmpty()) {
+                chain.append(" <- ");
+            }
+            chain.append(current.getClass().getName());
+            if (current.getCause() == current) {
+                break;
+            }
+            current = current.getCause();
+        }
+        return chain.toString();
     }
 
     private String currentUserId() {

@@ -1,6 +1,6 @@
 package com.swimming.backend.auth.service;
 
-import com.swimming.backend.auth.config.GoogleAuthProperties;
+import com.swimming.backend.common.config.google.GoogleProperties;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -21,13 +21,13 @@ public class GoogleIdTokenService {
 
     private final NimbusJwtDecoder jwtDecoder;
 
-    public GoogleIdTokenService(GoogleAuthProperties properties) {
+    public GoogleIdTokenService(GoogleProperties properties) {
         this.jwtDecoder = NimbusJwtDecoder
                 .withJwkSetUri("https://www.googleapis.com/oauth2/v3/certs")
                 .build();
         OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<List<String>>(
                 "aud",
-                audience -> audience != null && audience.contains(properties.clientId())
+                audience -> audience != null && audience.contains(properties.auth().clientId())
         );
         jwtDecoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 JwtValidators.createDefaultWithIssuer(GOOGLE_ISSUER),

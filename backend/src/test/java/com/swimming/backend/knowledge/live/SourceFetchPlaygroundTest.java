@@ -3,11 +3,12 @@ package com.swimming.backend.knowledge.live;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.services.lambda.LambdaClient;
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
 import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
+import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -41,7 +42,7 @@ class SourceFetchPlaygroundTest {
     private static final String RENDER_FUNCTION_NAME = System.getenv()
             .getOrDefault("KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME", "swimming-prod-page-renderer");
 
-    private static LambdaClient lambdaClient(KnowledgeFetchProperties properties) {
+    private static LambdaClient lambdaClient(WebFetchProperties properties) {
         return LambdaClient.builder()
                 .httpClient(UrlConnectionHttpClient.create())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
@@ -65,7 +66,7 @@ class SourceFetchPlaygroundTest {
         // 0이면 자르지 않고 전체를 출력한다.
         int lines = Integer.parseInt(System.getProperty("lines", "0"));
 
-        WebFetchService service = service(render);
+        SourceFetchDispatcher service = service(render);
         Path outDir = Path.of("build", "fetch-live");
         Files.createDirectories(outDir);
 
@@ -118,18 +119,18 @@ class SourceFetchPlaygroundTest {
         assertThat(results).hasSize(urls.size());
     }
 
-    private WebFetchService service(boolean render) {
-        KnowledgeFetchProperties properties = new KnowledgeFetchProperties(
+    private SourceFetchDispatcher service(boolean render) {
+        WebFetchProperties properties = new WebFetchProperties(
                 4,
                 Duration.ofSeconds(15),
                 4 * 1024 * 1024,
                 80_000,
                 300,
                 "SwimmingBot/0.1 (+https://swimming.app)",
-                new KnowledgeFetchProperties.Render(render, RENDER_FUNCTION_NAME, Duration.ofSeconds(20), 1000)
+                new WebFetchProperties.Render(render, RENDER_FUNCTION_NAME, Duration.ofSeconds(20), 1000)
         );
 
-        return new WebFetchService(
+        WebFetchService webFetchService = new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
                 render
@@ -140,6 +141,8 @@ class SourceFetchPlaygroundTest {
                         ))
                         : Optional.empty()
         );
+
+        return new SourceFetchDispatcher(webFetchService, List.of(), properties);
     }
 
     private String fileName(String url) {

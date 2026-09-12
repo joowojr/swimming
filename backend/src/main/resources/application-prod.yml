@@ -3,6 +3,7 @@ spring:
     import:
       - classpath:llm/openai.yml
       - classpath:llm/openai-embedding.yml
+      - classpath:google.yml
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -25,8 +26,6 @@ app:
     allowed-origins: ${ALLOWED_ORIGINS}
   auth:
     secure-cookie: true
-    google:
-      client-id: ${GOOGLE_CLIENT_ID}
 
 logging:
   level:

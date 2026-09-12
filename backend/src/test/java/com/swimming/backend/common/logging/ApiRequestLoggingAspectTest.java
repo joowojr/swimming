@@ -103,6 +103,43 @@ class ApiRequestLoggingAspectTest {
     }
 
     @Test
+    @DisplayName("실패한 요청은 ErrorCode 이름과 예외 타입 사슬을 함께 기록한다")
+    void 실패는_원인을_함께_남긴다() throws Throwable {
+        bindRequest(request("GET", "/api/calendar/holiday", "year=2026&month=9"));
+        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+        BusinessException exception = new BusinessException(
+                ErrorCode.HOLIDAY_PROVIDER_UNAVAILABLE,
+                new java.net.SocketTimeoutException("보이면 안 되는 메시지")
+        );
+        when(joinPoint.proceed()).thenThrow(exception);
+
+        assertThatThrownBy(() -> aspect.logApiRequest(joinPoint))
+                .isSameAs(exception);
+        assertThat(lastLog())
+                .contains("status=503")
+                .contains("error_code=HOLIDAY_PROVIDER_UNAVAILABLE")
+                .contains("cause=com.swimming.backend.common.exception.BusinessException")
+                .contains("<- java.net.SocketTimeoutException");
+    }
+
+    @Test
+    @DisplayName("예외 메시지는 남기지 않는다. 외부 호출 예외에 인증키가 붙은 URI가 실릴 수 있다")
+    void 예외_메시지는_남기지_않는다() {
+        String suffix = ApiRequestLoggingAspect.failureSuffix(
+                new IllegalStateException("ServiceKey=SECRET%2Bvalue")
+        );
+
+        assertThat(suffix).doesNotContain("SECRET");
+        assertThat(suffix).contains("java.lang.IllegalStateException");
+    }
+
+    @Test
+    @DisplayName("성공한 요청에는 원인을 붙이지 않는다")
+    void 성공에는_원인을_붙이지_않는다() {
+        assertThat(ApiRequestLoggingAspect.failureSuffix(null)).isEmpty();
+    }
+
+    @Test
     @DisplayName("민감한 Query 값은 마스킹하고 로그 개행을 제거한다")
     void masksSensitiveQueryValues() {
         assertThat(ApiRequestLoggingAspect.sanitizeQuery(

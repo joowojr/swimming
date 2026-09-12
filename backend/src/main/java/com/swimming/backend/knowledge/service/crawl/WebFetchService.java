@@ -24,20 +24,16 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 
 /**
- * URL 목록을 받아 본문을 마크다운으로 만들어 돌려준다.
+ * URL 하나를 받아 본문을 마크다운으로 만들어 돌려준다.
  *
- * <p>한 URL의 실패가 나머지를 막지 않는다. 실패는 예외가 아니라 결과로 표시한다.
+ * <p>실패는 예외가 아니라 결과로 표시한다. 한 URL의 실패가 나머지를 막지 않아야 하기
+ * 때문이며, 여러 URL을 묶어 처리하는 일은 {@link SourceFetchDispatcher}가 맡는다.
  */
 @Slf4j
 @Service
@@ -66,36 +62,6 @@ public class WebFetchService {
 
     /** 렌더링 폴백은 꺼둘 수 있다. 꺼져 있으면 빈이 없다. */
     private final Optional<LambdaPageRendererClient> pageRenderer;
-
-
-    /**
-     * 입력 순서를 유지하고, 같은 URL이 여러 번 오면 한 번만 요청한다.
-     */
-    public List<SourceFetchResult> fetchAll(List<String> urls) {
-        List<String> targets = new ArrayList<>(new LinkedHashSet<>(urls));
-
-        Semaphore permits = new Semaphore(properties.concurrency());
-        List<SourceFetchResult> results = new ArrayList<>(targets.size());
-
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<SourceFetchResult>> futures = targets.stream()
-                    .map(url -> executor.submit(() -> {
-                        permits.acquire();
-                        try {
-                            return fetch(url);
-                        } finally {
-                            permits.release();
-                        }
-                    }))
-                    .toList();
-
-            for (int i = 0; i < futures.size(); i++) {
-                results.add(resultOf(targets.get(i), futures.get(i)));
-            }
-        }
-
-        return results;
-    }
 
     public SourceFetchResult fetch(String url) {
         URI uri;
@@ -198,26 +164,6 @@ public class WebFetchService {
                 })
                 .orElse(failed);
     }
-
-    private SourceFetchResult resultOf(String url, Future<SourceFetchResult> future) {
-        try {
-            return future.get();
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return SourceFetchResult.failure(
-                    url,
-                    SourceFetchResult.Failure.UNKNOWN,
-                    "interrupted"
-            );
-        } catch (Exception exception) {
-            return SourceFetchResult.failure(
-                    url,
-                    SourceFetchResult.Failure.UNKNOWN,
-                    exception.getMessage()
-            );
-        }
-    }
-
 
     /**
      * jsoup은 JavaScript를 실행하지 않는다. 마크다운이 거의 비어 나오면 본문을 스크립트가

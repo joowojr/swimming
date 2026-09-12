@@ -59,4 +59,43 @@ class UrlUtilsTest {
                 "v"
         )).isFalse();
     }
+
+    @Test
+    @DisplayName("쿼리 파라미터의 값을 꺼낸다")
+    void readsQueryParameterValue() {
+        assertThat(UrlUtils.queryParameter(
+                URI.create("https://youtube.com/watch?v=example&list=playlist"),
+                "v"
+        )).contains("example");
+        assertThat(UrlUtils.queryParameter(
+                URI.create("https://youtube.com/watch?app=desktop&v=example"),
+                "v"
+        )).contains("example");
+    }
+
+    @Test
+    @DisplayName("값이 비어 있거나 없는 파라미터는 꺼내지 않는다")
+    void skipsEmptyQueryParameter() {
+        assertThat(UrlUtils.queryParameter(URI.create("https://youtube.com/watch?v="), "v"))
+                .isEmpty();
+        assertThat(UrlUtils.queryParameter(URI.create("https://youtube.com/watch"), "v"))
+                .isEmpty();
+        assertThat(UrlUtils.queryParameter(
+                URI.create("https://youtube.com/watch?list=playlist"),
+                "v"
+        )).isEmpty();
+    }
+
+    @Test
+    @DisplayName("빈 칸을 걸러낸 경로 조각을 돌려준다")
+    void splitsPathIntoSegments() {
+        assertThat(UrlUtils.pathSegments(URI.create("https://youtube.com/shorts/example")))
+                .containsExactly("shorts", "example");
+        assertThat(UrlUtils.pathSegments(URI.create("https://youtube.com/watch")))
+                .containsExactly("watch");
+        assertThat(UrlUtils.pathSegments(URI.create("https://youtube.com/shorts/")))
+                .containsExactly("shorts");
+        assertThat(UrlUtils.pathSegments(URI.create("https://youtube.com"))).isEmpty();
+        assertThat(UrlUtils.pathSegments(URI.create("https://youtube.com/"))).isEmpty();
+    }
 }

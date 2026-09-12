@@ -886,9 +886,11 @@ class NodeResolutionPipelineComparisonTest {
     private Set<String> parseVariants() {
         Set<String> allowed = Set.of(
                 "source-baseline", "subject-embedding-only", "hybrid-embedding");
+        // subject-embedding-only는 기본 실행에서 뺀다. 필요하면 다시 켠다.
+        //   ./gradlew nodeResolutionCompare -PevalVariants="source-baseline,subject-embedding-only,hybrid-embedding"
         String configured = System.getProperty(
                 "eval.variants",
-                "source-baseline,subject-embedding-only,hybrid-embedding"
+                "source-baseline,hybrid-embedding"
         );
         Set<String> selected = java.util.Arrays.stream(configured.split(","))
                 .map(String::strip)

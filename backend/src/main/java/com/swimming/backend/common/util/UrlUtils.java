@@ -2,6 +2,8 @@ package com.swimming.backend.common.util;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 public final class UrlUtils {
@@ -40,9 +42,14 @@ public final class UrlUtils {
     }
 
     public static boolean hasNonEmptyQueryParameter(URI uri, String parameterName) {
+        return queryParameter(uri, parameterName).isPresent();
+    }
+
+    /** 값이 비어 있는 파라미터는 없는 것으로 본다. {@code ?v=} 는 대상을 가리키지 않는다. */
+    public static Optional<String> queryParameter(URI uri, String parameterName) {
         String rawQuery = uri.getRawQuery();
         if (rawQuery == null || parameterName == null || parameterName.isBlank()) {
-            return false;
+            return Optional.empty();
         }
 
         for (String parameter : rawQuery.split("&")) {
@@ -50,9 +57,21 @@ public final class UrlUtils {
             if (separator > 0
                     && parameter.substring(0, separator).equals(parameterName)
                     && separator < parameter.length() - 1) {
-                return true;
+                return Optional.of(parameter.substring(separator + 1));
             }
         }
-        return false;
+        return Optional.empty();
+    }
+
+    /** 빈 칸을 걸러낸 경로 조각. {@code /shorts/abc} 는 {@code [shorts, abc]} 가 된다. */
+    public static List<String> pathSegments(URI uri) {
+        String path = uri.getPath();
+        if (path == null || path.isBlank()) {
+            return List.of();
+        }
+
+        return Arrays.stream(path.split("/"))
+                .filter(segment -> !segment.isBlank())
+                .toList();
     }
 }

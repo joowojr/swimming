@@ -14,10 +14,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.net.URI;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * JavaScript로 본문을 그리는 페이지를 Lambda의 헤드리스 브라우저로 다시 받는다.
@@ -39,10 +36,6 @@ import java.util.Set;
 )
 @RequiredArgsConstructor
 public class LambdaPageRendererClient {
-
-    private static final Set<String> BROWSER_DEFAULT_USER_AGENT_DOMAINS = Set.of(
-            "notion.com"
-    );
 
     private final WebFetchProperties properties;
     private final LambdaClient lambdaClient;
@@ -79,24 +72,10 @@ public class LambdaPageRendererClient {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("url", url);
         request.put("timeoutMs", properties.render().timeout().toMillis());
-        if (!usesBrowserDefaultUserAgent(url)) {
-            // 원문 수집과 같은 신원으로 요청한다. 렌더링만 다른 봇으로 보이지 않게 한다.
-            request.put("userAgent", properties.userAgent());
-        }
+        // 원문 수집과 같은 신원으로 요청한다. Notion은 이 값에 정적 공개 문서를 돌려준다.
+        request.put("userAgent", "Mozilla/5.0 (X11; Linux x86_64)");
 
         return request.toString();
-    }
-
-    private boolean usesBrowserDefaultUserAgent(String url) {
-        String host = URI.create(url).getHost();
-        if (!StringUtils.hasText(host)) {
-            return false;
-        }
-
-        String normalizedHost = host.toLowerCase(Locale.ROOT);
-        return BROWSER_DEFAULT_USER_AGENT_DOMAINS.stream()
-                .anyMatch(domain -> normalizedHost.equals(domain)
-                        || normalizedHost.endsWith("." + domain));
     }
 
     private Optional<String> readHtml(String url, String payload) {

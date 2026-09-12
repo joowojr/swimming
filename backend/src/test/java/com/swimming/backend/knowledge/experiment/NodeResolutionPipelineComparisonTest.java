@@ -790,10 +790,10 @@ class NodeResolutionPipelineComparisonTest {
             List<String> candidateSubjects
     ) {
         if (decision == null || decision.action() != NodeResolutionResult.Action.REUSE
-                || decision.subjectIndex() < 1 || decision.subjectIndex() > candidateSubjects.size()) {
+                || decision.reuseIndex() < 1 || decision.reuseIndex() > candidateSubjects.size()) {
             return null;
         }
-        return candidateSubjects.get(decision.subjectIndex() - 1);
+        return candidateSubjects.get(decision.reuseIndex() - 1);
     }
 
     private static List<NodeResolutionInput.Candidate> indexedCandidates(List<String> candidates) {

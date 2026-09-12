@@ -2,41 +2,61 @@ package com.swimming.backend.knowledge.prompt;
 
 import com.swimming.backend.knowledge.dto.out.NodeResolutionInput;
 
+import java.util.List;
+
+/**
+ * 판정 입력을 섹션 단위로 적는다.
+ *
+ * <p>항목마다 태그를 두르면 이름보다 태그가 길어지므로 번호 줄로 적는다. 번호는 응답이
+ * 가리킬 index다. 섹션 이름은 출처가 아니라 역할을 말한다.
+ */
 public final class NodeResolutionInputSerializer {
 
     private NodeResolutionInputSerializer() {
     }
 
     public static String serialize(NodeResolutionInput input) {
-        StringBuilder xml = new StringBuilder("<node-resolution-input>");
+        StringBuilder text = new StringBuilder();
 
-        xml.append("<summary>")
+        text.append("<summary>\n")
                 .append(escapeXml(input.summary()))
-                .append("</summary>");
+                .append("\n</summary>");
 
-        xml.append("<candidates>");
-        for (NodeResolutionInput.Candidate candidate : input.candidates()) {
-            xml.append("<candidate index=\"")
-                    .append(candidate.index())
-                    .append("\">")
-                    .append(escapeXml(candidate.value()))
-                    .append("</candidate>");
-        }
-        xml.append("</candidates>");
+        appendSection(text, "subjects-to-resolve", "C", input.candidates().stream()
+                .map(NodeResolutionInput.Candidate::value)
+                .toList());
 
+        // 재사용할 것이 없으면 섹션째 넣지 않는다. 빈 목록은 모델에게 읽을 거리만 늘린다.
         if (!input.existingSubjects().isEmpty()) {
-            xml.append("<existing-subjects>");
-            for (NodeResolutionInput.ExistingSubject subject : input.existingSubjects()) {
-                xml.append("<subject index=\"")
-                        .append(subject.index())
-                        .append("\">")
-                        .append(escapeXml(subject.value()))
-                        .append("</subject>");
-            }
-            xml.append("</existing-subjects>");
+            appendSection(text, "reusable-subjects", "R", input.existingSubjects().stream()
+                    .map(NodeResolutionInput.ExistingSubject::value)
+                    .toList());
         }
 
-        return xml.append("</node-resolution-input>").toString();
+        return text.toString();
+    }
+
+    /** 두 목록의 번호를 접두어로 갈라 둔다. 응답이 어느 번호를 가리키는지 헷갈릴 자리를 없앤다. */
+    private static void appendSection(
+            StringBuilder text,
+            String name,
+            String prefix,
+            List<String> values
+    ) {
+        text.append("\n<").append(name).append(">");
+        for (int index = 0; index < values.size(); index++) {
+            text.append("\n")
+                    .append(prefix)
+                    .append(index + 1)
+                    .append(". ")
+                    .append(escapeXml(singleLine(values.get(index))));
+        }
+        text.append("\n</").append(name).append(">");
+    }
+
+    /** 줄바꿈이 남아 있으면 값 하나가 여러 항목처럼 보인다. */
+    private static String singleLine(String value) {
+        return value == null ? "" : value.strip().replaceAll("\\s+", " ");
     }
 
     private static String escapeXml(String value) {

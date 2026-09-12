@@ -344,14 +344,14 @@ public class NodeResolutionService {
             return "unknown candidate index " + decision.candidateIndex();
         }
 
-        // REUSE의 value는 읽지 않는다. 재사용 대상은 subjectIndex가 정하므로, 모델이 대상 이름을
+        // REUSE의 value는 읽지 않는다. 재사용 대상은 reuseIndex가 정하므로, 모델이 대상 이름을
         // 적어 보내도 버릴 이유가 없다.
         return switch (decision.action()) {
-            case REUSE -> decision.subjectIndex() < 1
-                    || decision.subjectIndex() > existingSubjectCount
-                    ? "invalid existing subject for candidate index " + decision.candidateIndex()
+            case REUSE -> decision.reuseIndex() < 1
+                    || decision.reuseIndex() > existingSubjectCount
+                    ? "invalid reuse index for candidate index " + decision.candidateIndex()
                     : null;
-            case CREATE -> decision.subjectIndex() != 0
+            case CREATE -> decision.reuseIndex() != 0
                     || NodeTitleNormalizer.normalize(newSubjectTitle(decision)).isEmpty()
                     ? "invalid new subject for candidate index " + decision.candidateIndex()
                     : null;
@@ -369,7 +369,7 @@ public class NodeResolutionService {
             NodeResolutionResult.Decision decision,
             List<KnowledgeNode> existingSubjects
     ) {
-        KnowledgeNode existing = existingSubjects.get(decision.subjectIndex() - 1);
+        KnowledgeNode existing = existingSubjects.get(decision.reuseIndex() - 1);
         return ResolvedNode.semantic(candidate.value(), existing);
     }
 

@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.graph;
 
-import com.swimming.backend.knowledge.config.KnowledgeResolutionProperties;
+import com.swimming.backend.knowledge.config.ResolutionProperties;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -46,7 +46,7 @@ public class NodeResolutionService {
     static final int EMBEDDING_DIMENSIONS = 768;
 
     private final EmbeddingClient embeddingClient;
-    private final KnowledgeResolutionProperties properties;
+    private final ResolutionProperties properties;
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
     private final KnowledgeRelationService relationService;
@@ -151,7 +151,11 @@ public class NodeResolutionService {
 
         NodeResolutionInput input = new NodeResolutionInput(
                 summary,
-                unresolved.stream().map(Candidate::value).toList(),
+                IntStream.range(0, unresolved.size())
+                        .mapToObj(index -> new NodeResolutionInput.Candidate(
+                                index + 1, unresolved.get(index).value()
+                        ))
+                        .toList(),
                 IntStream.range(0, existingSubjects.size())
                         .mapToObj(index -> new NodeResolutionInput.ExistingSubject(
                                 index + 1, existingSubjects.get(index).getTitle()
@@ -263,9 +267,13 @@ public class NodeResolutionService {
             throw new IllegalStateException("node resolution result is empty");
         }
 
-        Map<String, NodeResolutionResult.Decision> decisions = new LinkedHashMap<>();
+        Map<Integer, NodeResolutionResult.Decision> decisions = new LinkedHashMap<>();
         for (NodeResolutionResult.Decision decision : result.decisions()) {
-            if (decision == null || decisions.putIfAbsent(decision.candidate(), decision) != null) {
+            if (decision == null || decision.action() == null
+                    || decision.candidateIndex() < 1 || decision.candidateIndex() > unresolved.size()) {
+                throw new IllegalStateException("node resolution answered an unknown candidate index");
+            }
+            if (decisions.putIfAbsent(decision.candidateIndex(), decision) != null) {
                 throw new IllegalStateException("node resolution contains duplicate decision");
             }
         }
@@ -287,12 +295,11 @@ public class NodeResolutionService {
                         .toList()
         );
 
+        // index가 1..N 안에서 중복 없이 N개 왔으므로 후보마다 결정이 정확히 하나씩 있다.
         List<ResolvedNode> resolved = new ArrayList<>();
-        for (Candidate candidate : unresolved) {
-            NodeResolutionResult.Decision decision = decisions.get(candidate.value());
-            if (decision == null || decision.action() == null) {
-                throw new IllegalStateException("node resolution omitted candidate: " + candidate.value());
-            }
+        for (int index = 0; index < unresolved.size(); index++) {
+            Candidate candidate = unresolved.get(index);
+            NodeResolutionResult.Decision decision = decisions.get(index + 1);
 
             resolved.add(switch (decision.action()) {
                 case REUSE -> reuse(candidate, decision, existingSubjects);

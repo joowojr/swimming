@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.graph;
 
-import com.swimming.backend.knowledge.config.KnowledgeResolutionProperties;
+import com.swimming.backend.knowledge.config.ResolutionProperties;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -63,7 +64,7 @@ class NodeResolutionServiceTest {
 
         service = new NodeResolutionService(
                 embeddingClient,
-                new KnowledgeResolutionProperties(5, 3),
+                new ResolutionProperties(5, 3),
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),
                 relationService,
@@ -130,7 +131,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.REUSE, 1, ""
+                        1, NodeResolutionResult.Action.REUSE, 1, ""
                 )
         )));
 
@@ -178,7 +179,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC protocol", NodeResolutionResult.Action.CREATE, 0, "OIDC Protocol"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OIDC Protocol"
                 )
         )));
 
@@ -219,7 +220,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "identity standard", NodeResolutionResult.Action.CREATE, 0, "Identity Standard"
+                        1, NodeResolutionResult.Action.CREATE, 0, "Identity Standard"
                 )
         )));
 
@@ -239,7 +240,7 @@ class NodeResolutionServiceTest {
     void createsNewSubject() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                 )
         )));
 
@@ -263,13 +264,13 @@ class NodeResolutionServiceTest {
         nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                 ),
                 new NodeResolutionResult.Decision(
-                        "saml", NodeResolutionResult.Action.CREATE, 0, "SAML"
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
                 ),
                 new NodeResolutionResult.Decision(
-                        "scim", NodeResolutionResult.Action.CREATE, 0, "SCIM"
+                        3, NodeResolutionResult.Action.CREATE, 0, "SCIM"
                 )
         )));
         nodes.normalizedTitleLookupCount = 0;
@@ -293,7 +294,7 @@ class NodeResolutionServiceTest {
             nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "OpenID Connect", null));
             return new NodeResolutionResult(List.of(
                     new NodeResolutionResult.Decision(
-                            "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                            1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                     )
             ));
         });
@@ -313,7 +314,7 @@ class NodeResolutionServiceTest {
     void rejectsUnknownSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.REUSE, 1, ""
+                        1, NodeResolutionResult.Action.REUSE, 1, ""
                 )
         )));
 
@@ -328,7 +329,7 @@ class NodeResolutionServiceTest {
     void rejectsExistingSubjectIndexForCreate() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.CREATE, 1, "OpenID Connect"
+                        1, NodeResolutionResult.Action.CREATE, 1, "OpenID Connect"
                 )
         )));
 
@@ -336,6 +337,47 @@ class NodeResolutionServiceTest {
                 source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
         )).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("invalid new subject");
+    }
+
+    @Test
+    @DisplayName("미해결 후보는 1부터 순서대로 index를 붙여 LLM에 넘긴다")
+    void 후보에_index를_붙여_넘긴다() {
+        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                ),
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SCIM"
+                )
+        )));
+
+        service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"),
+                SUMMARY,
+                List.of("aws-oidc", "saml", "scim")
+        );
+
+        ArgumentCaptor<NodeResolutionInput> captor = ArgumentCaptor.forClass(NodeResolutionInput.class);
+        verify(llmService).resolve(captor.capture());
+        assertThat(captor.getValue().candidates())
+                .extracting(NodeResolutionInput.Candidate::index, NodeResolutionInput.Candidate::value)
+                .containsExactly(tuple(1, "saml"), tuple(2, "scim"));
+    }
+
+    @Test
+    @DisplayName("LLM이 제공하지 않은 후보 index로 답하면 거부한다")
+    void rejectsUnknownCandidateIndex() {
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                )
+        )));
+
+        assertThatThrownBy(() -> service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
+        )).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("unknown candidate index");
     }
 
     @Test
@@ -351,7 +393,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.CREATE, 0, "OIDC"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OIDC"
                 )
         )));
 

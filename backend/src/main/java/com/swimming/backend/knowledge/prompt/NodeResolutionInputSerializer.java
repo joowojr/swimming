@@ -15,8 +15,12 @@ public final class NodeResolutionInputSerializer {
                 .append("</summary>");
 
         xml.append("<candidates>");
-        for (String candidate : input.candidates()) {
-            xml.append("<candidate>").append(escapeXml(candidate)).append("</candidate>");
+        for (NodeResolutionInput.Candidate candidate : input.candidates()) {
+            xml.append("<candidate index=\"")
+                    .append(candidate.index())
+                    .append("\">")
+                    .append(escapeXml(candidate.value()))
+                    .append("</candidate>");
         }
         xml.append("</candidates>");
 

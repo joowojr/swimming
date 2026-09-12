@@ -329,6 +329,30 @@ class NodeResolutionServiceTest {
     }
 
     @Test
+    @DisplayName("재사용 결정에 대상 이름이 함께 와도 버리지 않는다")
+    void 재사용_결정의_value는_무시한다() {
+        KnowledgeNode oidc = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "OpenID Connect", null
+        ));
+        nodes.saveTitleEmbedding(
+                USER_ID, oidc.getId(), vector(1), NodeResolutionService.EMBEDDING_MODEL
+        );
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                // 재사용 대상은 reuseIndex가 정하므로 value는 읽지 않는다.
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.REUSE, 1, "OpenID Connect"
+                )
+        )));
+
+        ResolvedNode result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
+        ).getFirst();
+
+        assertThat(result.node().getId()).isEqualTo(oidc.getId());
+        assertThat(result.match()).isEqualTo(ResolvedNode.Match.SEMANTIC);
+    }
+
+    @Test
     @DisplayName("신규 판정에 기존 Subject index를 쓴 결정은 그 후보만 버린다")
     void dropsCreateDecisionWithExistingSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(

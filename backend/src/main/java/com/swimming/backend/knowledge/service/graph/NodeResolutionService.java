@@ -344,10 +344,11 @@ public class NodeResolutionService {
             return "unknown candidate index " + decision.candidateIndex();
         }
 
+        // REUSE의 value는 읽지 않는다. 재사용 대상은 subjectIndex가 정하므로, 모델이 대상 이름을
+        // 적어 보내도 버릴 이유가 없다.
         return switch (decision.action()) {
             case REUSE -> decision.subjectIndex() < 1
                     || decision.subjectIndex() > existingSubjectCount
-                    || decision.value() == null || !decision.value().isEmpty()
                     ? "invalid existing subject for candidate index " + decision.candidateIndex()
                     : null;
             case CREATE -> decision.subjectIndex() != 0

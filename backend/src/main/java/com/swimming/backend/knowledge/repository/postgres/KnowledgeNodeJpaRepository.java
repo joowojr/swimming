@@ -4,6 +4,7 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeNodeEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -53,5 +54,19 @@ public interface KnowledgeNodeJpaRepository extends JpaRepository<KnowledgeNodeE
             @Param("titleEmbedding") String titleEmbedding,
             @Param("embeddingModel") String embeddingModel,
             Pageable pageable
+    );
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            update KnowledgeNodeEntity n
+               set n.deleted = true,
+                   n.updatedAt = instant
+             where n.userId = :userId
+               and n.id in :ids
+               and n.deleted = false
+            """)
+    int softDeleteAllOwnedByIds(
+            @Param("userId") Long userId,
+            @Param("ids") Collection<UUID> ids
     );
 }

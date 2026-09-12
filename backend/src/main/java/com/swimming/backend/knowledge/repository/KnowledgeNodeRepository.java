@@ -52,5 +52,7 @@ public interface KnowledgeNodeRepository {
             int limit
     );
 
+    int softDeleteAllOwnedByIds(Long userId, Collection<UUID> ids);
+
     void deleteById(UUID id);
 }

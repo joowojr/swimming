@@ -4,6 +4,7 @@ import type { SourceFailureCode, SourceProcessingStatus } from './knowledgeTypes
 export const SOURCE_STATUS_LABEL: Record<SourceProcessingStatus, string> = {
   PENDING: '정리를 기다리는 중',
   PROCESSING: '내용을 정리하는 중',
+  SOURCE_NOT_DIGEST: '원문 표시',
   COMPLETED: '정리 완료',
   FAILED: '요약을 가져오지 못했어요',
 }

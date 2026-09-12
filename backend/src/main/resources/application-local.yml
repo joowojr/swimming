@@ -3,6 +3,7 @@ spring:
     import:
       - classpath:llm/${LLM_CONFIG:openai}.yml
       - classpath:llm/openai-embedding.yml
+      - classpath:google.yml
   datasource:
     url: jdbc:postgresql://localhost:5432/swimming
     username: swimming
@@ -27,8 +28,6 @@ app:
       - http://localhost:5173
   auth:
     secure-cookie: false
-    google:
-      client-id: ${GOOGLE_CLIENT_ID:local-google-client-id}
 
 logging:
   level:

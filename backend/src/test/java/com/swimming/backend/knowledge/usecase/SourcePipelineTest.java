@@ -1,30 +1,24 @@
 package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.folder.service.FolderService;
-import com.swimming.backend.knowledge.domain.KnowledgeRelation;
-import com.swimming.backend.knowledge.domain.KnowledgeNode;
-import com.swimming.backend.knowledge.domain.KnowledgeSource;
-import com.swimming.backend.knowledge.domain.NodeTitleNormalizer;
-import com.swimming.backend.knowledge.domain.NodeType;
-import com.swimming.backend.knowledge.domain.RelationType;
-import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
+import com.swimming.backend.knowledge.domain.*;
 import com.swimming.backend.knowledge.dto.in.SourceCollectRequest;
 import com.swimming.backend.knowledge.dto.in.SourceCollectResponse;
 import com.swimming.backend.knowledge.dto.in.SourceDigestResponse;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
+import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
-import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
+import com.swimming.backend.knowledge.service.SourceGraphReader;
+import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
+import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
-import com.swimming.backend.knowledge.service.crawl.WebFetchService;
-import com.swimming.backend.knowledge.service.SourceGraphReader;
-import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,10 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * 링크 저장부터 그래프 반영까지를 한 번에 돌린다.
@@ -56,7 +47,7 @@ class SourcePipelineTest {
     private InMemoryKnowledgeRepositories.Nodes nodes;
     private InMemoryKnowledgeRepositories.Relations relations;
 
-    private WebFetchService fetchService;
+    private SourceFetchDispatcher fetchService;
     private SourceDigestService digestService;
 
     private SourceCollectUseCase collectUseCase;
@@ -68,7 +59,7 @@ class SourcePipelineTest {
         nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
 
-        fetchService = mock(WebFetchService.class);
+        fetchService = mock(SourceFetchDispatcher.class);
         digestService = mock(SourceDigestService.class);
 
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);

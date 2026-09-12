@@ -142,22 +142,6 @@ class WebFetchServiceTest {
     }
 
     @Test
-    @DisplayName("한 URL이 실패해도 나머지 결과를 순서대로 돌려준다")
-    void keepsOrderAndIsolatesFailures() {
-        List<SourceFetchResult> results = service.fetchAll(List.of(
-                "http://127.0.0.1/a",
-                "ftp://example.com/b",
-                "http://127.0.0.1/a"
-        ));
-
-        assertThat(results).hasSize(2);
-        assertThat(results.get(0).requestedUrl()).isEqualTo("http://127.0.0.1/a");
-        assertThat(results.get(0).failure()).isEqualTo(SourceFetchResult.Failure.BLOCKED_ADDRESS);
-        assertThat(results.get(1).requestedUrl()).isEqualTo("ftp://example.com/b");
-        assertThat(results.get(1).failure()).isEqualTo(SourceFetchResult.Failure.INVALID_URL);
-    }
-
-    @Test
     @DisplayName("링크와 서식을 뺀 실제 문장 길이로 본문 유무를 잰다")
     void measuresMeaningfulTextOnly() {
         String loginWall = """

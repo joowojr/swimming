@@ -74,7 +74,7 @@ app:
       # 링크를 뺀 실제 문장이 이보다 짧으면 본문 추출 실패로 보고 og:description 으로 대체한다.
       # 실측: 로그인 벽 페이지 183~271자 / 가장 짧은 정상 문서 2,154자.
       min-meaningful-length: 300
-      user-agent: ${KNOWLEDGE_FETCH_USER_AGENT:SwimmingBot/0.1 (+https://swimming.app)}
+      user-agent: SwimmingBot/0.1 (+https://swimming.app)
       render:
         # JavaScript로 본문을 그리는 페이지(tech.kakao.com, d2.naver.com 등)만 대상.
         # 브라우저는 백엔드 컨테이너가 아니라 전용 Lambda에서 돈다. 켜기 전에 함수가 배포되어

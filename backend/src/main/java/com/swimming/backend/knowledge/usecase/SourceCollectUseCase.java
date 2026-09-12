@@ -10,7 +10,7 @@ import com.swimming.backend.knowledge.dto.in.SourceResponse;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
-import com.swimming.backend.knowledge.service.crawl.WebFetchService;
+import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class SourceCollectUseCase {
 
     private static final int MIN_SOURCE_CONTENT_LENGTH = 100;
 
-    private final WebFetchService sourceFetchService;
+    private final SourceFetchDispatcher sourceFetchService;
 
     private final FolderService folderService;
     private final KnowledgeSourceService sourceService;

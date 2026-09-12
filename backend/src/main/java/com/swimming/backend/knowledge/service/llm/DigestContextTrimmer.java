@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.llm;
 
-import com.swimming.backend.knowledge.config.KnowledgeDigestProperties;
+import com.swimming.backend.knowledge.config.LinkDigestProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -28,7 +28,7 @@ public class DigestContextTrimmer {
     /** 줄 경계에서 끊을지 판단하는 기준. 자른 위치가 이 비율보다 앞이면 그냥 그 자리에서 끊는다. */
     private static final double LINE_BREAK_TOLERANCE = 0.8;
 
-    private final KnowledgeDigestProperties properties;
+    private final LinkDigestProperties properties;
 
     public Result trim(String markdown) {
         if (!StringUtils.hasText(markdown)) {

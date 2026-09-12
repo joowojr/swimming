@@ -14,16 +14,16 @@ public record NodeResolutionResult(
     }
 
     public record Decision(
-            @JsonPropertyDescription("Candidate value from the current source, copied exactly.")
-            String candidate,
+            @JsonPropertyDescription("1-based index in subjects-to-resolve this decision answers.")
+            int candidateIndex,
 
             @JsonPropertyDescription("REUSE an existing subject or CREATE a new subject.")
             Action action,
 
             @JsonPropertyDescription(
-                    "1-based existing subject index for REUSE; 0 for CREATE."
+                    "1-based index in reusable-subjects for REUSE; 0 for CREATE."
             )
-            int subjectIndex,
+            int reuseIndex,
 
             @JsonPropertyDescription(
                     "New canonical subject value for CREATE; empty string for REUSE."

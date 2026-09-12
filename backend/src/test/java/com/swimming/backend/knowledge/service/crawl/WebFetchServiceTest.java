@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
@@ -33,15 +33,15 @@ class WebFetchServiceTest {
             Optional.empty()
     );
 
-    private static KnowledgeFetchProperties properties() {
-        return new KnowledgeFetchProperties(
+    private static WebFetchProperties properties() {
+        return new WebFetchProperties(
                 4,
                 Duration.ofSeconds(15),
                 4 * 1024 * 1024,
                 50_000,
                 300,
                 "SwimmingBot/0.1",
-                new KnowledgeFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
+                new WebFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
         );
     }
 

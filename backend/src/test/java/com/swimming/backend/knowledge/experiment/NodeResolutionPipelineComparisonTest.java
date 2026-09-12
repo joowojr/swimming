@@ -367,7 +367,9 @@ class NodeResolutionPipelineComparisonTest {
     ) {
         try {
             NodeResolutionInput input = new NodeResolutionInput(
-                    scenario.currentSourceSummary(), scenario.extractedSubjects(), indexed(candidateSubjects));
+                    scenario.currentSourceSummary(),
+                    indexedCandidates(scenario.extractedSubjects()),
+                    indexed(candidateSubjects));
             CallResult call = call(input);
             results.add(new VariantRun(
                     scenario.id(), scenario.domain(), variant, run, candidateSubjects,
@@ -409,11 +411,16 @@ class NodeResolutionPipelineComparisonTest {
                 .collect(Collectors.toMap(
                         NodeResolutionEvalScenario.ExpectedResolution::candidate,
                         Function.identity(), (left, right) -> left, LinkedHashMap::new));
-        Map<String, NodeResolutionResult.Decision> predicted = actual == null || actual.decisions() == null
-                ? Map.of()
-                : actual.decisions().stream().collect(Collectors.toMap(
-                        NodeResolutionResult.Decision::candidate,
-                        Function.identity(), (left, right) -> left, LinkedHashMap::new));
+        // 결정은 후보 index로 돌아오므로 채점 전에 후보 값으로 되돌린다.
+        Map<String, NodeResolutionResult.Decision> predicted = new LinkedHashMap<>();
+        if (actual != null && actual.decisions() != null) {
+            for (NodeResolutionResult.Decision decision : actual.decisions()) {
+                String candidate = candidateOf(decision, scenario.extractedSubjects());
+                if (candidate != null) {
+                    predicted.putIfAbsent(candidate, decision);
+                }
+            }
+        }
 
         int correct = 0;
         int trueReuse = 0;
@@ -783,10 +790,25 @@ class NodeResolutionPipelineComparisonTest {
             List<String> candidateSubjects
     ) {
         if (decision == null || decision.action() != NodeResolutionResult.Action.REUSE
-                || decision.subjectIndex() < 1 || decision.subjectIndex() > candidateSubjects.size()) {
+                || decision.reuseIndex() < 1 || decision.reuseIndex() > candidateSubjects.size()) {
             return null;
         }
-        return candidateSubjects.get(decision.subjectIndex() - 1);
+        return candidateSubjects.get(decision.reuseIndex() - 1);
+    }
+
+    private static List<NodeResolutionInput.Candidate> indexedCandidates(List<String> candidates) {
+        return IntStream.range(0, candidates.size())
+                .mapToObj(index -> new NodeResolutionInput.Candidate(index + 1, candidates.get(index)))
+                .toList();
+    }
+
+    /** 범위를 벗어난 index는 채점에서 답하지 않은 것으로 본다. */
+    private static String candidateOf(NodeResolutionResult.Decision decision, List<String> candidates) {
+        if (decision == null || decision.candidateIndex() < 1
+                || decision.candidateIndex() > candidates.size()) {
+            return null;
+        }
+        return candidates.get(decision.candidateIndex() - 1);
     }
 
     private static List<NodeResolutionInput.ExistingSubject> indexed(List<String> subjects) {
@@ -864,9 +886,11 @@ class NodeResolutionPipelineComparisonTest {
     private Set<String> parseVariants() {
         Set<String> allowed = Set.of(
                 "source-baseline", "subject-embedding-only", "hybrid-embedding");
+        // subject-embedding-only는 기본 실행에서 뺀다. 필요하면 다시 켠다.
+        //   ./gradlew nodeResolutionCompare -PevalVariants="source-baseline,subject-embedding-only,hybrid-embedding"
         String configured = System.getProperty(
                 "eval.variants",
-                "source-baseline,subject-embedding-only,hybrid-embedding"
+                "source-baseline,hybrid-embedding"
         );
         Set<String> selected = java.util.Arrays.stream(configured.split(","))
                 .map(String::strip)

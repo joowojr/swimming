@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.graph;
 
-import com.swimming.backend.knowledge.config.KnowledgeResolutionProperties;
+import com.swimming.backend.knowledge.config.ResolutionProperties;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -63,7 +64,7 @@ class NodeResolutionServiceTest {
 
         service = new NodeResolutionService(
                 embeddingClient,
-                new KnowledgeResolutionProperties(5, 3),
+                new ResolutionProperties(5, 3),
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),
                 relationService,
@@ -130,7 +131,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.REUSE, 1, ""
+                        1, NodeResolutionResult.Action.REUSE, 1, ""
                 )
         )));
 
@@ -178,7 +179,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC protocol", NodeResolutionResult.Action.CREATE, 0, "OIDC Protocol"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OIDC Protocol"
                 )
         )));
 
@@ -219,7 +220,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "identity standard", NodeResolutionResult.Action.CREATE, 0, "Identity Standard"
+                        1, NodeResolutionResult.Action.CREATE, 0, "Identity Standard"
                 )
         )));
 
@@ -239,7 +240,7 @@ class NodeResolutionServiceTest {
     void createsNewSubject() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                 )
         )));
 
@@ -263,13 +264,13 @@ class NodeResolutionServiceTest {
         nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                 ),
                 new NodeResolutionResult.Decision(
-                        "saml", NodeResolutionResult.Action.CREATE, 0, "SAML"
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
                 ),
                 new NodeResolutionResult.Decision(
-                        "scim", NodeResolutionResult.Action.CREATE, 0, "SCIM"
+                        3, NodeResolutionResult.Action.CREATE, 0, "SCIM"
                 )
         )));
         nodes.normalizedTitleLookupCount = 0;
@@ -293,7 +294,7 @@ class NodeResolutionServiceTest {
             nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "OpenID Connect", null));
             return new NodeResolutionResult(List.of(
                     new NodeResolutionResult.Decision(
-                            "oidc protocol", NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                            1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                     )
             ));
         });
@@ -309,33 +310,143 @@ class NodeResolutionServiceTest {
     }
 
     @Test
-    @DisplayName("LLM은 Context에 제공하지 않은 Subject index를 재사용할 수 없다")
-    void rejectsUnknownSubjectIndex() {
+    @DisplayName("Context에 없는 Subject index를 고른 결정은 그 후보만 버린다")
+    void dropsDecisionWithUnknownSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.REUSE, 1, ""
+                        1, NodeResolutionResult.Action.REUSE, 1, ""
+                ),
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
                 )
         )));
 
-        assertThatThrownBy(() -> service.resolveSubjects(
-                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
-        )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("invalid existing subject");
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC", "saml")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle()).containsExactly("SAML");
     }
 
     @Test
-    @DisplayName("신규 Subject 응답은 기존 Subject index 대신 0을 사용해야 한다")
-    void rejectsExistingSubjectIndexForCreate() {
+    @DisplayName("재사용 결정에 대상 이름이 함께 와도 버리지 않는다")
+    void 재사용_결정의_value는_무시한다() {
+        KnowledgeNode oidc = nodes.save(KnowledgeNode.create(
+                USER_ID, NodeType.SUBJECT, "OpenID Connect", null
+        ));
+        nodes.saveTitleEmbedding(
+                USER_ID, oidc.getId(), vector(1), NodeResolutionService.EMBEDDING_MODEL
+        );
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                // 재사용 대상은 reuseIndex가 정하므로 value는 읽지 않는다.
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.REUSE, 1, "OpenID Connect"
+                )
+        )));
+
+        ResolvedNode result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
+        ).getFirst();
+
+        assertThat(result.node().getId()).isEqualTo(oidc.getId());
+        assertThat(result.match()).isEqualTo(ResolvedNode.Match.SEMANTIC);
+    }
+
+    @Test
+    @DisplayName("신규 판정에 기존 Subject index를 쓴 결정은 그 후보만 버린다")
+    void dropsCreateDecisionWithExistingSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.CREATE, 1, "OpenID Connect"
+                        1, NodeResolutionResult.Action.CREATE, 1, "OpenID Connect"
+                ),
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                )
+        )));
+
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC", "saml")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle()).containsExactly("SAML");
+    }
+
+    @Test
+    @DisplayName("답하지 않은 후보는 건너뛰고 답한 후보만 확정한다")
+    void 답하지_않은_후보는_건너뛴다() {
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                )
+        )));
+
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC", "saml")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle()).containsExactly("SAML");
+    }
+
+    @Test
+    @DisplayName("같은 후보 index에 두 번 답하면 뒤의 결정을 버린다")
+    void 중복_결정은_뒤를_버린다() {
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                ),
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                )
+        )));
+
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle())
+                .containsExactly("OpenID Connect");
+    }
+
+    @Test
+    @DisplayName("미해결 후보는 1부터 순서대로 index를 붙여 LLM에 넘긴다")
+    void 후보에_index를_붙여_넘긴다() {
+        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "AWS OIDC", null));
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                ),
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SCIM"
+                )
+        )));
+
+        service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"),
+                SUMMARY,
+                List.of("aws-oidc", "saml", "scim")
+        );
+
+        ArgumentCaptor<NodeResolutionInput> captor = ArgumentCaptor.forClass(NodeResolutionInput.class);
+        verify(llmService).resolve(captor.capture());
+        assertThat(captor.getValue().candidates())
+                .extracting(NodeResolutionInput.Candidate::index, NodeResolutionInput.Candidate::value)
+                .containsExactly(tuple(1, "saml"), tuple(2, "scim"));
+    }
+
+    @Test
+    @DisplayName("쓸 수 있는 결정이 하나도 없으면 재시도할 수 있게 실패로 둔다")
+    void rejectsResponseWithoutUsableDecision() {
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                // 후보 index를 0부터 세거나 Subject index 규칙과 섞어 쓴 응답.
+                new NodeResolutionResult.Decision(
+                        0, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                 )
         )));
 
         assertThatThrownBy(() -> service.resolveSubjects(
                 source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("invalid new subject");
+                .hasMessageContaining("no usable decision");
     }
 
     @Test
@@ -351,7 +462,7 @@ class NodeResolutionServiceTest {
 
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
-                        "OIDC", NodeResolutionResult.Action.CREATE, 0, "OIDC"
+                        1, NodeResolutionResult.Action.CREATE, 0, "OIDC"
                 )
         )));
 

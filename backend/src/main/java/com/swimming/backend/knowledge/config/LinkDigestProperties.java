@@ -17,7 +17,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties("app.knowledge.digest")
-public record KnowledgeDigestProperties(
+public record LinkDigestProperties(
 
         @NotNull @Min(1000) Integer maxInputLength,
         @NotNull @Min(100) Integer sectionBudget

@@ -27,7 +27,7 @@ public class PageRendererConfig {
     private static final Duration CALL_TIMEOUT_MARGIN = Duration.ofSeconds(5);
 
     @Bean
-    public LambdaClient pageRendererLambdaClient(KnowledgeFetchProperties properties) {
+    public LambdaClient pageRendererLambdaClient(WebFetchProperties properties) {
         if (!StringUtils.hasText(properties.render().functionName())) {
             throw new IllegalStateException(
                     "app.knowledge.fetch.render.enabled=true 이면 function-name 이 필요하다."

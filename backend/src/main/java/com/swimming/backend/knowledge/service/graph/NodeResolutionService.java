@@ -16,6 +16,7 @@ import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.common.client.EmbeddingClient;
 import com.swimming.backend.knowledge.service.llm.NodeResolutionLlmService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -25,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -39,6 +41,7 @@ import java.util.stream.IntStream;
  * 묶지 않는다.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class NodeResolutionService {
 
@@ -92,8 +95,10 @@ public class NodeResolutionService {
             }
         }
 
+        // 어긋난 결정 때문에 버려진 후보는 결과에 자리가 없다.
         return deduplicateNodes(candidates.stream()
                 .map(candidate -> resolved.get(candidate.normalized()))
+                .filter(Objects::nonNull)
                 .toList());
     }
 
@@ -256,7 +261,13 @@ public class NodeResolutionService {
         return subjects;
     }
 
-    /** LLM 결정을 검증하고 재사용 또는 생성된 실제 Subject 노드로 확정한다. */
+    /**
+     * LLM 결정을 검증하고 재사용 또는 생성된 실제 Subject 노드로 확정한다.
+     *
+     * <p>어긋난 결정은 그 후보만 버리고 나머지로 계속한다. 후보 하나 때문에 링크 저장 전체가
+     * 실패하지 않게 하려는 것이다. 다만 쓸 수 있는 결정이 하나도 없으면 응답을 통째로
+     * 잘못 이해한 것이므로 실패로 두어 재시도 여지를 남긴다.
+     */
     private List<ResolvedNode> materialize(
             Long userId,
             List<Candidate> unresolved,
@@ -269,17 +280,17 @@ public class NodeResolutionService {
 
         Map<Integer, NodeResolutionResult.Decision> decisions = new LinkedHashMap<>();
         for (NodeResolutionResult.Decision decision : result.decisions()) {
-            if (decision == null || decision.action() == null
-                    || decision.candidateIndex() < 1 || decision.candidateIndex() > unresolved.size()) {
-                throw new IllegalStateException("node resolution answered an unknown candidate index");
+            String rejection = rejectionOf(decision, unresolved.size(), existingSubjects.size());
+            if (rejection != null) {
+                log.info("[node-resolution] dropped a decision: {}", rejection);
+                continue;
             }
             if (decisions.putIfAbsent(decision.candidateIndex(), decision) != null) {
-                throw new IllegalStateException("node resolution contains duplicate decision");
+                log.info(
+                        "[node-resolution] dropped a duplicate decision for candidate index {}",
+                        decision.candidateIndex()
+                );
             }
-        }
-
-        if (decisions.size() != unresolved.size()) {
-            throw new IllegalStateException("node resolution decision count does not match candidates");
         }
 
         // LLM을 기다리는 동안 다른 요청이 같은 Subject를 만들었을 수 있다. 신규 판정 후보를
@@ -295,57 +306,81 @@ public class NodeResolutionService {
                         .toList()
         );
 
-        // index가 1..N 안에서 중복 없이 N개 왔으므로 후보마다 결정이 정확히 하나씩 있다.
         List<ResolvedNode> resolved = new ArrayList<>();
         for (int index = 0; index < unresolved.size(); index++) {
             Candidate candidate = unresolved.get(index);
             NodeResolutionResult.Decision decision = decisions.get(index + 1);
+            if (decision == null) {
+                log.info("[node-resolution] no decision for candidate: {}", candidate.value());
+                continue;
+            }
 
             resolved.add(switch (decision.action()) {
                 case REUSE -> reuse(candidate, decision, existingSubjects);
                 case CREATE -> create(userId, candidate, decision, createdMeanwhile);
             });
         }
+
+        if (resolved.isEmpty()) {
+            throw new IllegalStateException("node resolution returned no usable decision");
+        }
         return resolved;
     }
 
-    /** 신규 판정이 내놓은 제목. 형식이 어긋나면 {@link #create}가 걸러내므로 여기서는 비워 둔다. */
+    /**
+     * 쓸 수 없는 결정이면 이유를, 쓸 수 있으면 {@code null}을 준다.
+     *
+     * <p>노드를 만들기 전에 형식을 모두 확인해 두어야 뒤 단계에서 후보를 버리지 않는다.
+     */
+    private static String rejectionOf(
+            NodeResolutionResult.Decision decision,
+            int candidateCount,
+            int existingSubjectCount
+    ) {
+        if (decision == null || decision.action() == null) {
+            return "missing action";
+        }
+        if (decision.candidateIndex() < 1 || decision.candidateIndex() > candidateCount) {
+            return "unknown candidate index " + decision.candidateIndex();
+        }
+
+        return switch (decision.action()) {
+            case REUSE -> decision.subjectIndex() < 1
+                    || decision.subjectIndex() > existingSubjectCount
+                    || decision.value() == null || !decision.value().isEmpty()
+                    ? "invalid existing subject for candidate index " + decision.candidateIndex()
+                    : null;
+            case CREATE -> decision.subjectIndex() != 0
+                    || NodeTitleNormalizer.normalize(newSubjectTitle(decision)).isEmpty()
+                    ? "invalid new subject for candidate index " + decision.candidateIndex()
+                    : null;
+        };
+    }
+
+    /** 신규 판정이 내놓은 제목. 형식이 어긋나면 {@link #rejectionOf}가 걸러낸다. */
     private static String newSubjectTitle(NodeResolutionResult.Decision decision) {
         return decision.value() == null ? "" : decision.value().strip();
     }
 
-    /** LLM이 선택한 Subject가 제공된 Context에 속하는지 확인하고 재사용한다. */
+    /** LLM이 고른 Context 안의 Subject를 재사용한다. */
     private ResolvedNode reuse(
             Candidate candidate,
             NodeResolutionResult.Decision decision,
             List<KnowledgeNode> existingSubjects
     ) {
-        int index = decision.subjectIndex();
-        if (index < 1 || index > existingSubjects.size()
-                || decision.value() == null || !decision.value().isEmpty()) {
-            throw new IllegalStateException("node resolution selected an invalid existing subject");
-        }
-        KnowledgeNode existing = existingSubjects.get(index - 1);
+        KnowledgeNode existing = existingSubjects.get(decision.subjectIndex() - 1);
         return ResolvedNode.semantic(candidate.value(), existing);
     }
 
-    /** 신규 Subject 제안을 검증하고 동시에 생성된 중복이 있으면 기존 노드를 재사용한다. */
+    /** 신규 Subject를 만든다. 동시에 생성된 중복이 있으면 기존 노드를 재사용한다. */
     private ResolvedNode create(
             Long userId,
             Candidate candidate,
             NodeResolutionResult.Decision decision,
             Map<String, KnowledgeNode> createdMeanwhile
     ) {
-        if (decision.subjectIndex() != 0 || !StringUtils.hasText(decision.value())) {
-            throw new IllegalStateException("node resolution returned an invalid new subject");
-        }
-
-        String value = decision.value().strip();
+        String value = newSubjectTitle(decision);
         String normalized = NodeTitleNormalizer.normalize(value);
-        if (normalized.isEmpty()) {
-            throw new IllegalStateException("node resolution returned an empty new subject");
-        }
-
         KnowledgeNode existing = createdMeanwhile.get(normalized);
         if (existing != null) {
             return ResolvedNode.exact(candidate.value(), existing);

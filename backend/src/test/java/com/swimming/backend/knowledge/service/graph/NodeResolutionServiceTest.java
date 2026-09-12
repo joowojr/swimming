@@ -310,33 +310,77 @@ class NodeResolutionServiceTest {
     }
 
     @Test
-    @DisplayName("LLM은 Context에 제공하지 않은 Subject index를 재사용할 수 없다")
-    void rejectsUnknownSubjectIndex() {
+    @DisplayName("Context에 없는 Subject index를 고른 결정은 그 후보만 버린다")
+    void dropsDecisionWithUnknownSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
                         1, NodeResolutionResult.Action.REUSE, 1, ""
+                ),
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
                 )
         )));
 
-        assertThatThrownBy(() -> service.resolveSubjects(
-                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
-        )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("invalid existing subject");
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC", "saml")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle()).containsExactly("SAML");
     }
 
     @Test
-    @DisplayName("신규 Subject 응답은 기존 Subject index 대신 0을 사용해야 한다")
-    void rejectsExistingSubjectIndexForCreate() {
+    @DisplayName("신규 판정에 기존 Subject index를 쓴 결정은 그 후보만 버린다")
+    void dropsCreateDecisionWithExistingSubjectIndex() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
                 new NodeResolutionResult.Decision(
                         1, NodeResolutionResult.Action.CREATE, 1, "OpenID Connect"
+                ),
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
                 )
         )));
 
-        assertThatThrownBy(() -> service.resolveSubjects(
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC", "saml")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle()).containsExactly("SAML");
+    }
+
+    @Test
+    @DisplayName("답하지 않은 후보는 건너뛰고 답한 후보만 확정한다")
+    void 답하지_않은_후보는_건너뛴다() {
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        2, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                )
+        )));
+
+        List<ResolvedNode> result = service.resolveSubjects(
+                source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC", "saml")
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle()).containsExactly("SAML");
+    }
+
+    @Test
+    @DisplayName("같은 후보 index에 두 번 답하면 뒤의 결정을 버린다")
+    void 중복_결정은_뒤를_버린다() {
+        when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                ),
+                new NodeResolutionResult.Decision(
+                        1, NodeResolutionResult.Action.CREATE, 0, "SAML"
+                )
+        )));
+
+        List<ResolvedNode> result = service.resolveSubjects(
                 source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
-        )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("invalid new subject");
+        );
+
+        assertThat(result).extracting(item -> item.node().getTitle())
+                .containsExactly("OpenID Connect");
     }
 
     @Test
@@ -366,18 +410,19 @@ class NodeResolutionServiceTest {
     }
 
     @Test
-    @DisplayName("LLM이 제공하지 않은 후보 index로 답하면 거부한다")
-    void rejectsUnknownCandidateIndex() {
+    @DisplayName("쓸 수 있는 결정이 하나도 없으면 재시도할 수 있게 실패로 둔다")
+    void rejectsResponseWithoutUsableDecision() {
         when(llmService.resolve(any())).thenReturn(new NodeResolutionResult(List.of(
+                // 후보 index를 0부터 세거나 Subject index 규칙과 섞어 쓴 응답.
                 new NodeResolutionResult.Decision(
-                        2, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
+                        0, NodeResolutionResult.Action.CREATE, 0, "OpenID Connect"
                 )
         )));
 
         assertThatThrownBy(() -> service.resolveSubjects(
                 source(USER_ID, "https://a.com/current"), SUMMARY, List.of("OIDC")
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("unknown candidate index");
+                .hasMessageContaining("no usable decision");
     }
 
     @Test

@@ -10,6 +10,8 @@ import styles from './LinkComposer.module.css'
 interface LinkComposerProps {
   folderId: number
   onSaved: (source: SourceCard) => void
+  /** 저장 중인 링크를 목록 맨 위에 자리로 보여 줄 수 있게 알린다. 끝나면 null. */
+  onPendingChange: (url: string | null) => void
 }
 
 type Notice = { tone: 'info' | 'error'; text: string }
@@ -30,7 +32,7 @@ function isApiError(error: unknown): error is ApiError {
  * 링크 하나를 저장한다. 수집과 소화를 나누어 부르지 않으므로 호출은 한 번이다.
  * 지금은 서버가 소화까지 마치고 응답해 시간이 걸리지만, 비동기로 바뀌어도 이 화면은 그대로다.
  */
-export default function LinkComposer({ folderId, onSaved }: LinkComposerProps) {
+export default function LinkComposer({ folderId, onSaved, onPendingChange }: LinkComposerProps) {
   const [url, setUrl] = useState('')
   const [fieldError, setFieldError] = useState<string | undefined>()
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -44,9 +46,11 @@ export default function LinkComposer({ folderId, onSaved }: LinkComposerProps) {
     setNotice(null)
     if (validationError) return
 
+    const trimmedUrl = url.trim()
     setIsSubmitting(true)
+    onPendingChange(trimmedUrl)
     try {
-      const [item] = (await collectSources(folderId, [url.trim()])).items
+      const [item] = (await collectSources(folderId, [trimmedUrl])).items
       if (!item) return
 
       if (item.result === 'FAILED') {
@@ -73,6 +77,7 @@ export default function LinkComposer({ folderId, onSaved }: LinkComposerProps) {
       })
     } finally {
       setIsSubmitting(false)
+      onPendingChange(null)
     }
   }
 

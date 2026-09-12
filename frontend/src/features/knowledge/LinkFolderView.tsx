@@ -4,6 +4,7 @@ import type { ApiError } from '../../api/client'
 import ModeToggle from '../../components/ModeToggle'
 import type { ModeToggleOption } from '../../components/ModeToggle'
 import LinkComposer from './LinkComposer'
+import PendingSourceCard from './PendingSourceCard'
 import SourceFeedCard from './SourceFeedCard'
 import { getSources } from './knowledgeApi'
 import type { SourceCard } from './knowledgeTypes'
@@ -51,6 +52,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
   const [state, setState] = useState<ListState>({ status: 'loading' })
   const [view, setView] = useState<SourceView>('list')
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null)
   const [requestKey, setRequestKey] = useState(0)
 
   // 폴더를 바꾸면 쓰는 쪽이 key로 새로 마운트하므로 여기서 loading으로 되돌리지 않는다.
@@ -156,7 +158,9 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
           </Suspense>
         ) : (
         <div className={styles['link-list-stack']}>
-          <LinkComposer folderId={folderId} onSaved={prependSource} />
+          <LinkComposer folderId={folderId} onSaved={prependSource} onPendingChange={setPendingUrl} />
+
+          {pendingUrl && <PendingSourceCard url={pendingUrl} />}
 
           {state.status === 'loading' ? (
             <div className={styles.state} role="status">
@@ -175,7 +179,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
                 다시 불러오기
               </button>
             </div>
-          ) : state.items.length === 0 ? (
+          ) : state.items.length === 0 && !pendingUrl ? (
             <div className={styles.state}>
               <p>아직 저장된 링크가 없어요.</p>
               <p className={styles.hint}>링크를 붙여 넣으면 이곳에 하나씩 쌓입니다.</p>

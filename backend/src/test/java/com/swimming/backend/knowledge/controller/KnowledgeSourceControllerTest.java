@@ -191,6 +191,7 @@ class KnowledgeSourceControllerTest {
                 null,
                 false,
                 "다시 분석한 요약",
+                null,
                 new NodeRef(TOPIC_ID, "MCP 서버 구현하기"),
                 List.of(new NodeRef(SUBJECT_ID, "MCP"))
         ));

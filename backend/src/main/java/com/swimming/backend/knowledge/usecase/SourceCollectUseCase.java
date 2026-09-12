@@ -35,8 +35,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SourceCollectUseCase {
 
-    private static final int MIN_SOURCE_CONTENT_LENGTH = 100;
-
     private final SourceFetchDispatcher sourceFetchService;
 
     private final FolderService folderService;
@@ -135,17 +133,6 @@ public class SourceCollectUseCase {
                 .orElseGet(() -> {
                     KnowledgeSource created =
                             sourceService.save(toSource(userId, folderId, document));
-                    if (created.getContent().length() < MIN_SOURCE_CONTENT_LENGTH) {
-                        created.failDigestion(ErrorCode.SOURCE_EMPTY_CONTENT.name(), false);
-                        sourceService.updateStatus(created);
-                        return new Saved(
-                                result.requestedUrl(),
-                                SourceCollectResponse.Result.CREATED,
-                                created.getId(),
-                                null,
-                                false
-                        );
-                    }
                     // 소화가 실패해도 예외를 던지지 않는다. 상태만 남고 원문은 그대로 있다.
                     digestProcessor.digest(userId, created.getId());
 

@@ -179,8 +179,8 @@ class SourceCollectUseCaseTest {
         }
 
         @Test
-        @DisplayName("본문이 짧으면 오류 코드와 함께 실패 상태를 저장한다")
-        void storesFailureCodeWhenContentIsTooShort() {
+        @DisplayName("본문이 100자 이하면 LLM 소화 없이 원문을 제공한다")
+        void providesShortContentWithoutDigestion() {
             givenFetch(SourceFetchResult.success("https://a.com/short", new FetchedDocument(
                     "https://a.com/short",
                     "https://a.com/short",
@@ -195,11 +195,13 @@ class SourceCollectUseCaseTest {
             SourceResponse source = collect(FOLDER_ID, "https://a.com/short")
                     .items().getFirst().source();
 
-            assertThat(source.status()).isEqualTo(SourceProcessingStatus.FAILED);
-            assertThat(source.failureMessage()).isEqualTo("SOURCE_EMPTY_CONTENT");
+            assertThat(source.status()).isEqualTo(SourceProcessingStatus.SOURCE_NOT_DIGEST);
+            assertThat(source.content()).isEqualTo("짧은 본문");
+            assertThat(source.summary()).isNull();
+            assertThat(source.failureMessage()).isNull();
             assertThat(source.retryable()).isFalse();
-            assertThat(sources.findById(source.sourceId()).orElseThrow().getFailureMessage())
-                    .isEqualTo("SOURCE_EMPTY_CONTENT");
+            assertThat(sources.findById(source.sourceId()).orElseThrow().getProcessingStatus())
+                    .isEqualTo(SourceProcessingStatus.SOURCE_NOT_DIGEST);
             verify(digestService, never()).digest(any());
         }
 
@@ -389,7 +391,8 @@ class SourceCollectUseCaseTest {
             KnowledgeSource source = KnowledgeSource.create(
                     USER_ID, FOLDER_ID, "문서", "https://a.com", "https://a.com"
             );
-            source.applyExtractedDocument("문서", "파싱한 본문", "article", null, null);
+            source.applyExtractedDocument(
+                    "문서", "파싱한 본문 ".repeat(20), "article", null, null);
             source.failDigestion("SOURCE_DIGEST_FAILURE", true);
             return sources.save(source);
         }

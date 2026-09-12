@@ -32,12 +32,6 @@ public interface KnowledgeNodeJpaRepository extends JpaRepository<KnowledgeNodeE
             Collection<String> normalizedTitles
     );
 
-    Optional<KnowledgeNodeEntity> findByUserIdAndNodeTypeAndNormalizedTitleAndDeletedFalse(
-            Long userId,
-            NodeType nodeType,
-            String normalizedTitle
-    );
-
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             update KnowledgeNodeEntity n

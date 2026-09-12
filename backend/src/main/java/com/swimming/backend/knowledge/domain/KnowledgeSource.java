@@ -179,6 +179,15 @@ public class KnowledgeSource {
         this.retryable = false;
     }
 
+    /** 본문이 짧아 LLM 소화 없이 원문을 그대로 보여 주는 상태로 완료한다. */
+    public void completeWithoutDigestion() {
+        this.summary = null;
+        this.analysisVersion = null;
+        this.processingStatus = SourceProcessingStatus.SOURCE_NOT_DIGEST;
+        this.failureMessage = null;
+        this.retryable = false;
+    }
+
     /**
      * AI 처리 실패는 원문 Source를 남긴 채 상태만 바꾼다.
      */

@@ -14,7 +14,8 @@ import java.util.UUID;
  * <p>저장 응답과 목록 응답이 이 하나를 공유한다. 저장 직후와 목록이 같은 것을 그리므로
  * 응답이 갈라질 이유가 없다. 원문 정보까지 필요한 화면은 {@link SourceDetailResponse}다.
  *
- * <p>원문({@code content})은 담지 않는다. 문서 하나가 수만 자라 목록이 감당하지 못한다.
+ * <p>원문({@code content})은 LLM 소화를 생략한 100자 이하 Source에만 담는다. 일반 문서는
+ * 수만 자일 수 있으므로 목록 응답에 싣지 않는다.
  *
  * @param createdAt 이 Source를 저장한 시각
  * @param readAt    이 링크를 읽은 시각. 아직 읽지 않았으면 {@code null}
@@ -34,6 +35,7 @@ public record SourceResponse(
         String failureMessage,
         boolean retryable,
         String summary,
+        String content,
         NodeRef topic,
         List<NodeRef> subjects
 ) {
@@ -51,6 +53,9 @@ public record SourceResponse(
                 source.getFailureMessage(),
                 source.isRetryable(),
                 source.getSummary(),
+                source.getProcessingStatus() == SourceProcessingStatus.SOURCE_NOT_DIGEST
+                        ? source.getContent()
+                        : null,
                 concepts.topic(),
                 concepts.subjects()
         );

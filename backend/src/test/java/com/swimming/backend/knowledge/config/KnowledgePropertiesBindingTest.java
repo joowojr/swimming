@@ -57,7 +57,7 @@ class KnowledgePropertiesBindingTest {
         Map<String, Object> yaml = at("app", "knowledge", "digest");
 
         assertThat(yaml.keySet())
-                .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(KnowledgeDigestProperties.class));
+                .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(LinkDigestProperties.class));
     }
 
     @Test
@@ -66,7 +66,7 @@ class KnowledgePropertiesBindingTest {
         Map<String, Object> yaml = at("app", "knowledge", "resolution");
 
         assertThat(yaml.keySet()).containsExactlyInAnyOrderElementsOf(
-                kebabComponentsOf(KnowledgeResolutionProperties.class)
+                kebabComponentsOf(ResolutionProperties.class)
         );
     }
 
@@ -88,7 +88,7 @@ class KnowledgePropertiesBindingTest {
         Map<String, Object> yaml = at("app", "knowledge", "fetch");
 
         assertThat(yaml.keySet())
-                .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(KnowledgeFetchProperties.class));
+                .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(WebFetchProperties.class));
     }
 
     @Test
@@ -97,6 +97,6 @@ class KnowledgePropertiesBindingTest {
         Map<String, Object> yaml = at("app", "knowledge", "fetch", "render");
 
         assertThat(yaml.keySet())
-                .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(KnowledgeFetchProperties.Render.class));
+                .containsExactlyInAnyOrderElementsOf(kebabComponentsOf(WebFetchProperties.Render.class));
     }
 }

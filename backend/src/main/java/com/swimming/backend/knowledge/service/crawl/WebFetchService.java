@@ -1,8 +1,9 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
@@ -40,6 +41,7 @@ import java.util.concurrent.Semaphore;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class WebFetchService {
 
     private static final int HTTP_FORBIDDEN = 403;
@@ -59,21 +61,12 @@ public class WebFetchService {
             "fbclid", "gclid", "msclkid", "igshid", "mc_cid", "mc_eid", "ref", "ref_src"
     );
 
-    private final KnowledgeFetchProperties properties;
+    private final WebFetchProperties properties;
     private final HtmlToMarkdownConverter markdownConverter;
 
     /** 렌더링 폴백은 꺼둘 수 있다. 꺼져 있으면 빈이 없다. */
     private final Optional<LambdaPageRendererClient> pageRenderer;
 
-    public WebFetchService(
-            KnowledgeFetchProperties properties,
-            HtmlToMarkdownConverter markdownConverter,
-            Optional<LambdaPageRendererClient> pageRenderer
-    ) {
-        this.properties = properties;
-        this.markdownConverter = markdownConverter;
-        this.pageRenderer = pageRenderer;
-    }
 
     /**
      * 입력 순서를 유지하고, 같은 URL이 여러 번 오면 한 번만 요청한다.

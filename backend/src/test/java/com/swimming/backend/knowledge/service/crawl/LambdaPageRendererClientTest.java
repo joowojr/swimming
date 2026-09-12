@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,14 +34,14 @@ class LambdaPageRendererClientTest {
     void setUp() {
         lambdaClient = mock(LambdaClient.class);
 
-        KnowledgeFetchProperties properties = new KnowledgeFetchProperties(
+        WebFetchProperties properties = new WebFetchProperties(
                 4,
                 Duration.ofSeconds(15),
                 4 * 1024 * 1024,
                 80_000,
                 300,
                 USER_AGENT,
-                new KnowledgeFetchProperties.Render(
+                new WebFetchProperties.Render(
                         true, FUNCTION_NAME, Duration.ofSeconds(20), 1000
                 )
         );

@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.llm;
 
-import com.swimming.backend.knowledge.config.KnowledgeDigestProperties;
+import com.swimming.backend.knowledge.config.LinkDigestProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +12,7 @@ class DigestContextTrimmerTest {
     private static final int BUDGET = 800;
 
     private final DigestContextTrimmer trimmer =
-            new DigestContextTrimmer(new KnowledgeDigestProperties(CAP, BUDGET));
+            new DigestContextTrimmer(new LinkDigestProperties(CAP, BUDGET));
 
     private String paragraph(int length) {
         return "가".repeat(length);

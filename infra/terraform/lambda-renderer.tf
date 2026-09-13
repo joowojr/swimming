@@ -121,8 +121,9 @@ resource "aws_lambda_function" "page_renderer" {
   # 콜드 스타트에 Chromium 기동이 2~5초. 백엔드는 25초에 포기하고, 렌더 자체는 20초로 끊는다.
   timeout = 30
 
-  # 실측 뒤 CloudWatch의 Max Memory Used를 보고 조정한다. Chromium 한 개가 200~400MB.
-  memory_size = 2048
+  # 2,048MB 운영 환경에서는 Chromium page 생성 전에 30초 timeout이 발생했다.
+  # 이 계정의 초기 Lambda 메모리 상한인 3,008MB까지 높여 CPU 할당도 함께 늘린다.
+  memory_size = 3008
 
   # 계정 동시 실행 한도가 10인 동안에는 예약 동시성을 설정할 수 없다. Lambda는 계정에
   # 최소 10개의 미예약 실행을 남기도록 강제하므로, quota를 올리기 전에는 계정 한도를 공유한다.

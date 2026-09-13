@@ -252,6 +252,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
         targetSection: targetSection.apiSection,
         previousTaskId: targetItems[targetIndex - 1]?.id ?? null,
         nextTaskId: targetItems[targetIndex]?.id ?? null,
+        ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
       })
       const sourceSection = matrixSections.find((section) => section.id === dragState.sourceSection)
       await Promise.all([

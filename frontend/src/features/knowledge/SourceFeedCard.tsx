@@ -52,6 +52,9 @@ export default function SourceFeedCard({
   const isRead = source.readAt !== null
   const subjects = source.subjects ?? []
   const savedAt = formatSavedAt(source.createdAt)
+  const description = source.status === 'SOURCE_NOT_DIGEST'
+    ? source.content
+    : source.summary
 
   const remove = async () => {
     if (isDeleting) return
@@ -217,7 +220,7 @@ export default function SourceFeedCard({
           {retryError && <p className={styles['retry-error']} role="alert">{retryError}</p>}
         </div>
       ) : (
-        source.summary && <p className={styles.summary}>{source.summary}</p>
+        description && <p className={styles.summary}>{description}</p>
       )}
 
       {isConfirming && (

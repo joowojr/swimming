@@ -82,13 +82,13 @@ class SourceDeleteUseCaseTest {
         source.completeDigestion(title + " 요약", 1);
 
         KnowledgeSource saved = sources.save(source);
-        nodes.save(saved.getNode());
+        nodes.create(saved.getNode());
 
         return saved;
     }
 
     private KnowledgeNode givenNode(NodeType nodeType, String title) {
-        return nodes.save(KnowledgeNode.create(USER_ID, nodeType, title, null));
+        return nodes.create(KnowledgeNode.create(USER_ID, nodeType, title, null));
     }
 
     /** 소화가 그래프에 남기는 모양 그대로 만든다. */
@@ -160,6 +160,21 @@ class SourceDeleteUseCaseTest {
         assertThat(nodeDetailUseCase.get(USER_ID, mcp.getId()).sources())
                 .extracting(source -> source.title())
                 .containsExactly("남길 문서");
+    }
+
+    @Test
+    @DisplayName("마지막으로 참조하던 Source를 지우면 Subject도 함께 사라진다")
+    void deletesOrphanSubject() {
+        KnowledgeNode mcp = givenNode(NodeType.SUBJECT, "MCP");
+        KnowledgeSource source = givenSource("문서");
+        digest(source, givenNode(NodeType.TOPIC, "목적"), mcp);
+
+        useCase.delete(USER_ID, source.getId());
+
+        assertThatThrownBy(() -> nodeDetailUseCase.get(USER_ID, mcp.getId()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND);
     }
 
     @Test

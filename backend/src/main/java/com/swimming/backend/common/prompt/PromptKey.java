@@ -17,8 +17,8 @@ public enum PromptKey {
     /** 저장한 문서 하나를 소화해 Summary·Topic·Subject를 뽑는다. */
     SOURCE_DIGEST("source-digest"),
 
-    /** 규칙으로 해결되지 않은 Subject 후보를 기존 Subject에 맞추거나 새 이름으로 정한다. */
-    NODE_RESOLUTION("node-resolution");
+    /** 후보별 매칭 결과를 사용해 Subject를 기존 Subject에 맞추거나 새 이름으로 정한다. */
+    NODE_RESOLUTION_V2("node-resolution-v2");
 
     private final String configName;
 

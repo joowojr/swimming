@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 저장한 링크를 지운다.
@@ -29,6 +31,7 @@ public class SourceDeleteUseCase {
 
     /** Source에서 Topic으로 향하는 관계. 딸린 Topic을 찾을 때 쓴다. */
     private static final List<RelationType> TO_TOPIC = List.of(RelationType.SUPPORTS);
+    private static final List<RelationType> TO_SUBJECT = List.of(RelationType.ABOUT);
 
     private final KnowledgeSourceService sourceService;
     private final KnowledgeNodeService nodeService;
@@ -42,20 +45,20 @@ public class SourceDeleteUseCase {
      * Topic만 남기면 문서 0개짜리 Topic이 남는데, `sources`가 항상 하나라는 계약이 거기서
      * 깨진다.
      *
-     * <p>Subject는 남긴다. 여러 문서가 공유하는 개념이고, 지웠다가 같은 개념을 다시 저장하면
-     * 재사용이 끊겨 노드가 갈라진다.
+     * <p>Subject는 다른 활성 Source가 계속 쓰는 경우만 남긴다. 마지막 Source가 삭제되면
+     * 임베딩 검색 후보에 고아 Subject가 남지 않도록 함께 soft delete한다.
      *
      * <p>마지막 링크였다면 폴더의 표시를 끈다. 켜진 채로 두면 지울 수 있는 폴더를 막는다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public SourceDeleteResponse delete(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
+        List<UUID> subjectIds = subjectIdsOf(sourceId);
 
-        for (KnowledgeNode topic : topicsOf(sourceId)) {
-            nodeService.delete(topic);
-        }
+        nodeService.deleteAll(userId, topicIdsOf(sourceId));
 
         sourceService.delete(source);
+        deleteOrphanSubjects(userId, subjectIds);
 
         Long folderId = source.getFolderId();
         boolean hasSource = sourceService.existsInFolder(userId, folderId);
@@ -63,11 +66,45 @@ public class SourceDeleteUseCase {
         return new SourceDeleteResponse(folderId, hasSource);
     }
 
-    private List<KnowledgeNode> topicsOf(UUID sourceId) {
-        List<UUID> topicIds = relationService.findOutgoing(List.of(sourceId), TO_TOPIC).stream()
+    private List<UUID> topicIdsOf(UUID sourceId) {
+        return relationService.findOutgoing(List.of(sourceId), TO_TOPIC).stream()
                 .map(KnowledgeRelation::getToNodeId)
+                .distinct()
                 .toList();
+    }
 
-        return nodeService.findAllByIds(topicIds);
+    private List<UUID> subjectIdsOf(UUID sourceId) {
+        return relationService.findOutgoing(List.of(sourceId), TO_SUBJECT).stream()
+                .map(KnowledgeRelation::getToNodeId)
+                .distinct()
+                .toList();
+    }
+
+    private void deleteOrphanSubjects(Long userId, List<UUID> subjectIds) {
+        if (subjectIds.isEmpty()) {
+            return;
+        }
+
+        List<KnowledgeRelation> references = relationService.findIncoming(
+                subjectIds, TO_SUBJECT);
+        Set<UUID> activeSourceIds = sourceService.findAllByIds(
+                        references.stream()
+                                .map(KnowledgeRelation::getFromNodeId)
+                                .distinct()
+                                .toList()
+                ).stream()
+                .map(KnowledgeSource::getId)
+                .collect(Collectors.toSet());
+        Set<UUID> referencedSubjectIds = references.stream()
+                .filter(reference -> activeSourceIds.contains(reference.getFromNodeId()))
+                .map(KnowledgeRelation::getToNodeId)
+                .collect(Collectors.toSet());
+
+        nodeService.deleteAll(
+                userId,
+                subjectIds.stream()
+                        .filter(subjectId -> !referencedSubjectIds.contains(subjectId))
+                        .toList()
+        );
     }
 }

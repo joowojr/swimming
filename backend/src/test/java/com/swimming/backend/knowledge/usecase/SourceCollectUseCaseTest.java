@@ -76,7 +76,7 @@ class SourceCollectUseCaseTest {
                 return candidates.stream()
                         .map(candidate -> ResolvedNode.created(
                                 candidate,
-                                nodes.save(KnowledgeNode.create(
+                                nodes.create(KnowledgeNode.create(
                                         USER_ID, NodeType.SUBJECT, candidate, null
                                 ))
                         ))
@@ -179,8 +179,8 @@ class SourceCollectUseCaseTest {
         }
 
         @Test
-        @DisplayName("본문이 짧으면 오류 코드와 함께 실패 상태를 저장한다")
-        void storesFailureCodeWhenContentIsTooShort() {
+        @DisplayName("본문이 100자 이하면 LLM 소화 없이 원문을 제공한다")
+        void providesShortContentWithoutDigestion() {
             givenFetch(SourceFetchResult.success("https://a.com/short", new FetchedDocument(
                     "https://a.com/short",
                     "https://a.com/short",
@@ -195,11 +195,13 @@ class SourceCollectUseCaseTest {
             SourceResponse source = collect(FOLDER_ID, "https://a.com/short")
                     .items().getFirst().source();
 
-            assertThat(source.status()).isEqualTo(SourceProcessingStatus.FAILED);
-            assertThat(source.failureMessage()).isEqualTo("SOURCE_EMPTY_CONTENT");
+            assertThat(source.status()).isEqualTo(SourceProcessingStatus.SOURCE_NOT_DIGEST);
+            assertThat(source.content()).isEqualTo("짧은 본문");
+            assertThat(source.summary()).isNull();
+            assertThat(source.failureMessage()).isNull();
             assertThat(source.retryable()).isFalse();
-            assertThat(sources.findById(source.sourceId()).orElseThrow().getFailureMessage())
-                    .isEqualTo("SOURCE_EMPTY_CONTENT");
+            assertThat(sources.findById(source.sourceId()).orElseThrow().getProcessingStatus())
+                    .isEqualTo(SourceProcessingStatus.SOURCE_NOT_DIGEST);
             verify(digestService, never()).digest(any());
         }
 
@@ -286,6 +288,31 @@ class SourceCollectUseCaseTest {
                     .as("이미 저장한 문서도 카드는 그대로 돌려준다")
                     .isNotNull();
 
+            verify(digestService, times(1)).digest(any());
+        }
+
+        @Test
+        @DisplayName("한 번에 받은 링크들의 canonical URL이 같으면 하나만 저장한다")
+        void doesNotDuplicateSameDocumentWithinRequest() {
+            givenFetch(
+                    success("https://a.com/1?utm_source=x", "https://a.com/1", "같은 문서"),
+                    success("https://a.com/1", "https://a.com/1", "같은 문서")
+            );
+
+            SourceCollectResponse response = collect(
+                    FOLDER_ID,
+                    "https://a.com/1?utm_source=x",
+                    "https://a.com/1"
+            );
+
+            assertThat(response.items())
+                    .extracting(SourceCollectResponse.Item::result)
+                    .containsExactly(
+                            SourceCollectResponse.Result.CREATED,
+                            SourceCollectResponse.Result.ALREADY_SAVED
+                    );
+            assertThat(response.items().getFirst().source().sourceId())
+                    .isEqualTo(response.items().getLast().source().sourceId());
             verify(digestService, times(1)).digest(any());
         }
 
@@ -389,7 +416,8 @@ class SourceCollectUseCaseTest {
             KnowledgeSource source = KnowledgeSource.create(
                     USER_ID, FOLDER_ID, "문서", "https://a.com", "https://a.com"
             );
-            source.applyExtractedDocument("문서", "파싱한 본문", "article", null, null);
+            source.applyExtractedDocument(
+                    "문서", "파싱한 본문 ".repeat(20), "article", null, null);
             source.failDigestion("SOURCE_DIGEST_FAILURE", true);
             return sources.save(source);
         }

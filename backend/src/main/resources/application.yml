@@ -5,8 +5,6 @@ spring:
     default: local
   jpa:
     properties:
-      hibernate:
-        format_sql: true
       hibernate.type.json_format_mapper: org.hibernate.type.format.jackson.Jackson3JsonFormatMapper
   sql:
     init:
@@ -47,7 +45,7 @@ app:
       task-organizer: ${TASK_ORGANIZER_PROMPT_PATH:classpath:prompts/task-organizer/classify.md}
       task-extractor: ${TASK_EXTRACTOR_PROMPT_PATH:classpath:prompts/task-organizer/extract.md}
       source-digest: ${SOURCE_DIGEST_PROMPT_PATH:classpath:prompts/knowledge/digest.md}
-      node-resolution: ${NODE_RESOLUTION_PROMPT_PATH:classpath:prompts/knowledge/node-resolution.md}
+      node-resolution-v2: ${NODE_RESOLUTION_V2_PROMPT_PATH:classpath:prompts/knowledge/node-resolution-v2.md}
     # 골격의 <!-- fragment: 이름 --> 줄에 끼워 넣는다.
     fragments:
       splitting: classpath:prompts/task-organizer/_splitting.md
@@ -55,6 +53,7 @@ app:
   knowledge:
     resolution:
       similar-source-limit: 5
+      similar-source-distance-threshold: 0.5
       subject-top-k: 3
     digest:
       # LLM 입력 상한. 이보다 짧은 문서는 손대지 않고 통째로 넣는다.
@@ -74,17 +73,13 @@ app:
       # 링크를 뺀 실제 문장이 이보다 짧으면 본문 추출 실패로 보고 og:description 으로 대체한다.
       # 실측: 로그인 벽 페이지 183~271자 / 가장 짧은 정상 문서 2,154자.
       min-meaningful-length: 300
-      user-agent: SwimmingBot/0.1 (+https://swimming.app)
+      user-agent: Mozilla/5.0 (X11; Linux x86_64)
       render:
-        # JavaScript로 본문을 그리는 페이지(tech.kakao.com, d2.naver.com 등)만 대상.
-        # 브라우저는 백엔드 컨테이너가 아니라 전용 Lambda에서 돈다. 켜기 전에 함수가 배포되어
-        # 있어야 하고, 호출하는 역할에 lambda:InvokeFunction 권한이 있어야 한다.
-        # 배경은 docs/enhance/0907_렌더링_폴백_Lambda_분리.md 참고.
         enabled: ${KNOWLEDGE_FETCH_RENDER_ENABLED:false}
         function-name: ${KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME:}
         timeout: 20s
         # 실측: 렌더링이 필요했던 페이지가 74자·322자, 정상이지만 짧았던 페이지가 3,750자.
-        min-content-length: 1000
+        min-content-length: 100
   place:
     background:
       cdn-base-url: ${PLACE_CDN_BASE_URL}

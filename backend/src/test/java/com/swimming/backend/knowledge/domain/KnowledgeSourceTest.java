@@ -70,6 +70,21 @@ class KnowledgeSourceTest {
     }
 
     @Test
+    @DisplayName("짧은 본문은 소화하지 않은 종료 상태로 바꾼다")
+    void 짧은_본문을_소화하지_않은_상태로_완료한다() {
+        KnowledgeSource source = pendingSource();
+
+        source.completeWithoutDigestion();
+
+        assertThat(source.getProcessingStatus())
+                .isEqualTo(SourceProcessingStatus.SOURCE_NOT_DIGEST);
+        assertThat(source.getSummary()).isNull();
+        assertThat(source.getAnalysisVersion()).isNull();
+        assertThat(source.getFailureMessage()).isNull();
+        assertThat(source.isRetryable()).isFalse();
+    }
+
+    @Test
     @DisplayName("AI 소화가 실패해도 원문은 남고 상태만 실패로 바뀐다")
     void keepsContentWhenDigestionFails() {
         KnowledgeSource source = KnowledgeSource.create(USER_ID, FOLDER_ID, "제목", URL, CANONICAL_URL);

@@ -1,6 +1,5 @@
 package com.swimming.backend.knowledge.experiment;
 
-import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -47,9 +46,36 @@ class NodeResolutionEvalTestDataTest {
                     .flatMap(source -> source.subjects().stream())
                     .toList();
             Stream<String> reuseSubjects = scenario.expected().stream()
-                    .filter(expected -> expected.action() == NodeResolutionResult.Action.REUSE)
+                    .filter(expected -> expected.action() == NodeResolutionEvalScenario.Action.REUSE)
                     .map(NodeResolutionEvalScenario.ExpectedResolution::canonicalSubject);
             assertThat(reuseSubjects).allMatch(corpusSubjects::contains);
         });
+    }
+
+    @Test
+    @DisplayName("판정 전용 평가의 고정 재사용 후보는 정답을 모두 담고 신규 판정의 답은 담지 않는다")
+    void 판정_전용_고정_후보의_전제를_지킨다() {
+        for (NodeResolutionEvalScenario scenario : NodeResolutionEvalTestData.scenarios()) {
+            List<String> reusable = NodeResolutionEvalTestData.reusableSubjects(scenario);
+
+            assertThat(reusable).as("%s 고정 후보", scenario.id()).doesNotHaveDuplicates();
+
+            // 재사용이 정답이면 대상이 컨텍스트에 있어야 한다. 없으면 검색 실패와 구분되지 않는다.
+            List<String> reuseTargets = scenario.expected().stream()
+                    .filter(expected -> expected.action() == NodeResolutionEvalScenario.Action.REUSE)
+                    .map(NodeResolutionEvalScenario.ExpectedResolution::canonicalSubject)
+                    .toList();
+            assertThat(reusable).as("%s 재사용 정답", scenario.id()).containsAll(reuseTargets);
+
+            // 신규가 정답이면 같은 이름이 컨텍스트에 없어야 한다. 있으면 재사용이 맞는 답이 된다.
+            List<String> createTargets = scenario.expected().stream()
+                    .filter(expected -> expected.action() == NodeResolutionEvalScenario.Action.CREATE)
+                    .map(NodeResolutionEvalScenario.ExpectedResolution::canonicalSubject)
+                    .toList();
+            if (!createTargets.isEmpty()) {
+                assertThat(reusable).as("%s 신규 정답", scenario.id())
+                        .doesNotContainAnyElementsOf(createTargets);
+            }
+        }
     }
 }

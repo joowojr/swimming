@@ -181,7 +181,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
         : undefined
       setUpdateError({
         taskId: task.id,
-        message: apiMessage ?? 'Task 상태를 변경하지 못했습니다. 다시 시도해 주세요.',
+        message: apiMessage ?? '상태를 변경하지 못했습니다. 다시 시도해 주세요.',
       })
     } finally {
       setPendingTaskId(null)
@@ -200,7 +200,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
       ])))
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-      setUpdateError({ taskId: task.id, message: apiMessage ?? 'Task를 삭제하지 못했습니다.' })
+      setUpdateError({ taskId: task.id, message: apiMessage ?? '할 일을 삭제하지 못했습니다.' })
     } finally {
       setPendingTaskId(null)
     }
@@ -230,7 +230,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
       : undefined
     return apiError?.errors?.title
       ?? apiError?.message
-      ?? 'Task 제목을 저장하지 못했습니다.'
+      ?? '제목을 저장하지 못했습니다.'
   }
 
   const dropTask = async (targetSection: MatrixSection, targetTaskId: number | null, insertBefore: boolean) => {
@@ -260,7 +260,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
       ])
     } catch (error: unknown) {
       const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-      setUpdateError({ taskId: dragState.taskId, message: apiMessage ?? 'Task 위치를 변경하지 못했습니다.' })
+      setUpdateError({ taskId: dragState.taskId, message: apiMessage ?? '할 일을 옮기지 못했습니다.' })
     } finally {
       setPendingTaskId(null)
       setDragState(null)

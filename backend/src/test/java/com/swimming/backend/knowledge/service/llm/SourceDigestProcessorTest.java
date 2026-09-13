@@ -64,7 +64,7 @@ class SourceDigestProcessorTest {
             return candidates.stream()
                     .map(candidate -> ResolvedNode.created(
                             candidate,
-                            nodes.save(KnowledgeNode.create(
+                            nodes.create(KnowledgeNode.create(
                                     USER_ID, NodeType.SUBJECT, candidate, null
                             ))
                     ))
@@ -99,7 +99,7 @@ class SourceDigestProcessorTest {
         );
         source.applyExtractedDocument(
                 "Spring AI MCP Reference",
-                "# MCP\n\nMCP Server를 구성하는 방법을 설명한다.",
+                digestibleContent(),
                 "DOCS", "Spring", null
         );
         return source;
@@ -112,9 +112,21 @@ class SourceDigestProcessorTest {
         );
         source.applyExtractedDocument(
                 "Spring AI MCP Reference",
-                "# MCP\n\nMCP Server를 구성하는 방법을 설명한다.",
+                digestibleContent(),
                 "DOCS", "Spring", null
         );
+        return sources.save(source);
+    }
+
+    private String digestibleContent() {
+        return "# MCP\n\nMCP Server를 구성하는 방법을 설명한다. ".repeat(4);
+    }
+
+    private KnowledgeSource savedSourceWithContent(String content) {
+        KnowledgeSource source = KnowledgeSource.create(
+                USER_ID, FOLDER_ID, "제목", "https://a.com", "https://a.com"
+        );
+        source.applyExtractedDocument("제목", content, "DOCS", null, null);
         return sources.save(source);
     }
 
@@ -197,6 +209,34 @@ class SourceDigestProcessorTest {
                 .isEqualTo("SOURCE_EMPTY_CONTENT");
         assertThat(response.retryable()).isFalse();
         verify(digestService, never()).digest(any());
+    }
+
+    @Test
+    @DisplayName("본문이 정확히 100자면 LLM 호출 없이 SOURCE_NOT_DIGEST로 완료한다")
+    void 본문이_100자면_LLM_소화를_생략한다() {
+        KnowledgeSource source = savedSourceWithContent("가".repeat(100));
+
+        SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
+
+        assertThat(response.status()).isEqualTo(SourceProcessingStatus.SOURCE_NOT_DIGEST);
+        assertThat(response.failureMessage()).isNull();
+        assertThat(response.retryable()).isFalse();
+        assertThat(response.result()).isNull();
+        verify(digestService, never()).digest(any());
+        verify(nodeResolutionService, never()).resolveSubjects(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("본문이 101자면 기존 LLM 소화 흐름을 실행한다")
+    void 본문이_101자면_LLM으로_소화한다() {
+        KnowledgeSource source = savedSourceWithContent("가".repeat(101));
+        when(digestService.digest(any())).thenReturn(digestResult());
+
+        SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
+
+        assertThat(response.status()).isEqualTo(SourceProcessingStatus.COMPLETED);
+        verify(digestService).digest(any());
+        verify(nodeResolutionService).resolveSubjects(any(), any(), any());
     }
 
     @Test
@@ -376,7 +416,7 @@ class SourceDigestProcessorTest {
     @Test
     @DisplayName("참고 맥락에는 Subject와 다른 사용자의 Topic을 넣지 않는다")
     void limitsExistingTopicsToOwnTopics() {
-        nodes.save(KnowledgeNode.create(OTHER_USER_ID, NodeType.TOPIC, "남의 목적", null));
+        nodes.create(KnowledgeNode.create(OTHER_USER_ID, NodeType.TOPIC, "남의 목적", null));
 
         when(digestService.digest(any())).thenReturn(digestResult());
         useCase.digest(USER_ID, savedSource().getId());

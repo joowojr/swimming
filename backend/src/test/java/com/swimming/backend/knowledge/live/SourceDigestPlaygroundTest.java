@@ -132,7 +132,7 @@ class SourceDigestPlaygroundTest {
             return candidates.stream()
                     .map(candidate -> ResolvedNode.created(
                             candidate,
-                            nodes.save(KnowledgeNode.create(
+                            nodes.create(KnowledgeNode.create(
                                     USER_ID, NodeType.SUBJECT, candidate, null
                             ))
                     ))
@@ -431,8 +431,8 @@ class SourceDigestPlaygroundTest {
                                 "classpath:prompts/task-organizer/extract.md",
                                 PromptKey.SOURCE_DIGEST.configName(),
                                 "classpath:prompts/knowledge/digest.md",
-                                PromptKey.NODE_RESOLUTION.configName(),
-                                "classpath:prompts/knowledge/node-resolution.md"
+                                PromptKey.NODE_RESOLUTION_V2.configName(),
+                                "classpath:prompts/knowledge/node-resolution-v2.md"
                         ),
                         Map.of(
                                 "splitting", "classpath:prompts/task-organizer/_splitting.md",

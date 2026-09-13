@@ -51,7 +51,7 @@ class SourceGraphWriterTest {
         List<ResolvedNode> subjects = result.subjects().stream()
                 .map(title -> ResolvedNode.created(
                         title,
-                        nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, title, null))
+                        nodes.create(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, title, null))
                 ))
                 .toList();
         writer.write(source, result, subjects);
@@ -111,7 +111,7 @@ class SourceGraphWriterTest {
     void 관계를_중복_저장하지_않는다() {
         KnowledgeSource source = source("https://a.com/mcp");
 
-        KnowledgeNode subject = nodes.save(KnowledgeNode.create(
+        KnowledgeNode subject = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "MCP", null
         ));
         List<ResolvedNode> resolved = List.of(ResolvedNode.created("MCP", subject));

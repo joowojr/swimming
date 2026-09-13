@@ -77,8 +77,28 @@ class FolderKnowledgeSourceControllerTest {
                 null,
                 false,
                 "MCP Server를 구성하는 방법을 설명한다.",
+                null,
                 new NodeRef(TOPIC_ID, "MCP 서버 구현하기"),
                 List.of(new NodeRef(SUBJECT_ID, "MCP"))
+        );
+    }
+
+    private SourceResponse contentOnlyCard() {
+        return new SourceResponse(
+                SOURCE_ID,
+                "짧은 메모",
+                "https://example.com/short",
+                "example.com",
+                "article",
+                CREATED_AT,
+                null,
+                SourceProcessingStatus.SOURCE_NOT_DIGEST,
+                null,
+                false,
+                null,
+                "짧은 본문",
+                null,
+                List.of()
         );
     }
 
@@ -167,6 +187,21 @@ class FolderKnowledgeSourceControllerTest {
                 .andExpect(jsonPath("$.items[0].sourceId").value(SOURCE_ID.toString()))
                 .andExpect(jsonPath("$.items[0].title").value("Spring AI MCP Reference"))
                 .andExpect(jsonPath("$.nextCursor").value("cursor-abc"));
+    }
+
+    @Test
+    @DisplayName("소화를 생략한 Source는 상태와 짧은 원문을 목록에 돌려준다")
+    void listsContentOfSourceWithoutDigestion() throws Exception {
+        when(queryUseCase.list(1L, 10L, null, 20, null))
+                .thenReturn(new CursorPage<>(List.of(contentOnlyCard()), null, false));
+
+        mockMvc.perform(get("/api/folders/10/knowledge/sources"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].status").value("SOURCE_NOT_DIGEST"))
+                .andExpect(jsonPath("$.items[0].content").value("짧은 본문"))
+                .andExpect(jsonPath("$.items[0].summary").isEmpty())
+                .andExpect(jsonPath("$.items[0].topic").isEmpty())
+                .andExpect(jsonPath("$.items[0].subjects").isEmpty());
     }
 
     @Test

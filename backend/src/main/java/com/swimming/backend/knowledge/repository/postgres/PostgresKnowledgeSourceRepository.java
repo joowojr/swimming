@@ -96,23 +96,6 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
-    public List<UUID> findSimilarSourceIds(
-            Long userId,
-            UUID excludedSourceId,
-            float[] summaryEmbedding,
-            String embeddingModel,
-            int limit
-    ) {
-        return sourceJpaRepository.findSimilarSourceIds(
-                userId,
-                excludedSourceId,
-                vectorLiteral(summaryEmbedding),
-                embeddingModel,
-                PageRequest.of(0, limit)
-        );
-    }
-
-    @Override
     public void saveSummaryEmbedding(
             Long userId,
             UUID sourceId,
@@ -139,19 +122,21 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
-    public Optional<KnowledgeSource> findInFolderByCanonicalUrl(
+    public List<KnowledgeSource> findAllInFolderByCanonicalUrls(
             Long userId,
             Long folderId,
-            String canonicalUrl
+            Collection<String> canonicalUrls
     ) {
-        return sourceJpaRepository.findAllByCanonicalUrl(canonicalUrl)
+        if (canonicalUrls.isEmpty()) {
+            return List.of();
+        }
+
+        return sourceJpaRepository.findAllActiveInFolderByCanonicalUrls(
+                        userId, folderId, canonicalUrls
+                )
                 .stream()
-                .filter(sourceEntity -> sourceEntity.getFolderId().equals(folderId))
-                .flatMap(sourceEntity -> nodeJpaRepository
-                        .findByIdAndUserIdAndDeletedFalse(sourceEntity.getNodeId(), userId)
-                        .map(nodeEntity -> toDomain(nodeEntity, sourceEntity))
-                        .stream())
-                .findFirst();
+                .map(row -> toDomain(row.getNode(), row.getSource()))
+                .toList();
     }
 
     @Override
@@ -240,6 +225,7 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
         return KnowledgeSourceEntity.builder()
                 .nodeId(source.getId())
                 .folderId(source.getFolderId())
+                .title(source.getNode().getTitle())
                 .url(source.getUrl())
                 .canonicalUrl(source.getCanonicalUrl())
                 .content(source.getContent())

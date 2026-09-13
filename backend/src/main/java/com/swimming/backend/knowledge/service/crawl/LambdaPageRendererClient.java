@@ -72,7 +72,7 @@ public class LambdaPageRendererClient {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("url", url);
         request.put("timeoutMs", properties.render().timeout().toMillis());
-        // 원문 수집과 같은 신원으로 요청한다. 렌더링만 다른 봇으로 보이지 않게 한다.
+        // 원문 수집과 같은 신원으로 요청한다. Notion은 이 값에 정적 공개 문서를 돌려준다.
         request.put("userAgent", properties.userAgent());
 
         return request.toString();

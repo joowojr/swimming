@@ -85,6 +85,22 @@ class LambdaPageRendererClientTest {
     }
 
     @Test
+    @DisplayName("Notion 하위 도메인에도 정적 공개 문서를 받기 위한 User-Agent를 보낸다")
+    void sendsUserAgentForNotionDomain() throws Exception {
+        givenResponse("{\"html\":\"<html></html>\"}");
+
+        renderer.render("https://app.notion.com/p/example");
+
+        ArgumentCaptor<InvokeRequest> captor = ArgumentCaptor.forClass(InvokeRequest.class);
+        org.mockito.Mockito.verify(lambdaClient).invoke(captor.capture());
+
+        JsonNode payload = new ObjectMapper().readTree(
+                captor.getValue().payload().asUtf8String()
+        );
+        assertThat(payload.get("userAgent").asString()).isEqualTo(USER_AGENT);
+    }
+
+    @Test
     @DisplayName("함수가 error를 주면 폴백을 포기하고 원문 결과를 쓰게 둔다")
     void ignoresErrorResult() {
         givenResponse("{\"error\":\"TIMEOUT\"}");

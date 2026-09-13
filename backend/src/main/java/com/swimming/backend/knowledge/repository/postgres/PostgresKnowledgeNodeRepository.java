@@ -21,8 +21,18 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
     private final JdbcTemplate jdbcTemplate;
 
     @Override
-    public KnowledgeNode save(KnowledgeNode node) {
+    public KnowledgeNode create(KnowledgeNode node) {
         return toDomain(jpaRepository.save(toEntity(node)));
+    }
+
+    @Override
+    public void delete(KnowledgeNode node) {
+        KnowledgeNodeEntity entity = jpaRepository.findById(node.getId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "knowledge node disappeared while deleting: " + node.getId()
+                ));
+        entity.delete();
+        jpaRepository.flush();
     }
 
     @Override

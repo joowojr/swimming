@@ -10,11 +10,13 @@ import java.util.UUID;
 
 /**
  * 저장소 구현과 무관한 KnowledgeNode 조회·저장 계약.
- * 반환되는 도메인 객체는 저장소에서 분리되어 있으므로 변경은 반드시 save로 반영한다.
+ * 생성은 {@link #create}로 저장하고, 단건 변경은 조회한 영속 Entity의 변경 감지로 반영한다.
  */
 public interface KnowledgeNodeRepository {
 
-    KnowledgeNode save(KnowledgeNode node);
+    KnowledgeNode create(KnowledgeNode node);
+
+    void delete(KnowledgeNode node);
 
     Optional<KnowledgeNode> findById(UUID id);
 

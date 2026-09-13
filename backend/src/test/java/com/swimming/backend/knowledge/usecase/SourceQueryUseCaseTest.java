@@ -125,8 +125,8 @@ class SourceQueryUseCaseTest {
         void includesSubjectsAndTopic() {
             KnowledgeSource source = given(USER_ID, FOLDER_ID, "문서", true);
 
-            KnowledgeNode mcp = nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "MCP", null));
-            KnowledgeNode topic = nodes.save(
+            KnowledgeNode mcp = nodes.create(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "MCP", null));
+            KnowledgeNode topic = nodes.create(
                     KnowledgeNode.create(USER_ID, NodeType.TOPIC, "MCP 서버 구현하기", null)
             );
 
@@ -274,8 +274,8 @@ class SourceQueryUseCaseTest {
         void describesSource() {
             KnowledgeSource source = givenSource(true);
 
-            KnowledgeNode mcp = nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "MCP", null));
-            KnowledgeNode topic = nodes.save(
+            KnowledgeNode mcp = nodes.create(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "MCP", null));
+            KnowledgeNode topic = nodes.create(
                     KnowledgeNode.create(USER_ID, NodeType.TOPIC, "MCP 서버 구현하기", null)
             );
 

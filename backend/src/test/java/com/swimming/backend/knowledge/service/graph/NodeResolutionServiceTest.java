@@ -102,7 +102,7 @@ class NodeResolutionServiceTest {
     }
 
     private KnowledgeNode subjectInFolder(String title) {
-        KnowledgeNode subject = nodes.save(KnowledgeNode.create(
+        KnowledgeNode subject = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, title, null));
         KnowledgeSource linkedSource = source(USER_ID, "https://a.com/subject/" + title);
         relationService.connect(linkedSource.getNode(), subject, RelationOrigin.AI);
@@ -131,7 +131,7 @@ class NodeResolutionServiceTest {
     @Test
     @DisplayName("유사 Source의 Subject를 Context로 주고 의미가 같으면 기존 노드를 재사용한다")
     void reusesSubjectFromSimilarSource() {
-        KnowledgeNode oidc = nodes.save(KnowledgeNode.create(
+        KnowledgeNode oidc = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "OpenID Connect", null
         ));
         KnowledgeSource similar = completedSource(
@@ -162,10 +162,10 @@ class NodeResolutionServiceTest {
     @Test
     @DisplayName("Subject 직접 임베딩 유사도가 높으면 더 먼 Source의 후보라도 먼저 제공한다")
     void ranksSubjectsByDirectEmbeddingSimilarity() {
-        KnowledgeNode unrelated = nodes.save(KnowledgeNode.create(
+        KnowledgeNode unrelated = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "OAuth Authorization", null
         ));
-        KnowledgeNode keywordMatch = nodes.save(KnowledgeNode.create(
+        KnowledgeNode keywordMatch = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "OIDC Authentication", null
         ));
         nodes.saveTitleEmbedding(
@@ -205,10 +205,10 @@ class NodeResolutionServiceTest {
     @Test
     @DisplayName("Subject 직접 임베딩 후보 순서는 Source 유사도 순서보다 우선한다")
     void prioritizesDirectEmbeddingOrderOverSimilarSourceRank() {
-        KnowledgeNode fartherSubject = nodes.save(KnowledgeNode.create(
+        KnowledgeNode fartherSubject = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "JSON Web Token", null
         ));
-        KnowledgeNode nearestSubject = nodes.save(KnowledgeNode.create(
+        KnowledgeNode nearestSubject = nodes.create(KnowledgeNode.create(
                 USER_ID, NodeType.SUBJECT, "OAuth 2.0", null
         ));
         nodes.saveTitleEmbedding(
@@ -322,7 +322,7 @@ class NodeResolutionServiceTest {
     void 동시에_생긴_중복은_재사용한다() {
         when(llmService.resolve(any())).thenAnswer(invocation -> {
             // LLM이 도는 동안 다른 요청이 같은 Subject를 만든 상황.
-            nodes.save(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "OpenID Connect", null));
+            nodes.create(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, "OpenID Connect", null));
             return List.of(NodeResolutionLlmDecision.create(
                     "oidcprotocol", "OpenID Connect"));
         });
@@ -389,7 +389,7 @@ class NodeResolutionServiceTest {
     @Test
     @DisplayName("다른 사용자의 유사 Source와 Subject는 후보 Context에 넣지 않는다")
     void excludesOtherUsersContext() {
-        KnowledgeNode otherSubject = nodes.save(KnowledgeNode.create(
+        KnowledgeNode otherSubject = nodes.create(KnowledgeNode.create(
                 OTHER_USER_ID, NodeType.SUBJECT, "OpenID Connect", null
         ));
         KnowledgeSource otherSource = completedSource(

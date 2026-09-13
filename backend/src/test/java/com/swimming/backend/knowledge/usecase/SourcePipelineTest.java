@@ -76,7 +76,7 @@ class SourcePipelineTest {
                             .map(node -> ResolvedNode.exact(candidate, node))
                             .orElseGet(() -> ResolvedNode.created(
                                     candidate,
-                                    nodes.save(KnowledgeNode.create(
+                                    nodes.create(KnowledgeNode.create(
                                             USER_ID, NodeType.SUBJECT, candidate, null
                                     ))
                             )))

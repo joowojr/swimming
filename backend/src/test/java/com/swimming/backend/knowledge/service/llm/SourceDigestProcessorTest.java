@@ -64,7 +64,7 @@ class SourceDigestProcessorTest {
             return candidates.stream()
                     .map(candidate -> ResolvedNode.created(
                             candidate,
-                            nodes.save(KnowledgeNode.create(
+                            nodes.create(KnowledgeNode.create(
                                     USER_ID, NodeType.SUBJECT, candidate, null
                             ))
                     ))
@@ -416,7 +416,7 @@ class SourceDigestProcessorTest {
     @Test
     @DisplayName("참고 맥락에는 Subject와 다른 사용자의 Topic을 넣지 않는다")
     void limitsExistingTopicsToOwnTopics() {
-        nodes.save(KnowledgeNode.create(OTHER_USER_ID, NodeType.TOPIC, "남의 목적", null));
+        nodes.create(KnowledgeNode.create(OTHER_USER_ID, NodeType.TOPIC, "남의 목적", null));
 
         when(digestService.digest(any())).thenReturn(digestResult());
         useCase.digest(USER_ID, savedSource().getId());

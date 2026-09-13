@@ -24,9 +24,14 @@ public final class InMemoryKnowledgeRepositories {
         final Map<UUID, String> titleEmbeddingModels = new HashMap<>();
 
         @Override
-        public KnowledgeNode save(KnowledgeNode node) {
+        public KnowledgeNode create(KnowledgeNode node) {
             stored.put(node.getId(), copy(node));
             return copy(stored.get(node.getId()));
+        }
+
+        @Override
+        public void delete(KnowledgeNode node) {
+            stored.put(node.getId(), copy(node));
         }
 
         @Override
@@ -88,7 +93,7 @@ public final class InMemoryKnowledgeRepositories {
             if (subject.getNodeType() != NodeType.SUBJECT) {
                 throw new IllegalArgumentException("title embedding can only be stored for a subject");
             }
-            KnowledgeNode saved = save(subject);
+            KnowledgeNode saved = create(subject);
             titleEmbeddings.put(saved.getId(), titleEmbedding.clone());
             titleEmbeddingModels.put(saved.getId(), embeddingModel);
             return saved;

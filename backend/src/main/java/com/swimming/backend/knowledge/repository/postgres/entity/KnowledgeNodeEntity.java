@@ -66,4 +66,8 @@ public class KnowledgeNodeEntity extends BaseTimeEntity {
         this.description = description;
         this.deleted = deleted;
     }
+
+    public void delete() {
+        this.deleted = true;
+    }
 }

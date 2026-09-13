@@ -102,12 +102,12 @@ class SourceListQueryCountTest {
             ));
 
             List<KnowledgeNode> subjects = IntStream.range(0, SUBJECTS_PER_SOURCE)
-                    .mapToObj(subjectIndex -> nodeRepository.save(KnowledgeNode.create(
+                    .mapToObj(subjectIndex -> nodeRepository.create(KnowledgeNode.create(
                             user.getId(), NodeType.SUBJECT,
                             "개념 " + sourceIndex + "-" + subjectIndex, null
                     )))
                     .toList();
-            KnowledgeNode topic = nodeRepository.save(KnowledgeNode.create(
+            KnowledgeNode topic = nodeRepository.create(KnowledgeNode.create(
                     user.getId(), NodeType.TOPIC, "목적 " + sourceIndex, null
             ));
 

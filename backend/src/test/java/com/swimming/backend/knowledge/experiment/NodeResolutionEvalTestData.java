@@ -1,8 +1,8 @@
 package com.swimming.backend.knowledge.experiment;
 
-import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
-
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.swimming.backend.knowledge.experiment.NodeResolutionEvalScenario.Domain.AI_PRODUCTIVITY;
 import static com.swimming.backend.knowledge.experiment.NodeResolutionEvalScenario.Domain.JOB_POSTING;
@@ -14,6 +14,18 @@ final class NodeResolutionEvalTestData {
     static final String VERSION = "2026-09-10-v6";
 
     private NodeResolutionEvalTestData() {
+    }
+
+    /**
+     * 판정만 재는 merge-only 변형이 쓰는 고정 재사용 후보.
+     *
+     * <p>검색을 타지 않고 코퍼스의 Subject를 코퍼스 순서 그대로 준다. 정답 대상이 항상 들어
+     * 있으므로 실패는 판정 탓뿐이다.
+     */
+    static List<String> reusableSubjects(NodeResolutionEvalScenario scenario) {
+        return List.copyOf(scenario.sourceCorpus().stream()
+                .flatMap(source -> source.subjects().stream())
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
     }
 
     static List<NodeResolutionEvalScenario> scenarios() {
@@ -239,7 +251,7 @@ final class NodeResolutionEvalTestData {
             String canonicalSubject
     ) {
         return new NodeResolutionEvalScenario.ExpectedResolution(
-                candidate, NodeResolutionResult.Action.REUSE, canonicalSubject,
+                candidate, NodeResolutionEvalScenario.Action.REUSE, canonicalSubject,
                 NodeResolutionEvalScenario.Priority.STANDARD
         );
     }
@@ -249,7 +261,7 @@ final class NodeResolutionEvalTestData {
             String canonicalSubject
     ) {
         return new NodeResolutionEvalScenario.ExpectedResolution(
-                candidate, NodeResolutionResult.Action.REUSE, canonicalSubject,
+                candidate, NodeResolutionEvalScenario.Action.REUSE, canonicalSubject,
                 NodeResolutionEvalScenario.Priority.REGRESSION_CRITICAL
         );
     }
@@ -259,7 +271,7 @@ final class NodeResolutionEvalTestData {
             String canonicalSubject
     ) {
         return new NodeResolutionEvalScenario.ExpectedResolution(
-                candidate, NodeResolutionResult.Action.CREATE, canonicalSubject,
+                candidate, NodeResolutionEvalScenario.Action.CREATE, canonicalSubject,
                 NodeResolutionEvalScenario.Priority.STANDARD
         );
     }
@@ -269,7 +281,7 @@ final class NodeResolutionEvalTestData {
             String canonicalSubject
     ) {
         return new NodeResolutionEvalScenario.ExpectedResolution(
-                candidate, NodeResolutionResult.Action.CREATE, canonicalSubject,
+                candidate, NodeResolutionEvalScenario.Action.CREATE, canonicalSubject,
                 NodeResolutionEvalScenario.Priority.REGRESSION_CRITICAL
         );
     }

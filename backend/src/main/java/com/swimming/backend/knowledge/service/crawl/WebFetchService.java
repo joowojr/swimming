@@ -357,7 +357,7 @@ public class WebFetchService {
 
         return SourceFetchResult.success(requestedUrl, new FetchedDocument(
                 finalUrl,
-                canonicalUrl(document, finalUrl),
+                canonicalUrl(document, requestedUrl, finalUrl),
                 converted.title(),
                 author(document, converted.byline()),
                 publishedAt(document),
@@ -409,14 +409,57 @@ public class WebFetchService {
     /**
      * 문서가 스스로 밝힌 정본 주소를 우선하고, 없으면 추적 파라미터와 fragment를 걷어낸다.
      */
-    String canonicalUrl(Document document, String finalUrl) {
+    String canonicalUrl(Document document, String requestedUrl, String finalUrl) {
         String declared = document.select("link[rel=canonical]").attr("abs:href");
         if (!StringUtils.hasText(declared)) {
             declared = document.select("meta[property=og:url]").attr("abs:content");
         }
 
-        String base = StringUtils.hasText(declared) ? declared : finalUrl;
+        if (StringUtils.hasText(declared)) {
+            String normalizedDeclared = normalizeCanonicalUrl(declared);
 
+            // Notion 공개 페이지가 서비스 루트만 canonical로 선언하면 서로 다른 문서가
+            // 하나로 합쳐진다. 확인된 Notion 루트 값에만 예외를 두고, 다른 사이트가 선언한
+            // canonical의 의미는 바꾸지 않는다.
+            if (isNotionRootCanonical(normalizedDeclared)) {
+                String normalizedFinal = normalizeCanonicalUrl(finalUrl);
+                if (hasDocumentIdentity(normalizedFinal)) {
+                    return normalizedFinal;
+                }
+
+                String normalizedRequested = normalizeCanonicalUrl(requestedUrl);
+                if (hasDocumentIdentity(normalizedRequested)) {
+                    return normalizedRequested;
+                }
+            }
+
+            return normalizedDeclared;
+        }
+
+        return normalizeCanonicalUrl(finalUrl);
+    }
+
+    private boolean isNotionRootCanonical(String url) {
+        try {
+            URI uri = URI.create(url);
+            return "app.notion.com".equalsIgnoreCase(uri.getHost())
+                    && !hasDocumentIdentity(url);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private boolean hasDocumentIdentity(String url) {
+        try {
+            URI uri = URI.create(url);
+            return (StringUtils.hasText(uri.getPath()) && !"/".equals(uri.getPath()))
+                    || StringUtils.hasText(uri.getQuery());
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private String normalizeCanonicalUrl(String base) {
         try {
             URI uri = URI.create(base);
             String query = stripTrackingParameters(uri.getQuery());

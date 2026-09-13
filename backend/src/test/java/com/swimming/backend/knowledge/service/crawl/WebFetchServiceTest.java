@@ -54,7 +54,11 @@ class WebFetchServiceTest {
     void prefersDeclaredCanonical() {
         Document document = parse("<link rel=\"canonical\" href=\"https://example.com/real\">");
 
-        assertThat(service.canonicalUrl(document, "https://example.com/article?utm_source=x"))
+        assertThat(service.canonicalUrl(
+                document,
+                "https://example.com/requested",
+                "https://example.com/article?utm_source=x"
+        ))
                 .isEqualTo("https://example.com/real");
     }
 
@@ -63,7 +67,7 @@ class WebFetchServiceTest {
     void fallsBackToOgUrl() {
         Document document = parse("<meta property=\"og:url\" content=\"https://example.com/og\">");
 
-        assertThat(service.canonicalUrl(document, URL)).isEqualTo("https://example.com/og");
+        assertThat(service.canonicalUrl(document, URL, URL)).isEqualTo("https://example.com/og");
     }
 
     @Test
@@ -73,6 +77,7 @@ class WebFetchServiceTest {
 
         String canonical = service.canonicalUrl(
                 document,
+                "https://example.com/requested",
                 "https://Example.com/a?utm_source=news&id=7&fbclid=abc&utm_medium=mail#section"
         );
 
@@ -82,8 +87,48 @@ class WebFetchServiceTest {
     @Test
     @DisplayName("걷어내고 남는 파라미터가 없으면 쿼리 자체를 없앤다")
     void dropsEmptyQuery() {
-        assertThat(service.canonicalUrl(parse(""), "https://example.com/a?utm_source=news"))
+        assertThat(service.canonicalUrl(
+                parse(""),
+                "https://example.com/a?utm_source=news",
+                "https://example.com/a?utm_source=news"
+        ))
                 .isEqualTo("https://example.com/a");
+    }
+
+    @Test
+    @DisplayName("Notion 루트 canonical이 문서 경로를 잃으면 최종 URL을 쓴다")
+    void ignoresOriginOnlyCanonicalWhenFinalUrlIdentifiesDocument() {
+        Document document = parse("<link rel=\"canonical\" href=\"https://app.notion.com\">");
+
+        assertThat(service.canonicalUrl(
+                document,
+                "https://workspace.notion.site/requested-document-a1b2",
+                "https://app.notion.com/rendered-document-a1b2"
+        )).isEqualTo("https://app.notion.com/rendered-document-a1b2");
+    }
+
+    @Test
+    @DisplayName("Notion canonical과 최종 URL이 모두 루트면 요청한 문서 URL을 보존한다")
+    void keepsRequestedDocumentUrlWhenRedirectLosesPath() {
+        Document document = parse("<link rel=\"canonical\" href=\"https://app.notion.com\">");
+
+        assertThat(service.canonicalUrl(
+                document,
+                "https://workspace.notion.site/requested-document-a1b2?utm_source=share",
+                "https://app.notion.com"
+        )).isEqualTo("https://workspace.notion.site/requested-document-a1b2");
+    }
+
+    @Test
+    @DisplayName("다른 사이트가 선언한 루트 canonical은 그대로 따른다")
+    void preservesOtherSiteRootCanonical() {
+        Document document = parse("<link rel=\"canonical\" href=\"https://example.com\">");
+
+        assertThat(service.canonicalUrl(
+                document,
+                "https://example.com/requested-document",
+                "https://example.com/final-document"
+        )).isEqualTo("https://example.com");
     }
 
     @Test

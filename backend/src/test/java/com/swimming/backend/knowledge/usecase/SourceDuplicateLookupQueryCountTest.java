@@ -95,4 +95,34 @@ class SourceDuplicateLookupQueryCountTest {
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
         assertThat(statistics.getCollectionLoadCount()).isZero();
     }
+
+    @Test
+    @DisplayName("삭제한 Source는 canonical URL 중복 조회에서 제외한다")
+    void 삭제한_Source는_중복이_아니다() {
+        User user = userRepository.saveAndFlush(User.builder()
+                .email("deleted-source-probe@example.com")
+                .googleSubject("deleted-source-probe-google-subject")
+                .nickname("deleted-source-probe-user")
+                .timezone("Asia/Seoul")
+                .build());
+
+        FolderEntity folder = folderRepository.saveAndFlush(FolderEntity.from(
+                Folder.create(user.getId(), null, "폴더", "설명", null),
+                user,
+                null
+        ));
+
+        String canonicalUrl = "https://workspace.notion.site/document-a1b2";
+        KnowledgeSource source = sourceRepository.save(KnowledgeSource.create(
+                user.getId(), folder.getId(), "문서", canonicalUrl, canonicalUrl
+        ));
+        source.delete();
+        sourceRepository.save(source);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(sourceRepository.findAllInFolderByCanonicalUrls(
+                user.getId(), folder.getId(), List.of(canonicalUrl)
+        )).isEmpty();
+    }
 }

@@ -79,52 +79,77 @@ def _browser_instance():
     global _playwright, _browser
 
     if _browser is not None and _browser.is_connected():
+        print("[render] browser reuse connected=true")
         return _browser
 
     if _playwright is None:
+        print("[render] playwright starting")
         _playwright = sync_playwright().start()
+        print("[render] playwright started")
 
+    print("[render] chromium launching")
     _browser = _playwright.chromium.launch(headless=True, args=LAUNCH_ARGS)
+    print(f"[render] chromium launched connected={_browser.is_connected()}")
     return _browser
 
 
-def _discard_browser():
-    """연결이 끊긴 웜 브라우저를 버려 다음 시도에서 새로 띄운다."""
-    global _browser
+def _discard_runtime():
+    """손상된 브라우저와 Playwright driver를 함께 버린다."""
+    global _playwright, _browser
 
     browser = _browser
+    playwright = _playwright
     _browser = None
-    if browser is None:
-        return
+    _playwright = None
 
-    try:
-        browser.close()
-    except PlaywrightError:
-        pass
+    if browser is not None:
+        try:
+            browser.close()
+        except PlaywrightError as exception:
+            print(f"[render] browser close failed reason={exception}")
+
+    if playwright is not None:
+        try:
+            playwright.stop()
+        except PlaywrightError as exception:
+            print(f"[render] playwright stop failed reason={exception}")
 
 
 def _new_page(user_agent):
-    """죽은 웜 브라우저라면 한 번 새로 띄워 context와 page를 만든다."""
+    """손상된 런타임이면 Playwright부터 한 번 새로 시작해 page를 만든다."""
     for attempt in range(2):
         browser_context = None
+        attempt_number = attempt + 1
         try:
+            print(f"[render] page setup attempt={attempt_number} stage=browser")
             browser = _browser_instance()
+            print(f"[render] page setup attempt={attempt_number} stage=context")
             browser_context = (
                 browser.new_context(user_agent=user_agent)
                 if user_agent
                 else browser.new_context()
             )
-            return browser_context, browser_context.new_page()
-        except PlaywrightError:
+            print(f"[render] page setup attempt={attempt_number} stage=page")
+            page = browser_context.new_page()
+            print(f"[render] page setup attempt={attempt_number} stage=complete")
+            return browser_context, page
+        except PlaywrightError as exception:
+            print(
+                f"[render] page setup failed "
+                f"attempt={attempt_number} reason={exception}"
+            )
             if browser_context is not None:
                 try:
                     browser_context.close()
-                except PlaywrightError:
-                    pass
-            _discard_browser()
+                except PlaywrightError as close_exception:
+                    print(
+                        f"[render] context close failed "
+                        f"attempt={attempt_number} reason={close_exception}"
+                    )
+            _discard_runtime()
             if attempt == 1:
                 raise
-            print("[render] browser disconnected; retrying with a new browser")
+            print("[render] runtime discarded; retrying with a new playwright")
 
 
 def _truncate(html):

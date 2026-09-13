@@ -1,8 +1,9 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
@@ -23,23 +24,20 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 
 /**
- * URL 목록을 받아 본문을 마크다운으로 만들어 돌려준다.
+ * URL 하나를 받아 본문을 마크다운으로 만들어 돌려준다.
  *
- * <p>한 URL의 실패가 나머지를 막지 않는다. 실패는 예외가 아니라 결과로 표시한다.
+ * <p>실패는 예외가 아니라 결과로 표시한다. 한 URL의 실패가 나머지를 막지 않아야 하기
+ * 때문이며, 여러 URL을 묶어 처리하는 일은 {@link SourceFetchDispatcher}가 맡는다.
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class WebFetchService {
 
     private static final int HTTP_FORBIDDEN = 403;
@@ -59,56 +57,23 @@ public class WebFetchService {
             "fbclid", "gclid", "msclkid", "igshid", "mc_cid", "mc_eid", "ref", "ref_src"
     );
 
-    private final KnowledgeFetchProperties properties;
+    private final WebFetchProperties properties;
     private final HtmlToMarkdownConverter markdownConverter;
 
     /** 렌더링 폴백은 꺼둘 수 있다. 꺼져 있으면 빈이 없다. */
     private final Optional<LambdaPageRendererClient> pageRenderer;
 
-    public WebFetchService(
-            KnowledgeFetchProperties properties,
-            HtmlToMarkdownConverter markdownConverter,
-            Optional<LambdaPageRendererClient> pageRenderer
-    ) {
-        this.properties = properties;
-        this.markdownConverter = markdownConverter;
-        this.pageRenderer = pageRenderer;
-    }
-
-    /**
-     * 입력 순서를 유지하고, 같은 URL이 여러 번 오면 한 번만 요청한다.
-     */
-    public List<SourceFetchResult> fetchAll(List<String> urls) {
-        List<String> targets = new ArrayList<>(new LinkedHashSet<>(urls));
-
-        Semaphore permits = new Semaphore(properties.concurrency());
-        List<SourceFetchResult> results = new ArrayList<>(targets.size());
-
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<SourceFetchResult>> futures = targets.stream()
-                    .map(url -> executor.submit(() -> {
-                        permits.acquire();
-                        try {
-                            return fetch(url);
-                        } finally {
-                            permits.release();
-                        }
-                    }))
-                    .toList();
-
-            for (int i = 0; i < futures.size(); i++) {
-                results.add(resultOf(targets.get(i), futures.get(i)));
-            }
-        }
-
-        return results;
-    }
-
     public SourceFetchResult fetch(String url) {
+        log.debug(
+                "[source-fetch] started url={} rendererAvailable={} renderThreshold={}",
+                url, pageRenderer.isPresent(), properties.render().minContentLength()
+        );
+
         URI uri;
         try {
             uri = URI.create(url.strip());
         } catch (IllegalArgumentException exception) {
+            log.debug("[source-fetch] rejected url={} reason=invalid-url", url);
             return SourceFetchResult.failure(
                     url,
                     SourceFetchResult.Failure.INVALID_URL,
@@ -118,6 +83,7 @@ public class WebFetchService {
 
         SourceFetchResult.Failure rejected = reject(uri);
         if (rejected != null) {
+            log.debug("[source-fetch] rejected url={} reason={}", url, rejected);
             return SourceFetchResult.failure(url, rejected, uri.getHost());
         }
 
@@ -130,7 +96,16 @@ public class WebFetchService {
                     .ignoreContentType(false)
                     .execute();
 
+            log.debug(
+                    "[source-fetch] http response requestedUrl={} finalUrl={} status={} contentType={}",
+                    url, response.url(), response.statusCode(), response.contentType()
+            );
+
             if (!isHtml(response.contentType())) {
+                log.debug(
+                        "[source-fetch] rejected url={} reason=unsupported-content-type contentType={}",
+                        url, response.contentType()
+                );
                 return SourceFetchResult.failure(
                         url,
                         SourceFetchResult.Failure.UNSUPPORTED_CONTENT_TYPE,
@@ -182,12 +157,23 @@ public class WebFetchService {
         );
 
         if (statusCode != HTTP_FORBIDDEN || pageRenderer.isEmpty()) {
+            log.debug(
+                    "[source-fetch] renderer skipped url={} reason={} status={}",
+                    requestedUrl,
+                    statusCode != HTTP_FORBIDDEN ? "status-not-supported" : "renderer-disabled",
+                    statusCode
+            );
             return failed;
         }
 
         String blockedUrl = StringUtils.hasText(exception.getUrl())
                 ? exception.getUrl()
                 : requestedUrl;
+
+        log.debug(
+                "[source-fetch] renderer requested url={} reason=http-forbidden",
+                blockedUrl
+        );
 
         return pageRenderer.get().render(blockedUrl)
                 .map(html -> toDocument(
@@ -206,26 +192,6 @@ public class WebFetchService {
                 .orElse(failed);
     }
 
-    private SourceFetchResult resultOf(String url, Future<SourceFetchResult> future) {
-        try {
-            return future.get();
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return SourceFetchResult.failure(
-                    url,
-                    SourceFetchResult.Failure.UNKNOWN,
-                    "interrupted"
-            );
-        } catch (Exception exception) {
-            return SourceFetchResult.failure(
-                    url,
-                    SourceFetchResult.Failure.UNKNOWN,
-                    exception.getMessage()
-            );
-        }
-    }
-
-
     /**
      * jsoup은 JavaScript를 실행하지 않는다. 마크다운이 거의 비어 나오면 본문을 스크립트가
      * 그리는 페이지로 보고 헤드리스 브라우저로 다시 받는다.
@@ -239,24 +205,49 @@ public class WebFetchService {
         int length = converted.meaningfulLength();
 
         if (length >= properties.render().minContentLength()) {
+            log.debug(
+                    "[source-fetch] renderer skipped url={} reason=content-sufficient meaningfulLength={} threshold={}",
+                    url, length, properties.render().minContentLength()
+            );
             return converted;
         }
 
         if (pageRenderer.isEmpty()) {
+            log.debug(
+                    "[source-fetch] renderer skipped url={} reason=renderer-disabled meaningfulLength={} threshold={}",
+                    url, length, properties.render().minContentLength()
+            );
             return converted;
         }
 
-        return pageRenderer.get().render(url)
-                .map(html -> markdownConverter.convert(url, Jsoup.parse(html, url)))
-                .filter(rendered -> rendered.meaningfulLength() > length)
-                .map(rendered -> {
-                    log.info(
-                            "[source-fetch] rendered url={} text {} -> {}",
-                            url, length, rendered.meaningfulLength()
-                    );
-                    return rendered;
-                })
-                .orElse(converted);
+        log.debug(
+                "[source-fetch] renderer requested url={} reason=content-short meaningfulLength={} threshold={}",
+                url, length, properties.render().minContentLength()
+        );
+
+        Optional<String> renderedHtml = pageRenderer.get().render(url);
+        if (renderedHtml.isEmpty()) {
+            log.debug("[source-fetch] renderer unavailable url={}", url);
+            return converted;
+        }
+
+        HtmlToMarkdownConverter.Result rendered = markdownConverter.convert(
+                url, Jsoup.parse(renderedHtml.get(), url)
+        );
+        int renderedLength = rendered.meaningfulLength();
+        if (renderedLength <= length) {
+            log.debug(
+                    "[source-fetch] renderer result ignored url={} reason=not-improved meaningfulLength={} renderedMeaningfulLength={}",
+                    url, length, renderedLength
+            );
+            return converted;
+        }
+
+        log.info(
+                "[source-fetch] rendered url={} text {} -> {}",
+                url, length, renderedLength
+        );
+        return rendered;
     }
 
 
@@ -279,6 +270,10 @@ public class WebFetchService {
             HtmlToMarkdownConverter.Result converted
     ) {
         if (converted.meaningfulLength() >= properties.minMeaningfulLength()) {
+            log.debug(
+                    "[source-fetch] metadata skipped url={} reason=content-sufficient meaningfulLength={} threshold={}",
+                    url, converted.meaningfulLength(), properties.minMeaningfulLength()
+            );
             return converted;
         }
 
@@ -287,6 +282,12 @@ public class WebFetchService {
             description = metaContent(document, "meta[name=description]");
         }
         if (description == null || description.length() < MIN_METADATA_LENGTH) {
+            log.debug(
+                    "[source-fetch] metadata unavailable url={} meaningfulLength={} descriptionLength={}",
+                    url,
+                    converted.meaningfulLength(),
+                    description == null ? 0 : description.length()
+            );
             return converted;
         }
 
@@ -320,12 +321,23 @@ public class WebFetchService {
     ) {
         String finalUrl = document.location();
         HtmlToMarkdownConverter.Result converted = markdownConverter.convert(finalUrl, document);
+        log.debug(
+                "[source-fetch] converted url={} markdownLength={} meaningfulLength={} renderAllowed={}",
+                finalUrl,
+                converted.markdown().length(),
+                converted.meaningfulLength(),
+                allowRenderFallback
+        );
         if (allowRenderFallback) {
             converted = renderIfEmpty(finalUrl, converted);
         }
         converted = fallBackToMetadata(finalUrl, document, converted);
 
         if (!StringUtils.hasText(converted.markdown())) {
+            log.debug(
+                    "[source-fetch] failed requestedUrl={} finalUrl={} reason=empty-content meaningfulLength={}",
+                    requestedUrl, finalUrl, converted.meaningfulLength()
+            );
             return SourceFetchResult.failure(
                     requestedUrl,
                     SourceFetchResult.Failure.SOURCE_EMPTY_CONTENT,
@@ -334,6 +346,14 @@ public class WebFetchService {
         }
 
         Truncation truncation = truncate(converted.markdown());
+        log.debug(
+                "[source-fetch] finished requestedUrl={} finalUrl={} markdownLength={} meaningfulLength={} truncated={}",
+                requestedUrl,
+                finalUrl,
+                converted.markdown().length(),
+                converted.meaningfulLength(),
+                truncation.truncated()
+        );
 
         return SourceFetchResult.success(requestedUrl, new FetchedDocument(
                 finalUrl,

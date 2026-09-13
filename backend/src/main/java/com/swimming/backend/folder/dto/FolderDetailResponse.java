@@ -3,6 +3,7 @@ package com.swimming.backend.folder.dto;
 import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderStatus;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -18,7 +19,8 @@ public record FolderDetailResponse(
         String description,
         LocalDate targetDate,
         FolderStatus status,
-        FolderTagResponse tag
+        FolderTagResponse tag,
+        Instant pinnedAt
 ) {
     public static FolderDetailResponse from(Folder folder) {
         return new FolderDetailResponse(
@@ -29,7 +31,8 @@ public record FolderDetailResponse(
                 folder.getStatus(),
                 folder.getTag() == null
                         ? null
-                        : FolderTagResponse.from(folder.getTag())
+                        : FolderTagResponse.from(folder.getTag()),
+                folder.getPinnedAt()
         );
     }
 }

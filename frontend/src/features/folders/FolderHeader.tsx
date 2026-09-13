@@ -1,13 +1,13 @@
 import type { KeyboardEvent } from 'react'
 import { memo, useState } from 'react'
-import { IconCalendarDue } from '@tabler/icons-react'
+import { IconCalendarDue, IconPin, IconPinFilled } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import DdayChip from '../../components/DdayChip'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import { useFolderStore } from '../../store/folderStore.ts'
-import { deleteFolder, updateFolder } from './folderApi.ts'
+import { deleteFolder, pinFolder, updateFolder } from './folderApi.ts'
 import type { Folder, FolderStatus, FolderTag } from './folderTypes.ts'
 import styles from './FolderHeader.module.css'
 
@@ -19,6 +19,8 @@ export interface FolderHeaderFolder {
   targetDate: string | null
   status: FolderStatus
   tag: FolderTag | null
+  /** 고정한 시각. 고정하지 않았으면 null이다. */
+  pinnedAt: string | null
 }
 
 interface FolderHeaderProps {
@@ -70,6 +72,8 @@ const FolderHeader = memo(function FolderHeader({
   const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
   const [editValue, setEditValue] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
+  const [isPinning, setIsPinning] = useState(false)
+  const [pinError, setPinError] = useState<string | null>(null)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -141,6 +145,22 @@ const FolderHeader = memo(function FolderHeader({
     }
   }
 
+  const isPinned = folder.pinnedAt !== null
+
+  const togglePin = async () => {
+    if (isPinning) return
+    setIsPinning(true)
+    setPinError(null)
+    try {
+      applyUpdated(await pinFolder(folder.id, !isPinned))
+    } catch (error: unknown) {
+      setPinError(toApiError(error)?.message
+        ?? (isPinned ? '고정을 해제하지 못했습니다.' : '고정하지 못했습니다.'))
+    } finally {
+      setIsPinning(false)
+    }
+  }
+
   const removeFolder = async () => {
     if (isDeleting) return
     setIsDeleting(true)
@@ -183,20 +203,36 @@ const FolderHeader = memo(function FolderHeader({
           </span>
           <DdayChip targetDate={folder.targetDate} />
         </div>
-        <DeleteIconButton
-          className={styles['compact-delete-button']}
-          iconSize={14}
-          label="폴더 삭제"
-          active={isConfirmingDelete}
-          disabled={isDeleting}
-          onClick={() => {
-            setIsConfirmingDelete((current) => !current)
-            setDeleteError(null)
-          }}
-        >
-          <span>{isConfirmingDelete ? '취소' : '폴더 삭제'}</span>
-        </DeleteIconButton>
+        <div className={styles['header-actions']}>
+          <button
+            type="button"
+            className={styles['pin-button']}
+            data-pinned={isPinned || undefined}
+            disabled={isPinning}
+            aria-pressed={isPinned}
+            onClick={() => void togglePin()}
+          >
+            {isPinned
+              ? <IconPinFilled size={14} aria-hidden="true" />
+              : <IconPin size={14} aria-hidden="true" />}
+            <span>{isPinned ? '고정됨' : '고정'}</span>
+          </button>
+          <DeleteIconButton
+            className={styles['compact-delete-button']}
+            iconSize={14}
+            label="삭제"
+            active={isConfirmingDelete}
+            disabled={isDeleting}
+            onClick={() => {
+              setIsConfirmingDelete((current) => !current)
+              setDeleteError(null)
+            }}
+          >
+            <span>{isConfirmingDelete ? '취소' : '삭제'}</span>
+          </DeleteIconButton>
+        </div>
       </div>
+      {pinError && <p className={styles['delete-error']} role="alert">{pinError}</p>}
 
       {isConfirmingDelete && (
         <DeleteConfirmation

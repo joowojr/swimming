@@ -11,8 +11,8 @@ import com.swimming.backend.common.logging.LlmUsageLogger;
 import com.swimming.backend.common.prompt.PromptKey;
 import com.swimming.backend.common.prompt.PromptProperties;
 import com.swimming.backend.common.prompt.ResourcePromptRepository;
-import com.swimming.backend.knowledge.config.KnowledgeDigestProperties;
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.LinkDigestProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -27,6 +27,7 @@ import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
 import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
+import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
@@ -94,7 +95,7 @@ class SourceDigestPlaygroundTest {
     private static final String RENDER_FUNCTION_NAME = System.getenv()
             .getOrDefault("KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME", "swimming-prod-page-renderer");
 
-    private static LambdaClient lambdaClient(KnowledgeFetchProperties properties) {
+    private static LambdaClient lambdaClient(WebFetchProperties properties) {
         return LambdaClient.builder()
                 .httpClient(UrlConnectionHttpClient.create())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
@@ -131,7 +132,7 @@ class SourceDigestPlaygroundTest {
             return candidates.stream()
                     .map(candidate -> ResolvedNode.created(
                             candidate,
-                            nodes.save(KnowledgeNode.create(
+                            nodes.create(KnowledgeNode.create(
                                     USER_ID, NodeType.SUBJECT, candidate, null
                             ))
                     ))
@@ -401,13 +402,13 @@ class SourceDigestPlaygroundTest {
         return result;
     }
 
-    private WebFetchService fetchService() {
-        var properties = new KnowledgeFetchProperties(
+    private SourceFetchDispatcher fetchService() {
+        var properties = new WebFetchProperties(
                 4, Duration.ofSeconds(15), 4 * 1024 * 1024, 80_000, 300,
                 "SwimmingBot/0.1 (+https://swimming.app)",
-                new KnowledgeFetchProperties.Render(true, RENDER_FUNCTION_NAME, Duration.ofSeconds(20), 1000)
+                new WebFetchProperties.Render(true, RENDER_FUNCTION_NAME, Duration.ofSeconds(20), 1000)
         );
-        return new WebFetchService(
+        WebFetchService webFetchService = new WebFetchService(
                 properties,
                 new HtmlToMarkdownConverter(),
                 Optional.of(new LambdaPageRendererClient(
@@ -416,6 +417,8 @@ class SourceDigestPlaygroundTest {
                         new ObjectMapper()
                 ))
         );
+
+        return new SourceFetchDispatcher(webFetchService, List.of(), properties);
     }
 
     private SourceDigestService digestService(LlmProvider provider, String model) {
@@ -428,8 +431,8 @@ class SourceDigestPlaygroundTest {
                                 "classpath:prompts/task-organizer/extract.md",
                                 PromptKey.SOURCE_DIGEST.configName(),
                                 "classpath:prompts/knowledge/digest.md",
-                                PromptKey.NODE_RESOLUTION.configName(),
-                                "classpath:prompts/knowledge/node-resolution.md"
+                                PromptKey.NODE_RESOLUTION_V2.configName(),
+                                "classpath:prompts/knowledge/node-resolution-v2.md"
                         ),
                         Map.of(
                                 "splitting", "classpath:prompts/task-organizer/_splitting.md",
@@ -463,7 +466,7 @@ class SourceDigestPlaygroundTest {
                         ? new OllamaChatOptionsFactory(properties)
                         : new OpenAiChatOptionsFactory(properties),
                 new LlmUsageLogger(),
-                new DigestContextTrimmer(new KnowledgeDigestProperties(40_000, 800))
+                new DigestContextTrimmer(new LinkDigestProperties(40_000, 800))
         );
     }
 

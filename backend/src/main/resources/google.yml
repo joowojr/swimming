@@ -1,0 +1,13 @@
+# 구글에서 받아 쓰는 것들의 자격증명과 옵션.
+# application-*.yml 에서 spring.config.import 로 끌어다 쓴다. 값의 출처는 이 파일뿐이다.
+app:
+  google:
+    auth:
+      # 구글 로그인 ID 토큰의 aud 를 이 값으로 검증한다.
+      client-id: ${GOOGLE_CLIENT_ID}
+    youtube:
+      # 유튜브 시청 페이지는 본문을 플레이어 JavaScript가 그려서, 크롤링하면 메뉴만 남는다.
+      # 제목·채널·설명·태그는 Data API v3 로 받는다.
+      # 키가 있으면 켜지고, 없으면 유튜브 링크도 일반 웹 수집으로 간다.
+      api-key: ${YOUTUBE_API_KEY:}
+      timeout: 10s

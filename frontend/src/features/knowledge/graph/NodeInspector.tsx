@@ -28,10 +28,10 @@ const SOURCES_HEADING: Record<GraphNodeType, string> = {
 }
 
 const SUBJECTS_HEADING: Record<GraphNodeType, string> = {
-  FOLDER: '대표 개념',
-  SOURCE: '다루는 개념',
-  SUBJECT: '개념',
-  TOPIC: '연결된 개념',
+  FOLDER: '대표 키워드',
+  SOURCE: '다루는 키워드',
+  SUBJECT: '키워드',
+  TOPIC: '연결된 키워드',
 }
 
 export default function NodeInspector({
@@ -143,7 +143,7 @@ export default function NodeInspector({
 
       {neighbors.length === 0 && (
         <p className={styles.empty}>
-          아직 이어진 것이 없어요. 내용 정리가 끝나면 개념과 목적이 붙습니다.
+          아직 이어진 것이 없어요. 내용 정리가 끝나면 키워드와 주제가 붙습니다.
         </p>
       )}
     </aside>

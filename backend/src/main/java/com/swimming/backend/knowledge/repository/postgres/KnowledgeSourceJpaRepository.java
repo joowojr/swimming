@@ -1,7 +1,8 @@
 package com.swimming.backend.knowledge.repository.postgres;
 
-import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeSourceEntity;
 import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
+import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeNodeEntity;
+import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeSourceEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,9 +16,29 @@ import java.util.UUID;
 
 public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSourceEntity, UUID> {
 
+    interface SourceWithNode {
+
+        KnowledgeSourceEntity getSource();
+
+        KnowledgeNodeEntity getNode();
+    }
+
     List<KnowledgeSourceEntity> findAllByNodeIdIn(Collection<UUID> nodeIds);
 
-    List<KnowledgeSourceEntity> findAllByCanonicalUrl(String canonicalUrl);
+    @Query("""
+            select s as source, n as node
+              from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+             where s.nodeId = n.id
+               and n.userId = :userId
+               and n.deleted = false
+               and s.folderId = :folderId
+               and s.canonicalUrl in :canonicalUrls
+            """)
+    List<SourceWithNode> findAllActiveInFolderByCanonicalUrls(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId,
+            @Param("canonicalUrls") Collection<String> canonicalUrls
+    );
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
@@ -39,26 +60,6 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
             @Param("sourceId") UUID sourceId,
             @Param("summaryEmbedding") String summaryEmbedding,
             @Param("embeddingModel") String embeddingModel
-    );
-
-    @Query(value = """
-            select s.node_id
-              from knowledge_source s
-              join knowledge_node n on n.id = s.node_id
-             where n.user_id = :userId
-               and n.is_deleted = false
-               and s.node_id <> :excludedSourceId
-               and s.processing_status = 'COMPLETED'
-               and s.summary_embedding is not null
-               and s.summary_embedding_model = :embeddingModel
-             order by s.summary_embedding <=> cast(:summaryEmbedding as vector)
-            """, nativeQuery = true)
-    List<UUID> findSimilarSourceIds(
-            @Param("userId") Long userId,
-            @Param("excludedSourceId") UUID excludedSourceId,
-            @Param("summaryEmbedding") String summaryEmbedding,
-            @Param("embeddingModel") String embeddingModel,
-            Pageable pageable
     );
 
     @Query("""

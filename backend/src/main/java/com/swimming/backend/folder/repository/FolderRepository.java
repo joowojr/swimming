@@ -14,10 +14,22 @@ import java.util.Set;
 
 public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
 
+    /**
+     * 고정한 폴더가 먼저 오고, 그 안에서는 최근에 고정한 순이다. 고정하지 않은 폴더는
+     * 뒤에서 기존대로 최근 생성 순이다. NULLS LAST는 메서드 이름으로 쓸 수 없어 쿼리로 둔다.
+     */
     @EntityGraph(attributePaths = "tag")
-    List<FolderEntity> findAllByUser_IdAndStatusNotAndDeletedFalseOrderByCreatedAtDesc(
-            Long userId,
-            FolderStatus excludedStatus
+    @Query("""
+            SELECT folder
+            FROM FolderEntity folder
+            WHERE folder.user.id = :userId
+              AND folder.status <> :excludedStatus
+              AND folder.deleted = false
+            ORDER BY folder.pinnedAt DESC NULLS LAST, folder.createdAt DESC
+            """)
+    List<FolderEntity> findAllActiveOrderByPinnedAtDescCreatedAtDesc(
+            @Param("userId") Long userId,
+            @Param("excludedStatus") FolderStatus excludedStatus
     );
 
     @EntityGraph(attributePaths = "tag")

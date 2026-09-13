@@ -4,6 +4,7 @@ import type { SourceFailureCode, SourceProcessingStatus } from './knowledgeTypes
 export const SOURCE_STATUS_LABEL: Record<SourceProcessingStatus, string> = {
   PENDING: '정리를 기다리는 중',
   PROCESSING: '내용을 정리하는 중',
+  SOURCE_NOT_DIGEST: '원문 표시',
   COMPLETED: '정리 완료',
   FAILED: '요약을 가져오지 못했어요',
 }
@@ -19,7 +20,7 @@ const SOURCE_FAILURE_MESSAGE: Record<SourceFailureCode, string> = {
   SOURCE_DIGEST_FAILURE: '문서 내용을 정리하지 못했어요. 잠시 후 다시 분석해 주세요.',
   SOURCE_DIGEST_NON_RETRYABLE_FAILURE: '문서 내용을 정리할 수 없어요. 링크는 그대로 저장되어 있어요.',
   SOURCE_DIGEST_RESOLUTION_FAILURE: '일시적인 오류가 발생했어요. 잠시 후 다시 분석해 주세요.',
-  SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE: '문서의 개념을 연결할 수 없어요. 링크는 그대로 저장되어 있어요.',
+  SOURCE_DIGEST_RESOLUTION_NON_RETRYABLE_FAILURE: '문서의 키워드를 연결할 수 없어요. 링크는 그대로 저장되어 있어요.',
 }
 
 export function sourceFailureMessage(

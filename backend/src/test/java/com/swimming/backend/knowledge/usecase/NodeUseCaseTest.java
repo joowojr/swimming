@@ -70,13 +70,13 @@ class NodeUseCaseTest {
         source.completeDigestion(title + " 요약", 1);
 
         KnowledgeSource saved = sources.save(source);
-        nodes.save(saved.getNode());
+        nodes.create(saved.getNode());
 
         return saved;
     }
 
     private KnowledgeNode givenNode(NodeType nodeType, String title) {
-        return nodes.save(KnowledgeNode.create(USER_ID, nodeType, title, null));
+        return nodes.create(KnowledgeNode.create(USER_ID, nodeType, title, null));
     }
 
     /** 소화가 그래프에 남기는 모양 그대로 만든다. Topic은 Source당 하나이고 개념을 함께 걸친다. */

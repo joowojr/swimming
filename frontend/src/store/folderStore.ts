@@ -16,6 +16,22 @@ interface FolderStoreState {
   reset: () => void
 }
 
+/**
+ * 서버 목록과 같은 규칙으로 정렬한다. 고정한 폴더가 먼저, 그 안에서는 최근에 고정한
+ * 순이고, 고정하지 않은 폴더는 최근 생성 순이다. 고정을 바꾼 뒤 목록을 다시 불러오지
+ * 않아도 자리가 맞게 한다.
+ */
+function sortFolders(folders: Folder[]): Folder[] {
+  return [...folders].sort((left, right) => {
+    if (left.pinnedAt && right.pinnedAt) {
+      return Date.parse(right.pinnedAt) - Date.parse(left.pinnedAt)
+    }
+    if (left.pinnedAt) return -1
+    if (right.pinnedAt) return 1
+    return Date.parse(right.createdAt) - Date.parse(left.createdAt)
+  })
+}
+
 // 사용자가 빠르게 바뀔 때 늦게 도착한 응답이 최신 목록을 덮어쓰지 않게 한다.
 let latestRequestId = 0
 
@@ -43,12 +59,14 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
   },
 
   add: (folder) => set((current) => ({
-    folders: [folder, ...current.folders],
+    folders: sortFolders([folder, ...current.folders]),
     status: 'ready',
   })),
 
   apply: (folder) => set((current) => ({
-    folders: current.folders.map((candidate) => candidate.id === folder.id ? folder : candidate),
+    folders: sortFolders(
+      current.folders.map((candidate) => candidate.id === folder.id ? folder : candidate),
+    ),
   })),
 
   updateHasSource: (folderId, hasSource) => set((current) => ({

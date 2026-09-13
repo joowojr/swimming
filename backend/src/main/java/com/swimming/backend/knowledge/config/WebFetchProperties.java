@@ -26,7 +26,7 @@ import java.time.Duration;
  */
 @Validated
 @ConfigurationProperties("app.knowledge.fetch")
-public record KnowledgeFetchProperties(
+public record WebFetchProperties(
 
         @NotNull @Min(1) @Max(16) Integer concurrency,
         @NotNull Duration timeout,

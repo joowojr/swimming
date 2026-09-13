@@ -28,22 +28,17 @@ public interface KnowledgeSourceRepository {
             String embeddingModel
     );
 
-    /** Summary 의미가 가까운 같은 사용자의 완료 Source id를 가까운 순서대로 돌려준다. */
-    List<UUID> findSimilarSourceIds(
-            Long userId,
-            UUID excludedSourceId,
-            float[] summaryEmbedding,
-            String embeddingModel,
-            int limit
-    );
-
     /**
      * 이 Folder에 같은 문서를 다시 저장했는지 확인한다.
      *
      * <p>Folder 밖은 보지 않는다. 사용자는 폴더 단위로 링크를 모으므로, 다른 폴더에 있는
      * 같은 문서는 이 폴더에서 보면 없는 것이다.
      */
-    Optional<KnowledgeSource> findInFolderByCanonicalUrl(Long userId, Long folderId, String canonicalUrl);
+    List<KnowledgeSource> findAllInFolderByCanonicalUrls(
+            Long userId,
+            Long folderId,
+            Collection<String> canonicalUrls
+    );
 
     /**
      * Folder에 살아 있는 Source가 하나라도 있는지.

@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,14 +34,14 @@ class LambdaPageRendererClientTest {
     void setUp() {
         lambdaClient = mock(LambdaClient.class);
 
-        KnowledgeFetchProperties properties = new KnowledgeFetchProperties(
+        WebFetchProperties properties = new WebFetchProperties(
                 4,
                 Duration.ofSeconds(15),
                 4 * 1024 * 1024,
                 80_000,
                 300,
                 USER_AGENT,
-                new KnowledgeFetchProperties.Render(
+                new WebFetchProperties.Render(
                         true, FUNCTION_NAME, Duration.ofSeconds(20), 1000
                 )
         );
@@ -82,6 +82,22 @@ class LambdaPageRendererClientTest {
         assertThat(payload.get("userAgent").asString())
                 .as("렌더링만 다른 봇으로 보이지 않게 한다")
                 .isEqualTo(USER_AGENT);
+    }
+
+    @Test
+    @DisplayName("Notion 하위 도메인에도 정적 공개 문서를 받기 위한 User-Agent를 보낸다")
+    void sendsUserAgentForNotionDomain() throws Exception {
+        givenResponse("{\"html\":\"<html></html>\"}");
+
+        renderer.render("https://app.notion.com/p/example");
+
+        ArgumentCaptor<InvokeRequest> captor = ArgumentCaptor.forClass(InvokeRequest.class);
+        org.mockito.Mockito.verify(lambdaClient).invoke(captor.capture());
+
+        JsonNode payload = new ObjectMapper().readTree(
+                captor.getValue().payload().asUtf8String()
+        );
+        assertThat(payload.get("userAgent").asString()).isEqualTo(USER_AGENT);
     }
 
     @Test

@@ -31,7 +31,7 @@ public class KnowledgeNodeService {
             String title,
             String description
     ) {
-        return nodeRepository.save(
+        return nodeRepository.create(
                 KnowledgeNode.create(userId, nodeType, title, description)
         );
     }
@@ -99,26 +99,22 @@ public class KnowledgeNodeService {
                 ));
     }
 
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
-    public List<KnowledgeNode> findSimilarSubjects(
-            Long userId,
-            float[] titleEmbedding,
-            String embeddingModel,
-            int limit
-    ) {
-        return nodeRepository.findSimilarSubjects(
-                userId, titleEmbedding, embeddingModel, limit
-        );
-    }
-
     /** 행은 남기고 조회에서만 뺀다. 관계는 지우지 않는다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(KnowledgeNode node) {
-        node.delete();
-        nodeRepository.save(node);
+        nodeRepository.delete(node);
+    }
+
+    /** 여러 노드를 같은 soft-delete 상태로 바꾸고 요청한 행이 모두 반영됐는지 확인한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void deleteAll(Long userId, Collection<UUID> nodeIds) {
+        List<UUID> distinctIds = nodeIds.stream().distinct().toList();
+        if (distinctIds.isEmpty()) {
+            return;
+        }
+        if (nodeRepository.softDeleteAllOwnedByIds(userId, distinctIds) != distinctIds.size()) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND);
+        }
     }
 
     @Transactional(

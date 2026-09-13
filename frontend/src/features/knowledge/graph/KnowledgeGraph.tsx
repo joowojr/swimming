@@ -6,6 +6,7 @@ import {
   ReactFlow,
 } from '@xyflow/react'
 import type { Edge, ReactFlowInstance } from '@xyflow/react'
+import { IconX } from '@tabler/icons-react'
 import '@xyflow/react/dist/style.css'
 import type { ApiError } from '../../../api/client'
 import GraphLayoutMenu from './GraphLayoutMenu'
@@ -16,6 +17,7 @@ import { getFolderGraph } from './graphApi'
 import { layoutGraph, rootNodeId } from './graphLayout'
 import type { LayoutOptions } from './graphLayout'
 import { neighborsOf, touchesNode } from './graphNeighbors'
+import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
 import type { SourceCard } from '../knowledgeTypes'
 import styles from './KnowledgeGraph.module.css'
@@ -32,6 +34,8 @@ type GraphState =
   | { status: 'error'; message: string }
 
 const nodeTypes = { knowledge: GraphNodeCard }
+const CATEGORY_HINT_SOURCE_COUNT = 6
+const CATEGORY_HINT_STORAGE_PREFIX = 'knowledge-category-hint-dismissed:'
 const SUBJECT_SUMMARY_NODE_PREFIX = '__subject-summary__:'
 const MAX_SOURCES_WITH_VISIBLE_SUBJECTS = 4
 const SUBJECT_DETAIL_ZOOM = 0.7
@@ -60,6 +64,10 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     sort: 'linked',
   })
   const [showSubjectDetails, setShowSubjectDetails] = useState(true)
+  const [isCategoryHintDismissed, setIsCategoryHintDismissed] = useState(
+    () => localStorage.getItem(`${CATEGORY_HINT_STORAGE_PREFIX}${folderId}`) === 'true',
+  )
+  const [hideCategoryHintAgain, setHideCategoryHintAgain] = useState(false)
   const [requestKey, setRequestKey] = useState(0)
   const flowInstanceRef = useRef<ReactFlowInstance<KnowledgeFlowNode, Edge> | null>(null)
 
@@ -95,6 +103,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
       ? neighborsOf(selectedNodeId, graph.edges, sourceNodeIds)
       : null
 
+    const topicNumbers = numberTopics(graph)
     const positionedNodes = layoutGraph(graph, layout)
     const selectedSubjectId = graph.nodes.some(
       (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
@@ -113,7 +122,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]))
 
     // 축소 상태에서는 전체 Subject를 한 덩어리로 만들지 않는다. Topic마다 직접 이어진
-    // Subject만 세어 요약해야 어떤 목적에 딸린 태그인지 공간적으로 남는다.
+    // Subject만 세어 요약해야 어떤 주제에 딸린 키워드인지 공간적으로 남는다.
     const subjectSummaries = showAllSubjects || showSubjectDetails
       ? []
       : positionedNodes
@@ -164,6 +173,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
         nodeId: summary.id,
         type: 'SUBJECT' as const,
         title: `+${summary.count}`,
+        createdAt: null,
       },
       x: summary.x,
       y: summary.y,
@@ -186,11 +196,12 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
             && !highlighted.has(node.nodeId)
             && !summaryIsHighlighted,
           sourceCard: sourcesById.get(node.nodeId),
+          order: topicNumbers.get(node.nodeId),
           axis: layout.axis,
           subjectSummary: subjectSummary !== undefined,
         },
         ariaLabel: subjectSummary
-          ? `${subjectSummary.topicTitle}의 태그 ${subjectSummary.count}개 펼쳐 보기`
+          ? `${subjectSummary.topicTitle}의 키워드 ${subjectSummary.count}개 펼쳐 보기`
           : undefined,
       }
     })
@@ -249,8 +260,11 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
 
   const selectedNode = graph?.nodes.find((node) => node.nodeId === selectedNodeId)
     ?? (selectedNodeId === rootNodeId && graph
-      ? { nodeId: rootNodeId, type: 'FOLDER' as const, title: graph.root.title }
+      ? { nodeId: rootNodeId, type: 'FOLDER' as const, title: graph.root.title, createdAt: null }
       : undefined)
+  const sourceCount = graph?.nodes.filter((node) => node.type === 'SOURCE').length ?? 0
+  const showCategoryHint = !isCategoryHintDismissed
+    && (sourceCount >= CATEGORY_HINT_SOURCE_COUNT || graph?.truncated === true)
 
   if (state.status === 'loading') {
     return (
@@ -281,7 +295,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     return (
       <div className={styles.state}>
         <p>아직 이어 볼 것이 없어요.</p>
-        <p className={styles.hint}>링크를 저장하면 문서와 개념이 여기에 이어집니다.</p>
+        <p className={styles.hint}>링크를 저장하면 문서와 키워드가 여기에 이어집니다.</p>
       </div>
     )
   }
@@ -332,9 +346,49 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
           <div className={styles.legend}>
             <span data-type="FOLDER">폴더</span>
             <span data-type="SOURCE">문서</span>
-            <span data-type="TOPIC">목적</span>
-            <span data-type="SUBJECT">태그</span>
+            <span data-type="TOPIC">주제</span>
+            <span data-type="SUBJECT">키워드</span>
           </div>
+
+          {showCategoryHint && (
+            <aside className={styles['category-hint']} aria-label="카테고리 정리 안내">
+              <div className={styles['category-hint-header']}>
+                <strong>링크가 많이 쌓였어요.</strong>
+                <button
+                  type="button"
+                  className={styles['category-hint-close']}
+                  aria-label="카테고리 정리 안내 닫기"
+                  onClick={() => {
+                    if (hideCategoryHintAgain) {
+                      localStorage.setItem(`${CATEGORY_HINT_STORAGE_PREFIX}${folderId}`, 'true')
+                    }
+                    setIsCategoryHintDismissed(true)
+                  }}
+                >
+                  <IconX size={15} stroke={1.8} aria-hidden="true" />
+                </button>
+              </div>
+              <p>카테고리로 묶으면 더 쉽게 탐색할 수 있어요.</p>
+              <div className={styles['category-hint-actions']}>
+                <button
+                  type="button"
+                  className={styles['category-hint-setup']}
+                  title="카테고리 설정 기능은 다음 단계에서 연결됩니다."
+                  disabled
+                >
+                  설정하기
+                </button>
+                <label className={styles['category-hint-preference']}>
+                  <input
+                    type="checkbox"
+                    checked={hideCategoryHintAgain}
+                    onChange={(event) => setHideCategoryHintAgain(event.target.checked)}
+                  />
+                  다시 보지 않기
+                </label>
+              </div>
+            </aside>
+          )}
 
           {state.graph.truncated && (
             <p className={styles.truncated}>

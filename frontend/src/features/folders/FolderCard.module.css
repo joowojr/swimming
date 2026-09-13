@@ -4,8 +4,15 @@
  */
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 
+.wrapper {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
 .card {
   position: relative;
+  flex: 1 1 auto;
   display: flex;
   min-width: 0;
   min-height: 15rem;
@@ -59,8 +66,54 @@
 .heading {
   align-items: flex-start;
   justify-content: space-between;
+  /* 카드 위에 겹쳐 있는 고정 버튼이 제목·칩을 가리지 않게 자리를 비운다. */
+  padding-right: var(--space-8);
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+.pin-button {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  display: inline-flex;
+  width: var(--space-8);
+  height: var(--space-8);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-short),
+    background-color var(--transition-short);
+}
+
+.pin-button[data-pinned] {
+  color: var(--project-tone, var(--color-primary));
+  background: var(--project-tone-tint, var(--color-surface-container-highest));
+}
+
+.pin-button:disabled {
+  cursor: progress;
+  opacity: .6;
+}
+
+.pin-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+.pin-error {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-2);
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
 }
 
 .title-group {
@@ -169,6 +222,11 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .pin-button:hover {
+    color: var(--project-tone, var(--color-primary));
+    background: var(--color-surface-container-highest);
+  }
+
   .card:hover {
     border-color: var(--color-hairline);
     background: var(--color-surface-soft);
@@ -187,6 +245,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card,
+  .pin-button,
   .route::after {
     transition: none;
   }

@@ -3,7 +3,7 @@ import type { GraphEdge, GraphNode, GraphNodeType, GraphResponse } from './graph
 /**
  * 노드를 타입별 열에 놓는다.
  *
- * v0.4의 관계는 모두 1-hop 단방향이고(Source→Subject, Source→Topic, Topic→Subject) 개념
+ * v0.4의 관계는 모두 1-hop 단방향이고(Source→Subject, Source→Topic, Topic→Subject) 키워드
  * 계층이 없다. 그래서 타입이 곧 열 순서다 — 배치를 계산으로 찾을 것이 없다.
  *
  * 힘 기반 배치를 쓰지 않는 이유는 이 화면이 시각화가 아니라 Navigation UI이기 때문이다
@@ -18,7 +18,7 @@ export const rootNodeId = '__folder__'
  * 무엇에서 출발해 읽을 것인가.
  *
  * `source-first`는 폴더에 모은 문서에서 출발한다(§6.2의 진입 방식).
- * `subject-first`는 개념에서 출발해 그 개념을 다루는 문서로 내려간다.
+ * `subject-first`는 키워드에서 출발해 그 키워드를 다루는 문서로 내려간다.
  */
 export type ColumnOrder = 'source-first' | 'subject-first'
 
@@ -113,6 +113,7 @@ export function layoutGraph(
       nodeId: rootNodeId,
       type: 'FOLDER',
       title: graph.root.title,
+      createdAt: null,
     })
   }
 

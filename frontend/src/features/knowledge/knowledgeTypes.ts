@@ -2,7 +2,12 @@
 
 import type { CursorPage, CursorPageQuery } from '../../api/types'
 
-export type SourceProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+export type SourceProcessingStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SOURCE_NOT_DIGEST'
+  | 'COMPLETED'
+  | 'FAILED'
 
 export type SourceFailureCode =
   | 'SOURCE_INVALID_URL'
@@ -25,7 +30,7 @@ export interface NodeRef {
 
 /**
  * Source 카드 한 장. 저장 응답과 목록 응답이 같은 모양을 공유한다.
- * status가 COMPLETED가 아니면 summary·topic·subjects는 비어 있다.
+ * SOURCE_NOT_DIGEST이면 content에 100자 이하 원문이 담기고, LLM 분석 필드는 비어 있다.
  */
 export interface SourceCard {
   sourceId: string
@@ -43,6 +48,7 @@ export interface SourceCard {
   /** 같은 분석을 다시 시도할 수 있는지. */
   retryable: boolean
   summary: string | null
+  content: string | null
   topic: NodeRef | null
   subjects: NodeRef[] | null
 }

@@ -5,6 +5,7 @@ import type {
   FolderDetail,
   FolderTag,
   FolderTagNameRequest,
+  PinFolderRequest,
   UpdateFolderRequest,
 } from './folderTypes.ts'
 
@@ -30,6 +31,15 @@ export async function updateFolder(
   request: UpdateFolderRequest,
 ): Promise<Folder> {
   const response = await client.patch<Folder>(`/folders/${folderId}`, request)
+  return response.data
+}
+
+export async function pinFolder(
+  folderId: number,
+  pinned: boolean,
+): Promise<Folder> {
+  const request: PinFolderRequest = { pinned }
+  const response = await client.patch<Folder>(`/folders/${folderId}/pin`, request)
   return response.data
 }
 

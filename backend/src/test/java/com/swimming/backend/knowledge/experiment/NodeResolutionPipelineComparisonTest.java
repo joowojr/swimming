@@ -6,9 +6,9 @@ import com.swimming.backend.common.config.llm.LlmProperties;
 import com.swimming.backend.common.config.llm.LlmProvider;
 import com.swimming.backend.common.config.llm.OpenAiChatOptionsFactory;
 import com.swimming.backend.knowledge.domain.NodeTitleNormalizer;
-import com.swimming.backend.knowledge.dto.out.NodeResolutionInput;
-import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
-import com.swimming.backend.knowledge.prompt.NodeResolutionInputSerializer;
+import com.swimming.backend.knowledge.dto.out.NodeResolutionInputV2;
+import com.swimming.backend.knowledge.dto.out.NodeResolutionResultV2;
+import com.swimming.backend.knowledge.prompt.NodeResolutionInputV2Serializer;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -56,11 +56,21 @@ class NodeResolutionPipelineComparisonTest {
     private static final int EMBEDDING_DIMENSIONS = 768;
     private static final int SOURCE_LIMIT = 5;
     private static final Path REPORT_DIRECTORY = Path.of("build/reports/node-resolution-eval");
+    /** 판정 단계 실행에 붙이는 이름. 파이프라인 변형이 아니다. */
+    private static final String JUDGMENT_STAGE = "merge-only";
 
     private final String model = System.getProperty("eval.model", DEFAULT_MODEL);
     private final int runs = Integer.getInteger("eval.runs", 3);
     private final int topK = Integer.getInteger("eval.topK", 3);
     private final Set<String> variants = parseVariants();
+    /**
+     * 판정 단계를 따로 재는지. 재사용 후보를 고정해 검색을 변수에서 빼고 병합 판단만 본다.
+     *
+     * <p>파이프라인 변형과 같은 표에 놓지 않는다. 이 단계는 모든 파이프라인 안에 들어 있어
+     * 서로 고르는 관계가 아니다.
+     */
+    private final boolean judgmentStage = Boolean.parseBoolean(
+            System.getProperty("eval.judgment", "true"));
     private final String previousReport = System.getProperty("eval.previousReport");
     private final CostRates costRates = CostRates.fromSystemProperties();
 
@@ -85,7 +95,7 @@ class NodeResolutionPipelineComparisonTest {
                         .dimensions(EMBEDDING_DIMENSIONS)
                         .build())
                 .build();
-        prompt = new ClassPathResource("prompts/knowledge/node-resolution.md")
+        prompt = new ClassPathResource("prompts/knowledge/node-resolution-v2.md")
                 .getContentAsString(StandardCharsets.UTF_8).strip();
     }
 
@@ -106,46 +116,64 @@ class NodeResolutionPipelineComparisonTest {
         List<String> errors = previous == null
                 ? new ArrayList<>() : new ArrayList<>(previous.errors());
 
-        for (NodeResolutionEvalScenario scenario : scenarios) {
-            RetrievalRun retrieval = findSourceRetrieval(retrievalRuns, scenario.id());
-            SubjectEmbeddingRun subjectEmbedding = findSubjectEmbedding(
-                    subjectEmbeddingRuns, scenario.id());
-            try {
-                if (retrieval == null || subjectEmbedding == null) {
-                    CompletableFuture<RetrievalRun> sourcePath = CompletableFuture.supplyAsync(
-                            () -> retrieve(scenario));
-                    CompletableFuture<SubjectEmbeddingRun> subjectPath = CompletableFuture.supplyAsync(
-                            () -> retrieveBySubjectEmbedding(scenario));
-                    CompletableFuture.allOf(sourcePath, subjectPath).join();
-                    retrieval = sourcePath.join();
-                    subjectEmbedding = subjectPath.join();
-                    retrievalRuns.add(retrieval);
-                    subjectEmbeddingRuns.add(subjectEmbedding);
-                }
-            } catch (CompletionException failure) {
-                Throwable cause = failure.getCause() == null ? failure : failure.getCause();
-                errors.add("stage=retrieval scenario=%s %s: %s".formatted(
-                        scenario.id(), cause.getClass().getSimpleName(), cause.getMessage()));
-                continue;
-            }
+        boolean needsRetrieval = !variants.isEmpty();
+        if (!needsRetrieval && !judgmentStage) {
+            throw new IllegalArgumentException("평가할 대상이 없습니다: 변형과 판정 단계가 모두 꺼져 있습니다");
+        }
 
-            List<String> baseline = retrieval.subjects().stream().map(SubjectEvidence::title).toList();
-            HybridRetrievalRun hybrid = hybridRetrievalRuns.stream()
-                    .filter(run -> run.scenarioId().equals(scenario.id()))
-                    .findFirst().orElse(null);
-            if (hybrid == null) {
-                hybrid = combine(retrieval, subjectEmbedding);
-                hybridRetrievalRuns.add(hybrid);
+        for (NodeResolutionEvalScenario scenario : scenarios) {
+            List<String> baseline = List.of();
+            HybridRetrievalRun hybrid = null;
+
+            if (needsRetrieval) {
+                RetrievalRun retrieval = findSourceRetrieval(retrievalRuns, scenario.id());
+                SubjectEmbeddingRun subjectEmbedding = findSubjectEmbedding(
+                        subjectEmbeddingRuns, scenario.id());
+                try {
+                    if (retrieval == null || subjectEmbedding == null) {
+                        CompletableFuture<RetrievalRun> sourcePath = CompletableFuture.supplyAsync(
+                                () -> retrieve(scenario));
+                        CompletableFuture<SubjectEmbeddingRun> subjectPath = CompletableFuture.supplyAsync(
+                                () -> retrieveBySubjectEmbedding(scenario));
+                        CompletableFuture.allOf(sourcePath, subjectPath).join();
+                        retrieval = sourcePath.join();
+                        subjectEmbedding = subjectPath.join();
+                        retrievalRuns.add(retrieval);
+                        subjectEmbeddingRuns.add(subjectEmbedding);
+                    }
+                } catch (CompletionException failure) {
+                    Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+                    errors.add("stage=retrieval scenario=%s %s: %s".formatted(
+                            scenario.id(), cause.getClass().getSimpleName(), cause.getMessage()));
+                    continue;
+                }
+
+                baseline = retrieval.subjects().stream().map(SubjectEvidence::title).toList();
+                hybrid = hybridRetrievalRuns.stream()
+                        .filter(run -> run.scenarioId().equals(scenario.id()))
+                        .findFirst().orElse(null);
+                if (hybrid == null) {
+                    hybrid = combine(retrieval, subjectEmbedding);
+                    hybridRetrievalRuns.add(hybrid);
+                }
             }
 
             for (int run = runOffset + 1; run <= runOffset + runs; run++) {
+                // 재사용 후보가 고정이므로 검색은 변수에서 빠진다. 남는 것은 판정뿐이다.
+                if (judgmentStage) {
+                    evaluate(
+                            JUDGMENT_STAGE, scenario, run,
+                            NodeResolutionEvalTestData.reusableSubjects(scenario),
+                            variantRuns, errors);
+                }
                 if (variants.contains("source-baseline")) {
                     evaluate("source-baseline", scenario, run, baseline, variantRuns, errors);
                 }
                 if (variants.contains("subject-embedding-only")) {
                     evaluate(
                             "subject-embedding-only", scenario, run,
-                            subjectEmbedding.subjects(), variantRuns, errors);
+                            findSubjectEmbedding(subjectEmbeddingRuns, scenario.id()).subjects(),
+                            variantRuns, errors);
                 }
                 if (variants.contains("hybrid-embedding")) {
                     evaluate("hybrid-embedding", scenario, run, hybrid.subjects(), variantRuns, errors);
@@ -156,23 +184,35 @@ class NodeResolutionPipelineComparisonTest {
         RetrievalAggregate retrieval = aggregateRetrieval(retrievalRuns);
         HybridRetrievalAggregate hybridRetrieval = aggregateHybridRetrieval(
                 subjectEmbeddingRuns, hybridRetrievalRuns);
-        Map<String, Aggregate> aggregates = aggregate(variantRuns);
+        // 파이프라인 표와 판정 단계를 섞지 않는다. 판정은 모든 파이프라인 안에 들어 있는
+        // 단계이고, 이번 변경(프롬프트·컨텍스트·응답 필드)이 드러나는 자리도 여기다.
+        List<VariantRun> pipelineRuns = variantRuns.stream()
+                .filter(run -> !run.variant().equals(JUDGMENT_STAGE)).toList();
+        List<VariantRun> judgmentRuns = variantRuns.stream()
+                .filter(run -> run.variant().equals(JUDGMENT_STAGE)).toList();
+        Map<String, Aggregate> aggregates = aggregate(pipelineRuns);
         Map<String, Map<NodeResolutionEvalScenario.Domain, Aggregate>> domainAggregates =
-                aggregateByDomain(variantRuns);
+                aggregateByDomain(pipelineRuns);
+        Aggregate judgment = aggregate(judgmentRuns).get(JUDGMENT_STAGE);
+        Map<NodeResolutionEvalScenario.Domain, Aggregate> judgmentDomains =
+                aggregateByDomain(judgmentRuns).getOrDefault(JUDGMENT_STAGE, Map.of());
         List<FailureSummary> baselineFailures = failureSummaries(
                 "source-baseline", scenarios, retrievalRuns, variantRuns);
         List<FailureSummary> hybridFailures = failureSummaries(
                 "hybrid-embedding", scenarios, retrievalRuns, variantRuns);
         List<FailureSummary> subjectEmbeddingOnlyFailures = failureSummaries(
                 "subject-embedding-only", scenarios, retrievalRuns, variantRuns);
+        List<FailureSummary> judgmentFailures = failureSummaries(
+                JUDGMENT_STAGE, scenarios, retrievalRuns, variantRuns);
         GateResult gates = gates(
-                retrieval, hybridRetrieval, aggregates, domainAggregates, hybridFailures, errors);
+                retrieval, hybridRetrieval, aggregates, domainAggregates,
+                judgment, judgmentFailures, hybridFailures, needsRetrieval, errors);
         ComparisonReport report = new ComparisonReport(
                 Instant.now().toString(), NodeResolutionEvalTestData.VERSION, model,
                 EMBEDDING_MODEL, runOffset + runs, SOURCE_LIMIT, topK, variants, costRates,
                 retrieval, hybridRetrieval,
-                aggregates, domainAggregates, hybridFailures, subjectEmbeddingOnlyFailures,
-                baselineFailures,
+                aggregates, domainAggregates, judgment, judgmentDomains, judgmentFailures,
+                hybridFailures, subjectEmbeddingOnlyFailures, baselineFailures,
                 retrievalRuns, subjectEmbeddingRuns, hybridRetrievalRuns, variantRuns, errors, gates
         );
         Path reportPath = writeReport(report);
@@ -213,7 +253,7 @@ class NodeResolutionPipelineComparisonTest {
         }
 
         List<String> expectedReuse = scenario.expected().stream()
-                .filter(item -> item.action() == NodeResolutionResult.Action.REUSE)
+                .filter(item -> item.action() == NodeResolutionEvalScenario.Action.REUSE)
                 .map(NodeResolutionEvalScenario.ExpectedResolution::canonicalSubject)
                 .toList();
         int sourceHits = (int) expectedReuse.stream().filter(expected -> ranked.stream()
@@ -265,7 +305,7 @@ class NodeResolutionPipelineComparisonTest {
         int hits = 0;
         double reciprocalRank = 0;
         for (NodeResolutionEvalScenario.ExpectedResolution expected : scenario.expected()) {
-            if (expected.action() != NodeResolutionResult.Action.REUSE) {
+            if (expected.action() != NodeResolutionEvalScenario.Action.REUSE) {
                 continue;
             }
             expectedReuse++;
@@ -366,8 +406,10 @@ class NodeResolutionPipelineComparisonTest {
             List<String> errors
     ) {
         try {
-            NodeResolutionInput input = new NodeResolutionInput(
-                    scenario.currentSourceSummary(), scenario.extractedSubjects(), indexed(candidateSubjects));
+            NodeResolutionInputV2 input = new NodeResolutionInputV2(
+                    scenario.currentSourceSummary(),
+                    indexedCandidates(scenario.extractedSubjects()),
+                    indexed(candidateSubjects));
             CallResult call = call(input);
             results.add(new VariantRun(
                     scenario.id(), scenario.domain(), variant, run, candidateSubjects,
@@ -380,15 +422,15 @@ class NodeResolutionPipelineComparisonTest {
         }
     }
 
-    private CallResult call(NodeResolutionInput input) {
+    private CallResult call(NodeResolutionInputV2 input) {
         long startedAt = System.nanoTime();
         var response = chatClient.prompt()
                 .system(prompt)
-                .user(NodeResolutionInputSerializer.serialize(input))
+                .user(NodeResolutionInputV2Serializer.serialize(input))
                 .options(chatOptionsFactory.create())
                 .call()
                 .responseEntity(
-                        NodeResolutionResult.class,
+                        NodeResolutionResultV2.class,
                         spec -> spec.useProviderStructuredOutput().validateSchema()
                 );
         long latency = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
@@ -403,17 +445,22 @@ class NodeResolutionPipelineComparisonTest {
     private Score score(
             NodeResolutionEvalScenario scenario,
             List<String> candidateSubjects,
-            NodeResolutionResult actual
+            NodeResolutionResultV2 actual
     ) {
         Map<String, NodeResolutionEvalScenario.ExpectedResolution> expected = scenario.expected().stream()
                 .collect(Collectors.toMap(
                         NodeResolutionEvalScenario.ExpectedResolution::candidate,
                         Function.identity(), (left, right) -> left, LinkedHashMap::new));
-        Map<String, NodeResolutionResult.Decision> predicted = actual == null || actual.decisions() == null
-                ? Map.of()
-                : actual.decisions().stream().collect(Collectors.toMap(
-                        NodeResolutionResult.Decision::candidate,
-                        Function.identity(), (left, right) -> left, LinkedHashMap::new));
+        // 결정은 후보 index로 돌아오므로 채점 전에 후보 값으로 되돌린다.
+        Map<String, NodeResolutionResultV2.Decision> predicted = new LinkedHashMap<>();
+        if (actual != null && actual.decisions() != null) {
+            for (NodeResolutionResultV2.Decision decision : actual.decisions()) {
+                String candidate = candidateOf(decision, scenario.extractedSubjects());
+                if (candidate != null) {
+                    predicted.putIfAbsent(candidate, decision);
+                }
+            }
+        }
 
         int correct = 0;
         int trueReuse = 0;
@@ -424,10 +471,10 @@ class NodeResolutionPipelineComparisonTest {
         int wrongReuse = 0;
         List<DecisionScore> decisions = new ArrayList<>();
         for (NodeResolutionEvalScenario.ExpectedResolution golden : scenario.expected()) {
-            NodeResolutionResult.Decision decision = predicted.get(golden.candidate());
+            NodeResolutionResultV2.Decision decision = predicted.get(golden.candidate());
             String selected = selectedTitle(decision, candidateSubjects);
-            boolean actionMatches = decision != null && decision.action() == golden.action();
-            boolean titleMatches = golden.action() == NodeResolutionResult.Action.CREATE
+            boolean actionMatches = decision != null && actionOf(decision) == golden.action();
+            boolean titleMatches = golden.action() == NodeResolutionEvalScenario.Action.CREATE
                     ? actionMatches && NodeTitleNormalizer.normalize(decision.value())
                     .equals(NodeTitleNormalizer.normalize(golden.canonicalSubject()))
                     : actionMatches && golden.canonicalSubject().equals(selected);
@@ -435,9 +482,9 @@ class NodeResolutionPipelineComparisonTest {
             if (passed) {
                 correct++;
             }
-            if (golden.action() == NodeResolutionResult.Action.REUSE) {
+            if (golden.action() == NodeResolutionEvalScenario.Action.REUSE) {
                 expectedReuse++;
-                if (decision != null && decision.action() == NodeResolutionResult.Action.REUSE) {
+                if (decision != null && actionOf(decision) == NodeResolutionEvalScenario.Action.REUSE) {
                     predictedReuse++;
                     if (golden.canonicalSubject().equals(selected)) {
                         trueReuse++;
@@ -447,7 +494,8 @@ class NodeResolutionPipelineComparisonTest {
                 } else {
                     missedReuse++;
                 }
-            } else if (decision != null && decision.action() == NodeResolutionResult.Action.REUSE) {
+            } else if (decision != null
+                    && actionOf(decision) == NodeResolutionEvalScenario.Action.REUSE) {
                 predictedReuse++;
                 falseMerge++;
             }
@@ -476,7 +524,7 @@ class NodeResolutionPipelineComparisonTest {
                     .filter(item -> item.id().equals(result.scenarioId())).findFirst().orElseThrow();
             List<String> selected = rerank(scenario, result.subjects());
             for (NodeResolutionEvalScenario.ExpectedResolution golden : scenario.expected()) {
-                if (golden.action() != NodeResolutionResult.Action.REUSE) {
+                if (golden.action() != NodeResolutionEvalScenario.Action.REUSE) {
                     continue;
                 }
                 rankedExpected++;
@@ -523,7 +571,7 @@ class NodeResolutionPipelineComparisonTest {
                 continue;
             }
             for (NodeResolutionEvalScenario.ExpectedResolution golden : scenario.expected()) {
-                if (golden.action() == NodeResolutionResult.Action.REUSE
+                if (golden.action() == NodeResolutionEvalScenario.Action.REUSE
                     && hybrid.subjects().contains(golden.canonicalSubject())) {
                     unionHits++;
                 }
@@ -583,31 +631,51 @@ class NodeResolutionPipelineComparisonTest {
         );
     }
 
+    /**
+     * 회귀 게이트.
+     *
+     * <p>판정 회귀는 merge-only로 본다. 재사용 후보가 고정이라 검색이 변수에서 빠지고, 병합
+     * 오류만 남는다. 검색 지표는 검색 변형을 실제로 돌렸을 때만 본다.
+     */
     private GateResult gates(
             RetrievalAggregate retrieval,
             HybridRetrievalAggregate hybridRetrieval,
             Map<String, Aggregate> aggregates,
             Map<String, Map<NodeResolutionEvalScenario.Domain, Aggregate>> domainAggregates,
+            Aggregate judgment,
+            List<FailureSummary> judgmentFailures,
             List<FailureSummary> hybridFailures,
+            boolean retrievalEvaluated,
             List<String> errors
     ) {
         List<String> failures = new ArrayList<>();
         if (!errors.isEmpty()) {
             failures.add("evaluation errors=" + errors.size());
         }
-        if (retrieval.sourceRecallAtK() < 0.95) {
-            failures.add("source Recall@%d %.3f < 0.950".formatted(
-                    SOURCE_LIMIT, retrieval.sourceRecallAtK()));
+        if (judgment != null) {
+            // 잘못 합치면 구분이 사라지고 되살릴 수 없다. 이 방향만 실패로 막는다.
+            if (judgment.falseMerge() > 0) {
+                failures.add("judgment false merge %d > 0".formatted(judgment.falseMerge()));
+            }
+            addCriticalFailures(failures, "judgment", judgmentFailures);
         }
-        if (hybridRetrieval.unionRecall() < 0.99) {
-            failures.add("hybrid union Recall %.3f < 0.990".formatted(
-                    hybridRetrieval.unionRecall()));
+        if (retrievalEvaluated) {
+            if (retrieval.sourceRecallAtK() < 0.95) {
+                failures.add("source Recall@%d %.3f < 0.950".formatted(
+                        SOURCE_LIMIT, retrieval.sourceRecallAtK()));
+            }
+            if (hybridRetrieval.unionRecall() < 0.99) {
+                failures.add("hybrid union Recall %.3f < 0.990".formatted(
+                        hybridRetrieval.unionRecall()));
+            }
         }
         Aggregate baseline = aggregates.get("source-baseline");
         Aggregate hybrid = aggregates.get("hybrid-embedding");
         if (hybrid == null) {
-            failures.add("hybrid-embedding 결과가 없습니다");
-            return new GateResult(false, failures);
+            if (judgment == null) {
+                failures.add("평가 결과가 없습니다");
+            }
+            return new GateResult(failures.isEmpty(), failures);
         }
         if (baseline != null && hybrid.falseMerge() > baseline.falseMerge()) {
             failures.add("hybrid false merge %d > baseline %d".formatted(
@@ -620,12 +688,9 @@ class NodeResolutionPipelineComparisonTest {
             failures.add("hybrid exact %.3f < baseline %.3f".formatted(
                     hybrid.exactRate(), baseline.exactRate()));
         }
-        hybridFailures.stream()
-                .filter(failure -> failure.priority()
-                        == NodeResolutionEvalScenario.Priority.REGRESSION_CRITICAL)
-                .forEach(failure -> failures.add(
-                        "critical case failed: %s %d/%d".formatted(
-                                failure.candidate(), failure.passedRuns(), failure.totalRuns())));
+        if (judgment == null) {
+            addCriticalFailures(failures, "hybrid-embedding", hybridFailures);
+        }
         Map<NodeResolutionEvalScenario.Domain, Aggregate> baselineDomains =
                 domainAggregates.getOrDefault("source-baseline", Map.of());
         Map<NodeResolutionEvalScenario.Domain, Aggregate> hybridDomains =
@@ -640,6 +705,20 @@ class NodeResolutionPipelineComparisonTest {
             }
         }
         return new GateResult(failures.isEmpty(), failures);
+    }
+
+    private void addCriticalFailures(
+            List<String> failures,
+            String variant,
+            List<FailureSummary> summaries
+    ) {
+        summaries.stream()
+                .filter(failure -> failure.priority()
+                        == NodeResolutionEvalScenario.Priority.REGRESSION_CRITICAL)
+                .forEach(failure -> failures.add(
+                        "critical case failed (%s): %s %d/%d".formatted(
+                                variant, failure.candidate(),
+                                failure.passedRuns(), failure.totalRuns())));
     }
 
     private List<FailureSummary> failureSummaries(
@@ -689,7 +768,7 @@ class NodeResolutionPipelineComparisonTest {
             RetrievalRun retrieval,
             List<VariantRun> scenarioRuns
     ) {
-        if (expected.action() == NodeResolutionResult.Action.REUSE) {
+        if (expected.action() == NodeResolutionEvalScenario.Action.REUSE) {
             boolean included = scenarioRuns.stream().findFirst()
                     .map(run -> run.candidateSubjects().contains(expected.canonicalSubject()))
                     .orElse(false);
@@ -728,14 +807,14 @@ class NodeResolutionPipelineComparisonTest {
         }
         boolean createdInstead = decisions.stream().filter(decision -> !decision.passed())
                 .map(DecisionScore::actual).anyMatch(actual -> actual != null
-                        && actual.action() == NodeResolutionResult.Action.CREATE);
-        if (expected.action() == NodeResolutionResult.Action.REUSE && createdInstead) {
+                        && actionOf(actual) == NodeResolutionEvalScenario.Action.CREATE);
+        if (expected.action() == NodeResolutionEvalScenario.Action.REUSE && createdInstead) {
             return "정답 후보가 있었지만 동일 개념으로 판단하지 못함";
         }
         boolean reusedInstead = decisions.stream().filter(decision -> !decision.passed())
                 .map(DecisionScore::actual).anyMatch(actual -> actual != null
-                        && actual.action() == NodeResolutionResult.Action.REUSE);
-        if (expected.action() == NodeResolutionResult.Action.CREATE && reusedInstead) {
+                        && actionOf(actual) == NodeResolutionEvalScenario.Action.REUSE);
+        if (expected.action() == NodeResolutionEvalScenario.Action.CREATE && reusedInstead) {
             return "관련 있지만 범위가 다른 Subject를 동일 개념으로 병합";
         }
         return "Node Resolution의 action 또는 canonical Subject 판정 불일치";
@@ -745,7 +824,7 @@ class NodeResolutionPipelineComparisonTest {
         if (decision.actual() == null) {
             return "응답 누락";
         }
-        if (decision.actual().action() == NodeResolutionResult.Action.REUSE) {
+        if (actionOf(decision.actual()) == NodeResolutionEvalScenario.Action.REUSE) {
             return "REUSE: " + decision.selectedSubject();
         }
         return "CREATE: " + decision.actual().value();
@@ -779,20 +858,48 @@ class NodeResolutionPipelineComparisonTest {
     }
 
     private static String selectedTitle(
-            NodeResolutionResult.Decision decision,
+            NodeResolutionResultV2.Decision decision,
             List<String> candidateSubjects
     ) {
-        if (decision == null || decision.action() != NodeResolutionResult.Action.REUSE
-                || decision.subjectIndex() < 1 || decision.subjectIndex() > candidateSubjects.size()) {
+        if (decision == null || actionOf(decision) != NodeResolutionEvalScenario.Action.REUSE
+                || decision.reuseIndex() < 1 || decision.reuseIndex() > candidateSubjects.size()) {
             return null;
         }
-        return candidateSubjects.get(decision.subjectIndex() - 1);
+        return candidateSubjects.get(decision.reuseIndex() - 1);
     }
 
-    private static List<NodeResolutionInput.ExistingSubject> indexed(List<String> subjects) {
-        return IntStream.range(0, subjects.size())
-                .mapToObj(index -> new NodeResolutionInput.ExistingSubject(index + 1, subjects.get(index)))
+    private static List<NodeResolutionInputV2.Candidate> indexedCandidates(List<String> candidates) {
+        return IntStream.range(0, candidates.size())
+                .mapToObj(index -> new NodeResolutionInputV2.Candidate(
+                        index + 1, candidates.get(index), List.of()))
                 .toList();
+    }
+
+    /** 범위를 벗어난 index는 채점에서 답하지 않은 것으로 본다. */
+    private static String candidateOf(NodeResolutionResultV2.Decision decision, List<String> candidates) {
+        if (decision == null || decision.candidateIndex() < 1
+                || decision.candidateIndex() > candidates.size()) {
+            return null;
+        }
+        return candidates.get(decision.candidateIndex() - 1);
+    }
+
+    private static List<NodeResolutionInputV2.ContextSubject> indexed(List<String> subjects) {
+        return IntStream.range(0, subjects.size())
+                .mapToObj(index -> new NodeResolutionInputV2.ContextSubject(
+                        index + 1, subjects.get(index)))
+                .toList();
+    }
+
+    private static NodeResolutionEvalScenario.Action actionOf(
+            NodeResolutionResultV2.Decision decision
+    ) {
+        if (decision.reuseIndex() > 0) {
+            return NodeResolutionEvalScenario.Action.REUSE;
+        }
+        return decision.reuseIndex() == 0
+                ? NodeResolutionEvalScenario.Action.CREATE
+                : null;
     }
 
     private static String searchable(String value) {
@@ -864,10 +971,15 @@ class NodeResolutionPipelineComparisonTest {
     private Set<String> parseVariants() {
         Set<String> allowed = Set.of(
                 "source-baseline", "subject-embedding-only", "hybrid-embedding");
-        String configured = System.getProperty(
-                "eval.variants",
-                "source-baseline,subject-embedding-only,hybrid-embedding"
-        );
+        // 검색 파이프라인 변형만 고르는 값이다. 기본은 실제로 쓰는 hybrid 하나이고, 검색 방식을
+        // 비교할 때만 나머지를 켠다. 판정 단계는 -PevalJudgment로 따로 켜고 끈다.
+        //   ./gradlew nodeResolutionCompare -PevalVariants="source-baseline,subject-embedding-only,hybrid-embedding"
+        //   ./gradlew nodeResolutionCompare -PevalVariants=none        # 판정 단계만
+        //   ./gradlew nodeResolutionCompare -PevalJudgment=false       # 파이프라인만
+        String configured = System.getProperty("eval.variants", "hybrid-embedding");
+        if (configured.strip().equalsIgnoreCase("none")) {
+            return Set.of();
+        }
         Set<String> selected = java.util.Arrays.stream(configured.split(","))
                 .map(String::strip)
                 .filter(value -> !value.isBlank())
@@ -898,8 +1010,16 @@ class NodeResolutionPipelineComparisonTest {
         markdown.append("- runs: ").append(report.runs()).append('\n');
         markdown.append("- source limit: ").append(report.sourceLimit()).append('\n');
         markdown.append("- subject topK: ").append(report.subjectTopK()).append('\n');
-        markdown.append("- variants: ").append(String.join(", ", report.variants()))
+        markdown.append("- 검색 파이프라인 변형: ")
+                .append(report.variants().isEmpty() ? "없음" : String.join(", ", report.variants()))
+                .append('\n');
+        markdown.append("- 판정 단계(재사용 후보 고정): ")
+                .append(report.judgment() == null ? "측정 안 함" : "측정")
                 .append("\n\n");
+        if (report.retrievalRuns().isEmpty()) {
+            markdown.append("## Stage metrics\n\n");
+            markdown.append("- 검색 변형을 돌리지 않아 검색 지표는 재지 않았다.\n\n");
+        } else {
         markdown.append("## Stage metrics\n\n");
         markdown.append("- source Recall@").append(report.sourceLimit()).append(": ")
                 .append("%.3f".formatted(report.retrieval().sourceRecallAtK())).append('\n');
@@ -923,6 +1043,7 @@ class NodeResolutionPipelineComparisonTest {
                 .append("%.1f".formatted(
                         report.hybridRetrieval().averageAdditionalEmbeddingTokens()))
                 .append("\n\n");
+        }
         markdown.append("| variant | precision | recall | F1 | exact | false merge | missed | wrong | p50(ms) | prompt tokens | candidates |\n");
         markdown.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n");
         report.aggregates().forEach((name, value) -> markdown.append("| ").append(name).append(" | ")
@@ -934,7 +1055,12 @@ class NodeResolutionPipelineComparisonTest {
                 .append(value.wrongReuse()).append(" | ").append(value.medianLatencyMillis()).append(" | ")
                 .append("%.1f".formatted(value.averagePromptTokens())).append(" | ")
                 .append("%.1f".formatted(value.averageCandidates())).append(" |\n"));
-        appendFailureSection(markdown, "Hybrid embedding 실패 사례", report.hybridFailures());
+        if (report.judgment() != null) {
+            appendJudgmentSection(markdown, report);
+        }
+        if (report.variants().contains("hybrid-embedding")) {
+            appendFailureSection(markdown, "Hybrid embedding 실패 사례", report.hybridFailures());
+        }
         if (report.variants().contains("subject-embedding-only")) {
             appendFailureSection(
                     markdown,
@@ -947,7 +1073,10 @@ class NodeResolutionPipelineComparisonTest {
         }
 
         markdown.append("\n## 우선 개선 대상\n\n");
-        List<FailureSummary> criticalFailures = report.hybridFailures().stream()
+        List<FailureSummary> criticalSource = report.judgment() == null
+                ? report.hybridFailures()
+                : report.judgmentFailures();
+        List<FailureSummary> criticalFailures = criticalSource.stream()
                 .filter(failure -> failure.priority()
                         == NodeResolutionEvalScenario.Priority.REGRESSION_CRITICAL)
                 .toList();
@@ -975,6 +1104,44 @@ class NodeResolutionPipelineComparisonTest {
         }
         Files.writeString(Path.of(jsonPath.toString().replace(".json", ".md")),
                 markdown, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 판정 단계 절.
+     *
+     * <p>파이프라인 표와 따로 적는다. 판정은 파이프라인 중 하나를 고르는 문제가 아니라 모든
+     * 파이프라인이 공통으로 거치는 단계이고, 프롬프트·컨텍스트 형식·응답 필드를 바꾸면 그 영향이
+     * 여기서 드러난다. 재사용 후보를 고정했으므로 검색 품질은 이 수치에 섞이지 않는다.
+     */
+    private void appendJudgmentSection(StringBuilder markdown, ComparisonReport report) {
+        Aggregate judgment = report.judgment();
+        markdown.append("\n## 판정 단계 — 재사용 후보 고정\n\n");
+        markdown.append("- 모든 파이프라인이 공통으로 거치는 단계다. 위 파이프라인 표와 비교하는 수치가 아니다.\n");
+        markdown.append("- 프롬프트·컨텍스트 형식·응답 필드 변경이 드러나는 자리이고, 검색은 변수에서 빠져 있다.\n");
+        markdown.append("- 고정 재사용 후보: 도메인 코퍼스 전수 ")
+                .append("%.1f".formatted(judgment.averageCandidates())).append("개\n\n");
+        markdown.append("| precision | recall | F1 | exact | false merge | missed | wrong | p50(ms) | prompt tokens |\n");
+        markdown.append("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n");
+        markdown.append("| ").append("%.3f".formatted(judgment.precision())).append(" | ")
+                .append("%.3f".formatted(judgment.recall())).append(" | ")
+                .append("%.3f".formatted(judgment.f1())).append(" | ")
+                .append("%.3f".formatted(judgment.exactRate())).append(" | ")
+                .append(judgment.falseMerge()).append(" | ")
+                .append(judgment.missedReuse()).append(" | ")
+                .append(judgment.wrongReuse()).append(" | ")
+                .append(judgment.medianLatencyMillis()).append(" | ")
+                .append("%.1f".formatted(judgment.averagePromptTokens())).append(" |\n");
+
+        if (!report.judgmentDomains().isEmpty()) {
+            markdown.append("\n| domain | F1 | exact | false merge |\n");
+            markdown.append("| --- | ---: | ---: | ---: |\n");
+            report.judgmentDomains().forEach((domain, value) -> markdown.append("| ")
+                    .append(domain).append(" | ")
+                    .append("%.3f".formatted(value.f1())).append(" | ")
+                    .append("%.3f".formatted(value.exactRate())).append(" | ")
+                    .append(value.falseMerge()).append(" |\n"));
+        }
+        appendFailureSection(markdown, "판정 단계 실패 사례", report.judgmentFailures());
     }
 
     private void appendFailureSection(
@@ -1011,6 +1178,13 @@ class NodeResolutionPipelineComparisonTest {
     }
 
     private void printSummary(ComparisonReport report, Path reportPath) {
+        if (report.judgment() != null) {
+            System.out.printf(
+                    "[node-resolution-eval] judgment(fixed context) F1=%.3f exact=%.3f falseMerge=%d missed=%d promptTokens=%.1f%n",
+                    report.judgment().f1(), report.judgment().exactRate(),
+                    report.judgment().falseMerge(), report.judgment().missedReuse(),
+                    report.judgment().averagePromptTokens());
+        }
         report.aggregates().forEach((variant, value) -> System.out.printf(
                 "[node-resolution-eval] %s F1=%.3f exact=%.3f falseMerge=%d promptTokens=%.1f%n",
                 variant, value.f1(), value.exactRate(), value.falseMerge(), value.averagePromptTokens()));
@@ -1028,6 +1202,12 @@ class NodeResolutionPipelineComparisonTest {
                 "[node-resolution-eval] %s: %d/%d 성공%n",
                 key, counts.getOrDefault("pass", 0L),
                 counts.getOrDefault("pass", 0L) + counts.getOrDefault("fail", 0L)));
+        if (report.retrievalRuns().isEmpty()) {
+            System.out.printf("[node-resolution-eval] retrieval=skipped gate=%s report=%s%n",
+                    report.gates().passed() ? "PASS" : "FAIL",
+                    reportPath.toAbsolutePath().normalize());
+            return;
+        }
         System.out.printf("[node-resolution-eval] sourceRecall=%.3f lexicalRecall=%.3f directEmbeddingRecall=%.3f unionRecall=%.3f gate=%s report=%s%n",
                 report.retrieval().sourceRecallAtK(), report.retrieval().subjectRecallAtK(),
                 report.hybridRetrieval().directSubjectRecallAtK(), report.hybridRetrieval().unionRecall(),
@@ -1088,7 +1268,7 @@ class NodeResolutionPipelineComparisonTest {
     ) {
     }
 
-    private record CallResult(NodeResolutionResult output, TokenUsage usage, long latencyMillis) {
+    private record CallResult(NodeResolutionResultV2 output, TokenUsage usage, long latencyMillis) {
     }
 
     private record EmbeddingCall(List<float[]> vectors, TokenUsage usage, long latencyMillis) {
@@ -1130,7 +1310,7 @@ class NodeResolutionPipelineComparisonTest {
 
     private record DecisionScore(
             NodeResolutionEvalScenario.ExpectedResolution expected,
-            NodeResolutionResult.Decision actual,
+            NodeResolutionResultV2.Decision actual,
             String selectedSubject,
             boolean passed
     ) {
@@ -1184,7 +1364,7 @@ class NodeResolutionPipelineComparisonTest {
             TokenUsage usage,
             double costIndex,
             Score score,
-            NodeResolutionResult output
+            NodeResolutionResultV2 output
     ) {
     }
 
@@ -1264,6 +1444,9 @@ class NodeResolutionPipelineComparisonTest {
             HybridRetrievalAggregate hybridRetrieval,
             Map<String, Aggregate> aggregates,
             Map<String, Map<NodeResolutionEvalScenario.Domain, Aggregate>> domainAggregates,
+            Aggregate judgment,
+            Map<NodeResolutionEvalScenario.Domain, Aggregate> judgmentDomains,
+            List<FailureSummary> judgmentFailures,
             List<FailureSummary> hybridFailures,
             List<FailureSummary> subjectEmbeddingOnlyFailures,
             List<FailureSummary> baselineFailures,

@@ -1,6 +1,6 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
@@ -33,15 +33,15 @@ class WebFetchServiceTest {
             Optional.empty()
     );
 
-    private static KnowledgeFetchProperties properties() {
-        return new KnowledgeFetchProperties(
+    private static WebFetchProperties properties() {
+        return new WebFetchProperties(
                 4,
                 Duration.ofSeconds(15),
                 4 * 1024 * 1024,
                 50_000,
                 300,
                 "SwimmingBot/0.1",
-                new KnowledgeFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
+                new WebFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
         );
     }
 
@@ -139,22 +139,6 @@ class WebFetchServiceTest {
                     .isEqualTo(SourceFetchResult.Failure.BLOCKED_ADDRESS);
             assertThat(result.isRetryable()).as(url).isFalse();
         }
-    }
-
-    @Test
-    @DisplayName("한 URL이 실패해도 나머지 결과를 순서대로 돌려준다")
-    void keepsOrderAndIsolatesFailures() {
-        List<SourceFetchResult> results = service.fetchAll(List.of(
-                "http://127.0.0.1/a",
-                "ftp://example.com/b",
-                "http://127.0.0.1/a"
-        ));
-
-        assertThat(results).hasSize(2);
-        assertThat(results.get(0).requestedUrl()).isEqualTo("http://127.0.0.1/a");
-        assertThat(results.get(0).failure()).isEqualTo(SourceFetchResult.Failure.BLOCKED_ADDRESS);
-        assertThat(results.get(1).requestedUrl()).isEqualTo("ftp://example.com/b");
-        assertThat(results.get(1).failure()).isEqualTo(SourceFetchResult.Failure.INVALID_URL);
     }
 
     @Test

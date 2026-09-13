@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.service.crawl;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -33,21 +34,12 @@ import java.util.Optional;
         name = "app.knowledge.fetch.render.enabled",
         havingValue = "true"
 )
+@RequiredArgsConstructor
 public class LambdaPageRendererClient {
 
-    private final KnowledgeFetchProperties properties;
+    private final WebFetchProperties properties;
     private final LambdaClient lambdaClient;
     private final ObjectMapper objectMapper;
-
-    public LambdaPageRendererClient(
-            KnowledgeFetchProperties properties,
-            LambdaClient lambdaClient,
-            ObjectMapper objectMapper
-    ) {
-        this.properties = properties;
-        this.lambdaClient = lambdaClient;
-        this.objectMapper = objectMapper;
-    }
 
     /**
      * @return 렌더링된 HTML. 함수를 부르지 못했거나 렌더링에 실패하면 비어 있다.
@@ -80,7 +72,7 @@ public class LambdaPageRendererClient {
         ObjectNode request = objectMapper.createObjectNode();
         request.put("url", url);
         request.put("timeoutMs", properties.render().timeout().toMillis());
-        // 원문 수집과 같은 신원으로 요청한다. 렌더링만 다른 봇으로 보이지 않게 한다.
+        // 원문 수집과 같은 신원으로 요청한다. Notion은 이 값에 정적 공개 문서를 돌려준다.
         request.put("userAgent", properties.userAgent());
 
         return request.toString();

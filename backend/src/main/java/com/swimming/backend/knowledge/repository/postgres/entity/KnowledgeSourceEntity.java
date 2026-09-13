@@ -38,6 +38,9 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
     @Column(name = "folder_id", nullable = false)
     private Long folderId;
 
+    @Column(nullable = false, length = 500)
+    private String title;
+
     @Column(nullable = false, columnDefinition = "text")
     private String url;
 
@@ -79,6 +82,7 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
     private KnowledgeSourceEntity(
             UUID nodeId,
             Long folderId,
+            String title,
             String url,
             String canonicalUrl,
             String content,
@@ -94,6 +98,7 @@ public class KnowledgeSourceEntity extends BaseTimeEntity {
     ) {
         this.nodeId = nodeId;
         this.folderId = folderId;
+        this.title = title;
         this.url = url;
         this.canonicalUrl = canonicalUrl;
         this.content = content;

@@ -23,6 +23,12 @@ public class Folder {
      */
     private final boolean hasSource;
 
+    /**
+     * 이 폴더를 고정한 시각. 고정하지 않았으면 null이다. 전용 API가 정하는 값이라
+     * {@link #update}가 건드리지 않는다.
+     */
+    private final Instant pinnedAt;
+
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -36,6 +42,7 @@ public class Folder {
             FolderStatus status,
             boolean deleted,
             boolean hasSource,
+            Instant pinnedAt,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -48,6 +55,7 @@ public class Folder {
         this.status = status;
         this.deleted = deleted;
         this.hasSource = hasSource;
+        this.pinnedAt = pinnedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -70,6 +78,7 @@ public class Folder {
                 false,
                 false,
                 null,
+                null,
                 null
         );
     }
@@ -84,6 +93,7 @@ public class Folder {
             FolderStatus status,
             boolean deleted,
             boolean hasSource,
+            Instant pinnedAt,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -97,6 +107,7 @@ public class Folder {
                 status,
                 deleted,
                 hasSource,
+                pinnedAt,
                 createdAt,
                 updatedAt
         );

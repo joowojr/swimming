@@ -1,8 +1,9 @@
 package com.swimming.backend.knowledge.live;
 
-import com.swimming.backend.knowledge.config.KnowledgeFetchProperties;
+import com.swimming.backend.knowledge.config.WebFetchProperties;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.service.crawl.HtmlToMarkdownConverter;
+import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -33,18 +34,20 @@ class SourceFetchLiveTest {
             "https://spring.io/projects/spring-ai"
     );
 
-    private final WebFetchService service = new WebFetchService(
-            new KnowledgeFetchProperties(
-                    4,
-                    Duration.ofSeconds(15),
-                    4 * 1024 * 1024,
-                    80_000,
-                    300,
-                    "SwimmingBot/0.1 (+https://swimming.app)",
-                    new KnowledgeFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
-            ),
-            new HtmlToMarkdownConverter(),
-            Optional.empty()
+    private final WebFetchProperties properties = new WebFetchProperties(
+            4,
+            Duration.ofSeconds(15),
+            4 * 1024 * 1024,
+            80_000,
+            300,
+            "SwimmingBot/0.1 (+https://swimming.app)",
+            new WebFetchProperties.Render(false, null, Duration.ofSeconds(20), 1000)
+    );
+
+    private final SourceFetchDispatcher service = new SourceFetchDispatcher(
+            new WebFetchService(properties, new HtmlToMarkdownConverter(), Optional.empty()),
+            List.of(),
+            properties
     );
 
     @Test

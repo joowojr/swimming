@@ -1,0 +1,75 @@
+/* Hallmark · component: pending-source-card · genre: modern-minimal · theme: Purposeful Journey
+ * states: loading
+ * contrast: pass
+ * 저장이 끝나면 이 자리에 SourceFeedCard가 들어오므로 겉모양을 같은 규격으로 맞춘다.
+ */
+
+.card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-tone-bay-leaf-tint);
+  animation: pending-source-pulse calc(var(--dur-modal) * 4) var(--ease-in-out) infinite alternate;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+  overflow: hidden;
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+}
+
+.domain {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-family-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  animation: pending-source-message-in var(--dur-short) var(--ease-out);
+}
+
+@keyframes pending-source-pulse {
+  from {
+    opacity: .5;
+    background: var(--color-surface-container-lowest);
+  }
+
+  to {
+    opacity: 1;
+    background: var(--color-surface-container-high);
+  }
+}
+
+@keyframes pending-source-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .message {
+    animation: none;
+  }
+}

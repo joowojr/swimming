@@ -5,6 +5,7 @@ import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
+import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.usecase.FolderUseCase;
 import jakarta.validation.Valid;
@@ -70,6 +71,15 @@ public class FolderController {
         return ResponseEntity.ok(
                 folderUseCase.update(authUser.id(), folderId, request)
         );
+    }
+
+    @PatchMapping("/{folderId}/pin")
+    public ResponseEntity<FolderResponse> pin(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long folderId,
+            @Valid @RequestBody PinFolderRequest request
+    ) {
+        return ResponseEntity.ok(folderUseCase.pin(authUser.id(), folderId, request));
     }
 
     @DeleteMapping("/{folderId}")

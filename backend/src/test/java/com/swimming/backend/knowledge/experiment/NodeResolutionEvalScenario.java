@@ -1,7 +1,5 @@
 package com.swimming.backend.knowledge.experiment;
 
-import com.swimming.backend.knowledge.dto.out.NodeResolutionResult;
-
 import java.util.List;
 
 record NodeResolutionEvalScenario(
@@ -20,12 +18,17 @@ record NodeResolutionEvalScenario(
         AI_PRODUCTIVITY
     }
 
+    enum Action {
+        REUSE,
+        CREATE
+    }
+
     record SimilarSourceFixture(String id, String summary, List<String> subjects) {
     }
 
     record ExpectedResolution(
             String candidate,
-            NodeResolutionResult.Action action,
+            Action action,
             String canonicalSubject,
             Priority priority
     ) {

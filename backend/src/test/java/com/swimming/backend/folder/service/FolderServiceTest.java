@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -115,7 +116,7 @@ class FolderServiceTest {
     void returnsOnlyNonArchivedFoldersForUser() {
         FolderEntity newest = folderEntity(1L, "두 번째 프로젝트", null, null);
         FolderEntity oldest = folderEntity(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1), null);
-        when(folderRepository.findAllByUser_IdAndStatusNotAndDeletedFalseOrderByCreatedAtDesc(
+        when(folderRepository.findAllActiveOrderByPinnedAtDescCreatedAtDesc(
                 1L, FolderStatus.ARCHIVED
         )).thenReturn(List.of(newest, oldest));
 
@@ -184,6 +185,56 @@ class FolderServiceTest {
 
         assertThat(result.getStatus()).isEqualTo(FolderStatus.ARCHIVED);
         verify(folderRepository, never()).delete(any(FolderEntity.class));
+    }
+
+    @Test
+    @DisplayName("폴더를 고정하면 고정한 시각을 기록한다")
+    void recordsPinnedAtWhenFolderIsPinned() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Folder result = folderService.pin(1L, 10L, true);
+
+        assertThat(result.getPinnedAt()).isNotNull();
+        verify(folderRepository).flush();
+        verify(folderRepository, never()).save(any(FolderEntity.class));
+    }
+
+    @Test
+    @DisplayName("폴더 고정을 해제하면 고정한 시각을 지운다")
+    void clearsPinnedAtWhenFolderIsUnpinned() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
+        entity.updatePinnedAt(Instant.parse("2026-09-01T00:00:00Z"));
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Folder result = folderService.pin(1L, 10L, false);
+
+        assertThat(result.getPinnedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("고정은 폴더 수정과 별개라 폴더를 수정해도 고정이 풀리지 않는다")
+    void keepsPinnedAtWhenFolderIsUpdated() {
+        FolderEntity entity = folderEntity(1L, "기존 프로젝트", null, null);
+        entity.updatePinnedAt(Instant.parse("2026-09-01T00:00:00Z"));
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Folder result = folderService.update(
+                1L, 10L, null, "수정 프로젝트", "수정 설명", null,
+                FolderStatus.IN_PROGRESS
+        );
+
+        assertThat(result.getPinnedAt()).isEqualTo(Instant.parse("2026-09-01T00:00:00Z"));
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 폴더는 고정할 수 없다")
+    void rejectsPinningAnotherUsersFolder() {
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 2L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> folderService.pin(2L, 10L, true))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_NOT_FOUND));
     }
 
     @Test

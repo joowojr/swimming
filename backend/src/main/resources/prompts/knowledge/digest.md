@@ -25,7 +25,8 @@ Analyze the `<source-digest-input>` and return a Summary, one Category, one Topi
 
 ## subjects
 * Return up to four durable, independently searchable technical or domain concepts that the content substantively explains, ordered by prominence.
-* Prefer canonical concepts over document-specific features, workflows, or descriptive phrases.
+* Prefer concepts that the content explains centrally over document-specific features, workflows, or descriptive phrases.
 * Each Subject must represent exactly one atomic concept. Do not combine distinct concepts.
-* Exclude passing mentions, examples, organizations, headings, and incidental details.
-* Preserve official technologies, APIs, standards, libraries, and abbreviations in their original form; use Korean for established general concepts.
+* Include a named concept when it appears in both the supplied title and content.
+* DO NOT include passing mentions, examples, organizations, headings, and incidental details.
+* Preserve the original form of official technology, product, model, platform, API, standard, library, and abbreviation names; use Korean for established general concepts.

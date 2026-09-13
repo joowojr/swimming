@@ -63,7 +63,7 @@ class SourceSearchUseCaseTest {
     }
 
     private KnowledgeNode node(NodeType type, String title) {
-        return nodes.save(KnowledgeNode.create(USER_ID, type, title, null));
+        return nodes.create(KnowledgeNode.create(USER_ID, type, title, null));
     }
 
     private List<String> search(

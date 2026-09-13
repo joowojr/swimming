@@ -75,7 +75,7 @@ app:
       min-meaningful-length: 300
       user-agent: Mozilla/5.0 (X11; Linux x86_64)
       render:
-        enabled: ${KNOWLEDGE_FETCH_RENDER_ENABLED:true}
+        enabled: ${KNOWLEDGE_FETCH_RENDER_ENABLED:false}
         function-name: ${KNOWLEDGE_FETCH_RENDER_FUNCTION_NAME:}
         timeout: 20s
         # 실측: 렌더링이 필요했던 페이지가 74자·322자, 정상이지만 짧았던 페이지가 3,750자.

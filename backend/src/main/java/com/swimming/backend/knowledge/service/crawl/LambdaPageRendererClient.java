@@ -73,7 +73,7 @@ public class LambdaPageRendererClient {
         request.put("url", url);
         request.put("timeoutMs", properties.render().timeout().toMillis());
         // 원문 수집과 같은 신원으로 요청한다. Notion은 이 값에 정적 공개 문서를 돌려준다.
-        request.put("userAgent", "Mozilla/5.0 (X11; Linux x86_64)");
+        request.put("userAgent", properties.userAgent());
 
         return request.toString();
     }

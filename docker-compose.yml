@@ -22,9 +22,13 @@ services:
     profiles:
       - renderer
     platform: linux/amd64
+    cpus: 1.74
+    mem_limit: 3072m
     build:
       context: ./infra/lambda/page-renderer
     image: swimming-page-renderer:local
+    environment:
+      AWS_LAMBDA_FUNCTION_MEMORY_SIZE: "3072"
     ports:
       - "127.0.0.1:9000:8080"
 

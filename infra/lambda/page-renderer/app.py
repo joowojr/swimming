@@ -30,6 +30,58 @@ LAUNCH_ARGS = [
 _playwright = None
 _browser = None
 
+CGROUP_CURRENT_MEMORY_PATHS = (
+    "/sys/fs/cgroup/memory.current",
+    "/sys/fs/cgroup/memory/memory.usage_in_bytes",
+)
+CGROUP_PEAK_MEMORY_PATHS = (
+    "/sys/fs/cgroup/memory.peak",
+    "/sys/fs/cgroup/memory/memory.max_usage_in_bytes",
+)
+CGROUP_LIMIT_MEMORY_PATHS = (
+    "/sys/fs/cgroup/memory.max",
+    "/sys/fs/cgroup/memory/memory.limit_in_bytes",
+)
+
+
+def _read_cgroup_bytes(paths):
+    for path in paths:
+        try:
+            with open(path, encoding="utf-8") as value_file:
+                value = value_file.read().strip()
+        except OSError:
+            continue
+
+        if value == "max":
+            return None
+
+        try:
+            return int(value)
+        except ValueError:
+            continue
+
+    return None
+
+
+def _mebibytes(value):
+    return "unavailable" if value is None else f"{value / 1024 / 1024:.1f}"
+
+
+def _log_memory(stage, context):
+    """Chromium 자식 프로세스까지 포함한 실행 환경의 cgroup 메모리를 기록한다."""
+    request_id = getattr(context, "aws_request_id", "unknown")
+    current = _read_cgroup_bytes(CGROUP_CURRENT_MEMORY_PATHS)
+    peak = _read_cgroup_bytes(CGROUP_PEAK_MEMORY_PATHS)
+    limit = _read_cgroup_bytes(CGROUP_LIMIT_MEMORY_PATHS)
+    print(
+        "[render-memory] "
+        f"requestId={request_id} "
+        f"stage={stage} "
+        f"currentMiB={_mebibytes(current)} "
+        f"environmentPeakMiB={_mebibytes(peak)} "
+        f"limitMiB={_mebibytes(limit)}"
+    )
+
 
 def _browser_instance():
     """웜 컨테이너에서 브라우저를 재사용한다. 죽어 있으면 다시 띄운다."""
@@ -154,8 +206,11 @@ def _close(resource):
 
 
 def handler(event, context):
+    _log_memory("request-start", context)
+
     url = (event or {}).get("url")
     if not url:
+        _log_memory("request-rejected", context)
         return {"error": "URL_REQUIRED"}
 
     timeout_ms = int((event or {}).get("timeoutMs") or DEFAULT_TIMEOUT_MS)
@@ -165,10 +220,14 @@ def handler(event, context):
         browser_context, page = _new_page(user_agent)
     except PlaywrightError as exception:
         print(f"[render] launch failed reason={exception}")
+        _log_memory("launch-failed", context)
         return {"error": "LAUNCH_FAILED"}
+
+    _log_memory("page-created", context)
 
     try:
         response = page.goto(url, timeout=timeout_ms)
+        _log_memory("navigation-finished", context)
         print(
             f"[render] navigation "
             f"requestedUrl={url} "
@@ -194,7 +253,9 @@ def handler(event, context):
             except PlaywrightTimeoutError:
                 print(f"[render] notion body wait timeout url={page.url}")
             page.wait_for_timeout(NOTION_PAGE_SETTLE_WAIT_MS)
+            _log_memory("notion-settled", context)
             _expand_notion_toggles(page)
+            _log_memory("notion-toggles-finished", context)
         else:
             try:
                 page.wait_for_load_state(
@@ -203,8 +264,10 @@ def handler(event, context):
                 )
             except PlaywrightTimeoutError:
                 print(f"[render] networkidle timeout url={url}")
+            _log_memory("networkidle-finished", context)
 
         html, truncated = _truncate(page.content())
+        _log_memory("content-extracted", context)
         return {"html": html, "truncated": truncated}
 
     except PlaywrightTimeoutError:
@@ -216,3 +279,4 @@ def handler(event, context):
     finally:
         _close(page)
         _close(browser_context)
+        _log_memory("request-finished", context)

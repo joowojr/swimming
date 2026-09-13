@@ -74,7 +74,7 @@ public class NodeUseCase {
         if (node.getNodeType() == NodeType.TOPIC) {
             throw new BusinessException(ErrorCode.KNOWLEDGE_TOPIC_NOT_DELETABLE);
         }
-
+        node.delete();
         nodeService.delete(node);
     }
 

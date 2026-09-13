@@ -1,7 +1,8 @@
 package com.swimming.backend.knowledge.repository.postgres;
 
-import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeSourceEntity;
 import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
+import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeNodeEntity;
+import com.swimming.backend.knowledge.repository.postgres.entity.KnowledgeSourceEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,9 +16,29 @@ import java.util.UUID;
 
 public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSourceEntity, UUID> {
 
+    interface SourceWithNode {
+
+        KnowledgeSourceEntity getSource();
+
+        KnowledgeNodeEntity getNode();
+    }
+
     List<KnowledgeSourceEntity> findAllByNodeIdIn(Collection<UUID> nodeIds);
 
-    List<KnowledgeSourceEntity> findAllByCanonicalUrl(String canonicalUrl);
+    @Query("""
+            select s as source, n as node
+              from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+             where s.nodeId = n.id
+               and n.userId = :userId
+               and n.deleted = false
+               and s.folderId = :folderId
+               and s.canonicalUrl in :canonicalUrls
+            """)
+    List<SourceWithNode> findAllActiveInFolderByCanonicalUrls(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId,
+            @Param("canonicalUrls") Collection<String> canonicalUrls
+    );
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """

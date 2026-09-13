@@ -122,19 +122,21 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
-    public Optional<KnowledgeSource> findInFolderByCanonicalUrl(
+    public List<KnowledgeSource> findAllInFolderByCanonicalUrls(
             Long userId,
             Long folderId,
-            String canonicalUrl
+            Collection<String> canonicalUrls
     ) {
-        return sourceJpaRepository.findAllByCanonicalUrl(canonicalUrl)
+        if (canonicalUrls.isEmpty()) {
+            return List.of();
+        }
+
+        return sourceJpaRepository.findAllActiveInFolderByCanonicalUrls(
+                        userId, folderId, canonicalUrls
+                )
                 .stream()
-                .filter(sourceEntity -> sourceEntity.getFolderId().equals(folderId))
-                .flatMap(sourceEntity -> nodeJpaRepository
-                        .findByIdAndUserIdAndDeletedFalse(sourceEntity.getNodeId(), userId)
-                        .map(nodeEntity -> toDomain(nodeEntity, sourceEntity))
-                        .stream())
-                .findFirst();
+                .map(row -> toDomain(row.getNode(), row.getSource()))
+                .toList();
     }
 
     @Override

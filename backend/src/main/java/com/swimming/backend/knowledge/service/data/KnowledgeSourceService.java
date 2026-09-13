@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -70,12 +69,12 @@ public class KnowledgeSourceService {
             propagation = Propagation.REQUIRED,
             readOnly = true
     )
-    public Optional<KnowledgeSource> findInFolderByCanonicalUrl(
+    public List<KnowledgeSource> findAllInFolderByCanonicalUrls(
             Long userId,
             Long folderId,
-            String canonicalUrl
+            Collection<String> canonicalUrls
     ) {
-        return sourceRepository.findInFolderByCanonicalUrl(userId, folderId, canonicalUrl);
+        return sourceRepository.findAllInFolderByCanonicalUrls(userId, folderId, canonicalUrls);
     }
 
     @Transactional(

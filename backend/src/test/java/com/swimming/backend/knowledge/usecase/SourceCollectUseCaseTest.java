@@ -292,6 +292,31 @@ class SourceCollectUseCaseTest {
         }
 
         @Test
+        @DisplayName("한 번에 받은 링크들의 canonical URL이 같으면 하나만 저장한다")
+        void doesNotDuplicateSameDocumentWithinRequest() {
+            givenFetch(
+                    success("https://a.com/1?utm_source=x", "https://a.com/1", "같은 문서"),
+                    success("https://a.com/1", "https://a.com/1", "같은 문서")
+            );
+
+            SourceCollectResponse response = collect(
+                    FOLDER_ID,
+                    "https://a.com/1?utm_source=x",
+                    "https://a.com/1"
+            );
+
+            assertThat(response.items())
+                    .extracting(SourceCollectResponse.Item::result)
+                    .containsExactly(
+                            SourceCollectResponse.Result.CREATED,
+                            SourceCollectResponse.Result.ALREADY_SAVED
+                    );
+            assertThat(response.items().getFirst().source().sourceId())
+                    .isEqualTo(response.items().getLast().source().sourceId());
+            verify(digestService, times(1)).digest(any());
+        }
+
+        @Test
         @DisplayName("다른 Folder에 있는 같은 문서는 이 Folder에 새로 저장한다")
         void savesSameDocumentInAnotherFolder() {
             givenFetch(success("https://a.com/1", "https://a.com/1", "같은 문서"));

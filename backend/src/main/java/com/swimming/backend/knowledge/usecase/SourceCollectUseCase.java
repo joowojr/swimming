@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 링크를 모으고 다시 소화한다. 삭제는 {@link SourceDeleteUseCase}가 맡는다.
@@ -65,11 +67,26 @@ public class SourceCollectUseCase {
 
         List<SourceFetchResult> fetched = sourceFetchService.fetchAll(request.urls());
 
+        List<String> canonicalUrls = fetched.stream()
+                .filter(SourceFetchResult::isSuccess)
+                .map(result -> result.document().canonicalUrl())
+                .distinct()
+                .toList();
+        Map<String, KnowledgeSource> existingSources = sourceService
+                .findAllInFolderByCanonicalUrls(userId, folderId, canonicalUrls)
+                .stream()
+                .collect(Collectors.toMap(
+                        KnowledgeSource::getCanonicalUrl,
+                        Function.identity(),
+                        (first, ignored) -> first,
+                        LinkedHashMap::new
+                ));
+
         // 저장·소화를 먼저 끝내고 카드는 마지막에 한 번에 만든다. 링크마다 만들면 관계 조회가
         // 링크 수만큼 나간다.
         List<Saved> saved = new ArrayList<>(fetched.size());
         for (SourceFetchResult result : fetched) {
-            saved.add(saveSourceGraph(userId, folderId, result));
+            saved.add(saveSourceGraph(userId, folderId, result, existingSources));
         }
 
         // 새로 만들었거나 이미 있었거나, 어느 쪽이든 이 Folder에 링크가 있다는 뜻이다.
@@ -105,7 +122,12 @@ public class SourceCollectUseCase {
     ) {
     }
 
-    private Saved saveSourceGraph(Long userId, Long folderId, SourceFetchResult result) {
+    private Saved saveSourceGraph(
+            Long userId,
+            Long folderId,
+            SourceFetchResult result,
+            Map<String, KnowledgeSource> existingSources
+    ) {
         if (!result.isSuccess()) {
             log.info(
                     "[source-collect] skipped url={} reason={} detail={}",
@@ -122,28 +144,30 @@ public class SourceCollectUseCase {
         // 이 Folder에 같은 문서가 이미 있으면 다시 만들지도, 다시 소화하지도 않는다.
         // 다른 Folder에 있는 같은 문서는 막지 않는다. 사용자는 폴더 단위로 링크를 모으므로
         // 저쪽 폴더에 있다는 이유로 이 폴더에서 저장이 거절되면 링크가 사라진 것처럼 보인다.
-        return sourceService.findInFolderByCanonicalUrl(userId, folderId, document.canonicalUrl())
-                .map(existing -> new Saved(
-                        result.requestedUrl(),
-                        SourceCollectResponse.Result.ALREADY_SAVED,
-                        existing.getId(),
-                        null,
-                        false
-                ))
-                .orElseGet(() -> {
-                    KnowledgeSource created =
-                            sourceService.save(toSource(userId, folderId, document));
-                    // 소화가 실패해도 예외를 던지지 않는다. 상태만 남고 원문은 그대로 있다.
-                    digestProcessor.digest(userId, created.getId());
+        KnowledgeSource existing = existingSources.get(document.canonicalUrl());
+        if (existing != null) {
+            return new Saved(
+                    result.requestedUrl(),
+                    SourceCollectResponse.Result.ALREADY_SAVED,
+                    existing.getId(),
+                    null,
+                    false
+            );
+        }
 
-                    return new Saved(
-                            result.requestedUrl(),
-                            SourceCollectResponse.Result.CREATED,
-                            created.getId(),
-                            null,
-                            false
-                    );
-                });
+        KnowledgeSource created = sourceService.save(toSource(userId, folderId, document));
+        existingSources.put(document.canonicalUrl(), created);
+
+        // 소화가 실패해도 예외를 던지지 않는다. 상태만 남고 원문은 그대로 있다.
+        digestProcessor.digest(userId, created.getId());
+
+        return new Saved(
+                result.requestedUrl(),
+                SourceCollectResponse.Result.CREATED,
+                created.getId(),
+                null,
+                false
+        );
     }
 
     private List<SourceCollectResponse.Item> toItems(Long userId, List<Saved> saved) {

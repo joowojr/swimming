@@ -313,18 +313,18 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
-        public Optional<KnowledgeSource> findInFolderByCanonicalUrl(
+        public List<KnowledgeSource> findAllInFolderByCanonicalUrls(
                 Long userId,
                 Long folderId,
-                String canonicalUrl
+                Collection<String> canonicalUrls
         ) {
             return stored.values().stream()
                     .filter(source -> source.getUserId().equals(userId)
                             && !source.isDeleted()
                             && Objects.equals(source.getFolderId(), folderId)
-                            && Objects.equals(source.getCanonicalUrl(), canonicalUrl))
-                    .findFirst()
-                    .map(Sources::copy);
+                            && canonicalUrls.contains(source.getCanonicalUrl()))
+                    .map(Sources::copy)
+                    .toList();
         }
 
         static KnowledgeSource copy(KnowledgeSource source) {

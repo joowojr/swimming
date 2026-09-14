@@ -1,5 +1,7 @@
 """Notion 공개 페이지의 본문 준비 상태와 접이식 블록을 처리한다."""
 
+import json
+
 from urllib.parse import urlparse
 
 from playwright.sync_api import Error as PlaywrightError
@@ -10,6 +12,35 @@ CONTENT_WAIT_MS = 10_000
 PAGE_SETTLE_WAIT_MS = 2_000
 TOGGLE_CLICK_WAIT_MS = 500
 MAX_TOGGLE_CLICKS = 100
+CONTENT_DIAGNOSTICS_SCRIPT = """
+() => {
+    const content = document.querySelector('.notion-page-content');
+    const bodyText = document.body?.innerText || '';
+    const challengeSelector = [
+        'iframe[src*="challenge"]',
+        'iframe[src*="captcha"]',
+        '[id*="challenge"]',
+        '[class*="challenge"]'
+    ].join(',');
+    const loginSelector = [
+        'form[action*="login"]',
+        'a[href*="login"]',
+        'a[href*="signup"]'
+    ].join(',');
+
+    return {
+        readyState: document.readyState,
+        htmlLength: document.documentElement?.outerHTML.length || 0,
+        bodyTextLength: bodyText.trim().length,
+        titleLength: document.title?.length || 0,
+        contentCount: document.querySelectorAll('.notion-page-content').length,
+        selectableCount: content?.querySelectorAll('.notion-selectable').length || 0,
+        hasLoginUi: document.querySelector(loginSelector) !== null,
+        hasChallengeUi: document.querySelector(challengeSelector) !== null,
+        hasAlertUi: document.querySelector('[role="alert"]') !== null
+    };
+}
+"""
 CLOSED_TOGGLE_SELECTOR = (
     '.notion-page-content .notion-selectable.notion-toggle-block '
     '[role="button"][aria-expanded="false"], '
@@ -53,7 +84,26 @@ def wait_for_content(page):
         return True
     except PlaywrightTimeoutError:
         print(f"[render] notion content wait timeout url={page.url}")
+        log_content_diagnostics(page)
         return False
+
+
+def log_content_diagnostics(page):
+    """본문 내용 자체를 노출하지 않고 빈 셸·로그인·차단 상태를 구분한다."""
+    try:
+        diagnostics = page.evaluate(CONTENT_DIAGNOSTICS_SCRIPT)
+        if not isinstance(diagnostics, dict):
+            diagnostics = {"evaluationResult": "unavailable"}
+        print(
+            "[render-notion-diagnostics] "
+            f"url={page.url} "
+            f"state={json.dumps(diagnostics, ensure_ascii=True, sort_keys=True)}"
+        )
+    except PlaywrightError as exception:
+        print(
+            "[render-notion-diagnostics] "
+            f"url={page.url} evaluationFailed={exception!r}"
+        )
 
 
 def settle(page):

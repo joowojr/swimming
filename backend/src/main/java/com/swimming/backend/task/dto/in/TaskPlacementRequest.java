@@ -1,5 +1,6 @@
 package com.swimming.backend.task.dto.in;
 
+import com.swimming.backend.task.domain.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
 
 public record TaskPlacementRequest(
@@ -8,6 +9,7 @@ public record TaskPlacementRequest(
         @NotBlank(message = "Task 이동 영역을 입력해 주세요")
         String targetSection,
         Long previousTaskId,
-        Long nextTaskId
+        Long nextTaskId,
+        TaskStatus status
 ) {
 }

@@ -3,6 +3,7 @@ package com.swimming.backend.knowledge.service.crawl.youtube;
 import com.swimming.backend.common.config.google.GoogleProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
+import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.time.Duration;
-import java.time.Instant;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
@@ -28,15 +29,17 @@ class YoutubeSourceFetcherTest {
     private static final URI REQUESTED_URI = URI.create(REQUESTED_URL);
 
     private MockRestServiceServer server;
+    private RestClient.Builder builder;
     private YoutubeSourceFetcher fetcher;
 
     @BeforeEach
     void setUp() {
-        RestClient.Builder builder = RestClient.builder().baseUrl("https://www.googleapis.com");
+        builder = RestClient.builder().baseUrl("https://www.googleapis.com");
         server = MockRestServiceServer.bindTo(builder).build();
         fetcher = new YoutubeSourceFetcher(
                 builder.build(),
-                new GoogleProperties.Youtube("test-key", Duration.ofSeconds(10))
+                new GoogleProperties.Youtube("test-key", Duration.ofSeconds(10)),
+                Optional.empty()
         );
     }
 
@@ -50,7 +53,7 @@ class YoutubeSourceFetcherTest {
     }
 
     @Test
-    @DisplayName("영상 정보를 제목·채널·게시일과 본문으로 옮긴다")
+    @DisplayName("영상 정보를 제목·채널과 본문으로 옮기고 게시일·길이는 제외한다")
     void 영상_정보를_문서로_옮긴다() {
         server.expect(requestTo(org.hamcrest.Matchers.containsString("/youtube/v3/videos")))
                 .andExpect(queryParam("id", VIDEO_ID))
@@ -65,16 +68,40 @@ class YoutubeSourceFetcherTest {
         FetchedDocument document = result.document();
         assertThat(document.title()).isEqualTo("스프링 트랜잭션 전파 정리");
         assertThat(document.author()).isEqualTo("스프링 채널");
-        assertThat(document.publishedAt()).isEqualTo(Instant.parse("2025-03-04T05:06:07Z"));
+        assertThat(document.publishedAt()).isNull();
         assertThat(document.sourceType()).isEqualTo("youtube");
         assertThat(document.truncated()).isFalse();
         assertThat(document.markdown())
                 .contains("# 스프링 트랜잭션 전파 정리")
                 .contains("채널: 스프링 채널")
-                .contains("게시일: 2025-03-04")
-                .contains("길이: 12분 34초")
                 .contains("태그: spring, transaction")
-                .contains("전파 옵션을 예제로 설명합니다.");
+                .contains("전파 옵션을 예제로 설명합니다.")
+                .doesNotContain("게시일:")
+                .doesNotContain("길이:");
+    }
+
+    @Test
+    @DisplayName("Data API와 Lambda 자막을 합쳐 하나의 본문으로 만든다")
+    void 메타데이터와_자막을_합친다() {
+        server.expect(requestTo(org.hamcrest.Matchers.containsString("/youtube/v3/videos")))
+                .andRespond(withSuccess(videoJson(), MediaType.APPLICATION_JSON));
+
+        LambdaPageRendererClient renderer = org.mockito.Mockito.mock(LambdaPageRendererClient.class);
+        org.mockito.Mockito.when(renderer.render("https://www.youtube.com/watch?v=" + VIDEO_ID))
+                .thenReturn(Optional.of("<article><p>자막 첫 문장입니다.</p><p>자막 두 번째 문장입니다.</p></article>"));
+        fetcher = new YoutubeSourceFetcher(
+                builder.build(),
+                new GoogleProperties.Youtube("test-key", Duration.ofSeconds(10)),
+                Optional.of(renderer)
+        );
+
+        SourceFetchResult result = fetcher.fetch(REQUESTED_URL, REQUESTED_URI);
+        server.verify();
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.document().markdown())
+                .contains("## 자막")
+                .contains("자막 첫 문장입니다. 자막 두 번째 문장입니다.");
     }
 
     @Test

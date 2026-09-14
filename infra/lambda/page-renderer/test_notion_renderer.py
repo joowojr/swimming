@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
@@ -45,8 +45,41 @@ class NotionContentTest(unittest.TestCase):
         page = Mock()
         page.url = "https://workspace.notion.site/example"
         page.wait_for_function.side_effect = PlaywrightTimeoutError("timeout")
+        page.evaluate.return_value = {
+            "readyState": "complete",
+            "htmlLength": 25754,
+            "bodyTextLength": 12,
+            "titleLength": 8,
+            "contentCount": 0,
+            "selectableCount": 0,
+            "hasLoginUi": False,
+            "hasChallengeUi": False,
+            "hasAlertUi": False,
+        }
 
-        self.assertFalse(notion_renderer.wait_for_content(page))
+        with patch("builtins.print") as print_log:
+            self.assertFalse(notion_renderer.wait_for_content(page))
+
+        page.evaluate.assert_called_once_with(
+            notion_renderer.CONTENT_DIAGNOSTICS_SCRIPT
+        )
+        self.assertTrue(
+            any(
+                "[render-notion-diagnostics]" in call.args[0]
+                and '"contentCount": 0' in call.args[0]
+                for call in print_log.call_args_list
+            )
+        )
+
+    def test_진단_evaluate_실패도_렌더링_오류로_전파하지_않는다(self):
+        page = Mock()
+        page.url = "https://workspace.notion.site/example"
+        page.evaluate.side_effect = notion_renderer.PlaywrightError("closed")
+
+        with patch("builtins.print") as print_log:
+            notion_renderer.log_content_diagnostics(page)
+
+        self.assertIn("evaluationFailed", print_log.call_args.args[0])
 
 
 if __name__ == "__main__":

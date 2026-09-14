@@ -2,6 +2,7 @@ import { chromium as playwrightChromium } from 'playwright-core';
 import chromium from '@sparticuz/chromium';
 import * as notionRenderer from './notion_renderer.mjs';
 import * as naverRenderer from './naver_renderer.mjs';
+import * as youtubeRenderer from './youtube_renderer.mjs';
 
 const RENDER_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64)';
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -19,6 +20,26 @@ export async function handler(event = {}) {
 
   const timeoutMs = Number(event.timeoutMs) || DEFAULT_TIMEOUT_MS;
   const userAgent = event.userAgent || RENDER_USER_AGENT;
+
+  if (youtubeRenderer.isYouTubeVideoUrl(url)) {
+    try {
+      const transcriptHtml = await youtubeRenderer.extract(url, {
+        language: event.transcriptLanguage || 'ko',
+        userAgent,
+      });
+      if (!transcriptHtml) return { error: 'YOUTUBE_TRANSCRIPT_UNAVAILABLE' };
+      const result = truncateHtml(transcriptHtml);
+      return { error: null, html: result.html, truncated: result.truncated };
+    } catch (error) {
+      console.error(JSON.stringify({
+        stage: 'youtube-transcript-failed',
+        name: error?.name,
+        message: error?.message,
+      }));
+      return { error: 'YOUTUBE_TRANSCRIPT_UNAVAILABLE' };
+    }
+  }
+
   let browser;
 
   console.log(JSON.stringify({

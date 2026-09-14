@@ -203,6 +203,13 @@ public class WebFetchService {
             HtmlToMarkdownConverter.Result converted
     ) {
         int length = converted.meaningfulLength();
+        log.info(
+                "[source-fetch] render-check url={} meaningfulLength={} threshold={} rendererAvailable={}",
+                url,
+                length,
+                properties.render().minContentLength(),
+                pageRenderer.isPresent()
+        );
 
         if (length >= properties.render().minContentLength()) {
             log.debug(
@@ -321,8 +328,8 @@ public class WebFetchService {
     ) {
         String finalUrl = document.location();
         HtmlToMarkdownConverter.Result converted = markdownConverter.convert(finalUrl, document);
-        log.debug(
-                "[source-fetch] converted url={} markdownLength={} meaningfulLength={} renderAllowed={}",
+        log.info(
+                "[source-fetch] converted url={} convertedLength={} meaningfulLength={} renderAllowed={}",
                 finalUrl,
                 converted.markdown().length(),
                 converted.meaningfulLength(),

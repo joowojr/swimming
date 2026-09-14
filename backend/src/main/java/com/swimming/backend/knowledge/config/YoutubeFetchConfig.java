@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.config;
 
 import com.swimming.backend.common.config.google.GoogleProperties;
+import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
 import com.swimming.backend.knowledge.service.crawl.youtube.YoutubeSourceFetcher;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
@@ -8,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+
+import java.util.Optional;
 
 /**
  * API 키가 있을 때만 유튜브 전용 수집기를 만든다.
@@ -31,7 +34,8 @@ public class YoutubeFetchConfig {
     @Order(100)
     public YoutubeSourceFetcher youtubeSourceFetcher(
             RestClient.Builder restClientBuilder,
-            GoogleProperties properties
+            GoogleProperties properties,
+            Optional<LambdaPageRendererClient> pageRenderer
     ) {
         GoogleProperties.Youtube youtube = properties.youtube();
 
@@ -43,7 +47,8 @@ public class YoutubeFetchConfig {
                         .baseUrl(API_BASE_URL)
                         .requestFactory(requestFactory)
                         .build(),
-                youtube
+                youtube,
+                pageRenderer
         );
     }
 }

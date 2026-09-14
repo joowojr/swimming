@@ -3,6 +3,7 @@
 import os
 import resource
 import shutil
+import subprocess
 import threading
 import time
 import traceback
@@ -24,10 +25,32 @@ LAUNCH_ARGS = [
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
+    "--single-process",
+    "--no-zygote",
+    "--disable-setuid-sandbox",
+    "--disable-accelerated-2d-canvas",
+    "--disable-domain-reliability",
+    "--disable-features=AudioServiceOutOfProcess",
+    "--use-gl=swiftshader",
+    "--no-pings",
+    "--window-size=1280,1696",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-background-timer-throttling",
+    "--disable-client-side-phishing-detection",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-hang-monitor",
+    "--disable-ipc-flooding-protection",
+    "--disable-popup-blocking",
+    "--disable-prompt-on-repost",
+    "--disable-renderer-backgrounding",
+    "--disable-sync",
+    "--force-color-profile=srgb",
+    "--metrics-recording-only",
+    "--mute-audio",
 ]
-
-_playwright = None
-_browser = None
 
 CGROUP_CURRENT_MEMORY_PATHS = (
     "/sys/fs/cgroup/memory.current",
@@ -147,6 +170,72 @@ def _log_setup(request_id, attempt, stage, started_at):
     )
 
 
+def _log_chromium_diagnostics(playwright, request_id, attempt, started_at):
+    """Playwright 밖에서 Chromium이 Lambda 격리 조건에서 뜨는지 확인한다."""
+    executable = playwright.chromium.executable_path
+    if not isinstance(executable, (str, bytes, os.PathLike)):
+        print(
+            "[render-chromium] "
+            f"requestId={request_id} attempt={attempt} "
+            "stage=standalone-smoke result=unavailable "
+            f"reason=invalid-executable-path type={type(executable).__name__}"
+        )
+        return
+
+    executable_exists = os.path.exists(executable)
+    print(
+        "[render-chromium] "
+        f"requestId={request_id} attempt={attempt} "
+        f"executable={executable} "
+        f"exists={executable_exists} "
+        f"executableMode={oct(os.stat(executable).st_mode & 0o777) if executable_exists else 'unavailable'}"
+    )
+
+    if not executable_exists:
+        return
+
+    command = [
+        executable,
+        "--headless",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--user-data-dir=/tmp/chromium-diagnostic-profile",
+        "--dump-dom",
+        "about:blank",
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        print(
+            "[render-chromium] "
+            f"requestId={request_id} attempt={attempt} stage=standalone-smoke "
+            f"returnCode={result.returncode} "
+            f"stdout={result.stdout[-2000:]!r} "
+            f"stderr={result.stderr[-4000:]!r}"
+        )
+    except subprocess.TimeoutExpired as exception:
+        print(
+            "[render-chromium] "
+            f"requestId={request_id} attempt={attempt} stage=standalone-smoke "
+            f"result=timeout timeoutSeconds=5 "
+            f"stdout={exception.stdout!r} stderr={exception.stderr!r}"
+        )
+    except (OSError, ValueError) as exception:
+        _log_exception(
+            request_id,
+            attempt,
+            "standalone-smoke-failed",
+            exception,
+            started_at,
+        )
+
+
 def _log_exception(request_id, attempt, stage, exception, started_at):
     formatted_traceback = "".join(
         traceback.format_exception(type(exception), exception, exception.__traceback__)
@@ -163,160 +252,53 @@ def _log_exception(request_id, attempt, stage, exception, started_at):
     )
 
 
-def _browser_instance(request_id="unknown", attempt=1, started_at=None):
-    """웜 컨테이너에서 브라우저를 재사용한다. 죽어 있으면 다시 띄운다."""
-    global _playwright, _browser
-    started_at = started_at or time.monotonic()
-    _prepare_browser_environment()
-
-    if _browser is not None and _browser.is_connected():
-        _log_setup(request_id, attempt, "browser-reused", started_at)
-        return _browser
-
-    if _playwright is None:
-        _log_setup(request_id, attempt, "playwright-starting", started_at)
-        _playwright = sync_playwright().start()
-        _log_setup(request_id, attempt, "playwright-started", started_at)
-
-    _log_setup(request_id, attempt, "chromium-launching", started_at)
-    _browser = _playwright.chromium.launch(headless=True, args=LAUNCH_ARGS)
-    _browser.on(
-        "disconnected",
-        lambda _: print(
-            "[render-browser] "
-            f"event=disconnected createdByRequestId={request_id} "
-            f"createdByAttempt={attempt}"
-        ),
-    )
-    _log_setup(
-        request_id,
-        attempt,
-        f"chromium-launched connected={_browser.is_connected()}",
-        started_at,
-    )
-    return _browser
-
-
-def _discard_runtime(request_id="unknown", attempt=1, started_at=None):
-    """손상된 브라우저와 Playwright driver를 함께 버린다."""
-    global _playwright, _browser
-    started_at = started_at or time.monotonic()
-
-    browser = _browser
-    playwright = _playwright
-    _browser = None
-    _playwright = None
-    _log_setup(request_id, attempt, "runtime-discard-starting", started_at)
-
-    if browser is not None:
-        try:
-            browser.close()
-        except PlaywrightError as exception:
-            _log_exception(
-                request_id,
-                attempt,
-                "browser-close-failed",
-                exception,
-                started_at,
-            )
-
-    if playwright is not None:
-        try:
-            playwright.stop()
-        except PlaywrightError as exception:
-            _log_exception(
-                request_id,
-                attempt,
-                "playwright-stop-failed",
-                exception,
-                started_at,
-            )
-
-    _log_setup(request_id, attempt, "runtime-discarded", started_at)
-
-
 def _new_page(user_agent, request_id="unknown"):
-    """손상된 런타임이면 Playwright부터 한 번 새로 시작해 page를 만든다."""
-    for attempt in range(2):
-        browser_context = None
-        attempt_number = attempt + 1
-        attempt_started_at = time.monotonic()
-        try:
-            _log_setup(
-                request_id,
-                attempt_number,
-                "browser-requested",
-                attempt_started_at,
-            )
-            browser = _browser_instance(
-                request_id,
-                attempt_number,
-                attempt_started_at,
-            )
-            _log_setup(
-                request_id,
-                attempt_number,
-                "context-creating",
-                attempt_started_at,
-            )
-            browser_context = (
-                browser.new_context(user_agent=user_agent)
-                if user_agent
-                else browser.new_context()
-            )
-            _log_setup(
-                request_id,
-                attempt_number,
-                "context-created",
-                attempt_started_at,
-            )
-            _log_setup(
-                request_id,
-                attempt_number,
-                "page-creating",
-                attempt_started_at,
-            )
-            page = browser_context.new_page()
-            _attach_page_diagnostics(page, request_id)
-            _log_setup(
-                request_id,
-                attempt_number,
-                "page-created",
-                attempt_started_at,
-            )
-            return browser_context, page
-        except PlaywrightError as exception:
-            _log_exception(
-                request_id,
-                attempt_number,
-                "page-setup-failed",
-                exception,
-                attempt_started_at,
-            )
-            if browser_context is not None:
-                try:
-                    browser_context.close()
-                except PlaywrightError as close_exception:
-                    _log_exception(
-                        request_id,
-                        attempt_number,
-                        "context-close-failed",
-                        close_exception,
-                        attempt_started_at,
-                    )
-            _discard_runtime(
-                request_id,
-                attempt_number,
-                attempt_started_at,
-            )
-            if attempt == 1:
-                raise
-            _log_setup(
-                request_id,
-                attempt_number,
-                "retrying-with-new-runtime",
-                attempt_started_at,
-            )
+    """예제처럼 요청마다 Playwright, browser, context와 page를 새로 만든다."""
+    started_at = time.monotonic()
+    _prepare_browser_environment()
+    playwright = None
+    browser = None
+    browser_context = None
+    try:
+        _log_setup(request_id, 1, "browser-requested", started_at)
+        _log_setup(request_id, 1, "playwright-starting", started_at)
+        playwright = sync_playwright().start()
+        _log_setup(request_id, 1, "playwright-started", started_at)
+        _log_chromium_diagnostics(playwright, request_id, 1, started_at)
+        _log_setup(request_id, 1, "chromium-launching", started_at)
+        browser = playwright.chromium.launch(headless=True, args=LAUNCH_ARGS)
+        browser.on(
+            "disconnected",
+            lambda _: print(
+                "[render-browser] "
+                f"event=disconnected requestId={request_id}"
+            ),
+        )
+        _log_setup(
+            request_id,
+            1,
+            f"chromium-launched connected={browser.is_connected()}",
+            started_at,
+        )
+        _log_setup(request_id, 1, "context-creating", started_at)
+        browser_context = (
+            browser.new_context(user_agent=user_agent)
+            if user_agent
+            else browser.new_context()
+        )
+        _log_setup(request_id, 1, "context-created", started_at)
+        _log_setup(request_id, 1, "page-creating", started_at)
+        page = browser_context.new_page()
+        _attach_page_diagnostics(page, request_id)
+        _log_setup(request_id, 1, "page-created", started_at)
+        return playwright, browser, browser_context, page
+    except PlaywrightError as exception:
+        _log_exception(request_id, 1, "page-setup-failed", exception, started_at)
+        _close(browser_context)
+        _close(browser)
+        if playwright is not None:
+            playwright.stop()
+        raise
 
 
 def _url_origin(url):
@@ -453,8 +435,14 @@ def handler(event, context):
 
     user_agent = (event or {}).get("userAgent")
     request_id = getattr(context, "aws_request_id", "unknown")
+    playwright = None
+    browser = None
+    browser_context = None
+    page = None
     try:
-        browser_context, page = _new_page(user_agent, request_id)
+        playwright, browser, browser_context, page = _new_page(
+            user_agent, request_id
+        )
     except PlaywrightError as exception:
         _log_exception(
             request_id,
@@ -515,4 +503,7 @@ def handler(event, context):
     finally:
         _close(page)
         _close(browser_context)
+        _close(browser)
+        if playwright is not None:
+            playwright.stop()
         _log_memory("request-finished", context)

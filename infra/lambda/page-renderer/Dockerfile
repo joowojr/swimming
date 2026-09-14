@@ -3,7 +3,7 @@
 # 설치했고, 로컬에서는 성공하지만 운영 Lambda에서 renderer가 종료되는 차이가 있었다.
 FROM public.ecr.aws/lambda/python:3.12 AS lambda-runtime-tools
 
-FROM mcr.microsoft.com/playwright/python:v1.55.0-noble
+FROM mcr.microsoft.com/playwright/python:v1.45.0-jammy
 
 ARG FUNCTION_DIR=/var/task
 

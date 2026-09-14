@@ -124,6 +124,23 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             boolean urgent
     );
 
+    @Query("""
+            SELECT task
+            FROM TaskEntity task
+            WHERE task.user.id = :userId
+              AND task.deleted = false
+              AND task.priority = :priority
+              AND task.urgent = :urgent
+              AND (:status IS NULL OR task.status = :status)
+            ORDER BY task.matrixRank DESC, task.id DESC
+            """)
+    List<TaskEntity> findAllByUser_IdAndDeletedFalseAndPriorityAndUrgentAndStatusOrderByMatrixRankDescIdDesc(
+            @Param("userId") Long userId,
+            @Param("priority") boolean priority,
+            @Param("urgent") boolean urgent,
+            @Param("status") TaskStatus status
+    );
+
     List<TaskEntity> findAllByUser_IdAndDeletedFalseAndIdIn(Long userId, List<Long> taskIds);
 
     Optional<TaskEntity> findTopByFolder_IdAndDeletedFalseOrderByIdDesc(Long folderId);

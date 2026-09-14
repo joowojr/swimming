@@ -3,6 +3,7 @@ package com.swimming.backend.knowledge.service.crawl.youtube;
 import com.swimming.backend.common.config.google.GoogleProperties;
 import com.swimming.backend.knowledge.dto.out.FetchedDocument;
 import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
+import com.swimming.backend.knowledge.service.crawl.LambdaPageRendererClient;
 import com.swimming.backend.knowledge.service.crawl.SourceFetcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,15 +14,15 @@ import org.springframework.web.client.RestClient;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.http.HttpTimeoutException;
-import java.time.Duration;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * 유튜브 영상을 공식 Data API v3로 받아 문서로 만든다.
@@ -29,9 +30,9 @@ import java.util.regex.Pattern;
  * <p>시청 페이지를 크롤링하지 않는다. 본문이 HTML에 없고 플레이어 JavaScript가 그리기
  * 때문에, 일반 수집으로는 사이트 메뉴만 남는다. 제목·채널·설명·태그는 API가 그대로 준다.
  *
- * <p>자막은 다루지 않는다. Data API의 {@code captions} 엔드포인트는 영상 소유자의 OAuth
- * 토큰을 요구해서 남의 영상에는 쓸 수 없다. 자막이 필요해지면 여기서 본문을 만들 때
- * 한 단계가 붙는 것이지, 수집기 구조가 달라지지는 않는다.
+ * <p>Data API 메타데이터와 Lambda 자막 렌더링을 병렬로 요청한다. 자막은 공식 Data API의
+ * {@code captions} 엔드포인트가 영상 소유자의 OAuth 토큰을 요구하기 때문에 Lambda의
+ * Playwright 경로에서 가져온다.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -47,11 +48,9 @@ public class YoutubeSourceFetcher implements SourceFetcher {
 
     private static final int ERROR_BODY_LIMIT = 200;
 
-    private static final DateTimeFormatter PUBLISHED_DATE =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
-
     private final RestClient restClient;
     private final GoogleProperties.Youtube properties;
+    private final Optional<LambdaPageRendererClient> pageRenderer;
 
     /**
      * 유튜브 도메인이라도 영상 URL이 아니면 맡지 않는다. 채널 홈이나 재생목록 페이지는
@@ -77,11 +76,40 @@ public class YoutubeSourceFetcher implements SourceFetcher {
     }
 
     private SourceFetchResult request(String requestedUrl, String videoId) {
+        String watchUrl = YoutubeUrlParser.watchUrl(videoId);
+
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<SourceFetchResult> metadata = executor.submit(
+                    () -> requestMetadata(requestedUrl, videoId)
+            );
+            Future<Optional<String>> transcript = executor.submit(
+                    () -> pageRenderer.flatMap(renderer -> renderer.render(watchUrl))
+            );
+
+            SourceFetchResult metadataResult = metadata.get();
+            Optional<String> transcriptHtml = transcript.get();
+            if (!metadataResult.isSuccess()) {
+                return metadataResult;
+            }
+            return mergeTranscript(metadataResult, transcriptHtml, requestedUrl, videoId);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return SourceFetchResult.failure(
+                    requestedUrl,
+                    SourceFetchResult.Failure.UNKNOWN,
+                    "YouTube 병렬 수집이 중단되었습니다."
+            );
+        } catch (ExecutionException exception) {
+            return unknown(requestedUrl, videoId, exception);
+        }
+    }
+
+    private SourceFetchResult requestMetadata(String requestedUrl, String videoId) {
         try {
             return restClient.get()
                     .uri(builder -> builder
                             .path(VIDEOS_PATH)
-                            .queryParam("part", "snippet,contentDetails")
+                            .queryParam("part", "snippet")
                             .queryParam("id", videoId)
                             .queryParam("key", properties.apiKey())
                             .build())
@@ -124,6 +152,39 @@ public class YoutubeSourceFetcher implements SourceFetcher {
         }
     }
 
+    private SourceFetchResult mergeTranscript(
+            SourceFetchResult metadataResult,
+            Optional<String> transcriptHtml,
+            String requestedUrl,
+            String videoId
+    ) {
+        if (transcriptHtml.isEmpty()) {
+            log.info("[source-fetch] youtube transcript unavailable videoId={}", videoId);
+            return metadataResult;
+        }
+
+        FetchedDocument document = metadataResult.document();
+        String transcript = org.jsoup.Jsoup.parse(transcriptHtml.get()).text().strip();
+        if (!StringUtils.hasText(transcript)) {
+            return metadataResult;
+        }
+
+        log.info(
+                "[source-fetch] youtube merged videoId={} transcriptLength={}",
+                videoId, transcript.length()
+        );
+        return SourceFetchResult.success(requestedUrl, new FetchedDocument(
+                document.url(),
+                document.canonicalUrl(),
+                document.title(),
+                document.author(),
+                document.publishedAt(),
+                document.sourceType(),
+                document.markdown() + "\n\n## 자막\n\n" + transcript,
+                document.truncated()
+        ));
+    }
+
     /**
      * 삭제되었거나 비공개인 영상은 200에 빈 목록으로 온다. 오류가 아니라 가져올 내용이
      * 없는 것이므로 본문 없음으로 처리한다.
@@ -143,7 +204,7 @@ public class YoutubeSourceFetcher implements SourceFetcher {
         }
 
         YoutubeVideoListResponse.Snippet snippet = item.snippet();
-        String markdown = markdown(snippet, item.contentDetails());
+        String markdown = markdown(snippet);
 
         if (!StringUtils.hasText(markdown)) {
             return SourceFetchResult.failure(
@@ -160,7 +221,7 @@ public class YoutubeSourceFetcher implements SourceFetcher {
                 watchUrl,
                 snippet.title(),
                 snippet.channelTitle(),
-                snippet.publishedAt(),
+                null,
                 SOURCE_TYPE,
                 markdown,
                 false
@@ -171,10 +232,7 @@ public class YoutubeSourceFetcher implements SourceFetcher {
      * 제목만 남는 영상은 소화할 내용이 없다고 본다. 설명도 태그도 없으면 빈 문자열을
      * 돌려주고 호출한 쪽이 본문 없음으로 처리한다.
      */
-    private String markdown(
-            YoutubeVideoListResponse.Snippet snippet,
-            YoutubeVideoListResponse.ContentDetails contentDetails
-    ) {
+    private String markdown(YoutubeVideoListResponse.Snippet snippet) {
         boolean hasDescription = StringUtils.hasText(snippet.description());
         boolean hasTags = snippet.tags() != null && !snippet.tags().isEmpty();
 
@@ -187,7 +245,7 @@ public class YoutubeSourceFetcher implements SourceFetcher {
             markdown.append("# ").append(snippet.title()).append("\n\n");
         }
 
-        List<String> facts = facts(snippet, contentDetails);
+        List<String> facts = facts(snippet);
         if (!facts.isEmpty()) {
             facts.forEach(fact -> markdown.append("- ").append(fact).append('\n'));
             markdown.append('\n');
@@ -200,53 +258,17 @@ public class YoutubeSourceFetcher implements SourceFetcher {
         return markdown.toString().strip();
     }
 
-    private List<String> facts(
-            YoutubeVideoListResponse.Snippet snippet,
-            YoutubeVideoListResponse.ContentDetails contentDetails
-    ) {
+    private List<String> facts(YoutubeVideoListResponse.Snippet snippet) {
         List<String> facts = new ArrayList<>();
 
         if (StringUtils.hasText(snippet.channelTitle())) {
             facts.add("채널: " + snippet.channelTitle());
         }
-        if (snippet.publishedAt() != null) {
-            facts.add("게시일: " + PUBLISHED_DATE.format(snippet.publishedAt()));
-        }
-        runningTime(contentDetails).ifPresent(time -> facts.add("길이: " + time));
         if (snippet.tags() != null && !snippet.tags().isEmpty()) {
             facts.add("태그: " + String.join(", ", snippet.tags()));
         }
 
         return facts;
-    }
-
-    private Optional<String> runningTime(YoutubeVideoListResponse.ContentDetails contentDetails) {
-        if (contentDetails == null || !StringUtils.hasText(contentDetails.duration())) {
-            return Optional.empty();
-        }
-
-        try {
-            Duration duration = Duration.parse(contentDetails.duration());
-            if (duration.isZero() || duration.isNegative()) {
-                return Optional.empty();
-            }
-
-            long hours = duration.toHours();
-            int minutes = duration.toMinutesPart();
-            int seconds = duration.toSecondsPart();
-
-            if (hours > 0) {
-                return Optional.of("%d시간 %d분 %d초".formatted(hours, minutes, seconds));
-            }
-            if (minutes > 0) {
-                return Optional.of("%d분 %d초".formatted(minutes, seconds));
-            }
-            return Optional.of("%d초".formatted(seconds));
-
-        } catch (DateTimeParseException exception) {
-            // 길이는 본문의 부가 정보다. 읽지 못해도 수집을 실패시키지 않는다.
-            return Optional.empty();
-        }
     }
 
     /**

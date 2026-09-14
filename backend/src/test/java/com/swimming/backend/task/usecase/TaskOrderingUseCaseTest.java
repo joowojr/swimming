@@ -131,7 +131,7 @@ class TaskOrderingUseCaseTest {
                 List.of(matrixTask(3L, "위", false, true, 3072L))
         );
         when(taskService.preparePlacement(
-                1L, 4L, TaskMatrixSection.URGENT, 3L, 2L
+                1L, 4L, TaskMatrixSection.URGENT, 3L, 2L, TaskStatus.DONE
         )).thenReturn(placement);
         when(placement.move()).thenReturn(change);
         when(taskService.applyPlacement(1L, change)).thenReturn(new TaskPlacementResult(
@@ -144,7 +144,7 @@ class TaskOrderingUseCaseTest {
         TaskPlacementResponse response = taskOrderingUseCase.move(
                 1L,
                 4L,
-                new TaskPlacementRequest("matrix", "urgent", 3L, 2L)
+                new TaskPlacementRequest("matrix", "urgent", 3L, 2L, TaskStatus.DONE)
         );
 
         assertThat(response.scope()).isEqualTo(TaskOrderingScope.MATRIX);
@@ -166,7 +166,7 @@ class TaskOrderingUseCaseTest {
         assertThatThrownBy(() -> taskOrderingUseCase.move(
                 1L,
                 4L,
-                new TaskPlacementRequest("calendar", "urgent", 3L, 2L)
+                new TaskPlacementRequest("calendar", "urgent", 3L, 2L, null)
         )).isInstanceOfSatisfying(BusinessException.class, exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_TASK_PLACEMENT));
     }

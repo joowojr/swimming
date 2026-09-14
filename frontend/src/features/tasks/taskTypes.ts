@@ -85,6 +85,7 @@ export interface TaskPlacementRequest {
   targetSection: TaskMatrixSection
   previousTaskId: number | null
   nextTaskId: number | null
+  status?: TaskStatus
 }
 
 export interface TaskPlacementResponse {

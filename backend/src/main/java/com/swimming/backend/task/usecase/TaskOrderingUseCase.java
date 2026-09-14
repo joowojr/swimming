@@ -64,7 +64,8 @@ public class TaskOrderingUseCase {
                         taskId,
                         targetSection,
                         request.previousTaskId(),
-                        request.nextTaskId()
+                        request.nextTaskId(),
+                        request.status()
                 );
                 TaskPlacementChange change = placement.move();
                 yield taskOrderingService.applyPlacement(userId, change);

@@ -86,16 +86,18 @@ public class TaskOrderingService {
             Long taskId,
             TaskMatrixSection targetSection,
             Long previousTaskId,
-            Long nextTaskId
+            Long nextTaskId,
+            TaskStatus status
     ) {
         Task movingTask = getOwnedEntity(userId, taskId).toDomain();
         validateOwnedAnchor(userId, previousTaskId);
         validateOwnedAnchor(userId, nextTaskId);
         List<Task> targetTasks = taskRepository
-                .findAllByUser_IdAndDeletedFalseAndPriorityAndUrgentOrderByMatrixRankDescIdDesc(
+                .findAllByUser_IdAndDeletedFalseAndPriorityAndUrgentAndStatusOrderByMatrixRankDescIdDesc(
                         userId,
                         targetSection.isPriority(),
-                        targetSection.isUrgent()
+                        targetSection.isUrgent(),
+                        status
                 )
                 .stream()
                 .map(TaskEntity::toDomain)

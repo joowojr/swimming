@@ -120,7 +120,7 @@ class TaskOrderingControllerTest {
     @Test
     @DisplayName("Task를 지정한 두 이웃 사이로 이동한다")
     void movesTaskBetweenAnchors() throws Exception {
-        TaskPlacementRequest request = new TaskPlacementRequest("MATRIX", "URGENT", 3L, 2L);
+        TaskPlacementRequest request = new TaskPlacementRequest("MATRIX", "URGENT", 3L, 2L, null);
         TaskMatrixItemResponse item = new TaskMatrixItemResponse(
                 4L,
                 null,

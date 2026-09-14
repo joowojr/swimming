@@ -1,45 +1,28 @@
-# Chromium을 백엔드 컨테이너 밖에서 돌리기 위한 렌더링 전용 이미지.
-#
-# 베이스는 Python 3.12(AL2023, glibc 2.34)를 쓴다. Lambda Python 3.11 이미지는 glibc 2.28이라
-# Playwright가 요구하는 라이브러리를 채우지 못한다.
-#
-# 빌드는 반드시 단일 아키텍처로 푸시한다. buildx 기본값으로 밀면 manifest list가 올라가고
-# Lambda가 그 이미지를 거부한다.
-#   docker buildx build --platform linux/amd64 --provenance=false --sbom=false ...
-FROM public.ecr.aws/lambda/python:3.12
+# Playwright가 공식 지원하는 Ubuntu 24.04(Noble)와 정확히 일치하는 Chromium을 사용한다.
+# Lambda Python 베이스 이미지는 Amazon Linux라 Playwright가 Ubuntu fallback 브라우저를
+# 설치했고, 로컬에서는 성공하지만 운영 Lambda에서 renderer가 종료되는 차이가 있었다.
+FROM public.ecr.aws/lambda/python:3.12 AS lambda-runtime-tools
 
-# 런타임 파일시스템은 읽기 전용이라 $HOME 아래에 브라우저를 둘 수 없다. 빌드 시점에
-# 이미지 경로로 고정하고, 실행 시에도 같은 값을 보게 ENV로 남긴다.
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+FROM mcr.microsoft.com/playwright/python:v1.45.0-jammy
 
-# playwright install-deps 는 Debian/Ubuntu만 지원한다. AL2023에서는 dnf로 직접 채운다.
-RUN dnf install -y \
-        alsa-lib \
-        atk \
-        at-spi2-atk \
-        at-spi2-core \
-        cups-libs \
-        libdrm \
-        libX11 \
-        libXcomposite \
-        libXdamage \
-        libXext \
-        libXfixes \
-        libXrandr \
-        libxcb \
-        libxkbcommon \
-        mesa-libgbm \
-        nspr \
-        nss \
-        pango \
-        liberation-fonts \
-    && dnf clean all \
-    && rm -rf /var/cache/dnf
+ARG FUNCTION_DIR=/var/task
 
-COPY requirements.txt ${LAMBDA_TASK_ROOT}/
-RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt \
-    && playwright install chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    DEBUG=pw:browser* \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+    PYTHONUNBUFFERED=1
 
-COPY app.py notion_renderer.py ${LAMBDA_TASK_ROOT}/
+WORKDIR ${FUNCTION_DIR}
 
+# 비-AWS 베이스 이미지는 Lambda Runtime Interface Client가 필요하다. Playwright 이미지에는
+# 브라우저와 OS 의존성이 이미 있으므로 playwright install을 다시 실행하지 않는다.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --from=lambda-runtime-tools /usr/local/bin/aws-lambda-rie /usr/local/bin/aws-lambda-rie
+COPY --chmod=755 lambda-entrypoint.sh /lambda-entrypoint.sh
+COPY app.py notion_renderer.py ./
+
+ENTRYPOINT ["/lambda-entrypoint.sh"]
 CMD ["app.handler"]

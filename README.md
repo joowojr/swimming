@@ -190,13 +190,37 @@ JavaScript로 본문을 만드는 문서는 선택적으로 Lambda에서 렌더�
 
 ### 핵심 데이터 관계
 
+아래 다이어그램은 [전체 ERD](docs/erd.mmd)에서 서비스의 핵심 관계만 추린 것입니다.
+
+```mermaid
+erDiagram
+    USERS ||--o{ FOLDERS : owns
+    USERS ||--o{ TASKS : owns
+    USERS ||--o{ NOTES : owns
+    USERS ||--o{ SESSIONS : runs
+    USERS ||--o{ KNOWLEDGE_NODE : owns
+
+    FOLDERS o|--o{ TASKS : contains
+    TASKS ||--o{ DAILY_PLAN_ITEMS : plans
+    SESSIONS ||--|{ SESSION_TASKS : contains
+    TASKS ||--o{ SESSION_TASKS : focuses
+
+    FOLDERS o|--o{ NOTES : contextualizes
+    SESSIONS o|--o{ NOTES : contextualizes
+
+    FOLDERS ||--o{ KNOWLEDGE_SOURCE : collects
+    KNOWLEDGE_NODE ||--o| KNOWLEDGE_SOURCE : details
+    KNOWLEDGE_NODE ||--o{ KNOWLEDGE_BRANCH : structures
+    KNOWLEDGE_NODE ||--o{ KNOWLEDGE_RELATION : connects
+```
+
 - 사용자는 폴더, Task, 메모, 세션과 지식 노드를 소유합니다.
 - Task는 폴더 없이 `미분류`로 둘 수 있고, 캘린더와 세션에서 재사용합니다.
 - 개인 세션은 여러 Task와 연결되며 종료 시 실제 집중 시간과 Task별 완료 여부를 보존합니다.
 - Knowledge Source는 하나의 폴더에 속하며 여러 Subject와 하나의 Topic에 연결됩니다.
 - Subject는 사용자 범위에서 재사용하고 Topic은 Source마다 별도로 생성합니다.
 
-전체 관계는 [ERD](docs/erd.mmd), 실제 DDL은 [Flyway migration](backend/src/main/resources/db/migration), 설계 결정은 [Architecture](docs/ARCHITECTURE.md)에서 확인할 수 있습니다.
+실제 DDL은 [Flyway migration](backend/src/main/resources/db/migration), 설계 결정은 [Architecture](docs/ARCHITECTURE.md)에서 확인할 수 있습니다.
 
 ## 🛠 기술 스택
 

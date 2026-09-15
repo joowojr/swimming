@@ -5,7 +5,12 @@ import type {
   PointerEvent as ReactPointerEvent,
   ReactNode,
 } from 'react'
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import {
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronUp,
+} from '@tabler/icons-react'
 import {
   MEMO_PANEL_MAX_WIDTH,
   MEMO_PANEL_MIN_WIDTH,
@@ -109,9 +114,19 @@ export default function MemoSplitLayout({ children, memo, className }: MemoSplit
           aria-label={isOpen ? '메모 접기' : '메모 펼치기'}
           onClick={toggle}
         >
-          {isOpen
-            ? <IconChevronRight size={16} stroke={1.8} aria-hidden="true" />
-            : <IconChevronLeft size={16} stroke={1.8} aria-hidden="true" />}
+          {/* 좁은 화면에서는 메모가 본문 아래로 내려가므로 화살표도 위아래를 가리킨다.
+              어느 쪽을 쓸지는 CSS가 정한다. 창 크기를 자바스크립트로 따라다니지 않기 위해서다. */}
+          {isOpen ? (
+            <>
+              <IconChevronRight className={styles['chevron-side']} size={16} stroke={1.8} aria-hidden="true" />
+              <IconChevronUp className={styles['chevron-stack']} size={16} stroke={1.8} aria-hidden="true" />
+            </>
+          ) : (
+            <>
+              <IconChevronLeft className={styles['chevron-side']} size={16} stroke={1.8} aria-hidden="true" />
+              <IconChevronDown className={styles['chevron-stack']} size={16} stroke={1.8} aria-hidden="true" />
+            </>
+          )}
         </button>
       </div>
 

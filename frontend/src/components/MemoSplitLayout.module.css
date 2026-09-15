@@ -68,6 +68,10 @@
   color: var(--color-primary);
 }
 
+.chevron-stack {
+  display: none;
+}
+
 .panel {
   align-self: stretch;
   min-width: 0;
@@ -141,6 +145,14 @@
 
   .toggle {
     position: static;
+  }
+
+  .chevron-side {
+    display: none;
+  }
+
+  .chevron-stack {
+    display: inline-flex;
   }
 
   .panel-inner {

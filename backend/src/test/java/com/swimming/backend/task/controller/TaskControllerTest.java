@@ -6,6 +6,7 @@ import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
+import com.swimming.backend.task.dto.in.CreateTasksBatchRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
@@ -34,7 +35,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -84,6 +88,66 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.completionPct").doesNotExist())
                 .andExpect(jsonPath("$.orderIdx").value(0));
+    }
+
+    @Test
+    @DisplayName("담은 Task를 한 번에 만들고 201과 목록을 돌려준다")
+    void createsTasksInBatch() throws Exception {
+        when(taskUseCase.createBatch(eq(1L), any(CreateTasksBatchRequest.class))).thenReturn(List.of(
+                response(1L, "알고리즘", TaskStatus.TODO, 0),
+                response(2L, "CS 정리", TaskStatus.TODO, 1)
+        ));
+
+        mockMvc.perform(post("/api/tasks/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"tasks":[{"title":"알고리즘","folderId":10},{"title":"CS 정리"}]}
+                                """))
+                .andExpect(status().isCreated())
+                // 만들어진 자원이 여럿이라 가리킬 URI가 하나가 아니다.
+                .andExpect(header().doesNotExist("Location"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].title").value("알고리즘"));
+    }
+
+    @Test
+    @DisplayName("빈 배열은 거부한다")
+    void rejectsEmptyBatch() throws Exception {
+        mockMvc.perform(post("/api/tasks/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"tasks":[]}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(taskUseCase, never()).createBatch(any(), any());
+    }
+
+    @Test
+    @DisplayName("상한을 넘긴 요청은 거부한다")
+    void rejectsOversizedBatch() throws Exception {
+        String tasks = String.join(",", java.util.Collections.nCopies(
+                CreateTasksBatchRequest.MAX_SIZE + 1, "{\"title\":\"할 일\"}"));
+
+        mockMvc.perform(post("/api/tasks/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tasks\":[" + tasks + "]}"))
+                .andExpect(status().isBadRequest());
+
+        verify(taskUseCase, never()).createBatch(any(), any());
+    }
+
+    @Test
+    @DisplayName("제목이 빈 항목이 섞이면 거부한다")
+    void rejectsBlankTitleInBatch() throws Exception {
+        mockMvc.perform(post("/api/tasks/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"tasks":[{"title":"알고리즘"},{"title":"   "}]}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(taskUseCase, never()).createBatch(any(), any());
     }
 
     @Test

@@ -19,9 +19,21 @@ export interface DailyPlan {
   items: DailyPlanItem[]
 }
 
+/** 캘린더에 새로 만들어 담을 할 일 하나. folderId를 빼면 미분류다. */
+export interface NewDailyPlanTask {
+  title: string
+  folderId?: number
+  priority?: boolean
+  urgent?: boolean
+}
+
+/**
+ * 이미 있는 할 일을 담거나(taskIds), 새 할 일을 만들어 담는다(tasks).
+ * 둘 다 모달 하나의 "모두 추가" 한 번이라 서버가 한 트랜잭션으로 처리한다.
+ */
 export type CreateDailyPlanItemsRequest =
-  | { taskIds: number[]; folderId?: never; title?: never; priority?: never; urgent?: never }
-  | { taskIds?: never; folderId?: number; title: string; priority?: boolean; urgent?: boolean }
+  | { taskIds: number[]; tasks?: never }
+  | { taskIds?: never; tasks: NewDailyPlanTask[] }
 
 /**
  * store에 담기는 캘린더 항목. 캘린더이 소유하는 것은 "어떤 날짜에 어떤 task가 어떤 순서로 있는가"뿐이고,

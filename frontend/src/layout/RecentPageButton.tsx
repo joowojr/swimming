@@ -6,6 +6,7 @@ import type { IconProps } from '@tabler/icons-react'
 import { findSection } from './navigationItems'
 import type { Folder } from '../features/folders/folderTypes'
 import { useActiveSessionStore } from '../store/activeSessionStore'
+import { formatRemaining, useSessionClock } from '../features/sessions/sessionTimer'
 import { useFolderStore } from '../store/folderStore'
 import { useRecentPageStore } from '../store/recentPageStore'
 import styles from './RecentPageButton.module.css'
@@ -59,6 +60,7 @@ export default function RecentPageButton() {
   const session = useActiveSessionStore((state) => state.session)
   const sessionStatus = useActiveSessionStore((state) => state.status)
   const loadActiveSession = useActiveSessionStore((state) => state.load)
+  const now = useSessionClock(session?.id ?? null)
 
   useEffect(() => {
     // 이 버튼은 앱이 떠 있는 내내 살아 있다. 첫 한 번만 부르고, 이후 갱신은 세션을 다루는 화면이 맡는다.
@@ -77,7 +79,7 @@ export default function RecentPageButton() {
         href: `/sessions/${session.id}`,
         eyebrow: '이어서 하기',
         label: session.tasks[0]?.title ?? '개인 집중 세션',
-        detail: session.place.name,
+        detail: `${session.place.name} · ${formatRemaining(session, now)}`,
         icon: IconPlayerPlay,
       }
     }

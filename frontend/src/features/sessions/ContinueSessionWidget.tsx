@@ -9,17 +9,13 @@ import CreateSessionModal from './CreateSessionModal'
 import { useActiveSessionStore } from '../../store/activeSessionStore'
 import { pickRandomPlace, usePlaceStore } from '../../store/placeStore'
 import type { BackgroundAsset } from '../places/placeTypes'
+import { formatRemaining, useSessionClock } from './sessionTimer'
 import styles from './ContinueSessionWidget.module.css'
 
 type ContinueSessionWidgetVariant = 'home' | 'empty-session'
 
 interface ContinueSessionWidgetProps {
   variant?: ContinueSessionWidgetVariant
-}
-
-function formatDuration(seconds: number) {
-  const minutes = Math.floor(seconds / 60)
-  return minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60}시간` : `${minutes}분`
 }
 
 /** 배경 한 장. 영상은 썸네일이 있으면 그쪽을 쓴다. */
@@ -53,6 +49,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
   const [todayTasks, setTodayTasks] = useState<DailyPlanItem[] | null>(null)
   const [isPreparingStart, setIsPreparingStart] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  const now = useSessionClock(session?.id ?? null)
 
   useEffect(() => {
     void loadActiveSession()
@@ -125,7 +122,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
                 <p>{currentTask?.folderName ?? session.place.name}</p>
                 <div className={styles.meta}>
                   <span>{session.place.cityName} · {session.place.name}</span>
-                  <span><IconClock aria-hidden="true" />{formatDuration(session.plannedDurationSec)}</span>
+                  <span><IconClock aria-hidden="true" />{formatRemaining(session, now)}</span>
                 </div>
               </>
           ) : status === 'error' ? (

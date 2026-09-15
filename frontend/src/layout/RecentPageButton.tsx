@@ -114,7 +114,7 @@ export default function RecentPageButton() {
           {detail && <span className={styles.detail}>{detail}</span>}
         </span>
       </span>
-      <IconArrowRight className={styles.mark} size={20} stroke={1.8} aria-hidden="true" />
+      <IconArrowRight className={styles.arrow} size={20} stroke={1.8} aria-hidden="true" />
     </Link>
   )
 }

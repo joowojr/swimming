@@ -14,7 +14,18 @@
     transform var(--dur-micro) var(--ease-in-out);
 }
 
+/* 앞쪽 아이콘은 칩으로 채워 눈에 먼저 닿게 한다. content-box라 글리프 크기는 그대로다. */
 .mark {
+  box-sizing: content-box;
+  flex: 0 0 auto;
+  padding: var(--space-2);
+  border-radius: var(--radius-default);
+  color: var(--color-on-primary-fixed-variant);
+  background: var(--color-primary-fixed);
+}
+
+/* 뒤쪽 화살표는 방향만 알리면 되므로 앞쪽과 경쟁하지 않는다. */
+.arrow {
   flex: 0 0 auto;
   color: var(--color-mute);
 }
@@ -25,8 +36,9 @@
   border-color: var(--color-primary-fixed-dim);
 }
 
-.recent-page[data-live='true'] .mark:first-child {
-  color: var(--color-primary);
+.recent-page[data-live='true'] .mark {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
   animation: live-pulse 1.8s var(--ease-in-out) infinite;
 }
 
@@ -90,7 +102,7 @@
 
 
 @media (prefers-reduced-motion: reduce) {
-  .recent-page[data-live='true'] .mark:first-child {
+  .recent-page[data-live='true'] .mark {
     animation: none;
   }
 

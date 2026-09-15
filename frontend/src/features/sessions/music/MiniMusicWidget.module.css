@@ -245,3 +245,12 @@
     transition: none;
   }
 }
+
+/* 플로팅 바의 앞쪽 아이콘은 「이어서 보기」와 같은 칩으로 맞춘다. */
+.bar .mark {
+  box-sizing: content-box;
+  padding: var(--space-2);
+  border-radius: var(--radius-default);
+  color: var(--color-on-primary-fixed-variant);
+  background: var(--color-primary-fixed);
+}

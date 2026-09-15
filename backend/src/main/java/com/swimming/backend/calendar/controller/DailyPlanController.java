@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.in.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.calendar.usecase.DailyPlanUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,15 +38,6 @@ public class DailyPlanController {
             @RequestParam(name = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
     ) {
         return ResponseEntity.ok(dailyPlanUseCase.getRange(authUser.id(), fromDate, toDate));
-    }
-
-    @PutMapping("/{date}")
-    public ResponseEntity<DailyPlanResponse> reorder(
-            @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @Valid @RequestBody ReorderDailyPlanItemsRequest request
-    ) {
-        return ResponseEntity.ok(dailyPlanUseCase.reorder(authUser.id(), date, request));
     }
 
     @PostMapping("/{date}/items")

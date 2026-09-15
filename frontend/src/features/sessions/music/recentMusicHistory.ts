@@ -1,12 +1,23 @@
 export interface RecentMusicEntry {
   url: string
   playedAt: string
+  /** YouTube oEmbed로 받아 둔 이름. 못 받았거나 예전에 저장한 기록에는 없다. */
+  title?: string
+  author?: string
 }
 
 const HISTORY_LIMIT = 5
 const HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 const STORAGE_KEY_PREFIX = 'swimming:youtube-history:v1:user'
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/
+const TEXT_LIMIT = 200
+
+/** 저장할 이름을 다듬는다. 값이 없거나 문자열이 아니면 필드를 아예 두지 않는다. */
+function storableText(value: unknown) {
+  return typeof value === 'string' && value.trim()
+    ? value.trim().slice(0, TEXT_LIMIT)
+    : undefined
+}
 
 function validIdentifier(value: string | null) {
   return value !== null
@@ -104,7 +115,14 @@ export function readRecentMusicHistory(
 
       const current = entries.get(url)
       if (!current || Date.parse(current.playedAt) < playedAtTime) {
-        entries.set(url, { url, playedAt: new Date(playedAtTime).toISOString() })
+        const title = storableText(entry.title)
+        const author = storableText(entry.author)
+        entries.set(url, {
+          url,
+          playedAt: new Date(playedAtTime).toISOString(),
+          ...(title ? { title } : {}),
+          ...(author ? { author } : {}),
+        })
       }
     })
 
@@ -126,15 +144,27 @@ export function rememberRecentMusic(
   historyOwnerId: number | null,
   source: string,
   now = new Date(),
+  meta?: { title?: string; author?: string },
 ): RecentMusicEntry[] {
   const url = normalizeYouTubeUrl(source)
   if (historyOwnerId === null || !Number.isSafeInteger(historyOwnerId) || historyOwnerId <= 0 || !url) {
     return readRecentMusicHistory(historyOwnerId, now.getTime())
   }
 
+  const history = readRecentMusicHistory(historyOwnerId, now.getTime())
+  // 이번에 이름을 못 받았어도 전에 받아 둔 것이 있으면 그대로 둔다.
+  const previous = history.find((entry) => entry.url === url)
+  const title = storableText(meta?.title) ?? previous?.title
+  const author = storableText(meta?.author) ?? previous?.author
+
   const next = [
-    { url, playedAt: now.toISOString() },
-    ...readRecentMusicHistory(historyOwnerId, now.getTime()).filter((entry) => entry.url !== url),
+    {
+      url,
+      playedAt: now.toISOString(),
+      ...(title ? { title } : {}),
+      ...(author ? { author } : {}),
+    },
+    ...history.filter((entry) => entry.url !== url),
   ].slice(0, HISTORY_LIMIT)
 
   try {

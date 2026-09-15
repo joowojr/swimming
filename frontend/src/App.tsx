@@ -153,7 +153,6 @@ function App() {
           element={(
             <>
               <PinBoard
-                folders={folders}
                 status={folderStatus}
                 onRetry={retryLoadProjects}
               />

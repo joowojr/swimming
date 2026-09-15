@@ -15,7 +15,7 @@ import {useNavigate} from 'react-router-dom'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import {updateTaskStatus, updateTaskTitle} from '../tasks/taskApi'
 import {TASK_STATUS_LABEL, TASK_STATUS_VALUES} from '../tasks/taskLabels'
-import type {TaskStatus, TaskSummaryResponse} from '../tasks/taskTypes'
+import type {TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlanItem} from './dailyPlanTypes'
 import {formatLocalDate, parseLocalDate} from '../../lib/date'
 import {monthRange} from './planDate'
@@ -26,6 +26,7 @@ import {useFolderStore} from '../../store/folderStore.ts'
 import {usePinboardViewStore} from '../../store/pinboardViewStore'
 import {useTaskStore} from '../../store/taskStore'
 import TaskPickerModal from './TaskPickerModal'
+import type { TaskPickerSubmission } from './TaskPickerModal'
 import TaskInfoModal from '../tasks/TaskInfoModal'
 import styles from './DailyPlanner.module.css'
 
@@ -181,18 +182,21 @@ export default function DailyPlanner() {
         selectDate(formatLocalDate(next))
     }
 
-    const addTasks = async (tasks: TaskSummaryResponse[]) => {
-        if (tasks.length === 0) return
-        await addItems(selectedDate, {taskIds: tasks.map((task) => task.id)})
-    }
-
-    const addTask = async (title: string, folderId: number | null, priority: boolean, urgent: boolean) => {
-        await addItems(selectedDate, {
-            title,
-            priority,
-            urgent,
-            ...(folderId === null ? {} : {folderId}),
-        })
+    /** 모달에서 담은 것을 한 번에 캘린더에 넣는다. 이미 있는 할 일과 새로 만들 할 일은 경로가 다르다. */
+    const addPickedTasks = async ({existingTaskIds, newTasks}: TaskPickerSubmission) => {
+        if (existingTaskIds.length > 0) {
+            await addItems(selectedDate, {taskIds: existingTaskIds})
+        }
+        if (newTasks.length > 0) {
+            await addItems(selectedDate, {
+                tasks: newTasks.map(({title, folderId, priority, urgent}) => ({
+                    title,
+                    priority,
+                    urgent,
+                    ...(folderId === null ? {} : {folderId}),
+                })),
+            })
+        }
     }
 
     const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
@@ -251,14 +255,14 @@ export default function DailyPlanner() {
                             <IconChevronRight size={18} aria-hidden="true" />
                         </button>
                     </div>
+                    <ModeToggle
+                        className={styles.calendarViewToggle}
+                        ariaLabel="캘린더 보기 단위"
+                        options={CALENDAR_VIEW_OPTIONS}
+                        value={calendarView}
+                        onChange={setCalendarView}
+                    />
                 </header>
-                <ModeToggle
-                    className={styles.calendarViewToggle}
-                    ariaLabel="캘린더 보기 단위"
-                    options={CALENDAR_VIEW_OPTIONS}
-                    value={calendarView}
-                    onChange={setCalendarView}
-                />
                 <div className={styles.weekdays} aria-hidden="true">
                     {dayLabels.map((label) => <span key={label}>{label}</span>)}
                 </div>
@@ -292,20 +296,18 @@ export default function DailyPlanner() {
                         )
                     })}
                 </div>
-                <ModalTriggerButton className={`${styles.addTask} ${styles.calendarAddTask}`} dialogId="task-picker-dialog" variant="plain" icon={<IconPlus size={17} aria-hidden="true" />} onClick={() => setIsPickerOpen(true)}>
-                    할 일 추가
-                </ModalTriggerButton>
             </div>
 
             <div className={styles.todoPanel}>
                 <header className={styles.todoHeader}>
                     <div>
-                        <h1 id="daily-planner-title">{selectedDateFormatter.format(parseLocalDate(selectedDate))}</h1>
+                        <h1 id="daily-planner-title" className="sr-only">
+                            {selectedDateFormatter.format(parseLocalDate(selectedDate))}
+                        </h1>
                         {selectedHolidayNames.length > 0 && (
                             <p className={styles.holidayNames}>{selectedHolidayNames.join(', ')}</p>
                         )}
                     </div>
-                    <span className={styles.taskCount}>{items.length}개</span>
                 </header>
                 {message && <p className={styles.message} role="alert">{message}</p>}
 
@@ -373,9 +375,13 @@ export default function DailyPlanner() {
                         {items.length === 0 && <p className={styles.empty}>이 날짜에는 추가된 할 일이 없습니다.</p>}
                     </>
                 )}
+
+                <ModalTriggerButton className={styles.addTask} dialogId="task-picker-dialog" variant="plain" icon={<IconPlus size={15} aria-hidden="true" />} onClick={() => setIsPickerOpen(true)}>
+                    <span className="sr-only">할 일 추가</span>
+                </ModalTriggerButton>
             </div>
 
-            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAdd={addTasks} onAddTask={addTask} onClose={() => setIsPickerOpen(false)} />}
+            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={() => setIsPickerOpen(false)} />}
             {moveTarget && (
                 <TaskInfoModal
                     taskId={moveTarget.taskId}

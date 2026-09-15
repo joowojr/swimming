@@ -12,12 +12,11 @@ public record DailyPlanItemResponse(
         String title,
         TaskStatus status,
         boolean priority,
-        boolean urgent,
-        int orderIdx
+        boolean urgent
 ) {
     public DailyPlanItemResponse(Long id, Long taskId, DailyPlanItemType itemType, Long folderId,
-                                 String folderName, String title, TaskStatus status, int orderIdx) {
-        this(id, taskId, itemType, folderId, folderName, title, status, false, false, orderIdx);
+                                 String folderName, String title, TaskStatus status) {
+        this(id, taskId, itemType, folderId, folderName, title, status, false, false);
     }
 
     /** 폴더가 없거나 지워졌으면 AD_HOC이다. 조회 결과를 응답으로 옮기는 규칙을 한곳에 둔다. */
@@ -31,8 +30,7 @@ public record DailyPlanItemResponse(
                 row.title(),
                 row.status(),
                 row.priority(),
-                row.urgent(),
-                row.orderIdx()
+                row.urgent()
         );
     }
 }

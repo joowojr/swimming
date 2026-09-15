@@ -3,7 +3,10 @@ package com.swimming.backend.task.usecase;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
+import com.swimming.backend.task.domain.TaskMatrixSection;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
+import com.swimming.backend.task.dto.in.CreateTasksBatchRequest;
+import com.swimming.backend.task.dto.in.NewTaskSpec;
 import com.swimming.backend.calendar.domain.DailyPlanItem;
 import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
@@ -30,7 +33,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -50,10 +56,57 @@ public class TaskUseCase {
         Task task = taskService.create(
                 userId, folderId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
         if (request.planDate() != null) {
-            int orderIdx = dailyPlanService.getItems(userId, request.planDate()).size();
-            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
+            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.createTask(task.getId()));
         }
         return TaskResponse.from(task);
+    }
+
+    /**
+     * 모달에서 담은 할 일을 한 번에 만든다. 하나라도 실패하면 아무것도 만들어지지 않는다.
+     *
+     * <p>단건 생성을 건수만큼 반복하지 않는다. 폴더 소유권은 한 번에 확인하고, 매트릭스 순위는
+     * 섹션마다 한 번만 읽어 메모리에서 올리며, 캘린더는 날짜별로 한 번에 담는다. 순위를 건마다
+     * 읽으면 쿼리가 건수만큼 늘고 값이 flush 시점에 의존하게 된다.
+     *
+     * <p>새 할 일은 섹션 맨 위로 가므로, 담은 순서대로 순위를 올리면 마지막에 담은 것이 맨 위에
+     * 온다. 하나씩 만들었을 때와 같은 결과다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public List<TaskResponse> createBatch(Long userId, CreateTasksBatchRequest request) {
+        List<CreateTaskWithPlanRequest> drafts = request.tasks();
+
+        folderService.validateOwnerships(userId, drafts.stream()
+                .map(CreateTaskWithPlanRequest::folderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+
+        List<Long> ranks = taskOrderingService.nextRanks(userId, drafts.stream()
+                .map(draft -> TaskMatrixSection.from(draft.priority(), draft.urgent()))
+                .toList());
+
+        List<NewTaskSpec> specs = new ArrayList<>();
+        for (int index = 0; index < drafts.size(); index++) {
+            CreateTaskWithPlanRequest draft = drafts.get(index);
+            specs.add(new NewTaskSpec(
+                    draft.folderId(), draft.title().trim(), draft.priority(), draft.urgent(), ranks.get(index)));
+        }
+
+        // 넘긴 순서 그대로 돌아오므로 요청 항목과 같은 자리에서 짝지을 수 있다.
+        List<Task> created = taskService.createAll(userId, specs);
+
+        Map<LocalDate, List<DailyPlanItem>> itemsByDate = new LinkedHashMap<>();
+        for (int index = 0; index < drafts.size(); index++) {
+            LocalDate planDate = drafts.get(index).planDate();
+            if (planDate == null) {
+                continue;
+            }
+            itemsByDate.computeIfAbsent(planDate, date -> new ArrayList<>())
+                    .add(DailyPlanItem.createTask(created.get(index).getId()));
+        }
+        itemsByDate.forEach((date, items) -> dailyPlanService.saveAll(userId, date, items));
+
+        return created.stream().map(TaskResponse::from).toList();
     }
 
     /**

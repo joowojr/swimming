@@ -9,6 +9,7 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
+import com.swimming.backend.task.dto.in.NewTaskSpec;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,12 +89,7 @@ public class TaskService {
             boolean urgent,
             long matrixRank
     ) {
-        int nextOrder = (folderId == null
-                ? taskRepository.findTopByUser_IdAndFolderIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
-                : taskRepository.findTopByFolder_IdAndDeletedFalseOrderByIdDesc(folderId))
-                .map(TaskEntity::getOrderIdx)
-                .map(orderIdx -> orderIdx + 1)
-                .orElse(0);
+        int nextOrder = nextOrderIdx(userId, folderId);
         Task task = sourceNoteId == null
                 ? Task.create(userId, folderId, title, nextOrder, priority, urgent, matrixRank)
                 : Task.createFromNote(userId, folderId, sourceNoteId, title, nextOrder, priority, urgent, matrixRank);
@@ -105,6 +103,51 @@ public class TaskService {
         return taskRepository.saveAndFlush(
                 TaskEntity.from(task, user, folder, sourceNote)
         ).toDomain();
+    }
+
+    /**
+     * 여러 건을 한 번에 만든다.
+     *
+     * <p>폴더 안 순번은 폴더마다 한 번만 읽고 메모리에서 올린다. 건마다 읽으면 건수만큼
+     * 쿼리가 나가고, 직전에 넣은 것이 이미 보이는지에 결과가 달라진다.
+     * 돌려주는 순서는 넘겨받은 순서와 같다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public List<Task> createAll(Long userId, List<NewTaskSpec> specs) {
+        if (specs.isEmpty()) {
+            return List.of();
+        }
+
+        User user = entityManager.getReference(User.class, userId);
+        Map<Long, Integer> nextOrderByFolder = new HashMap<>();
+        List<TaskEntity> entities = new ArrayList<>();
+        for (NewTaskSpec spec : specs) {
+            int nextOrder = nextOrderByFolder.computeIfAbsent(
+                    spec.folderId(), folderId -> nextOrderIdx(userId, folderId));
+            nextOrderByFolder.put(spec.folderId(), nextOrder + 1);
+
+            Task task = Task.create(
+                    userId, spec.folderId(), spec.title(), nextOrder,
+                    spec.priority(), spec.urgent(), spec.matrixRank());
+            FolderEntity folder = spec.folderId() == null
+                    ? null
+                    : entityManager.getReference(FolderEntity.class, spec.folderId());
+            entities.add(TaskEntity.from(task, user, folder, null));
+        }
+
+        return taskRepository.saveAll(entities).stream()
+                .map(TaskEntity::toDomain)
+                .toList();
+    }
+
+    /** 폴더 안(미분류면 사용자 전체)의 다음 순번. */
+    private int nextOrderIdx(Long userId, Long folderId) {
+        return (folderId == null
+                ? taskRepository.findTopByUser_IdAndFolderIsNullAndDeletedFalseOrderByOrderIdxDescIdDesc(userId)
+                : taskRepository.findTopByFolder_IdAndDeletedFalseOrderByIdDesc(folderId))
+                .map(TaskEntity::getOrderIdx)
+                .map(orderIdx -> orderIdx + 1)
+                .orElse(0);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

@@ -15,7 +15,7 @@ import TaskPickerModal from '../calendar/TaskPickerModal'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { useDailyPlanStore } from '../../store/dailyPlanStore'
 import { useTaskStore } from '../../store/taskStore'
-import { createTaskWithOptionalPlan } from './taskApi'
+import { createTasksBatch } from './taskApi'
 import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from './taskApi'
 import type { TaskFilter } from './taskFilter'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from './taskLabels'
@@ -512,14 +512,10 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
           selectedTaskIds={new Set()}
           initialPriority={addDraft.priority}
           initialUrgent={addDraft.urgent}
-          onAdd={async () => undefined}
-          onAddTask={async (title, folderId, priority, urgent, planDate) => {
-            await createTaskWithOptionalPlan({
-              title,
-              priority,
-              urgent,
-              folderId,
-              planDate,
+          onAddTasks={async ({ newTasks, planDate }) => {
+            if (newTasks.length === 0) return
+            await createTasksBatch({
+              tasks: newTasks.map((task) => ({ ...task, planDate })),
             })
             // 생성 응답에 캘린더 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
             if (planDate) invalidatePlanDate(planDate)

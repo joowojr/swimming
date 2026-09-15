@@ -12,7 +12,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEntity, Long> {
-    List<DailyPlanItemEntity> findAllByUserIdAndPlanDateOrderByOrderIdxAsc(Long userId, LocalDate planDate);
+    /** 담은 순으로 읽는다. 사용자가 순서를 바꾸는 기능은 없다. */
+    List<DailyPlanItemEntity> findAllByUserIdAndPlanDateOrderByIdAsc(Long userId, LocalDate planDate);
 
     @Query("""
             select new com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow(
@@ -25,8 +26,7 @@ public interface DailyPlanItemRepository extends JpaRepository<DailyPlanItemEnti
                 task.title,
                 task.status,
                 task.priority,
-                task.urgent,
-                item.orderIdx
+                task.urgent
             )
             from DailyPlanItemEntity item
             join TaskEntity task on task.id = item.taskId

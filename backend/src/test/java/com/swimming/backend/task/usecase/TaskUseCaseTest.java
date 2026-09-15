@@ -320,7 +320,7 @@ class TaskUseCaseTest {
 
     private DailyPlanItemQueryRow row(Long itemId, LocalDate planDate, Long taskId) {
         return new DailyPlanItemQueryRow(
-                itemId, planDate, taskId, null, null, null, "Task", TaskStatus.TODO, 0);
+                itemId, planDate, taskId, null, null, null, "Task", TaskStatus.TODO);
     }
 
     /** 커서를 만들려면 생성 시각이 있어야 한다. */

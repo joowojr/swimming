@@ -175,7 +175,23 @@
     --overlay-scrim: rgb(28 28 28 / 40%);
     --overlay-blur: 4px;
     --progress-height: 0.25rem;
+
+    /* 음악 위젯. 미디어 크롬이지만 주변이 종이 톤이라 밝은 유리로 두고,
+       구분은 시그니처 레드와 흐림 질감이 맡는다. */
+    --music-surface: rgb(255 255 255 / 70%);
+    --music-surface-opaque: rgb(255 255 255 / 96%);
+    --music-raised: rgb(28 28 30 / 6%);
+    --music-hairline: rgb(28 28 30 / 10%);
+    --music-on-surface: var(--color-primary);
+    --music-on-surface-mute: var(--color-mute);
+    --music-accent: #fa2d48;
+    --music-blur: 20px;
+
     --modal-width: 28rem;
+    /* 좌우 2단 모달(입력 + 담은 목록)용. 한 단짜리는 --modal-width를 쓴다. */
+    --modal-width-wide: 56rem;
+    /* 본문 위에 떠 있는 것(플로팅 버튼). 모달보다는 아래다. */
+    --z-floating: 300;
     --z-modal: 400;
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in: cubic-bezier(0.7, 0, 0.84, 0);

@@ -1,0 +1,116 @@
+.recent-page {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-floating);
+  text-decoration: none;
+  transition:
+    border-color var(--transition-short) var(--ease-in-out),
+    transform var(--dur-micro) var(--ease-in-out);
+}
+
+/* 앞쪽 아이콘은 칩으로 채워 눈에 먼저 닿게 한다. content-box라 글리프 크기는 그대로다. */
+.mark {
+  box-sizing: content-box;
+  flex: 0 0 auto;
+  padding: var(--space-2);
+  border-radius: var(--radius-default);
+  color: var(--color-on-primary-fixed-variant);
+  background: var(--color-primary-fixed);
+}
+
+/* 뒤쪽 화살표는 방향만 알리면 되므로 앞쪽과 경쟁하지 않는다. */
+.arrow {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+}
+
+/* 세션이 도는 동안에는 앞쪽 아이콘이 계속 뛴다.
+   재촉이 아니라 켜져 있다는 신호라 느리고 얕게 잡는다. */
+.recent-page[data-live='true'] {
+  border-color: var(--color-primary-fixed-dim);
+}
+
+.recent-page[data-live='true'] .mark {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  animation: live-pulse 1.8s var(--ease-in-out) infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.18); }
+}
+
+.copy {
+  display: grid;
+  min-width: 0;
+}
+
+/* 타입 스케일의 가장 작은 단이 14px이라 두 줄 모두 14px이다. 구분은 색과 굵기가 맡는다. */
+.eyebrow {
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+/* 목적지와 그 안의 화면을 한 줄에 둔다. 이름이 길면 이름만 줄고 화면 이름은 남는다. */
+.line {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.label {
+  overflow: hidden;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  white-space: nowrap;
+}
+
+.recent-page:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-width);
+}
+
+.recent-page:active {
+  transform: translateY(var(--border-width));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .recent-page:hover {
+    border-color: var(--color-ash);
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .recent-page[data-live='true'] .mark {
+    animation: none;
+  }
+
+  .recent-page {
+    transition: none;
+  }
+
+  .recent-page:active {
+    transform: none;
+  }
+}

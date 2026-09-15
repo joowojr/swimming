@@ -1,0 +1,256 @@
+/* Hallmark · component: mini music widget · genre: media chrome (Apple Music 계열)
+ * 종이 톤의 앱 UI 위에 얹히는 미디어 크롬이라, 어두운 반투명 유리 + 시그니처 레드로
+ * 일부러 다른 톤을 쓴다. 색은 tokens.css의 --music-* 를 따른다.
+ */
+/*
+ * 펼쳐도 조각이 늘지 않도록 표면(테두리·모서리·바탕·그림자)은 위젯 하나가 소유하고,
+ * 안쪽은 구역만 쌓는다. 불투명 색을 바탕으로 깔고 배경 흐림이 되는 곳에서만 반투명으로 낮춘다.
+ */
+.widget {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  width: 17rem;
+  max-width: 100%;
+  border: var(--border-width) solid var(--music-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--music-surface-opaque);
+  box-shadow: var(--shadow-floating);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .widget {
+    background: var(--music-surface);
+    backdrop-filter: blur(var(--music-blur)) saturate(180%);
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+}
+
+.widget[data-expanded='true'] .bar {
+  border-top: var(--border-width) solid var(--music-hairline);
+}
+
+.mark {
+  flex: 0 0 auto;
+  color: var(--music-on-surface-mute);
+}
+
+.title {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  color: var(--music-on-surface);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.control {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--music-on-surface);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-short) var(--ease-in-out),
+    background-color var(--transition-short) var(--ease-in-out);
+}
+
+.control-play {
+  color: var(--music-accent);
+}
+
+/*
+ * 접힌 동안에도 재생이 이어지도록 플레이어는 DOM에 남긴다. 높이만 0으로 줄인다.
+ * display:none이나 언마운트는 재생을 멈춘다.
+ */
+.stage {
+  overflow: hidden;
+  height: 0;
+  background: #000000;
+}
+
+.stage[data-expanded='true'] {
+  height: 9.5rem;
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  max-height: 16rem;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.source {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.source label {
+  min-width: 0;
+}
+
+.source input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--space-8);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--music-hairline);
+  border-radius: var(--radius-md);
+  color: var(--music-on-surface);
+  font: inherit;
+  font-size: var(--text-body-sm-size);
+  background: var(--music-raised);
+}
+
+.source input::placeholder {
+  color: var(--music-on-surface-mute);
+}
+
+.source button {
+  min-height: var(--space-8);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-on-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  white-space: nowrap;
+  background: var(--music-accent);
+  cursor: pointer;
+}
+
+.source button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.message {
+  margin: 0;
+  color: var(--music-accent);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  color: var(--music-on-surface-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.group-label {
+  margin: 0;
+  color: var(--music-on-surface-mute);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.panel ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel li button {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  min-height: var(--space-8);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--music-on-surface);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-short) var(--ease-in-out),
+    background-color var(--transition-short) var(--ease-in-out);
+}
+
+/* 지금 트는 곡은 애플 뮤직처럼 면을 채우지 않고 글자만 시그니처 레드로 둔다. */
+.panel li button[aria-pressed='true'] {
+  color: var(--music-accent);
+  font-weight: var(--text-button-weight);
+  background: var(--music-raised);
+}
+
+.control:focus-visible,
+.source input:focus-visible,
+.source button:focus-visible,
+.panel li button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--music-accent);
+  outline-offset: var(--border-width);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .control:hover {
+    background: var(--music-raised);
+  }
+
+  .panel li button:hover:not([aria-pressed='true']) {
+    background: var(--music-raised);
+  }
+
+  .source button:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .panel li button {
+    transition: none;
+  }
+}
+
+/* 플로팅 바의 앞쪽 아이콘은 「이어서 보기」와 같은 칩으로 맞춘다. */
+.bar .mark {
+  box-sizing: content-box;
+  padding: var(--space-2);
+  border-radius: var(--radius-default);
+  color: var(--color-on-primary-fixed-variant);
+  background: var(--color-primary-fixed);
+}

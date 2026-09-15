@@ -255,14 +255,14 @@ export default function DailyPlanner() {
                             <IconChevronRight size={18} aria-hidden="true" />
                         </button>
                     </div>
+                    <ModeToggle
+                        className={styles.calendarViewToggle}
+                        ariaLabel="캘린더 보기 단위"
+                        options={CALENDAR_VIEW_OPTIONS}
+                        value={calendarView}
+                        onChange={setCalendarView}
+                    />
                 </header>
-                <ModeToggle
-                    className={styles.calendarViewToggle}
-                    ariaLabel="캘린더 보기 단위"
-                    options={CALENDAR_VIEW_OPTIONS}
-                    value={calendarView}
-                    onChange={setCalendarView}
-                />
                 <div className={styles.weekdays} aria-hidden="true">
                     {dayLabels.map((label) => <span key={label}>{label}</span>)}
                 </div>
@@ -296,20 +296,18 @@ export default function DailyPlanner() {
                         )
                     })}
                 </div>
-                <ModalTriggerButton className={`${styles.addTask} ${styles.calendarAddTask}`} dialogId="task-picker-dialog" variant="plain" icon={<IconPlus size={17} aria-hidden="true" />} onClick={() => setIsPickerOpen(true)}>
-                    할 일 추가
-                </ModalTriggerButton>
             </div>
 
             <div className={styles.todoPanel}>
                 <header className={styles.todoHeader}>
                     <div>
-                        <h1 id="daily-planner-title">{selectedDateFormatter.format(parseLocalDate(selectedDate))}</h1>
+                        <h1 id="daily-planner-title" className="sr-only">
+                            {selectedDateFormatter.format(parseLocalDate(selectedDate))}
+                        </h1>
                         {selectedHolidayNames.length > 0 && (
                             <p className={styles.holidayNames}>{selectedHolidayNames.join(', ')}</p>
                         )}
                     </div>
-                    <span className={styles.taskCount}>{items.length}개</span>
                 </header>
                 {message && <p className={styles.message} role="alert">{message}</p>}
 
@@ -377,6 +375,10 @@ export default function DailyPlanner() {
                         {items.length === 0 && <p className={styles.empty}>이 날짜에는 추가된 할 일이 없습니다.</p>}
                     </>
                 )}
+
+                <ModalTriggerButton className={styles.addTask} dialogId="task-picker-dialog" variant="plain" icon={<IconPlus size={15} aria-hidden="true" />} onClick={() => setIsPickerOpen(true)}>
+                    <span className="sr-only">할 일 추가</span>
+                </ModalTriggerButton>
             </div>
 
             {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={() => setIsPickerOpen(false)} />}

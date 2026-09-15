@@ -15,6 +15,12 @@
     padding: var(--space-6);
 }
 
+/* 위아래 여백만 덜고 좌우는 둘을 맞춘다. 세로 자리는 할 일 목록이 갖는 편이 낫다. */
+.calendarPanel,
+.todoPanel {
+    padding-block: var(--space-4);
+}
+
 /* 위쪽 달력은 고르는 자리일 뿐이라 화면을 적게 쓴다. 자리는 아래 할 일이 갖는다. */
 .calendarPanel {
     padding-block: var(--space-4);

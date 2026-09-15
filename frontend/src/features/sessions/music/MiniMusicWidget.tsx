@@ -194,7 +194,7 @@ export default function MiniMusicWidget() {
 
       <div className={styles.bar}>
         <IconMusic className={styles.mark} size={20} stroke={1.8} aria-hidden="true" />
-        <span className={styles.title}>{track?.label ?? (isEmpty ? '음악 없음' : '음악 고르기')}</span>
+        <span className={styles.title}>{track?.label ?? (isEmpty ? '음악 없음' : '음악 재생하기')}</span>
         {track && (
           <button
             type="button"

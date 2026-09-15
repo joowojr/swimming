@@ -59,10 +59,7 @@ export default function PinBoard({
             <p>오늘은 무엇부터 시작해볼까요?</p>
           </div>
           <div className={styles['dashboard-actions']}>
-            {/*<div className={styles['mode-toggle']} aria-label="핀보드 보기 모드">*/}
-            {/*  <button type="button" className={styles['mode-toggle-active']} aria-pressed="true">루틴</button>*/}
-            {/*  <button type="button" aria-pressed="false" disabled>가볍게</button>*/}
-            {/*</div>*/}
+            <ContinueSessionWidget/>
           </div>
         </header>
 
@@ -78,7 +75,6 @@ export default function PinBoard({
           </div>
         ) : (
           <div className={styles['home-main']}>
-            <ContinueSessionWidget/>
             <div className={styles['planner-area']}>
               <div className={styles['planner-controls']}>
                 <ModeToggle

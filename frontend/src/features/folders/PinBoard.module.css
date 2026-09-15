@@ -19,7 +19,8 @@
 .dashboard-heading {
   justify-content: space-between;
   gap: var(--space-6);
-  margin-bottom: var(--space-8);
+  /* 인사말·세션 카드와 아래 캘린더를 한 덩어리로 읽히게 붙인다. */
+  margin-bottom: 0;
 }
 
 .dashboard-heading h2 {
@@ -40,9 +41,17 @@
   font-size: var(--text-body-md-size);
 }
 
+/* 인사말이 쓰고 남은 자리를 세션 카드가 받는다. 인사말이 길면 카드가 먼저 좁아진다. */
 .dashboard-actions {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: min(24rem, 42%);
   gap: var(--space-3);
+}
+
+.dashboard-actions > * {
+  min-width: 0;
+  flex: 1;
 }
 
 .dashboard-actions button,
@@ -308,15 +317,12 @@
   .dashboard-heading {
     align-items: flex-start;
     flex-direction: column;
-    margin-bottom: var(--space-6);
+    margin-bottom: 0;
   }
 
   .dashboard-actions {
     width: 100%;
-  }
-
-  .dashboard-actions button {
-    flex: 1;
+    margin-top: var(--space-4);
   }
 
   .planner-toggle {

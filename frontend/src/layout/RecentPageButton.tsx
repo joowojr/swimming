@@ -101,6 +101,7 @@ export default function RecentPageButton() {
     <Link
       className={styles['recent-page']}
       to={href}
+      data-live={session ? 'true' : undefined}
       aria-label={`${eyebrow}: ${label}${detail ? ` ${detail}` : ''}`}
     >
       <Icon className={styles.mark} size={20} stroke={1.8} aria-hidden="true" />

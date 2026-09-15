@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import MiniMusicWidget from '../features/sessions/music/MiniMusicWidget'
 import RecentPageButton from './RecentPageButton'
 import SideNavigation from './SideNavigation'
 import TopBar from './TopBar'
@@ -26,6 +27,7 @@ export default function AppShell({
       </div>
       <div className={styles['floating-dock']}>
         <RecentPageButton />
+        <MiniMusicWidget />
       </div>
     </div>
   )

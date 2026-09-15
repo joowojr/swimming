@@ -4,13 +4,11 @@ import { useAuthStore } from '../../store/authStore'
 import { usePinboardViewStore } from '../../store/pinboardViewStore'
 import DailyPlanner from '../calendar/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
-import NoteCard from '../note/NoteCard.tsx'
-import type { Folder, FolderLoadStatus } from './folderTypes.ts'
+import type { FolderLoadStatus } from './folderTypes.ts'
 import TaskMatrix from '../tasks/TaskMatrix'
 import styles from './PinBoard.module.css'
 
 interface PinBoardProps {
-  folders: Folder[]
   status: FolderLoadStatus
   onRetry: () => void
 }
@@ -29,7 +27,6 @@ function formatTargetDate(targetDate: string) {
 */
 
 export default function PinBoard({
-  folders,
   status,
   onRetry,
 }: PinBoardProps) {
@@ -80,52 +77,31 @@ export default function PinBoard({
             <button type="button" onClick={onRetry}>다시 불러오기</button>
           </div>
         ) : (
-            <>
-              {/*폴더 정리 표*/}
-            {/*<section className={styles['folder-metrics']} aria-label="폴더 요약">*/}
-            {/*  {metrics.map(({ label, value, icon: Icon, tone }) => (*/}
-            {/*    <article className={styles['metric-card']} key={label}>*/}
-            {/*      <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">*/}
-            {/*        <Icon size={24} stroke={1.7} />*/}
-            {/*      </span>*/}
-            {/*      <div>*/}
-            {/*        <p>{label}</p>*/}
-            {/*        <strong>{value}</strong>*/}
-            {/*      </div>*/}
-            {/*    </article>*/}
-            {/*  ))}*/}
-            {/*</section>*/}
-
-              <div className={styles['home-grid']}>
-                <div className={styles['home-main']}>
-                  <ContinueSessionWidget/>
-                  <div className={styles['planner-area']}>
-                    <div className={styles['planner-controls']}>
-                      <ModeToggle
-                        className={styles['planner-toggle']}
-                        ariaLabel="Task 보기 방식"
-                        options={PLANNER_VIEW_OPTIONS}
-                        value={plannerView}
-                        onChange={setPlannerView}
-                      />
-                      {plannerView === 'matrix' && (
-                        <TaskFilterMenu
-                          value={matrixFilter}
-                          onChange={setMatrixFilter}
-                          showFlags={false}
-                          triggerClassName={styles['planner-filter']}
-                        />
-                      )}
-                    </div>
-                    {plannerView === 'daily'
-                      ? <DailyPlanner/>
-                      : <TaskMatrix statusFilter={matrixFilter.status}/>}
-                  </div>
-                </div>
-
-                <NoteCard folders={folders} />
+          <div className={styles['home-main']}>
+            <ContinueSessionWidget/>
+            <div className={styles['planner-area']}>
+              <div className={styles['planner-controls']}>
+                <ModeToggle
+                  className={styles['planner-toggle']}
+                  ariaLabel="Task 보기 방식"
+                  options={PLANNER_VIEW_OPTIONS}
+                  value={plannerView}
+                  onChange={setPlannerView}
+                />
+                {plannerView === 'matrix' && (
+                  <TaskFilterMenu
+                    value={matrixFilter}
+                    onChange={setMatrixFilter}
+                    showFlags={false}
+                    triggerClassName={styles['planner-filter']}
+                  />
+                )}
               </div>
-            </>
+              {plannerView === 'daily'
+                ? <DailyPlanner/>
+                : <TaskMatrix statusFilter={matrixFilter.status}/>}
+            </div>
+          </div>
         )}
       </section>
 

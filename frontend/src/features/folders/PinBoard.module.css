@@ -96,13 +96,6 @@
   opacity: 1;
 }
 
-.home-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
-  gap: var(--space-4);
-  align-items: stretch;
-}
-
 .home-main {
   display: flex;
   flex-direction: column;
@@ -304,12 +297,6 @@
 
   .dashboard-aside {
     display: none;
-  }
-}
-
-@media (max-width: 60rem) {
-  .home-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 

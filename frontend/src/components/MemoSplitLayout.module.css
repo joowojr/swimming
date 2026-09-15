@@ -1,0 +1,122 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.main {
+  min-width: 0;
+  /* 본문은 자기 페이지 여백을 그대로 갖고 있다. 그 여백이 메모와의 간격이 되어 버리므로,
+     오른쪽만 걷어내고 위젯 사이 간격으로 다시 잡는다. */
+  margin-inline-end: calc(var(--space-4) - var(--layout-page-padding-inline));
+}
+
+/* 접기 버튼과 끄는 자리가 함께 사는 좁은 세로 띠. */
+.gutter {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  align-self: stretch;
+  flex: 0 0 auto;
+  gap: var(--space-1);
+  padding-block-start: var(--space-8);
+}
+
+/* 구분선은 두지 않는다. 끌 수 있는 자리만 있고 눈에는 보이지 않는다. */
+.resizer {
+  align-self: stretch;
+  width: var(--space-2);
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resizer:focus-visible {
+  outline: var(--border-width) solid var(--color-primary);
+  outline-offset: 0;
+  border-radius: var(--radius-full);
+}
+
+.layout[data-dragging='true'] {
+  user-select: none;
+  cursor: col-resize;
+}
+
+.toggle {
+  display: inline-flex;
+  position: sticky;
+  top: var(--space-6);
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-8);
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-default);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--color-primary);
+}
+
+.panel {
+  align-self: stretch;
+  min-width: 0;
+  /* 여백이 카드 너비를 깎지 않도록 페이지 여백만큼 더해서 잡는다. */
+  width: calc(var(--memo-panel-width) + var(--layout-page-padding-inline));
+  padding-block: var(--space-8);
+  padding-inline-end: var(--layout-page-padding-inline);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panel-inner {
+  position: sticky;
+  top: var(--space-6);
+}
+
+@media (max-width: 60rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .main {
+    grid-column: 1 / -1;
+    margin-inline-end: 0;
+  }
+
+  .gutter {
+    grid-column: 2;
+    justify-content: flex-end;
+    align-self: center;
+    padding-block: var(--space-3) 0;
+    padding-inline-end: var(--layout-page-padding-inline);
+  }
+
+  .resizer {
+    display: none;
+  }
+
+  .toggle {
+    position: static;
+  }
+
+  .panel-inner {
+    position: static;
+  }
+
+  .panel {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding-block: var(--space-4) var(--space-8);
+    padding-inline: var(--layout-page-padding-inline);
+  }
+}

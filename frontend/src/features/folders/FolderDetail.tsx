@@ -18,7 +18,6 @@ import type { TaskSummaryResponse } from '../tasks/taskTypes'
 import {getFolder} from './folderApi.ts'
 import type {Folder, FolderDetail as FolderDetailData} from './folderTypes.ts'
 import TaskList from '../tasks/TaskList'
-import NoteCard from '../note/NoteCard'
 import LinkFolderView from '../knowledge/LinkFolderView'
 import styles from './FolderDetail.module.css'
 
@@ -65,14 +64,6 @@ const FolderBreadcrumb = memo(function FolderBreadcrumb({ folder }: { folder: Fo
       <IconChevronRight size={14} aria-hidden="true" />
       <span aria-current="page">{folder.name}</span>
     </nav>
-  )
-})
-
-const FolderNoteWidget = memo(function FolderNoteWidget({ folder }: { folder: FolderDetailData }) {
-  return (
-    <aside className={styles['detail-aside']} aria-label="폴더 노트">
-      <NoteCard folders={[folder]} folderId={folder.id} />
-    </aside>
   )
 })
 
@@ -290,8 +281,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     <article className={styles.page} aria-labelledby="folder-detail-title">
       <FolderBreadcrumb folder={folder} />
 
-      <div className={styles['detail-layout']}>
-        <div className={styles['detail-main']}>
+      <div className={styles['detail-main']}>
 
       <FolderHeader
         folder={folder}
@@ -441,9 +431,6 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
         </div>
             </section>
           )}
-        </div>
-
-        <FolderNoteWidget folder={folder} />
       </div>
     </article>
   )

@@ -15,14 +15,19 @@
   background: var(--color-background);
 }
 
+/* 메모 패널이 붙는 화면에서는 본문과 메모가 본문 영역을 나눠 쓴다. */
+.memo-split {
+  min-width: 0;
+}
+
 @media (min-width: 48.01rem) and (max-width: 80rem) {
-  .app-content {
+  .app-shell-body {
     --layout-page-padding-inline: var(--space-10);
   }
 }
 
 @media (min-width: 80.01rem) and (max-width: 90rem) {
-  .app-content {
+  .app-shell-body {
     --layout-page-padding-inline: var(--space-12);
   }
 }

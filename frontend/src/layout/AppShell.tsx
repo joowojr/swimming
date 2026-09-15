@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import RecentPageButton from './RecentPageButton'
 import SideNavigation from './SideNavigation'
 import TopBar from './TopBar'
 import styles from './AppShell.module.css'
@@ -22,6 +23,9 @@ export default function AppShell({
         <main className={styles['app-content']} id="main-content" tabIndex={-1}>
           {children}
         </main>
+      </div>
+      <div className={styles['floating-dock']}>
+        <RecentPageButton />
       </div>
     </div>
   )

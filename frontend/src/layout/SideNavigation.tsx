@@ -1,30 +1,6 @@
-import type { ComponentType } from 'react'
 import { NavLink } from 'react-router-dom'
-import type { IconProps } from '@tabler/icons-react'
-import {
-  IconCalendar,
-  IconChecklist,
-  IconFolder,
-  IconLayoutDashboard,
-  IconPlayerPlay,
-} from '@tabler/icons-react'
+import { navigationItems } from './navigationItems'
 import styles from './SideNavigation.module.css'
-
-interface NavigationItem {
-  label: string
-  icon: ComponentType<IconProps>
-  href?: string
-  end?: boolean
-  disabled?: boolean
-}
-
-const navigationItems: NavigationItem[] = [
-  { label: '핀보드', icon: IconLayoutDashboard, href: '/pinboard', end: true },
-  { label: '할 일', icon: IconChecklist, href: '/tasks', end: true },
-  { label: '폴더', icon: IconFolder, href: '/folders', end: true },
-  { label: '다이브 세션', icon: IconPlayerPlay, href: '/sessions', end: true },
-  { label: '캘린더', icon: IconCalendar, disabled: true },
-]
 
 export default function SideNavigation() {
   return (
@@ -65,6 +41,7 @@ export default function SideNavigation() {
           })}
         </ul>
       </nav>
+
     </aside>
   )
 }

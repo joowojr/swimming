@@ -178,6 +178,8 @@
     --modal-width: 28rem;
     /* 좌우 2단 모달(입력 + 담은 목록)용. 한 단짜리는 --modal-width를 쓴다. */
     --modal-width-wide: 56rem;
+    /* 본문 위에 떠 있는 것(플로팅 버튼). 모달보다는 아래다. */
+    --z-floating: 300;
     --z-modal: 400;
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in: cubic-bezier(0.7, 0, 0.84, 0);

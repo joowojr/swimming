@@ -6,7 +6,6 @@ import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemType;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.in.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.calendar.usecase.DailyPlanUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,19 +129,6 @@ class DailyPlanControllerTest {
     }
 
     @Test
-    @DisplayName("날짜별 계획의 항목 순서를 저장한다")
-    void reordersItems() throws Exception {
-        ReorderDailyPlanItemsRequest request = new ReorderDailyPlanItemsRequest(List.of(2L, 1L));
-        when(useCase.reorder(1L, DATE, request)).thenReturn(planResponse());
-
-        mockMvc.perform(put("/api/daily-plans/2026-08-21")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"itemIds\":[2,1]}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isArray());
-    }
-
-    @Test
     @DisplayName("날짜별 계획에서 항목을 제거한다")
     void deletesItem() throws Exception {
         mockMvc.perform(delete("/api/daily-plans/2026-08-21/items/2"))
@@ -155,7 +141,7 @@ class DailyPlanControllerTest {
     private DailyPlanResponse planResponse() {
         return new DailyPlanResponse(DATE, List.of(new DailyPlanItemResponse(
                 1L, 10L, DailyPlanItemType.TASK,
-                100L, "폴더", "API 구현", TaskStatus.DOING, 0
+                100L, "폴더", "API 구현", TaskStatus.DOING
         )));
     }
 

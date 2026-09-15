@@ -41,16 +41,15 @@ class DailyPlanServiceTest {
     }
 
     @Test
-    @DisplayName("사용자와 날짜로 조회한 항목을 순수 도메인으로 변환한다")
+    @DisplayName("사용자와 날짜로 담은 순서대로 조회해 순수 도메인으로 변환한다")
     void getsItemsAsDomain() {
-        when(repository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(1L, DATE))
-                .thenReturn(List.of(entity(1L, 10L, 0), entity(2L, 20L, 1)));
+        when(repository.findAllByUserIdAndPlanDateOrderByIdAsc(1L, DATE))
+                .thenReturn(List.of(entity(1L, 10L), entity(2L, 20L)));
 
         List<DailyPlanItem> items = service.getItems(1L, DATE);
 
         assertThat(items).extracting(DailyPlanItem::getId).containsExactly(1L, 2L);
         assertThat(items).extracting(DailyPlanItem::getTaskId).containsExactly(10L, 20L);
-        assertThat(items).extracting(DailyPlanItem::getOrderIdx).containsExactly(0, 1);
     }
 
     @Test
@@ -62,34 +61,16 @@ class DailyPlanServiceTest {
             return entity;
         });
 
-        DailyPlanItem saved = service.save(1L, DATE, DailyPlanItem.restore(null, 20L, 3, null, null));
+        DailyPlanItem saved = service.save(1L, DATE, DailyPlanItem.createTask(20L));
 
         assertThat(saved.getId()).isEqualTo(7L);
         assertThat(saved.getTaskId()).isEqualTo(20L);
-        assertThat(saved.getOrderIdx()).isEqualTo(3);
-    }
-
-    @Test
-    @DisplayName("전달받은 순서 맵에 포함된 항목만 순서를 바꿔 저장한다")
-    void reordersOnlyMappedItems() {
-        DailyPlanItemEntity first = entity(1L, 10L, 0);
-        DailyPlanItemEntity second = entity(2L, 20L, 1);
-        DailyPlanItemEntity untouched = entity(3L, 30L, 2);
-        when(repository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(1L, DATE))
-                .thenReturn(List.of(first, second, untouched));
-
-        service.reorder(1L, DATE, Map.of(2L, 0, 1L, 1));
-
-        assertThat(second.getOrderIdx()).isZero();
-        assertThat(first.getOrderIdx()).isEqualTo(1);
-        assertThat(untouched.getOrderIdx()).isEqualTo(2);
-        verify(repository).saveAll(List.of(first, second, untouched));
     }
 
     @Test
     @DisplayName("사용자와 날짜가 일치하는 항목을 삭제한다")
     void deletesOwnedItem() {
-        DailyPlanItemEntity entity = entity(1L, 10L, 0);
+        DailyPlanItemEntity entity = entity(1L, 10L);
         when(repository.findByIdAndUserIdAndPlanDate(1L, 1L, DATE)).thenReturn(Optional.of(entity));
 
         service.delete(1L, DATE, 1L);
@@ -144,10 +125,10 @@ class DailyPlanServiceTest {
     @DisplayName("계획 항목을 다른 날짜로 옮기고 옮기기 전 날짜를 돌려준다")
     void movesItemToAnotherDate() {
         LocalDate toDate = DATE.plusDays(4);
-        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L)));
         when(repository.countDistinctTaskIds(1L, toDate, Set.of(20L))).thenReturn(0L);
-        when(repository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(1L, toDate))
-                .thenReturn(List.of(entity(8L, 21L, 0), entity(9L, 22L, 1)));
+        when(repository.findAllByUserIdAndPlanDateOrderByIdAsc(1L, toDate))
+                .thenReturn(List.of(entity(8L, 21L), entity(9L, 22L)));
 
         LocalDate fromDate = service.moveItemDate(1L, 7L, 20L, toDate);
 
@@ -158,7 +139,7 @@ class DailyPlanServiceTest {
     @DisplayName("대상 날짜에 같은 Task가 이미 있으면 옮기지 않는다")
     void rejectsMoveWhenTargetDateAlreadyHasTask() {
         LocalDate toDate = DATE.plusDays(4);
-        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L)));
         when(repository.countDistinctTaskIds(1L, toDate, Set.of(20L))).thenReturn(1L);
 
         assertThatThrownBy(() -> service.moveItemDate(1L, 7L, 20L, toDate))
@@ -169,7 +150,7 @@ class DailyPlanServiceTest {
     @Test
     @DisplayName("다른 Task의 계획 항목은 옮길 수 없다")
     void rejectsMoveWhenItemBelongsToAnotherTask() {
-        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L)));
 
         assertThatThrownBy(() -> service.moveItemDate(1L, 7L, 99L, DATE.plusDays(1)))
                 .isInstanceOf(BusinessException.class)
@@ -179,15 +160,14 @@ class DailyPlanServiceTest {
     @Test
     @DisplayName("같은 날짜로 옮기면 아무것도 바꾸지 않는다")
     void keepsItemWhenTargetDateIsSame() {
-        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L, 0)));
+        when(repository.findByIdAndUserId(7L, 1L)).thenReturn(Optional.of(entity(7L, 20L)));
 
         assertThat(service.moveItemDate(1L, 7L, 20L, DATE)).isEqualTo(DATE);
         verify(repository, never()).flush();
     }
 
-    private DailyPlanItemEntity entity(Long id, Long taskId, int orderIdx) {
-        DailyPlanItemEntity entity = DailyPlanItemEntity.from(
-                1L, DATE, DailyPlanItem.restore(null, taskId, orderIdx, null, null));
+    private DailyPlanItemEntity entity(Long id, Long taskId) {
+        DailyPlanItemEntity entity = DailyPlanItemEntity.from(1L, DATE, DailyPlanItem.createTask(taskId));
         ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }

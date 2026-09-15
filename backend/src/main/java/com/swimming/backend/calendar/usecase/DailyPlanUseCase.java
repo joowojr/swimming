@@ -6,7 +6,6 @@ import com.swimming.backend.calendar.domain.DailyPlanItem;
 import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.in.ReorderDailyPlanItemsRequest;
 import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.folder.service.FolderService;
@@ -61,7 +60,6 @@ public class DailyPlanUseCase {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM);
         }
 
-        int nextOrderIdx = dailyPlanService.getItems(userId, date).size();
         if (linksExistingTasks) {
             if (new HashSet<>(taskIds).size() != taskIds.size()
                     || dailyPlanService.containsAnyTasks(userId, date, taskIds)) {
@@ -72,7 +70,7 @@ public class DailyPlanUseCase {
             }
             List<DailyPlanItem> items = new ArrayList<>();
             for (Long taskId : taskIds) {
-                items.add(DailyPlanItem.restore(null, taskId, nextOrderIdx++, null, null));
+                items.add(DailyPlanItem.createTask(taskId));
             }
             dailyPlanService.saveAll(userId, date, items);
         } else {
@@ -82,27 +80,8 @@ public class DailyPlanUseCase {
             long matrixRank = taskOrderingService.nextRank(userId, request.priority(), request.urgent());
             Long createdTaskId = taskService.create(
                     userId, folderId, title, request.priority(), request.urgent(), matrixRank).getId();
-            dailyPlanService.save(userId, date, DailyPlanItem.restore(null, createdTaskId, nextOrderIdx, null, null));
+            dailyPlanService.save(userId, date, DailyPlanItem.createTask(createdTaskId));
         }
-        return loadPlanResponse(userId, date);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED)
-    public DailyPlanResponse reorder(Long userId, LocalDate date, ReorderDailyPlanItemsRequest request) {
-        List<Long> currentItemIds = dailyPlanService.getItems(userId, date).stream()
-                .map(DailyPlanItem::getId)
-                .toList();
-        List<Long> requestedItemIds = request.itemIds();
-        if (currentItemIds.size() != requestedItemIds.size()
-                || !new HashSet<>(currentItemIds).equals(new HashSet<>(requestedItemIds))) {
-            throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_ITEM_ORDER);
-        }
-
-        Map<Long, Integer> orderIdxByItemId = new HashMap<>();
-        for (int orderIdx = 0; orderIdx < requestedItemIds.size(); orderIdx++) {
-            orderIdxByItemId.put(requestedItemIds.get(orderIdx), orderIdx);
-        }
-        dailyPlanService.reorder(userId, date, orderIdxByItemId);
         return loadPlanResponse(userId, date);
     }
 

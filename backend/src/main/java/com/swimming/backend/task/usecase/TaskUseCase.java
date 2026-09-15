@@ -50,8 +50,7 @@ public class TaskUseCase {
         Task task = taskService.create(
                 userId, folderId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
         if (request.planDate() != null) {
-            int orderIdx = dailyPlanService.getItems(userId, request.planDate()).size();
-            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.restore(null, task.getId(), orderIdx, null, null));
+            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.createTask(task.getId()));
         }
         return TaskResponse.from(task);
     }

@@ -141,7 +141,8 @@
 
 .todoPanel {
     display: flex;
-    min-height: 28rem;
+    /* 쓰는 쪽에서 --planner-height로 높이를 올릴 수 있다. 기본은 핀보드 기준. */
+    min-height: var(--planner-height, 28rem);
     flex-direction: column;
     gap: var(--space-5);
 }
@@ -178,7 +179,11 @@
 
 .todoList {
     display: flex;
+    /* 패널이 높아진 만큼 목록이 더 보이고, 넘치면 목록 안에서만 스크롤한다. */
+    flex: 1;
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
     flex-direction: column;
     gap: var(--space-3);
     margin: 0;
@@ -261,6 +266,7 @@
 
 .state {
     display: grid;
+    flex: 1;
     min-height: 14rem;
     align-content: center;
     justify-items: center;

@@ -1,4 +1,7 @@
 .layout {
+  position: relative;
+  /* 메모가 차지하는 칸의 폭. 접었을 때 같은 폭의 빈 칸을 양쪽에 두는 데 쓴다. */
+  --memo-track: calc(var(--memo-panel-width) + var(--layout-page-padding-inline));
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: stretch;
@@ -69,13 +72,32 @@
   align-self: stretch;
   min-width: 0;
   /* 여백이 카드 너비를 깎지 않도록 페이지 여백만큼 더해서 잡는다. */
-  width: calc(var(--memo-panel-width) + var(--layout-page-padding-inline));
+  width: var(--memo-track);
   padding-block: var(--space-8);
   padding-inline-end: var(--layout-page-padding-inline);
 }
 
 .panel[hidden] {
   display: none;
+}
+
+/* 접으면 메모가 비운 칸을 절반씩 나눠 양옆의 빈 칸으로 둔다.
+   본문이 쓰는 1fr 칸의 폭이 펼쳤을 때와 글자 그대로 같은 식이 되므로,
+   폭을 따로 계산해 맞출 필요가 없다. 바뀌는 것은 자리뿐이다. */
+.layout[data-open='false'] {
+  grid-template-columns:
+    calc(var(--memo-track) / 2)
+    minmax(0, 1fr)
+    auto
+    calc(var(--memo-track) / 2);
+}
+
+.layout[data-open='false'] .main {
+  grid-column: 2;
+}
+
+.layout[data-open='false'] .gutter {
+  grid-column: 3;
 }
 
 .panel-inner {
@@ -91,6 +113,18 @@
   .main {
     grid-column: 1 / -1;
     margin-inline-end: 0;
+  }
+
+  .layout[data-open='false'] {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .layout[data-open='false'] .main {
+    grid-column: 1 / -1;
+  }
+
+  .layout[data-open='false'] .gutter {
+    grid-column: 2;
   }
 
   .gutter {

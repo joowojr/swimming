@@ -117,6 +117,9 @@
 }
 
 .planner-area {
+  /* 캘린더와 매트릭스가 같은 높이를 쓰도록 한곳에서 정한다. */
+  --planner-height: 34rem;
+  --matrix-quadrant-height: 22rem;
   display: flex;
   min-width: 0;
   flex-direction: column;

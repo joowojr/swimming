@@ -4,7 +4,6 @@ import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskMatrixSection;
-import com.swimming.backend.task.domain.TaskPlacement;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.CreateTasksBatchRequest;
 import com.swimming.backend.task.dto.in.NewTaskSpec;
@@ -34,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,17 +81,15 @@ public class TaskUseCase {
                 .distinct()
                 .toList());
 
-        Map<TaskMatrixSection, Long> rankBySection = new EnumMap<>(TaskMatrixSection.class);
+        List<Long> ranks = taskOrderingService.nextRanks(userId, drafts.stream()
+                .map(draft -> TaskMatrixSection.from(draft.priority(), draft.urgent()))
+                .toList());
+
         List<NewTaskSpec> specs = new ArrayList<>();
-        for (CreateTaskWithPlanRequest draft : drafts) {
-            TaskMatrixSection section = TaskMatrixSection.from(draft.priority(), draft.urgent());
-            Long previousRank = rankBySection.get(section);
-            long rank = previousRank == null
-                    ? taskOrderingService.nextRank(userId, draft.priority(), draft.urgent())
-                    : TaskPlacement.rankBefore(previousRank);
-            rankBySection.put(section, rank);
+        for (int index = 0; index < drafts.size(); index++) {
+            CreateTaskWithPlanRequest draft = drafts.get(index);
             specs.add(new NewTaskSpec(
-                    draft.folderId(), draft.title().trim(), draft.priority(), draft.urgent(), rank));
+                    draft.folderId(), draft.title().trim(), draft.priority(), draft.urgent(), ranks.get(index)));
         }
 
         // 넘긴 순서 그대로 돌아오므로 요청 항목과 같은 자리에서 짝지을 수 있다.

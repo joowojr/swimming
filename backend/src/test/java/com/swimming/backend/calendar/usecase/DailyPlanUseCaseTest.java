@@ -4,6 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.calendar.domain.DailyPlanItem;
 import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
+import com.swimming.backend.calendar.dto.in.NewDailyPlanTask;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemType;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
@@ -28,6 +29,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -89,16 +91,15 @@ class DailyPlanUseCaseTest {
     @Test
     @DisplayName("폴더 없는 Task를 만들어 그날 계획에 추가한다")
     void createsAdHocTaskAndAddsIt() {
-        when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
-        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
-        when(taskService.create(1L, null, "장보기", false, false, 1024L))
-                .thenReturn(Task.restore(20L, 1L, null, null, "장보기", TaskStatus.TODO,
-                        false, false, 0, 1024L, null, null));
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenReturn(List.of(1024L));
+        when(taskService.createAll(eq(1L), anyList()))
+                .thenReturn(List.of(Task.restore(20L, 1L, null, null, "장보기", TaskStatus.TODO,
+                        false, false, 0, 1024L, null, null)));
         when(dailyPlanService.getRows(1L, DATE, DATE))
                 .thenReturn(List.of(adHocRow(1L, 20L, "장보기")));
 
-        DailyPlanResponse response = useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(null, null, "  장보기  "));
+        DailyPlanResponse response = useCase.addItems(1L, DATE,
+                CreateDailyPlanItemsRequest.ofNewTasks(List.of(new NewDailyPlanTask("  장보기  ", null))));
 
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.taskId()).isEqualTo(20L);
@@ -106,8 +107,7 @@ class DailyPlanUseCaseTest {
             assertThat(item.title()).isEqualTo("장보기");
             assertThat(item.status()).isEqualTo(TaskStatus.TODO);
         });
-        verify(folderService, never()).getReference(any(), any());
-        verify(dailyPlanService).save(eq(1L), eq(DATE), any(DailyPlanItem.class));
+        verify(dailyPlanService).saveAll(eq(1L), eq(DATE), anyList());
     }
 
     @Test
@@ -120,7 +120,7 @@ class DailyPlanUseCaseTest {
                 adHocRow(1L, 30L, "기존"), folderRow(2L, 10L), folderRow(3L, 20L)));
 
         DailyPlanResponse response = useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null));
+                1L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 20L)));
 
         assertThat(response.items()).extracting(DailyPlanItemResponse::taskId)
                 .containsExactly(30L, 10L, 20L);
@@ -137,7 +137,7 @@ class DailyPlanUseCaseTest {
         when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
 
         assertThatThrownBy(() -> useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 10L), null, null)))
+                1L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 10L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_TASKS));
 
@@ -150,7 +150,7 @@ class DailyPlanUseCaseTest {
         when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(true);
 
         assertThatThrownBy(() -> useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L, 20L), null, null)))
+                1L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 20L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_TASKS));
 
@@ -158,14 +158,24 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("Task와 제목을 동시에 입력한 항목을 거부한다")
+    @DisplayName("이미 있는 Task와 새 Task를 동시에 보낸 요청을 거부한다")
     void rejectsAmbiguousItem() {
-        assertThatThrownBy(() -> useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(List.of(10L), null, "장보기")))
+        assertThatThrownBy(() -> useCase.addItems(1L, DATE, new CreateDailyPlanItemsRequest(
+                List.of(10L), List.of(new NewDailyPlanTask("장보기", null)))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_ITEM));
 
-        verify(dailyPlanService, never()).getItems(1L, DATE);
+        verify(taskService, never()).createAll(any(), anyList());
+        verify(dailyPlanService, never()).saveAll(any(), any(), anyList());
+    }
+
+    @Test
+    @DisplayName("둘 다 비어 있는 요청을 거부한다")
+    void rejectsEmptyItem() {
+        assertThatThrownBy(() -> useCase.addItems(1L, DATE,
+                new CreateDailyPlanItemsRequest(null, null)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_ITEM));
     }
 
     @Test
@@ -176,7 +186,7 @@ class DailyPlanUseCaseTest {
         when(taskService.getReferences(2L, List.of(10L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> useCase.addItems(
-                2L, DATE, new CreateDailyPlanItemsRequest(List.of(10L), null, null)))
+                2L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
 
@@ -186,18 +196,16 @@ class DailyPlanUseCaseTest {
     @Test
     @DisplayName("폴더를 선택해 새 Task를 만들고 계획에 연결한다")
     void createsFolderTaskAndAddsIt() {
-        when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
-        when(folderService.getReference(1L, 100L))
-                .thenReturn(new FolderReference(100L, "폴더", null));
-        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
-        when(taskService.create(1L, 100L, "API 문서 작성", false, false, 1024L))
-                .thenReturn(Task.restore(20L, 1L, 100L, null, "API 문서 작성", TaskStatus.TODO,
-                        false, false, 0, 1024L, null, null));
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenReturn(List.of(1024L));
+        when(taskService.createAll(eq(1L), anyList()))
+                .thenReturn(List.of(Task.restore(20L, 1L, 100L, null, "API 문서 작성", TaskStatus.TODO,
+                        false, false, 0, 1024L, null, null)));
         when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(new DailyPlanItemQueryRow(
                 1L, DATE, 20L, 100L, "폴더", false, "API 문서 작성", TaskStatus.TODO)));
 
-        DailyPlanResponse response = useCase.addItems(
-                1L, DATE, new CreateDailyPlanItemsRequest(null, 100L, "API 문서 작성"));
+        DailyPlanResponse response = useCase.addItems(1L, DATE,
+                CreateDailyPlanItemsRequest.ofNewTasks(
+                        List.of(new NewDailyPlanTask("API 문서 작성", 100L))));
 
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.taskId()).isEqualTo(20L);
@@ -205,7 +213,7 @@ class DailyPlanUseCaseTest {
             assertThat(item.folderId()).isEqualTo(100L);
             assertThat(item.title()).isEqualTo("API 문서 작성");
         });
-        verify(taskService).create(1L, 100L, "API 문서 작성", false, false, 1024L);
+        verify(folderService).validateOwnerships(1L, List.of(100L));
     }
 
     @Test

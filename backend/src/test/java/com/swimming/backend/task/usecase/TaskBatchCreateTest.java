@@ -6,6 +6,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
+import com.swimming.backend.task.domain.TaskMatrixSection;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.CreateTasksBatchRequest;
@@ -24,7 +25,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -56,7 +56,7 @@ class TaskBatchCreateTest {
     @Test
     @DisplayName("담은 할 일을 모두 만들고 담은 순서대로 돌려준다")
     void createsEveryDraft() {
-        when(taskOrderingService.nextRank(eq(1L), anyBoolean(), anyBoolean())).thenReturn(1024L);
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenAnswer(ranks());
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(task(101L, "알고리즘"), task(102L, "CS 정리")));
 
@@ -71,7 +71,7 @@ class TaskBatchCreateTest {
     @Test
     @DisplayName("폴더 소유권은 중복을 제거해 한 번에 확인한다")
     void validatesFoldersOnce() {
-        when(taskOrderingService.nextRank(eq(1L), anyBoolean(), anyBoolean())).thenReturn(1024L);
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenAnswer(ranks());
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(task(101L, "가"), task(102L, "나"), task(103L, "다")));
 
@@ -102,10 +102,9 @@ class TaskBatchCreateTest {
     }
 
     @Test
-    @DisplayName("같은 매트릭스 영역은 순위를 한 번만 읽고 담은 순서대로 올린다")
-    void readsRankOncePerSection() {
-        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
-        when(taskOrderingService.nextRank(1L, true, false)).thenReturn(2048L);
+    @DisplayName("담은 순서대로 매트릭스 영역을 넘겨 순위를 한 번에 받는다")
+    void delegatesRankAllocation() {
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenReturn(List.of(1024L, 2048L, 4096L));
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(task(101L, "가"), task(102L, "나"), task(103L, "중요")));
 
@@ -115,20 +114,20 @@ class TaskBatchCreateTest {
                 priorityDraft("중요")
         )));
 
+        verify(taskOrderingService).nextRanks(1L, List.of(
+                TaskMatrixSection.STANDARD, TaskMatrixSection.STANDARD, TaskMatrixSection.PRIORITY));
+
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<NewTaskSpec>> captor = ArgumentCaptor.forClass(List.class);
         verify(taskService).createAll(eq(1L), captor.capture());
         assertThat(captor.getValue()).extracting(NewTaskSpec::matrixRank)
-                .containsExactly(1024L, 2048L, 2048L);
-        // 영역이 둘이므로 조회도 두 번뿐이다.
-        verify(taskOrderingService).nextRank(1L, false, false);
-        verify(taskOrderingService).nextRank(1L, true, false);
+                .containsExactly(1024L, 2048L, 4096L);
     }
 
     @Test
     @DisplayName("같은 날짜에 담은 할 일은 한 번에 캘린더에 넣는다")
     void addsPlanItemsPerDate() {
-        when(taskOrderingService.nextRank(eq(1L), anyBoolean(), anyBoolean())).thenReturn(1024L);
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenAnswer(ranks());
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(task(101L, "가"), task(102L, "나"), task(103L, "날짜 없음")));
 
@@ -147,7 +146,7 @@ class TaskBatchCreateTest {
     @Test
     @DisplayName("날짜를 고르지 않았으면 캘린더를 건드리지 않는다")
     void skipsCalendarWithoutDate() {
-        when(taskOrderingService.nextRank(eq(1L), anyBoolean(), anyBoolean())).thenReturn(1024L);
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenAnswer(ranks());
         when(taskService.createAll(eq(1L), anyList())).thenReturn(List.of(task(101L, "가")));
 
         taskUseCase.createBatch(1L, new CreateTasksBatchRequest(List.of(draft("가", null, null))));
@@ -158,7 +157,7 @@ class TaskBatchCreateTest {
     @Test
     @DisplayName("제목의 앞뒤 공백은 저장 전에 다듬는다")
     void trimsTitle() {
-        when(taskOrderingService.nextRank(eq(1L), anyBoolean(), anyBoolean())).thenReturn(1024L);
+        when(taskOrderingService.nextRanks(eq(1L), anyList())).thenAnswer(ranks());
         when(taskService.createAll(eq(1L), anyList())).thenReturn(List.of(task(101L, "알고리즘")));
 
         taskUseCase.createBatch(1L, new CreateTasksBatchRequest(List.of(draft("  알고리즘  ", null, null))));
@@ -168,6 +167,18 @@ class TaskBatchCreateTest {
         verify(taskService).createAll(eq(1L), captor.capture());
         assertThat(captor.getValue()).singleElement()
                 .extracting(NewTaskSpec::title).isEqualTo("알고리즘");
+    }
+
+    /** 넘긴 영역 수만큼 서로 다른 순위를 돌려준다. 실제 채번은 TaskOrderingBatchRankTest가 본다. */
+    private org.mockito.stubbing.Answer<List<Long>> ranks() {
+        return invocation -> {
+            List<?> sections = invocation.getArgument(1);
+            List<Long> allocated = new java.util.ArrayList<>();
+            for (int index = 0; index < sections.size(); index++) {
+                allocated.add(1024L * (index + 1));
+            }
+            return allocated;
+        };
     }
 
     private CreateTaskWithPlanRequest draft(String title, Long folderId, LocalDate planDate) {

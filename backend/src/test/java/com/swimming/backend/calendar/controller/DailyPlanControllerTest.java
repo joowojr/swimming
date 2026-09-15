@@ -3,6 +3,7 @@ package com.swimming.backend.calendar.controller;
 import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
+import com.swimming.backend.calendar.dto.in.NewDailyPlanTask;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemType;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
@@ -68,13 +69,13 @@ class DailyPlanControllerTest {
     @Test
     @DisplayName("날짜를 경로로 받아 폴더 없는 Task를 생성한다")
     void addsAdHocItem() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
-                null, null, "장보기");
+        CreateDailyPlanItemsRequest request = CreateDailyPlanItemsRequest.ofNewTasks(
+                List.of(new NewDailyPlanTask("장보기", null)));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"장보기\"}"))
+                        .content("{\"tasks\":[{\"title\":\"장보기\"}]}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/daily-plans/2026-08-21"))
                 .andExpect(jsonPath("$.date").value("2026-08-21"));
@@ -85,8 +86,7 @@ class DailyPlanControllerTest {
     @Test
     @DisplayName("날짜를 경로로 받아 여러 Task 항목을 일괄 생성한다")
     void addsTaskItems() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
-                List.of(10L, 20L), null, null);
+        CreateDailyPlanItemsRequest request = CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 20L));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
@@ -101,13 +101,13 @@ class DailyPlanControllerTest {
     @Test
     @DisplayName("날짜와 폴더를 받아 새 Task 항목을 생성한다")
     void createsFolderTaskItem() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
-                null, 100L, "API 문서 작성");
+        CreateDailyPlanItemsRequest request = CreateDailyPlanItemsRequest.ofNewTasks(
+                List.of(new NewDailyPlanTask("API 문서 작성", 100L)));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"folderId\":100,\"title\":\"API 문서 작성\"}"))
+                        .content("{\"tasks\":[{\"title\":\"API 문서 작성\",\"folderId\":100}]}"))
                 .andExpect(status().isCreated());
 
         verify(useCase).addItems(1L, DATE, request);
@@ -116,13 +116,13 @@ class DailyPlanControllerTest {
     @Test
     @DisplayName("폴더 없이 새 Task 항목을 생성한다")
     void createsFolderlessTaskItem() throws Exception {
-        CreateDailyPlanItemsRequest request = new CreateDailyPlanItemsRequest(
-                null, null, "자격증 접수");
+        CreateDailyPlanItemsRequest request = CreateDailyPlanItemsRequest.ofNewTasks(
+                List.of(new NewDailyPlanTask("자격증 접수", null)));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
         mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"자격증 접수\"}"))
+                        .content("{\"tasks\":[{\"title\":\"자격증 접수\"}]}"))
                 .andExpect(status().isCreated());
 
         verify(useCase).addItems(1L, DATE, request);

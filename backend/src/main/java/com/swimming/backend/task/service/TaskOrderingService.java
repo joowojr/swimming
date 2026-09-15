@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -132,6 +134,28 @@ public class TaskOrderingService {
                 change.targetSection(),
                 change.rebalanced()
         );
+    }
+
+    /**
+     * 여러 건을 한 번에 만들 때 쓸 순위를 넘겨받은 순서대로 매긴다.
+     *
+     * <p>영역마다 현재 순위를 한 번만 읽고 메모리에서 올린다. 건마다 읽으면 쿼리가 건수만큼
+     * 늘고, 값이 "직전에 넣은 것이 이미 보이는가"라는 flush 시점에 의존하게 된다.
+     * 새 할 일은 영역 맨 위로 가므로 마지막 건이 맨 위에 온다 — 하나씩 만들었을 때와 같다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Long> nextRanks(Long userId, List<TaskMatrixSection> sections) {
+        Map<TaskMatrixSection, Long> lastBySection = new EnumMap<>(TaskMatrixSection.class);
+        List<Long> ranks = new ArrayList<>();
+        for (TaskMatrixSection section : sections) {
+            Long previous = lastBySection.get(section);
+            long rank = previous == null
+                    ? nextRank(userId, section.isPriority(), section.isUrgent())
+                    : TaskPlacement.rankBefore(previous);
+            lastBySection.put(section, rank);
+            ranks.add(rank);
+        }
+        return ranks;
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

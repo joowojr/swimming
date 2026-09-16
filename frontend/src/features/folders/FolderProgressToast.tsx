@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import type { AnimationEvent } from 'react'
 import { IconProgressCheck, IconX } from '@tabler/icons-react'
 import { getSources } from '../knowledge/knowledgeApi'
+import type { SourceCard } from '../knowledge/knowledgeTypes'
 import { getFolderTasks } from '../tasks/taskApi'
+import type { TaskSummaryResponse } from '../tasks/taskTypes'
+import { useSourceStore } from '../../store/sourceStore'
+import { useTaskStore } from '../../store/taskStore'
 import styles from './FolderProgressToast.module.css'
 
 interface FolderProgressToastProps {
@@ -15,6 +19,12 @@ interface FolderProgressToastProps {
  * 이보다 많으면 total에 '+'를 붙여 더 있다는 것만 알린다.
  */
 const COUNT_SIZE = 50
+
+/** 폴더에 들어온 순간 받아 둔 한 페이지. 어떤 항목이 이 폴더에 속하는지를 정한다. */
+interface Page<T> {
+  items: T[]
+  hasMore: boolean
+}
 
 interface Progress {
   done: number
@@ -36,10 +46,21 @@ function label(progress: Progress) {
  *
  * 아직 확인 중이라 스스로 사라지지 않고, 셀 것이 없거나 요청이 실패해도 그 사실을 띄운다.
  * 조용히 사라지면 "안 뜬다"와 "띄울 것이 없다"를 구분할 수 없다.
+ *
+ * 닫을 때까지 떠 있으므로 그 사이의 완료·읽음·삭제가 숫자에 들어와야 한다. 받아 둔 페이지는
+ * "무엇이 이 폴더에 있었는가"만 정하고, 지금 어떤 상태인지는 taskStore·sourceStore에서
+ * 겹쳐 읽는다. 두 스토어가 각각 최신 값을 갖는 자리라 다시 받아올 필요가 없다.
+ *
+ * 받아 온 것을 먼저 스토어에 넣어 두는 이유가 여기 있다. 그래야 "스토어에 없다"가
+ * "아직 모르는 항목"이 아니라 "지워진 항목"이라는 한 가지 뜻이 된다.
  */
 export default function FolderProgressToast({ folderId, folderName }: FolderProgressToastProps) {
-  const [tasks, setTasks] = useState<Progress | null>(null)
-  const [sources, setSources] = useState<Progress | null>(null)
+  const [taskPage, setTaskPage] = useState<Page<TaskSummaryResponse> | null>(null)
+  const [sourcePage, setSourcePage] = useState<Page<SourceCard> | null>(null)
+  const tasksById = useTaskStore((state) => state.byId)
+  const upsertTasks = useTaskStore((state) => state.upsert)
+  const readAtById = useSourceStore((state) => state.readAtById)
+  const upsertSources = useSourceStore((state) => state.upsert)
   const [failed, setFailed] = useState<string[]>([])
   const [isOpen, setIsOpen] = useState(false)
   /** 사라지는 애니메이션이 끝날 때까지는 남아 있어야 해서 닫힘을 두 단계로 나눈다. */
@@ -58,22 +79,17 @@ export default function FolderProgressToast({ folderId, folderName }: FolderProg
 
       if (taskResult.status === 'fulfilled') {
         const page = taskResult.value
-        setTasks({
-          done: page.items.filter((task) => task.status === 'DONE').length,
-          total: page.items.length,
-          hasMore: page.hasNext,
-        })
+        // 목록 응답에는 folderId가 없다. 어느 폴더를 불렀는지는 이 화면이 안다.
+        upsertTasks(page.items.map((task) => ({ ...task, folderId })))
+        setTaskPage({ items: page.items, hasMore: page.hasNext })
       } else {
         reasons.push('할 일을 불러오지 못했어요.')
       }
 
       if (sourceResult.status === 'fulfilled') {
         const page = sourceResult.value
-        setSources({
-          done: page.items.filter((source) => source.readAt !== null).length,
-          total: page.items.length,
-          hasMore: page.hasNext,
-        })
+        upsertSources(page.items)
+        setSourcePage({ items: page.items, hasMore: page.hasNext })
       } else {
         reasons.push('링크를 불러오지 못했어요.')
       }
@@ -86,11 +102,29 @@ export default function FolderProgressToast({ folderId, folderName }: FolderProg
       controller.abort()
       setIsOpen(false)
       setIsLeaving(false)
-      setTasks(null)
-      setSources(null)
+      setTaskPage(null)
+      setSourcePage(null)
       setFailed([])
     }
-  }, [folderId])
+  }, [folderId, upsertSources, upsertTasks])
+
+  // 스토어에서 빠진 것은 지워진 항목이라 분모에서도 뺀다. 남은 것의 상태는 스토어가 정한다.
+  // 다른 폴더로 옮긴 task도 여기서 빠진다. 이 폴더의 진척이 아니게 됐기 때문이다.
+  const livingTasks = taskPage?.items.filter((task) => (
+    task.id in tasksById && tasksById[task.id].folderId === folderId
+  )) ?? []
+  const tasks: Progress | null = taskPage && {
+    done: livingTasks.filter((task) => tasksById[task.id].status === 'DONE').length,
+    total: livingTasks.length,
+    hasMore: taskPage.hasMore,
+  }
+
+  const livingSources = sourcePage?.items.filter((source) => source.sourceId in readAtById) ?? []
+  const sources: Progress | null = sourcePage && {
+    done: livingSources.filter((source) => readAtById[source.sourceId] !== null).length,
+    total: livingSources.length,
+    hasMore: sourcePage.hasMore,
+  }
 
   if (!isOpen) return null
 

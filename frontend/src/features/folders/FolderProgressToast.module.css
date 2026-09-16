@@ -10,7 +10,9 @@
 
 .toast {
     position: fixed;
-    top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    /* 탑바를 덮지 않고 그 아래 내용 영역에서 시작한다. 탑바는 화면의 고정 틀이고
+       이 배너는 지금 보는 폴더의 이야기라, 둘이 겹치면 누구의 알림인지 흐려진다. */
+    top: calc(var(--top-bar-height) + var(--space-3) + env(safe-area-inset-top, 0px));
     left: 50%;
     z-index: var(--z-floating);
     display: flex;
@@ -129,11 +131,13 @@
     outline-offset: var(--border-width);
 }
 
+/* 움직이는 거리는 내용 영역의 위 끝까지다. 배너의 z-index가 탑바보다 높아서, 더 올라가면
+   자리를 잡기 전 몇 프레임 동안 탑바 위에 겹쳐 그려진다. 가로 가운데 정렬을 유지해야 해서
+   두 변환을 함께 쓴다. */
 @keyframes folder-progress-in {
     from {
         opacity: 0;
-        /* 화면 밖에서 내려온다. 가로 가운데 정렬을 유지해야 해서 두 변환을 함께 쓴다. */
-        transform: translateX(-50%) translateY(calc(-1 * var(--space-12)));
+        transform: translateX(-50%) translateY(calc(-1 * var(--space-3)));
     }
     to {
         opacity: 1;
@@ -148,7 +152,7 @@
     }
     to {
         opacity: 0;
-        transform: translateX(-50%) translateY(calc(-1 * var(--space-6)));
+        transform: translateX(-50%) translateY(calc(-1 * var(--space-3)));
     }
 }
 

@@ -7,13 +7,8 @@ import { useRevealOnApproach } from '../lib/useRevealOnApproach'
 import { findSection } from './navigationItems'
 import type { Folder } from '../features/folders/folderTypes'
 import { useFolderStore } from '../store/folderStore'
-import { useRecentPageStore } from '../store/recentPageStore'
+import { pathOf, useRecentPageStore } from '../store/recentPageStore'
 import styles from './RecentPageButton.module.css'
-
-/** 쿼리를 뗀 경로. 기록은 쿼리까지 남기지만 "어느 화면인가"는 경로가 정한다. */
-function pathOf(href: string) {
-  return href.split('?')[0]
-}
 
 /**
  * 버튼에 쓸 이름. label은 목적지, detail은 그 안에서 보던 화면이다.

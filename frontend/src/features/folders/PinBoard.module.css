@@ -167,6 +167,37 @@
   background: var(--color-surface-container-high);
 }
 
+/* 할 일 추가. 담는 일이라 면을 채워 두는 유일한 버튼이고, 옆의 필터·토글과 역할이 다르다.
+   키는 같은 줄의 다른 컨트롤과 맞춘다. */
+.planner-add {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--button-height);
+  padding: 0 var(--button-padding-inline);
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.planner-add:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--space-1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .planner-add:hover {
+    background: var(--color-primary-pressed);
+  }
+}
+
 .project-section-heading {
   justify-content: space-between;
   gap: var(--space-4);

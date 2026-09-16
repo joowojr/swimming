@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { IconPlus } from '@tabler/icons-react'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import { useAuthStore } from '../../store/authStore'
@@ -37,6 +40,9 @@ export default function PinBoard({
   const setPlannerView = usePinboardViewStore((state) => state.setPlannerView)
   const matrixFilter = usePinboardViewStore((state) => state.matrixFilter)
   const setMatrixFilter = usePinboardViewStore((state) => state.setMatrixFilter)
+  // 여는 버튼이 보기 전환 줄에 있어 열림 상태만 여기 둔다. 무엇을 담을지는 날짜를 아는
+  // DailyPlanner가 정한다.
+  const [isTaskPickerOpen, setIsTaskPickerOpen] = useState(false)
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -84,17 +90,34 @@ export default function PinBoard({
                   value={plannerView}
                   onChange={setPlannerView}
                 />
-                {plannerView === 'matrix' && (
+                {plannerView === 'matrix' ? (
                   <TaskFilterMenu
                     value={matrixFilter}
                     onChange={setMatrixFilter}
                     showFlags={false}
                     triggerClassName={styles['planner-filter']}
                   />
+                ) : (
+                  <ModalTriggerButton
+                    className={styles['planner-add']}
+                    dialogId="task-picker-dialog"
+                    variant="plain"
+                    icon={<IconPlus size={15} aria-hidden="true" />}
+                    isOpen={isTaskPickerOpen}
+                    aria-label="할 일 추가"
+                    onClick={() => setIsTaskPickerOpen(true)}
+                  >
+                    <span>할 일 추가</span>
+                  </ModalTriggerButton>
                 )}
               </div>
               {plannerView === 'daily'
-                ? <DailyPlanner/>
+                ? (
+                  <DailyPlanner
+                    isPickerOpen={isTaskPickerOpen}
+                    onPickerClose={() => setIsTaskPickerOpen(false)}
+                  />
+                )
                 : <TaskMatrix statusFilter={matrixFilter.status}/>}
             </div>
           </div>

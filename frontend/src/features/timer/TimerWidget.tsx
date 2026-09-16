@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { IconArrowRight, IconClock } from '@tabler/icons-react'
 import { useRevealOnApproach } from '../../lib/useRevealOnApproach'
 import { useActiveSessionStore } from '../../store/activeSessionStore'
-import { formatCountdown, useCountdownClock } from './timerClock'
+import { countdownProgress, formatCountdown, useCountdownClock } from './timerClock'
 import styles from './TimerWidget.module.css'
 
 /** 초까지 보여주므로 매초 다시 그린다. */
@@ -46,6 +47,10 @@ export default function TimerWidget() {
     ? formatCountdown(session.startedAt, session.plannedDurationSec, now)
     : null
   const isOvertime = countdown?.startsWith('+') ?? false
+  // 칠은 CSS가 한다. 여기서는 얼마나 왔는지만 넘긴다.
+  const progress = session
+    ? countdownProgress(session.startedAt, session.plannedDurationSec, now)
+    : 0
 
   // 빈 상태에서는 세션을 시작할 수 있는 곳으로 보낸다. 시작 카드가 핀보드에 있다.
   const href = session ? `/sessions/${session.id}` : '/pinboard'
@@ -84,7 +89,11 @@ export default function TimerWidget() {
         pin()
       }}
     >
-      <span className={styles.dial} aria-hidden="true">
+      <span
+        className={styles.dial}
+        style={{ '--timer-progress': progress } as CSSProperties}
+        aria-hidden="true"
+      >
         {countdown ?? <IconClock size={20} stroke={1.8} />}
       </span>
       <span className={styles.reveal} ref={revealRef}>

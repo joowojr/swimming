@@ -20,6 +20,17 @@ export function formatCountdown(startedAt: string, plannedDurationSec: number, n
 }
 
 /**
+ * 지난 만큼을 0~1로. 정한 길이를 넘겨도 1을 넘지 않는다 — 링은 한 바퀴가 끝이고,
+ * 더 갔다는 것은 숫자 앞의 +가 말한다.
+ */
+export function countdownProgress(startedAt: string, plannedDurationSec: number, now: number) {
+  if (plannedDurationSec <= 0) return 1
+
+  const elapsedSec = Math.max(0, Math.floor((now - Date.parse(startedAt)) / 1000))
+  return Math.min(1, elapsedSec / plannedDurationSec)
+}
+
+/**
  * 셀 것이 있을 때만 도는 시계. 없으면 타이머를 걸지 않는다.
  *
  * key는 지금 재고 있는 대상이다. 바뀌면 시계를 다시 맞춘다. 주기는 보여주는 단위가

@@ -1,12 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { ComponentType, PointerEvent as ReactPointerEvent } from 'react'
+import type { ComponentType } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { IconArrowRight, IconPlayerPlay } from '@tabler/icons-react'
+import { IconArrowRight } from '@tabler/icons-react'
 import type { IconProps } from '@tabler/icons-react'
+import { useRevealOnApproach } from '../lib/useRevealOnApproach'
 import { findSection } from './navigationItems'
 import type { Folder } from '../features/folders/folderTypes'
-import { useActiveSessionStore } from '../store/activeSessionStore'
-import { formatRemaining, useSessionClock } from '../features/sessions/sessionTimer'
 import { useFolderStore } from '../store/folderStore'
 import { useRecentPageStore } from '../store/recentPageStore'
 import styles from './RecentPageButton.module.css'
@@ -38,7 +37,7 @@ function describe(href: string, label: string, folders: Folder[]) {
   return { label, detail: undefined }
 }
 
-/** 버튼이 가리킬 곳. 세션과 최근 페이지가 같은 모양으로 그려진다. */
+/** 버튼이 가리킬 곳. */
 interface Destination {
   href: string
   eyebrow: string
@@ -48,82 +47,39 @@ interface Destination {
 }
 
 /**
- * 역할: 하던 일로 돌아가는 플로팅 버튼. 최근 페이지 기록도 여기서 한다.
- * 진행 중인 세션이 있으면 그쪽이 먼저다. 돌아갈 곳이 둘이면 사람은 고르지 않고 지나친다.
+ * 역할: 마지막으로 보던 화면으로 돌아가는 플로팅 버튼. 최근 페이지 기록도 여기서 한다.
  * 화면 위에 떠 있어 어느 페이지에서나 보이므로, 지금 보고 있는 곳은 가리키지 않는다.
  *
+ * 진행 중인 세션은 다루지 않는다. 그건 옆에 선 타이머의 몫이고, 한 가지를 두 곳에서
+ * 알리면 독에 같은 말이 두 번 놓인다.
+ *
  * 평소에는 아이콘만 있는 원이고, 다가가면 어디로 가는지가 펼쳐진다. 화면을 늘 가리고 있을
- * 이유가 없어서다. 펼쳐 보이는 계기는 셋이고 뜻이 같다: 마우스를 올리거나, 키보드
- * 초점이 닿거나, (마우스가 없는 기기에서) 한 번 누르거나.
+ * 이유가 없어서다.
  */
 export default function RecentPageButton() {
   const { pathname, search } = useLocation()
   const recentHrefs = useRecentPageStore((state) => state.hrefs)
   const record = useRecentPageStore((state) => state.record)
   const folders = useFolderStore((state) => state.folders)
-  const session = useActiveSessionStore((state) => state.session)
-  const sessionStatus = useActiveSessionStore((state) => state.status)
-  const loadActiveSession = useActiveSessionStore((state) => state.load)
-  const now = useSessionClock(session?.id ?? null)
 
-  const linkRef = useRef<HTMLAnchorElement>(null)
+  const { isOpen, ref: linkRef, approachProps, pin, collapse } = useRevealOnApproach<HTMLAnchorElement>()
   const revealRef = useRef<HTMLSpanElement>(null)
   const contentRef = useRef<HTMLSpanElement>(null)
-  /** 눌러서 펼친 상태. 마우스가 없는 기기에서 유일하게 펼치는 길이다. */
-  const [isPinned, setIsPinned] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-  const [isFocused, setIsFocused] = useState(false)
   const [openedAt, setOpenedAt] = useState(pathname)
-  const isOpen = isPinned || isHovered || isFocused
 
   // 화면을 옮기면 가리킬 곳이 바뀐다. 펼친 채로 두면 이전 목적지를 펼쳐 놓은 꼴이 된다.
   // effect가 아니라 렌더 중에 맞춘다. effect로 미루면 한 프레임 동안 옛 목적지가 펼쳐진다.
   if (openedAt !== pathname) {
     setOpenedAt(pathname)
-    setIsPinned(false)
+    collapse()
   }
-
-  useEffect(() => {
-    // 이 버튼은 앱이 떠 있는 내내 살아 있다. 첫 한 번만 부르고, 이후 갱신은 세션을 다루는 화면이 맡는다.
-    if (sessionStatus === 'idle') void loadActiveSession()
-  }, [sessionStatus, loadActiveSession])
 
   useEffect(() => {
     // 같은 페이지의 다른 화면도 서로 다른 목적지라 쿼리까지 남긴다.
     if (findSection(pathname)) record(`${pathname}${search}`)
   }, [pathname, search, record])
 
-  useEffect(() => {
-    if (!isPinned) return
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const node = event.target instanceof Node ? event.target : null
-      if (!node || !linkRef.current?.contains(node)) setIsPinned(false)
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsPinned(false)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isPinned])
-
   function buildDestination(): Destination | null {
-    // 세션 화면은 셸 밖에서 그려지므로, 세션을 보는 중에 이 버튼이 자기 자신을 가리킬 일은 없다.
-    if (session) {
-      return {
-        href: `/sessions/${session.id}`,
-        eyebrow: '이어서 하기',
-        label: session.tasks[0]?.title ?? '개인 집중 세션',
-        detail: `${session.place.name} · ${formatRemaining(session, now)}`,
-        icon: IconPlayerPlay,
-      }
-    }
-
     // 최근 순으로 훑어야 한다. 메뉴 배열 순서로 찾으면 더 예전에 본 쪽이 걸린다.
     // 지금 보고 있는 페이지는 화면만 다르더라도 가리키지 않는다.
     const recentHref = recentHrefs.find((href) => pathOf(href) !== pathname)
@@ -152,30 +108,20 @@ export default function RecentPageButton() {
 
   const { href, eyebrow, label, detail, icon: Icon } = destination
 
-  // 손가락으로는 hover가 없다. 마우스일 때만 다가감으로 친다. 그러지 않으면 첫 탭이
-  // 펼치기가 아니라 이동이 되어, 어디로 가는지 보기도 전에 떠나게 된다.
-  const handlePointerEnter = (event: ReactPointerEvent<HTMLAnchorElement>) => {
-    if (event.pointerType === 'mouse') setIsHovered(true)
-  }
-
   return (
     <Link
       ref={linkRef}
       className={styles['recent-page']}
       to={href}
-      data-live={session ? 'true' : undefined}
       data-open={isOpen ? 'true' : undefined}
       aria-expanded={isOpen}
       aria-label={`${eyebrow}: ${label}${detail ? ` ${detail}` : ''}`}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={() => setIsHovered(false)}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
+      {...approachProps}
       onClick={(event) => {
         // 접혀 있으면 첫 누름은 펼치기다. 어디로 가는지 보여 주고 나서 보낸다.
         if (isOpen) return
         event.preventDefault()
-        setIsPinned(true)
+        pin()
       }}
     >
       <span className={styles.mark} aria-hidden="true">

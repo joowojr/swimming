@@ -1,5 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import {
   IconChevronDown,
   IconChevronUp,
@@ -9,6 +9,7 @@ import {
   IconPlayerPlayFilled,
 } from '@tabler/icons-react'
 import ReactPlayer from 'react-player'
+import { useRevealOnApproach } from '../../../lib/useRevealOnApproach'
 import { useAuthStore } from '../../../store/authStore'
 import { usePlaceStore } from '../../../store/placeStore'
 import { normalizeYouTubeUrl, readRecentMusicHistory, rememberRecentMusic } from './recentMusicHistory'
@@ -53,12 +54,7 @@ export default function MiniMusicWidget() {
   const cities = usePlaceStore((state) => state.cities)
   const loadPlaces = usePlaceStore((state) => state.load)
 
-  const widgetRef = useRef<HTMLElement>(null)
   const [isExpanded, setIsExpanded] = useState(false)
-  /** 눌러서 펼친 상태. 마우스가 없는 기기에서 유일하게 펼치는 길이다. */
-  const [isPinned, setIsPinned] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-  const [isFocused, setIsFocused] = useState(false)
   const [track, setTrack] = useState<Track | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [recent, setRecent] = useState(() => readRecentMusicHistory(userId))
@@ -66,28 +62,9 @@ export default function MiniMusicWidget() {
   const [message, setMessage] = useState<string | null>(null)
 
   // 목록을 펼친 동안에는 접을 수 없다. 접으면 방금 연 목록과 조작이 함께 사라진다.
-  const isOpen = isExpanded || isPinned || isHovered || isFocused
+  const { isOpen, ref: widgetRef, approachProps, pin } = useRevealOnApproach<HTMLElement>(isExpanded)
 
   useEffect(() => { void loadPlaces() }, [loadPlaces])
-
-  useEffect(() => {
-    if (!isPinned) return
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const node = event.target instanceof Node ? event.target : null
-      if (!node || !widgetRef.current?.contains(node)) setIsPinned(false)
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsPinned(false)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isPinned])
 
   // 세션 화면과 같은 목록이다. 장소마다 정해둔 음악이 곧 "제공 음악"이다.
   const provided = useMemo<Track[]>(() => {
@@ -141,11 +118,6 @@ export default function MiniMusicWidget() {
     setDraft('')
   }
 
-  // 손가락으로는 hover가 없다. 마우스일 때만 다가감으로 친다.
-  const handlePointerEnter = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.pointerType === 'mouse') setIsHovered(true)
-  }
-
   return (
     <section
       ref={widgetRef}
@@ -154,13 +126,10 @@ export default function MiniMusicWidget() {
       data-open={isOpen ? 'true' : undefined}
       data-playing={isPlaying ? 'true' : undefined}
       aria-label="음악"
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={() => setIsHovered(false)}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
+      {...approachProps}
       onClick={() => {
         // 접혀 있으면 첫 누름은 펼치기다. 접힌 동안에는 아이콘 말고 누를 것이 없다.
-        if (!isOpen) setIsPinned(true)
+        if (!isOpen) pin()
       }}
     >
       {isExpanded && (

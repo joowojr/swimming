@@ -5,6 +5,7 @@ import NoteCard from '../features/note/NoteCard'
 import MiniMusicWidget from '../features/sessions/music/MiniMusicWidget'
 import { useFolderStore } from '../store/folderStore'
 import RecentPageButton from './RecentPageButton'
+import TimerWidget from '../features/timer/TimerWidget'
 import SideNavigation from './SideNavigation'
 import TopBar from './TopBar'
 import styles from './AppShell.module.css'
@@ -60,6 +61,7 @@ export default function AppShell({
         ) : content}
       </div>
       <div className={styles['floating-dock']}>
+        <TimerWidget />
         <RecentPageButton />
         <MiniMusicWidget />
       </div>

@@ -1,0 +1,147 @@
+/* 「이어서 보기」와 같은 크기·같은 규칙으로 접히고 펼쳐진다. 독에 선 셋이 한 벌로 읽힌다.
+ *
+ * 다만 접힌 원이 아이콘이 아니라 시간이다. 흘깃 보는 것이 타이머의 존재 이유라,
+ * 접혀 있어도 숫자는 남는다.
+ *
+ * 자라는 값은 안쪽 .reveal의 width 하나뿐이다. 모서리는 접히든 펼치든 --radius-full 그대로다.
+ */
+.timer {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-floating);
+  text-decoration: none;
+  /* 여기에 overflow: hidden을 두면 안 된다. 모서리 반경이 안쪽 여백보다 커서
+     곡선이 숫자 칩을 잘라 먹는다. 잘라내는 일은 .reveal이 제 안에서만 한다. */
+  transition:
+    border-color var(--transition-short) var(--ease-in-out),
+    transform var(--dur-micro) var(--ease-in-out);
+}
+
+/* 숫자 칩이 이 위젯의 높이를 정한다. 접혀도 숨은 두 줄 문구가 높이를 그대로 밀어 올려서,
+   칩이 그보다 낮으면 접힌 모양이 세로로 긴 타원이 된다.
+   기본은 비어 있는 상태다. 시계 아이콘만 조용히 들어간다. */
+.dial {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: var(--color-surface-container-high);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  /* 매초 바뀌는 숫자다. 폭이 고정되지 않으면 원 안에서 글자가 좌우로 덜컹거린다.
+     자간을 조금 좁혀 "+12:30"까지 칩 안에 들어오게 한다. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* 재고 있는 동안에만 색이 든다. 비어 있을 때와 한눈에 갈린다.
+   정한 길이를 넘기면(overtime) 이 규칙이 빠져 기본색으로 돌아간다. 벌하지 않는다.
+   더 센다는 것은 앞의 +가 말하고, 색은 물러나 경고로 읽히지 않게 한다. */
+.timer[data-state='running'] .dial {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+/* --reveal-width는 컴포넌트가 잰 값을 넣어 준다. 아직 재기 전이면 접힌 채로 둔다. */
+.reveal {
+  display: flex;
+  width: 0;
+  flex: 0 0 auto;
+  overflow: hidden;
+  transition: width var(--dur-short) var(--ease-out);
+}
+
+.timer[data-open='true'] .reveal {
+  width: var(--reveal-width, auto);
+}
+
+/* 폭이 0으로 줄어도 안쪽은 제 폭을 지켜야 글이 다시 흐르지 않는다. flex 아이템이라
+   width: max-content만으로는 부족하다. flex-shrink가 살아 있으면 같이 0으로 눌린다. */
+.reveal-content {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  flex: 0 0 auto;
+  gap: var(--space-3);
+  /* 오른쪽은 넉넉해야 한다. 모서리가 --radius-full이라 끝이 반원이고, 글은 두 줄이라
+     위아래 줄이 그 곡선과 만난다. 여백이 좁으면 곡선이 글자 끝을 베고 지나간다. */
+  padding-inline: var(--space-3) var(--space-4);
+}
+
+.arrow {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+}
+
+.copy {
+  display: grid;
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-body-sm-line-height);
+  white-space: nowrap;
+}
+
+/* 할 일과 장소를 한 줄에 둔다. 이름이 길면 이름만 줄고 장소는 남는다. */
+.line {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.label {
+  overflow: hidden;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  white-space: nowrap;
+}
+
+.timer:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-width);
+}
+
+.timer:active {
+  transform: translateY(var(--border-width));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .timer:hover {
+    border-color: var(--color-ash);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer,
+  .reveal {
+    transition: none;
+  }
+
+  .timer:active {
+    transform: none;
+  }
+}

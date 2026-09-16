@@ -6,6 +6,7 @@ import DeleteIconButton from '../../components/DeleteIconButton'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import FolderHeader from './FolderHeader'
 import FolderViewSwitch from './FolderViewSwitch'
+import FolderProgressToast from './FolderProgressToast'
 import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
@@ -292,6 +293,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       />
 
       <FolderViewSwitch folderId={folder.id} current={isLinkView ? 'links' : 'tasks'} />
+
+      <FolderProgressToast folderId={folder.id} folderName={folder.name} />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}

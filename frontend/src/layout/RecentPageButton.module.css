@@ -1,25 +1,69 @@
+/* 버튼 하나가 원에서 캡슐로 늘어난다. 모서리는 접히든 펼치든 --radius-full 그대로라,
+ * 자라는 값은 안쪽 .reveal의 width 하나뿐이다. 접힌 원의 곡률이 그대로 이어져야
+ * 같은 버튼이 늘어난 것으로 보인다.
+ *
+ * 접고 펼치는 데 DOM을 갈아끼우지 않는다. 접혀 있는 동안에도 스크린 리더가 읽을 내용이
+ * 남아야 한다. */
 .recent-page {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
   max-width: 100%;
-  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3);
+  padding: var(--space-2);
   border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-floating);
   text-decoration: none;
+  /* 여기에 overflow: hidden을 두면 안 된다. 모서리 반경이 안쪽 여백보다 커서
+     곡선이 아이콘 칩을 잘라 먹는다. 잘라내는 일은 .reveal이 제 안에서만 한다. */
   transition:
     border-color var(--transition-short) var(--ease-in-out),
     transform var(--dur-micro) var(--ease-in-out);
 }
 
-/* 앞쪽 아이콘은 칩으로 채워 눈에 먼저 닿게 한다. content-box라 글리프 크기는 그대로다. */
-.mark {
-  box-sizing: content-box;
+/* --reveal-width는 컴포넌트가 잰 값을 넣어 준다. 아직 재기 전이면 접힌 채로 둔다. */
+.reveal {
+  display: flex;
+  width: 0;
   flex: 0 0 auto;
-  padding: var(--space-2);
-  border-radius: var(--radius-default);
+  overflow: hidden;
+  transition: width var(--dur-short) var(--ease-out);
+}
+
+.recent-page[data-open='true'] .reveal {
+  width: var(--reveal-width, auto);
+}
+
+/* 폭이 0으로 줄어도 안쪽은 제 폭을 지켜야 글이 다시 흐르지 않는다.
+ * width: max-content만으로는 부족하다. flex 아이템이라 그 값은 기준 폭일 뿐이고
+ * flex-shrink가 살아 있으면 .reveal이 0이 될 때 같이 0으로 눌린다. 그러면 접힌 동안
+ * 안쪽 글이 세로로 줄바꿈되어 그 높이가 버튼을 세로로 긴 타원으로 만든다. */
+.reveal-content {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  flex: 0 0 auto;
+  gap: var(--space-3);
+  /* 원과의 사이 간격과 캡슐 오른쪽 여백을 안쪽이 갖는다. 바깥 padding을 전환하면
+     레이아웃이 매 프레임 돈다.
+     오른쪽은 넉넉해야 한다. 모서리가 --radius-full이라 끝이 반원이고, 글은 두 줄이라
+     위아래 줄이 그 곡선과 만난다. 여백이 좁으면 곡선이 글자 끝을 베고 지나간다. */
+  padding-inline: var(--space-3) var(--space-4);
+}
+
+/* 앞쪽 아이콘은 칩으로 채워 눈에 먼저 닿게 한다.
+ *
+ * 칩이 이 버튼의 높이를 정한다. 접혀도 숨은 두 줄 문구가 높이를 그대로 밀어 올려서,
+ * 칩이 그보다 낮으면 접힌 모양이 세로로 긴 타원이 된다. 칩을 두 줄보다 크게 잡아
+ * 폭과 높이를 같게 만든다. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-full);
   color: var(--color-on-primary-fixed-variant);
   background: var(--color-primary-fixed);
 }
@@ -57,6 +101,7 @@
   color: var(--color-mute);
   font-size: var(--text-label-caps-size);
   line-height: var(--text-body-sm-line-height);
+  white-space: nowrap;
 }
 
 /* 목적지와 그 안의 화면을 한 줄에 둔다. 이름이 길면 이름만 줄고 화면 이름은 남는다. */
@@ -106,7 +151,8 @@
     animation: none;
   }
 
-  .recent-page {
+  .recent-page,
+  .reveal {
     transition: none;
   }
 

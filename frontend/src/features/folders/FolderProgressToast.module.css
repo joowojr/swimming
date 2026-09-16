@@ -1,0 +1,186 @@
+/* Hallmark · component: folder-progress-toast · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · hover · focus · reduced-motion
+ * contrast: pass
+ * iOS 알림 배너의 구조를 따른다: 왼쪽 아이콘 칩, 가운데 제목과 보조 줄, 오른쪽 닫기.
+ * 떠 있는 느낌은 테두리가 아니라 그림자와 블러가 맡는다.
+ *
+ * 모션은 하나의 흐름이다. 배너가 페이드인하며 내려와 자리를 잡고, 곧이어 아이콘과 글줄이
+ * 차례로 올라온다. 닫으면 페이드아웃하며 위로 걷힌다. 흩어진 효과보다 한 동작이 눈에 띈다.
+ */
+
+.toast {
+    position: fixed;
+    top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    left: 50%;
+    z-index: var(--z-floating);
+    display: flex;
+    align-items: center;
+    width: min(calc(100% - var(--space-6)), 24rem);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: var(--border-width) solid var(--color-hairline);
+    border-radius: var(--radius-xl);
+    color: var(--color-primary);
+    background: var(--color-surface-container-lowest);
+    box-shadow: var(--shadow-floating);
+    transform: translateX(-50%);
+    animation: folder-progress-in var(--dur-modal) var(--ease-out) both;
+}
+
+.leaving {
+    animation: folder-progress-out var(--dur-short) var(--ease-in) both;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .toast {
+        /* 아래 내용이 비쳐 배너가 화면 위에 얹힌 판으로 읽힌다. */
+        background: color-mix(in srgb, var(--color-surface-container-lowest) 82%, transparent);
+        backdrop-filter: blur(20px) saturate(1.1);
+    }
+}
+
+/* 알림의 주인을 가리키는 자리. iOS의 앱 아이콘과 같은 역할이다.
+ * 폴더가 아니라 진척을 둔다. 폴더 이름은 바로 옆에 있으니, 아이콘은 형식이 아니라
+ * 내용을 가리킨다. */
+.icon {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    justify-content: center;
+    width: var(--space-12);
+    height: var(--space-12);
+    border-radius: var(--radius-md);
+    color: var(--color-mute);
+    background: var(--color-surface-container-high);
+    animation: folder-progress-icon var(--dur-short) var(--ease-out) var(--dur-micro) both;
+}
+
+.lines {
+    display: grid;
+    gap: var(--space-1);
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.lines p {
+    margin: 0;
+    min-width: 0;
+}
+
+.name {
+    animation: folder-progress-line var(--dur-short) var(--ease-out) var(--dur-micro) both;
+    overflow: hidden;
+    color: var(--color-primary);
+    font-size: var(--text-body-sm-size);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.progress {
+    /* 제목보다 한 박자 늦게 올라와 읽는 순서를 만든다. */
+    animation: folder-progress-line var(--dur-short) var(--ease-out) var(--dur-short) both;
+    color: var(--color-mute);
+    font-size: var(--text-label-caps-size);
+    line-height: var(--text-label-caps-line-height);
+    /* 폴더를 옮겨 다닐 때 숫자 폭이 덜컹거리지 않게 한다. */
+    font-variant-numeric: tabular-nums;
+}
+
+/* 개수가 이 줄의 핵심이다. 굵기와 색을 함께 올려 옅은 설명 사이에서 먼저 읽히게 한다. */
+.count {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.separator {
+    /* 항목 사이의 구분일 뿐이라 개수보다 물러나 있어야 한다. */
+    opacity: .5;
+}
+
+.failure {
+    color: var(--color-error);
+    font-size: var(--text-label-caps-size);
+    line-height: var(--text-label-caps-line-height);
+}
+
+.close {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    justify-content: center;
+    align-self: flex-start;
+    width: var(--space-8);
+    height: var(--space-8);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: transparent;
+    /* 평소에는 물러나 있다가 다가가면 또렷해진다. 알림의 주인공은 문구다. */
+    opacity: .5;
+    cursor: pointer;
+    transition: opacity var(--transition-short) var(--ease-in-out);
+}
+
+.close:focus-visible {
+    opacity: 1;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--border-width);
+}
+
+@keyframes folder-progress-in {
+    from {
+        opacity: 0;
+        /* 화면 밖에서 내려온다. 가로 가운데 정렬을 유지해야 해서 두 변환을 함께 쓴다. */
+        transform: translateX(-50%) translateY(calc(-1 * var(--space-12)));
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes folder-progress-out {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(calc(-1 * var(--space-6)));
+    }
+}
+
+@keyframes folder-progress-icon {
+    from { opacity: 0; transform: scale(.7); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes folder-progress-line {
+    from { opacity: 0; transform: translateY(var(--space-1)); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .toast:hover .close {
+        opacity: 1;
+    }
+
+    .close:hover {
+        color: var(--color-primary);
+        background: var(--color-surface-container-high);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .leaving,
+    .icon,
+    .name,
+    .progress {
+        animation: none;
+    }
+
+    .close { transition: none; }
+}

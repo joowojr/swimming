@@ -1,7 +1,8 @@
 .dashboard-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  min-height: calc(100svh - 3.5rem);
+  /* 탑바가 덜어낸 만큼만 남는다. 3.5rem을 적어 두면 탑바 높이를 바꿀 때 여기만 남는다. */
+  min-height: calc(100svh - var(--top-bar-height));
 }
 
 .folder-dashboard {
@@ -19,8 +20,9 @@
 .dashboard-heading {
   justify-content: space-between;
   gap: var(--space-6);
-  /* 인사말·세션 카드와 아래 캘린더를 한 덩어리로 읽히게 붙인다. */
-  margin-bottom: 0;
+  /* 인사말·세션 카드와 아래 캘린더는 읽는 차례가 다르다. 탑바가 낮아져 생긴 자리를
+     여기에 둬서 둘을 갈라 놓는다. 붙여 두면 제목과 컨트롤이 한 줄씩 쌓인 것처럼 보인다. */
+  margin-bottom: var(--space-4);
 }
 
 .dashboard-heading h2 {
@@ -135,8 +137,12 @@
   gap: var(--space-3);
 }
 
+/* 옆에 서는 필터 버튼과 키를 맞춘다. ModeToggle은 기본으로 테두리 안쪽에 --space-1을
+   둘러 그만큼 더 높다. 그 여백을 빼면 세그먼트 높이(--button-height)에 테두리만 더해져
+   필터 버튼과 같아진다. --button-height는 터치 기기에서 함께 커지므로 둘은 계속 같다. */
 .planner-toggle {
   align-self: flex-start;
+  padding: 0;
 }
 
 .planner-filter {

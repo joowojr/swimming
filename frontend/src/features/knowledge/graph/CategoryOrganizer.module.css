@@ -1,0 +1,454 @@
+/* Hallmark · component: category-organizer · genre: modern-minimal · theme: Purposeful Journey
+ * states: loading · error · review · empty-group
+ * contrast: pass · responsive: code-pass
+ */
+
+.organizer {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  overflow-y: auto;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  background: var(--color-surface);
+}
+
+.header {
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  color: var(--color-primary-container);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+  background: var(--color-tone-indigo-tint);
+}
+
+.editor {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ai-working {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+
+.document-orbit {
+  position: relative;
+  display: grid;
+  height: calc(var(--space-12) * 3);
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at center, var(--color-tone-indigo-tint), var(--color-surface-soft));
+}
+
+.ai-core {
+  z-index: 1;
+  display: grid;
+  width: var(--space-12);
+  height: var(--space-12);
+  place-items: center;
+  border: var(--border-width) solid var(--color-tone-indigo-tint);
+  border-radius: var(--radius-md);
+  color: var(--color-primary-container);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-card);
+  animation: ai-breathe var(--dur-ai-cycle) var(--ease-in-out) infinite;
+}
+
+.document-orbit > span {
+  position: absolute;
+  width: var(--space-8);
+  height: var(--space-10);
+  border: var(--border-width) solid var(--color-ash);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-lowest);
+  animation: ai-gather var(--dur-ai-cycle) var(--ease-in-out) infinite;
+}
+
+.document-orbit > span:first-child {
+  left: var(--space-6);
+  top: var(--space-5);
+  rotate: -12deg;
+}
+
+.document-orbit > span:nth-child(2) {
+  right: var(--space-6);
+  top: var(--space-8);
+  rotate: 12deg;
+  animation-delay: var(--dur-ai-stagger);
+}
+
+.document-orbit > span:nth-child(3) {
+  left: calc(50% - var(--space-8));
+  bottom: var(--space-2);
+  rotate: -8deg;
+  animation-delay: calc(var(--dur-ai-stagger) * 2);
+}
+
+.working-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary-container);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+}
+
+.activity-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: currentColor;
+  animation: ai-breathe var(--dur-ai-cycle) var(--ease-in-out) infinite;
+}
+
+.draft-skeletons {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.draft-skeleton {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  animation: ai-breathe var(--dur-ai-cycle) var(--ease-in-out) infinite;
+}
+
+.draft-skeleton:nth-child(2) { animation-delay: var(--dur-ai-stagger); }
+.draft-skeleton:nth-child(3) { animation-delay: calc(var(--dur-ai-stagger) * 2); }
+
+.draft-skeleton > span {
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-high);
+}
+
+.draft-skeleton > span:first-child { width: 45%; background: var(--color-tone-indigo-tint); }
+.draft-skeleton > span:last-child { width: 75%; }
+
+.draft-note {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.close:disabled { opacity: .45; cursor: default; }
+
+@keyframes ai-breathe {
+  0%, 100% { opacity: .55; }
+  50% { opacity: 1; }
+}
+
+@keyframes ai-gather {
+  0%, 100% { translate: 0 0; opacity: .45; }
+  50% { translate: 0 calc(var(--space-2) * -1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-core, .document-orbit > span, .activity-dot, .draft-skeleton { animation: none; }
+}
+
+.close {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-body-lg-size);
+  font-weight: var(--text-button-weight);
+  line-height: 1.35;
+}
+
+.lede,
+.state {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.groups {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.group-title {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+}
+
+.group-remove {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+}
+
+.source-remove {
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 이름이 고칠 수 있는 값임을 알린다. 누르는 자리가 아니라 표시라 흐리게 두고,
+   묶음에 손이 가 있을 때만 또렷해진다. */
+.group-edit-hint {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+  opacity: .45;
+}
+
+.group:hover .group-edit-hint,
+.group:focus-within .group-edit-hint {
+  opacity: 1;
+}
+
+/* 남은 개수가 아니라 담긴 개수를 센다. 결핍이 아니라 축적을 보여 준다.
+   이름 옆에 붙어 묶음의 크기를 한 줄에서 함께 읽게 한다. */
+.group-count {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+}
+
+.sources {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.source-main {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mark {
+  flex: 0 0 auto;
+  color: var(--color-mute);
+}
+
+.source-main[aria-pressed='true'] {
+  border-color: var(--color-tone-fountain-tint);
+  background: var(--color-tone-fountain-tint);
+}
+
+.source-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.move-targets {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 0;
+  display: grid;
+  min-width: 12rem;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  list-style: none;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.move-target {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-body-sm-size);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.move-target:hover {
+  background: var(--color-surface-container-high);
+}
+
+.move-empty,
+.sources-empty {
+  padding: var(--space-2);
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+}
+
+.add-group {
+  display: inline-flex;
+  min-height: var(--button-height);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-3);
+  border: var(--border-width) dashed var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-mute);
+  font: inherit;
+  font-size: var(--text-body-sm-size);
+  background: transparent;
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.close:focus-visible,
+.group-remove:focus-visible,
+.source-remove:focus-visible,
+.source-main:focus-visible,
+.move-target:focus-visible,
+.add-group:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .close:hover,
+  .group-remove:hover,
+  .source-remove:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-container-high);
+  }
+
+  .source-main:hover {
+    background: var(--color-surface-soft);
+  }
+
+  .add-group:hover {
+    border-color: var(--color-ash);
+    color: var(--color-primary);
+  }
+}
+
+/* 상세와 같은 폭을 쓴다. 같은 자리를 번갈아 차지하므로 폭이 달라지면 화면이 흔들린다. */
+@media (min-width: 64rem) {
+  .organizer {
+    width: 22rem;
+    flex: 0 0 auto;
+    border-top: 0;
+    border-left: var(--border-width) solid var(--color-border-subtle);
+  }
+}

@@ -1,13 +1,10 @@
 /** Knowledge Link API v0.4 §6의 응답 모양. */
 
 /** Folder는 knowledge_node의 행이 아니지만 그래프에는 그려진다(정본 §3). */
-export type GraphNodeType = 'FOLDER' | 'SOURCE' | 'SUBJECT' | 'TOPIC'
+export type GraphNodeType = 'FOLDER' | 'CATEGORY' | 'SOURCE' | 'SUBJECT' | 'TOPIC'
 
-/**
- * 내부 관계 enum이 아니다. ABOUT과 INVOLVES는 사용자에게 같은 말이라 COVERS 하나로 합치고,
- * SUPPORTS를 USED_FOR로 준다. 화면에 필요한 구분은 이 둘뿐이다.
- */
-export type GraphEdgeKind = 'COVERS' | 'USED_FOR'
+/** 서버의 관계 타입. CONTAINS는 카테고리 → 문서 소속을 나타낸다. */
+export type GraphEdgeKind = 'ABOUT' | 'SUPPORTS' | 'INVOLVES' | 'CONTAINS'
 
 export interface GraphNode {
   nodeId: string

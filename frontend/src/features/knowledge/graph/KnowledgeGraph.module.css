@@ -139,6 +139,10 @@
   background: var(--color-surface-container-lowest);
 }
 
+.legend span[data-type='CATEGORY']::before {
+  background: var(--color-tone-bay-leaf);
+}
+
 .legend span[data-type='TOPIC']::before {
   border-color: var(--color-tone-indigo);
   background: var(--color-tone-indigo-tint);

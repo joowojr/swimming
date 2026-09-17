@@ -22,6 +22,7 @@ interface NodeInspectorProps {
  */
 const SOURCES_HEADING: Record<GraphNodeType, string> = {
   FOLDER: '포함된 문서',
+  CATEGORY: '포함된 문서',
   SOURCE: '문서',
   SUBJECT: '연결된 문서',
   TOPIC: '참고 문서',
@@ -29,6 +30,7 @@ const SOURCES_HEADING: Record<GraphNodeType, string> = {
 
 const SUBJECTS_HEADING: Record<GraphNodeType, string> = {
   FOLDER: '대표 키워드',
+  CATEGORY: '연결된 키워드',
   SOURCE: '다루는 키워드',
   SUBJECT: '키워드',
   TOPIC: '연결된 키워드',
@@ -50,6 +52,8 @@ export default function NodeInspector({
   const sources = neighbors.filter((candidate) => candidate.type === 'SOURCE')
   const topics = neighbors.filter((candidate) => candidate.type === 'TOPIC')
   const subjects = neighbors.filter((candidate) => candidate.type === 'SUBJECT')
+  const categories = (node.type === 'FOLDER' ? graph.nodes : neighbors)
+    .filter((candidate) => candidate.type === 'CATEGORY')
   const selfSource = sourcesById.get(node.nodeId)
   const savedAt = selfSource ? formatSavedAt(selfSource.createdAt) : null
 
@@ -116,6 +120,21 @@ export default function NodeInspector({
               <li key={topic.nodeId}>
                 <button type="button" onClick={() => onSelect(topic.nodeId)}>
                   <span className={styles['item-title']}>{topic.title}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {categories.length > 0 && (
+        <section className={styles.section}>
+          <h5>카테고리</h5>
+          <ul>
+            {categories.map((category) => (
+              <li key={category.nodeId}>
+                <button type="button" onClick={() => onSelect(category.nodeId)}>
+                  <span className={styles['item-title']}>{category.title}</span>
                 </button>
               </li>
             ))}

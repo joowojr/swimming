@@ -7,15 +7,14 @@ import { rootNodeId } from './graphLayout'
  * 간선 방향은 Source→Subject 처럼 한쪽이지만 사용자에게는 양쪽 다 "연결된 것"이다.
  * 그래서 방향을 가리지 않고 모은다.
  *
- * Folder는 edges에 없다. root에 달린 SOURCE 노드가 곧 소속이므로(§6.1) Folder를 고르면
- * 모든 Source가 이웃이다.
+ * Folder는 edges에 없다. Folder를 고르면 조회된 문서와 카테고리를 이웃으로 본다.
  */
 export function neighborsOf(
   nodeId: string,
   edges: GraphEdge[],
-  sourceNodeIds: string[],
+  folderMemberIds: string[],
 ): Set<string> {
-  if (nodeId === rootNodeId) return new Set(sourceNodeIds)
+  if (nodeId === rootNodeId) return new Set(folderMemberIds)
 
   const neighbors = new Set<string>()
   for (const edge of edges) {

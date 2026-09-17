@@ -49,6 +49,11 @@
   background: var(--color-tone-fountain-tint);
 }
 
+.badge[data-type='CATEGORY'] {
+  color: var(--color-primary);
+  background: var(--color-tone-bay-leaf-tint);
+}
+
 .badge[data-type='TOPIC'] {
   color: var(--color-primary);
   background: var(--color-tone-indigo-tint);

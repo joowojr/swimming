@@ -51,6 +51,8 @@ export interface SourceCard {
   content: string | null
   topic: NodeRef | null
   subjects: NodeRef[] | null
+  /** 현재 소속 카테고리. 배정되지 않았거나 삭제된 카테고리면 null. */
+  category: NodeRef | null
 }
 
 export type SourceListResponse = CursorPage<SourceCard>

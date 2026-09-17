@@ -200,6 +200,8 @@
     --dur-short: 220ms;
     --dur-modal: 300ms;
     --dur-reduced-motion: 1ms;
+    --dur-ai-cycle: 2400ms;
+    --dur-ai-stagger: 300ms;
     --transition-short: 140ms;
 }
 

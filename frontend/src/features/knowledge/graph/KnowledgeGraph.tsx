@@ -13,6 +13,7 @@ import GraphLayoutMenu from './GraphLayoutMenu'
 import GraphNodeCard from './GraphNodeCard'
 import type { KnowledgeFlowNode } from './GraphNodeCard'
 import NodeInspector from './NodeInspector'
+import CategoryOrganizer from './CategoryOrganizer'
 import { getFolderGraph } from './graphApi'
 import { layoutGraph, rootNodeId } from './graphLayout'
 import type { LayoutOptions } from './graphLayout'
@@ -20,12 +21,14 @@ import { neighborsOf, touchesNode } from './graphNeighbors'
 import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
 import type { SourceCard } from '../knowledgeTypes'
+import type { CategoryReplaceResponse } from './categoryTypes'
 import styles from './KnowledgeGraph.module.css'
 
 interface KnowledgeGraphProps {
   folderId: number
   /** 목록에서 이미 받아 둔 카드. sourceId와 nodeId가 같아 SOURCE 노드에 붙는다. */
   sources: SourceCard[]
+  onCategoriesReplaced: (response: CategoryReplaceResponse) => void
 }
 
 type GraphState =
@@ -35,6 +38,7 @@ type GraphState =
 
 const nodeTypes = { knowledge: GraphNodeCard }
 const CATEGORY_HINT_SOURCE_COUNT = 6
+const CATEGORY_PREVIEW_MAX_SOURCES = 50
 const CATEGORY_HINT_STORAGE_PREFIX = 'knowledge-category-hint-dismissed:'
 const SUBJECT_SUMMARY_NODE_PREFIX = '__subject-summary__:'
 const MAX_SOURCES_WITH_VISIBLE_SUBJECTS = 4
@@ -55,7 +59,7 @@ function errorMessage(error: unknown) {
  * 그래프 자체를 보여 주는 화면이 아니라 관계를 따라 문서를 소화하는 Navigation UI다(UX §6).
  * 그래서 배치는 매번 같고(graphLayout), 노드를 고르면 1-hop만 남기고 흐려진다.
  */
-export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProps) {
+export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced }: KnowledgeGraphProps) {
   const [state, setState] = useState<GraphState>({ status: 'loading' })
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [layout, setLayout] = useState<Required<LayoutOptions>>({
@@ -68,6 +72,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     () => localStorage.getItem(`${CATEGORY_HINT_STORAGE_PREFIX}${folderId}`) === 'true',
   )
   const [hideCategoryHintAgain, setHideCategoryHintAgain] = useState(false)
+  const [isOrganizingCategories, setIsOrganizingCategories] = useState(false)
   const [requestKey, setRequestKey] = useState(0)
   const flowInstanceRef = useRef<ReactFlowInstance<KnowledgeFlowNode, Edge> | null>(null)
 
@@ -100,7 +105,9 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
       .map((node) => node.nodeId)
     const showAllSubjects = sourceNodeIds.length <= MAX_SOURCES_WITH_VISIBLE_SUBJECTS
     const highlighted = selectedNodeId
-      ? neighborsOf(selectedNodeId, graph.edges, sourceNodeIds)
+      ? neighborsOf(selectedNodeId, graph.edges, graph.nodes
+          .filter((node) => node.type === 'SOURCE' || node.type === 'CATEGORY')
+          .map((node) => node.nodeId))
       : null
 
     const topicNumbers = numberTopics(graph)
@@ -167,7 +174,6 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
           }]
         })
     const subjectSummaryById = new Map(subjectSummaries.map((summary) => [summary.id, summary]))
-
     visiblePositionedNodes.push(...subjectSummaries.map((summary) => ({
       node: {
         nodeId: summary.id,
@@ -206,8 +212,8 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
       }
     })
 
-    // Folder→Source 간선은 응답에 없다. root에 달린 SOURCE가 곧 소속이라(§6.1) 그 소속을
-    // 화면에서만 선으로 잇는다.
+    // 폴더 소속 간선은 화면에서만 만든다. 분류된 문서는 카테고리를 통해 잇고,
+    // 아직 카테고리가 없는 문서는 폴더에 직접 잇는다.
     // 연결점은 노드의 왼·오른쪽에 있다. 열 순서를 뒤집으면 선이 뒤로 돌아 나가므로 양 끝을
     // 맞바꿔 그린다. 화살표를 그리지 않으므로 선의 모양만 달라진다.
     const flip = layout.order === 'subject-first'
@@ -216,12 +222,19 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     // 덜 가리고, 같은 노드로 들어가는 선들이 한 줄기로 모여 보인다.
     const shape = { type: 'smoothstep', pathOptions: { borderRadius: 18 } } as const
 
+    const categorizedSourceIds = new Set(graph.edges
+      .filter((edge) => edge.kind === 'CONTAINS')
+      .map((edge) => edge.to))
+    const folderChildIds = [
+      ...graph.nodes.filter((node) => node.type === 'CATEGORY').map((node) => node.nodeId),
+      ...sourceNodeIds.filter((id) => !categorizedSourceIds.has(id)),
+    ]
     const belongsEdges: Edge[] = graph.root.type === 'FOLDER'
-      ? sourceNodeIds.map((sourceNodeId) => ({
+      ? folderChildIds.map((childId) => ({
         ...shape,
-        id: `belongs-${sourceNodeId}`,
-        source: flip ? sourceNodeId : rootNodeId,
-        target: flip ? rootNodeId : sourceNodeId,
+        id: `belongs-${childId}`,
+        source: flip ? childId : rootNodeId,
+        target: flip ? rootNodeId : childId,
         className: `${styles.edge} ${styles['edge-belongs']}`,
         data: { active: selectedNodeId === rootNodeId },
       }))
@@ -234,7 +247,7 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
         id: `${edge.from}-${edge.to}-${edge.kind}`,
         source: flip ? edge.to : edge.from,
         target: flip ? edge.from : edge.to,
-        className: `${styles.edge} ${edge.kind === 'USED_FOR' ? styles['edge-used-for'] : ''}`,
+        className: `${styles.edge} ${edge.kind === 'SUPPORTS' ? styles['edge-used-for'] : ''}`,
         data: { active: selectedNodeId !== null && touchesNode(edge, selectedNodeId) },
       }))
 
@@ -262,7 +275,16 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
     ?? (selectedNodeId === rootNodeId && graph
       ? { nodeId: rootNodeId, type: 'FOLDER' as const, title: graph.root.title, createdAt: null }
       : undefined)
-  const sourceCount = graph?.nodes.filter((node) => node.type === 'SOURCE').length ?? 0
+  // 묶을 대상은 그래프에 그려진 문서다. 화면에서 보고 있는 것과 모델이 보는 것을 맞춘다.
+  // 서버가 한 번에 받는 상한이 50이라 여기서 맞춰 자른다.
+  const graphSourceIds = useMemo(
+    () => (graph?.nodes ?? [])
+      .filter((node) => node.type === 'SOURCE')
+      .map((node) => node.nodeId)
+      .slice(0, CATEGORY_PREVIEW_MAX_SOURCES),
+    [graph],
+  )
+  const sourceCount = graphSourceIds.length
   const showCategoryHint = !isCategoryHintDismissed
     && (sourceCount >= CATEGORY_HINT_SOURCE_COUNT || graph?.truncated === true)
 
@@ -345,11 +367,11 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
 
           <div className={styles.legend}>
             <span data-type="FOLDER">폴더</span>
+            {state.graph.nodes.some((node) => node.type === 'CATEGORY') && <span data-type="CATEGORY">카테고리</span>}
             <span data-type="SOURCE">문서</span>
             <span data-type="TOPIC">주제</span>
             <span data-type="SUBJECT">키워드</span>
           </div>
-
           {showCategoryHint && (
             <aside className={styles['category-hint']} aria-label="카테고리 정리 안내">
               <div className={styles['category-hint-header']}>
@@ -373,8 +395,14 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
                 <button
                   type="button"
                   className={styles['category-hint-setup']}
-                  title="카테고리 설정 기능은 다음 단계에서 연결됩니다."
-                  disabled
+                  onClick={() => {
+                    if (hideCategoryHintAgain) {
+                      localStorage.setItem(`${CATEGORY_HINT_STORAGE_PREFIX}${folderId}`, 'true')
+                    }
+                    setIsCategoryHintDismissed(true)
+                    setSelectedNodeId(null)
+                    setIsOrganizingCategories(true)
+                  }}
                 >
                   설정하기
                 </button>
@@ -397,7 +425,22 @@ export default function KnowledgeGraph({ folderId, sources }: KnowledgeGraphProp
           )}
         </div>
 
-        {selectedNode && (
+        {/* 묶기는 상세를 보던 자리를 그대로 쓴다. 둘을 나란히 두면 같은 폭을 다투고,
+            문서를 옮기는 동안 상세를 읽을 일도 없다. */}
+        {isOrganizingCategories ? (
+          <CategoryOrganizer
+            folderId={folderId}
+            sourceIds={graphSourceIds}
+            sourcesById={sourcesById}
+            onClose={() => setIsOrganizingCategories(false)}
+            onReplaced={(response) => {
+              onCategoriesReplaced(response)
+              setIsOrganizingCategories(false)
+              setSelectedNodeId(null)
+              setRequestKey((current) => current + 1)
+            }}
+          />
+        ) : selectedNode && (
           <NodeInspector
             node={selectedNode}
             graph={state.graph}

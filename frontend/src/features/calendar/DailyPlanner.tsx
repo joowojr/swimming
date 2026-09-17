@@ -369,7 +369,6 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
                                                     dialogId: 'create-session-dialog',
                                                     isOpen: sessionTaskId === item.taskId,
                                                 } : undefined}
-                                                onLinkSources={() => setLinkTarget(item)}
                                                 onMove={() => setMoveTarget(item)}
                                                 onDelete={() => void removeItem(item.id)}
                                             />

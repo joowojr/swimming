@@ -1,0 +1,40 @@
+/* 목록 아래 가운데에 놓인다. 위 간격은 쓰는 쪽이 className으로 정한다. */
+.button {
+  display: flex;
+  width: fit-content;
+  min-height: 1.875rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin-inline: auto;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+}
+
+.button:focus-visible {
+  outline-color: var(--focus-ring-color);
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(var(--border-width));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not(:disabled) {
+    border-color: var(--color-hairline);
+    background: var(--color-surface-soft);
+  }
+}

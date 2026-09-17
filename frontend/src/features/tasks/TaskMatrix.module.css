@@ -102,22 +102,32 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   cursor: grab;
+  /* 모바일에서 길게 누르면 글자 선택·미리보기 메뉴 대신 드래그가 시작되게 한다. */
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
-.list > li:active {
+/* 제목을 고치는 중에는 글자를 고를 수 있어야 한다. */
+.list > li input {
+  user-select: text;
+}
+
+.list > li:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-primary);
+  outline-offset: var(--border-width);
+}
+
+/* 끌고 있는 카드는 위에 떠 보이게 한다. 원래 자리는 dnd-kit이 비워 둔다. */
+.list > li.dragging {
+  position: relative;
+  z-index: 3;
+  opacity: 0.85;
+  box-shadow: var(--shadow-floating);
   cursor: grabbing;
 }
 
-.list > li.dragging {
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  opacity: 0.7;
-  outline: none;
-  box-shadow: none;
-}
-
-.dropTarget {
-  outline: none;
+.quadrant-over {
+  border-color: var(--color-tone-fountain-tint);
 }
 
 .content {
@@ -221,6 +231,12 @@
   font-size: var(--text-body-sm-size);
 }
 
+/* 목록 끝의 더 보기. 카드와 같은 간격을 두고 구간 아래 가운데에 놓인다. */
+.load-more {
+  margin-block-start: var(--space-1);
+}
+
+/* 구간을 처음부터 못 불러왔을 때의 다시 시도 버튼. */
 .loadMore {
   align-self: center;
   min-height: var(--button-height-sm, 2rem);
@@ -295,6 +311,7 @@
     background: var(--color-surface-container-low);
   }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   .spinner {

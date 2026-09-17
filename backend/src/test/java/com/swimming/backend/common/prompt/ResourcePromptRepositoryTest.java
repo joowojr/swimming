@@ -34,7 +34,8 @@ class ResourcePromptRepositoryTest {
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md",
                         PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md",
                         PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md",
-                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md"
+                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md",
+                        PromptKey.CATEGORY_SUGGESTION.configName(), "classpath:prompts/knowledge/category-suggestion.md"
                 ),
                 FRAGMENTS
         );
@@ -92,7 +93,8 @@ class ResourcePromptRepositoryTest {
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md",
                         PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md",
                         PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md",
-                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md"
+                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md",
+                        PromptKey.CATEGORY_SUGGESTION.configName(), "classpath:prompts/knowledge/category-suggestion.md"
                 ),
                 Map.of("titles", FRAGMENTS.get("titles"))))
                 .isInstanceOf(IllegalStateException.class)
@@ -110,7 +112,8 @@ class ResourcePromptRepositoryTest {
                         PromptKey.TASK_ORGANIZER.configName(), "file:" + file,
                         PromptKey.TASK_EXTRACTOR.configName(), "file:" + file,
                         PromptKey.SOURCE_DIGEST.configName(), "file:" + file,
-                        PromptKey.NODE_RESOLUTION_V2.configName(), "file:" + file
+                        PromptKey.NODE_RESOLUTION_V2.configName(), "file:" + file,
+                        PromptKey.CATEGORY_SUGGESTION.configName(), "file:" + file
                 ),
                 Map.of()).get(PromptKey.TASK_ORGANIZER);
 
@@ -125,7 +128,8 @@ class ResourcePromptRepositoryTest {
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/does-not-exist.md",
                         PromptKey.TASK_EXTRACTOR.configName(), "classpath:prompts/task-organizer/extract.md",
                         PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md",
-                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md"
+                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md",
+                        PromptKey.CATEGORY_SUGGESTION.configName(), "classpath:prompts/knowledge/category-suggestion.md"
                 ),
                 FRAGMENTS))
                 .isInstanceOf(IllegalStateException.class)
@@ -139,7 +143,8 @@ class ResourcePromptRepositoryTest {
                 Map.of(
                         PromptKey.TASK_ORGANIZER.configName(), "classpath:prompts/task-organizer/classify.md",
                         PromptKey.SOURCE_DIGEST.configName(), "classpath:prompts/knowledge/digest.md",
-                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md"
+                        PromptKey.NODE_RESOLUTION_V2.configName(), "classpath:prompts/knowledge/node-resolution-v2.md",
+                        PromptKey.CATEGORY_SUGGESTION.configName(), "classpath:prompts/knowledge/category-suggestion.md"
                 ),
                 FRAGMENTS))
                 .isInstanceOf(IllegalStateException.class)

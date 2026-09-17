@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { IconList, IconTopologyStar3 } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
+import LoadMoreButton from '../../components/LoadMoreButton'
 import ModeToggle from '../../components/ModeToggle'
 import type { ModeToggleOption } from '../../components/ModeToggle'
 import LinkComposer from './LinkComposer'
@@ -235,14 +236,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
                 ))}
               </div>
               {state.nextCursor && (
-                <button
-                  type="button"
-                  className={styles.more}
-                  disabled={isLoadingMore}
-                  onClick={() => void loadMore()}
-                >
-                  {isLoadingMore ? '불러오는 중' : '더 보기'}
-                </button>
+                <LoadMoreButton isLoading={isLoadingMore} onClick={() => void loadMore()} />
               )}
             </>
           )}

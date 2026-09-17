@@ -71,8 +71,7 @@
   margin-top: var(--space-2);
 }
 
-.state button,
-.more {
+.state button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -92,23 +91,12 @@
   margin-top: var(--space-4);
 }
 
-.more {
-  justify-self: center;
-}
-
-.state button:active,
-.more:active:not(:disabled) {
+.state button:active {
   transform: translateY(var(--border-width));
 }
 
-.more:disabled {
-  cursor: wait;
-  opacity: .55;
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .state button:hover,
-  .more:hover:not(:disabled) {
+  .state button:hover {
     border-color: var(--color-hairline);
     background: var(--color-surface-soft);
   }

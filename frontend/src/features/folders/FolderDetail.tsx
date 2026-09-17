@@ -3,6 +3,7 @@ import {IconChevronRight} from '@tabler/icons-react'
 import {Link, useMatch, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import LoadMoreButton from '../../components/LoadMoreButton'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import FolderHeader from './FolderHeader'
 import FolderViewSwitch from './FolderViewSwitch'
@@ -427,14 +428,11 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             onTaskUpdated={reloadTasks}
           />
           {tasks.status === 'ready' && tasks.hasNext && (
-            <button
-              type="button"
+            <LoadMoreButton
               className={styles['load-more']}
-              disabled={isLoadingMoreTasks}
+              isLoading={isLoadingMoreTasks}
               onClick={() => void loadMoreTasks()}
-            >
-              {isLoadingMoreTasks ? '불러오는 중' : '더 보기'}
-            </button>
+            />
           )}
         </div>
             </section>

@@ -432,37 +432,7 @@
 
 /* 링크 폴더·폴더 상세의 더 보기와 같은 모양을 쓴다. */
 .load-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  margin-inline: auto;
-  min-height: 1.875rem;
   margin-block-start: var(--space-2);
-  padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  color: var(--color-primary);
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-button-weight);
-  background: var(--color-surface-container-lowest);
-  cursor: pointer;
-}
-
-.load-more:disabled {
-  cursor: wait;
-  opacity: .55;
-}
-
-.load-more:active:not(:disabled) {
-  transform: translateY(var(--border-width));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .load-more:hover:not(:disabled) {
-    border-color: var(--color-hairline);
-    background: var(--color-surface-soft);
-  }
 }
 
 .state {

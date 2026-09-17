@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { IconCheck, IconLoader2, IconPlus, IconX } from '@tabler/icons-react'
 import type { MouseEvent } from 'react'
 import ActionButton from '../../components/ActionButton'
+import LoadMoreButton from '../../components/LoadMoreButton'
 import ModeToggle from '../../components/ModeToggle'
 import { getFolderTasks } from '../tasks/taskApi'
 import type { CursorPage } from '../../api/types'
@@ -453,14 +454,12 @@ export default function TaskPickerModal({
                       })}
                     </ul>
                     {activeProject.hasNext && (
-                      <button
-                        type="button"
+                      <LoadMoreButton
                         className={styles['load-more']}
-                        disabled={isLoadingMoreTasks || isSubmitting}
+                        isLoading={isLoadingMoreTasks}
+                        disabled={isSubmitting}
                         onClick={() => void loadMoreTasks()}
-                      >
-                        {isLoadingMoreTasks ? '불러오는 중' : '더 보기'}
-                      </button>
+                      />
                     )}
                   </div>
                 )}

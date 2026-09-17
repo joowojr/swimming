@@ -19,7 +19,7 @@ import CategoryOrganizer from './CategoryOrganizer'
 import { getFolderGraph } from './graphApi'
 import { layoutGraph, rootNodeId } from './graphLayout'
 import type { LayoutOptions } from './graphLayout'
-import { categoryReachOf, neighborsOf, touchesNode } from './graphNeighbors'
+import { categoryReachOf, neighborsOf, subjectReachOf, touchesNode, withoutRedundantAbout } from './graphNeighbors'
 import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
 import type { SourceCard } from '../knowledgeTypes'
@@ -107,14 +107,21 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       .filter((node) => node.type === 'SOURCE')
       .map((node) => node.nodeId)
     const showAllSubjects = sourceNodeIds.length <= MAX_SOURCES_WITH_VISIBLE_SUBJECTS
+    // 강조도 화면에 그린 선을 따른다. 선이 없는 노드가 밝게 남으면 왜 이어졌는지 보이지 않는다.
+    const drawnEdges = withoutRedundantAbout(graph.edges)
     const selectedType = graph.nodes.find((node) => node.nodeId === selectedNodeId)?.type
-    const selectedCategoryId = selectedType === 'CATEGORY' ? selectedNodeId : null
-    // 문서·주제·키워드를 고르면 닿은 선에 빛 점을 보낸다. 폴더는 소속선뿐이라 제외한다.
-    const flowsFromSelected = selectedType === 'SOURCE' || selectedType === 'TOPIC' || selectedType === 'SUBJECT'
-    // 카테고리는 1-hop이 아니라 그 아래 갈래 전체를 강조한다.
-    const categoryReach = selectedCategoryId ? categoryReachOf(selectedCategoryId, graph.edges) : null
-    const highlighted = categoryReach?.nodeIds ?? (selectedNodeId
-      ? neighborsOf(selectedNodeId, graph.edges, graph.nodes
+    // 문서·주제를 고르면 닿은 선에 빛 점을 보낸다. 폴더는 소속선뿐이라 제외한다.
+    const flowsFromSelected = selectedType === 'SOURCE' || selectedType === 'TOPIC'
+    // 카테고리는 문서 → 주제 → 키워드로 내려가고, 키워드는 주제 → 문서로 거슬러 올라가 갈래 전체를 강조한다.
+    const reach = selectedNodeId === null
+      ? null
+      : selectedType === 'CATEGORY'
+        ? categoryReachOf(selectedNodeId, drawnEdges)
+        : selectedType === 'SUBJECT'
+          ? subjectReachOf(selectedNodeId, drawnEdges)
+          : null
+    const highlighted = reach?.nodeIds ?? (selectedNodeId
+      ? neighborsOf(selectedNodeId, drawnEdges, graph.nodes
           .filter((node) => node.type === 'SOURCE' || node.type === 'CATEGORY')
           .map((node) => node.nodeId))
       : null)
@@ -124,13 +131,13 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     const selectedSubjectId = graph.nodes.some(
       (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
     ) ? selectedNodeId : null
-    // 고른 카테고리에 이어진 키워드는 축소 중이어도 펼쳐 둔다. 강조한 갈래가 끝까지 보여야 한다.
+    // 고른 카테고리·키워드의 갈래에 든 키워드는 축소 중이어도 펼쳐 둔다. 강조한 갈래가 끝까지 보여야 한다.
     const hiddenSubjects = showAllSubjects || showSubjectDetails
       ? []
       : positionedNodes.filter(
         ({ node }) => node.type === 'SUBJECT'
           && node.nodeId !== selectedSubjectId
-          && !categoryReach?.nodeIds.has(node.nodeId),
+          && !reach?.nodeIds.has(node.nodeId),
       )
     const hiddenSubjectIds = new Set(hiddenSubjects.map(({ node }) => node.nodeId))
 
@@ -252,12 +259,12 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       }))
       : []
 
-    const relationEdges: Edge[] = graph.edges
+    const relationEdges: Edge[] = drawnEdges
       .filter((edge) => !hiddenSubjectIds.has(edge.from) && !hiddenSubjectIds.has(edge.to))
       .map((edge) => {
-        // 빛 점이 출발하는 노드. 카테고리는 갈래를 따라 내려가고, 다른 노드는 고른 노드에서 이웃으로 나간다.
-        const flowStart = categoryReach
-          ? (categoryReach.edges.has(edge) ? edge.from : null)
+        // 빛 점이 출발하는 노드. 카테고리·키워드는 갈래를 따라 고른 노드에서 멀어지고, 문서·주제는 이웃으로 나간다.
+        const flowStart = reach
+          ? (reach.edges.has(edge) ? edge[reach.flowFrom] : null)
           : flowsFromSelected && selectedNodeId !== null && touchesNode(edge, selectedNodeId)
             ? selectedNodeId
             : null
@@ -270,7 +277,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
           target: flip ? edge.from : edge.to,
           className: `${styles.edge} ${edge.kind === 'SUPPORTS' ? styles['edge-used-for'] : ''} ${flowStart ? styles['edge-flow'] : ''}`,
           data: {
-            active: categoryReach
+            active: reach
               ? flowStart !== null
               : selectedNodeId !== null && touchesNode(edge, selectedNodeId),
             // 점은 그린 방향(source → target)으로 간다. 출발 노드가 target 쪽이면 거꾸로 보낸다.

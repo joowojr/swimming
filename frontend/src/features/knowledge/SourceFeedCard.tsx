@@ -180,11 +180,21 @@ export default function SourceFeedCard({
         </a>
       </h3>
 
-      {source.topic && (
-        <p className={styles.topic}>
-          <IconPencil className={styles['topic-icon']} size={12} stroke={1.8} aria-hidden="true" />
-          {source.topic.title}
-        </p>
+      {(source.category || source.topic) && (
+        <div className={styles.classification}>
+          {source.category && (
+            <span className={styles.category}>
+              <span className="sr-only">카테고리: </span>
+              {source.category.title}
+            </span>
+          )}
+          {source.topic && (
+            <p className={styles.topic}>
+              <IconPencil className={styles['topic-icon']} size={12} stroke={1.8} aria-hidden="true" />
+              {source.topic.title}
+            </p>
+          )}
+        </div>
       )}
 
       {isDigesting(source) ? (

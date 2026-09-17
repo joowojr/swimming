@@ -165,6 +165,20 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
             <KnowledgeGraph
               folderId={folderId}
               sources={state.status === 'ready' ? state.items : []}
+              onCategoriesReplaced={(response) => {
+                const categoryBySourceId = new Map(response.categories.flatMap((category) =>
+                  category.sourceIds.map((sourceId) => [sourceId, {
+                    nodeId: category.nodeId,
+                    title: category.title,
+                  }] as const)))
+                setState((current) => current.status === 'ready' ? {
+                  ...current,
+                  items: current.items.map((source) => ({
+                    ...source,
+                    category: categoryBySourceId.get(source.sourceId) ?? null,
+                  })),
+                } : current)
+              }}
             />
           </Suspense>
         ) : (

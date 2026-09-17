@@ -90,6 +90,101 @@ class NodeUseCaseTest {
     }
 
     @Nested
+    @DisplayName("카테고리와 목적 이름 수정")
+    class TitleUpdateTest {
+        @Test
+        @DisplayName("Topic 이름 수정은 공백을 제거하고 문서와 상세 응답에 반영하며 관계를 유지한다")
+        void updatesTopicTitle() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode topic = givenNode(NodeType.TOPIC, "기존 목적");
+            KnowledgeNode subject = givenNode(NodeType.SUBJECT, "개념");
+            digest(source, topic, subject);
+            assertThat(useCase.updateTitle(USER_ID, topic.getId(), "  새 목적  "))
+                    .isEqualTo(new NodeRef(topic.getId(), "새 목적"));
+            assertThat(nodes.findById(topic.getId()).orElseThrow().getNormalizedTitle()).isEqualTo("새목적");
+            assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).topic().title()).isEqualTo("새 목적");
+            assertThat(useCase.get(USER_ID, topic.getId()).subjects()).containsExactly(NodeRef.from(subject));
+        }
+
+        @Test
+        @DisplayName("Category 이름 수정은 포함된 문서 카드에도 반영한다")
+        void updatesCategoryTitle() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "기존 분류");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+            useCase.updateTitle(USER_ID, category.getId(), "새 분류");
+            assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).category())
+                    .isEqualTo(new NodeRef(category.getId(), "새 분류"));
+        }
+
+        @Test
+        @DisplayName("같은 폴더의 Category 정규화 이름 중복은 저장하지 않는다")
+        void rejectsDuplicateCategoryInFolder() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "원래 이름");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "API 설계");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+            relationService.connect(other, source.getNode(), RelationOrigin.USER);
+            assertThatThrownBy(() -> useCase.updateTitle(USER_ID, category.getId(), "api_설계"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE.getMessage());
+            assertThat(nodes.findById(category.getId()).orElseThrow().getTitle()).isEqualTo("원래 이름");
+            assertThat(nodes.findById(category.getId()).orElseThrow().getTitleRenamedAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("다른 폴더와 삭제된 카테고리의 이름 및 자기 이름은 중복으로 거절하지 않는다")
+        void allowsOtherFolderDeletedAndOwnTitle() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeSource otherSource = sources.save(KnowledgeSource.create(USER_ID, 20L, "다른 문서", "https://b.com", "https://b.com"));
+            nodes.create(otherSource.getNode());
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "API 설계");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "API 설계");
+            KnowledgeNode deleted = givenNode(NodeType.CATEGORY, "API 설계");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+            relationService.connect(other, otherSource.getNode(), RelationOrigin.USER);
+            relationService.connect(deleted, source.getNode(), RelationOrigin.USER);
+            deleted.delete();
+            nodes.delete(deleted);
+            assertThat(useCase.updateTitle(USER_ID, category.getId(), "api_설계").title()).isEqualTo("api_설계");
+        }
+
+        @Test
+        @DisplayName("Topic은 문서별로 독립적이라 같은 이름을 허용한다")
+        void allowsDuplicateTopicTitles() {
+            givenNode(NodeType.TOPIC, "같은 목적");
+            KnowledgeNode topic = givenNode(NodeType.TOPIC, "원래 목적");
+            assertThat(useCase.updateTitle(USER_ID, topic.getId(), "같은 목적").title()).isEqualTo("같은 목적");
+        }
+
+        @Test
+        @DisplayName("Subject와 Source는 이름 수정 대상이 아니다")
+        void rejectsUnsupportedTypes() {
+            for (NodeType type : java.util.List.of(NodeType.SUBJECT, NodeType.SOURCE)) {
+                KnowledgeNode node = givenNode(type, "원래 이름");
+                assertThatThrownBy(() -> useCase.updateTitle(USER_ID, node.getId(), "수정"))
+                        .isInstanceOf(BusinessException.class)
+                        .hasMessage(ErrorCode.KNOWLEDGE_NODE_TITLE_NOT_EDITABLE.getMessage());
+                assertThat(nodes.findById(node.getId()).orElseThrow().getTitle()).isEqualTo("원래 이름");
+            }
+        }
+
+        @Test
+        @DisplayName("남의 노드와 삭제된 노드 및 없는 노드는 수정할 수 없다")
+        void rejectsUnownedDeletedAndMissingNodes() {
+            KnowledgeNode other = nodes.create(KnowledgeNode.create(OTHER_USER_ID, NodeType.TOPIC, "목적", null));
+            KnowledgeNode deleted = givenNode(NodeType.CATEGORY, "분류");
+            deleted.delete();
+            nodes.delete(deleted);
+            for (UUID id : java.util.List.of(other.getId(), deleted.getId(), UUID.randomUUID())) {
+                assertThatThrownBy(() -> useCase.updateTitle(USER_ID, id, "수정"))
+                        .isInstanceOf(BusinessException.class)
+                        .hasMessage(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND.getMessage());
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("상세")
     class DetailTest {
 

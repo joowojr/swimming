@@ -82,7 +82,7 @@ class SourceQueryUseCaseTest {
         /** 생성 시각을 못 박아 저장한다. 대역이 시각을 채우기 전에 이미 값이 있으면 그대로 둔다. */
         private void givenAt(Instant createdAt, String title) {
             KnowledgeNode node = KnowledgeNode.restore(
-                    UUID.randomUUID(), USER_ID, NodeType.SOURCE, title, null, false, createdAt, createdAt
+                    UUID.randomUUID(), USER_ID, NodeType.SOURCE, title, null, false, createdAt, createdAt, null
             );
 
             sources.save(KnowledgeSource.restore(
@@ -156,6 +156,54 @@ class SourceQueryUseCaseTest {
             assertThat(card.summary()).isNull();
             assertThat(card.topic()).isNull();
             assertThat(card.subjects()).isEmpty();
+            assertThat(card.category()).isNull();
+        }
+
+        @Test
+        void 문서마다_자신의_카테고리를_담고_배정되지_않았으면_null이다() {
+            KnowledgeSource first = given(USER_ID, FOLDER_ID, "API 문서", true);
+            KnowledgeSource second = given(USER_ID, FOLDER_ID, "DB 문서", true);
+            given(USER_ID, FOLDER_ID, "카테고리 없는 문서", true);
+            KnowledgeNode api = nodes.create(KnowledgeNode.create(USER_ID, NodeType.CATEGORY, "API 설계", null));
+            KnowledgeNode db = nodes.create(KnowledgeNode.create(USER_ID, NodeType.CATEGORY, "데이터 모델", null));
+            KnowledgeRelationService service = new KnowledgeRelationService(relations);
+            service.connect(api, first.getNode(), RelationOrigin.USER);
+            service.connect(db, second.getNode(), RelationOrigin.USER);
+
+            var items = list(20, null).items();
+            assertThat(items).filteredOn(item -> item.sourceId().equals(first.getId()))
+                    .extracting(SourceResponse::category).containsExactly(new NodeRef(api.getId(), "API 설계"));
+            assertThat(items).filteredOn(item -> item.sourceId().equals(second.getId()))
+                    .extracting(SourceResponse::category).containsExactly(new NodeRef(db.getId(), "데이터 모델"));
+            assertThat(items).filteredOn(item -> item.title().equals("카테고리 없는 문서"))
+                    .allSatisfy(item -> assertThat(item.category()).isNull());
+        }
+
+        @Test
+        void 삭제된_카테고리의_관계가_남아도_카테고리는_null이다() {
+            KnowledgeSource source = given(USER_ID, FOLDER_ID, "문서", true);
+            KnowledgeNode category = nodes.create(KnowledgeNode.create(USER_ID, NodeType.CATEGORY, "이전 카테고리", null));
+            new KnowledgeRelationService(relations).connect(category, source.getNode(), RelationOrigin.USER);
+            category.delete();
+            nodes.delete(category);
+
+            assertThat(list(20, null).items().getFirst().category()).isNull();
+        }
+
+        @Test
+        void 교체된_카테고리는_목록과_상세에서_같은_값을_반환한다() {
+            KnowledgeSource source = given(USER_ID, FOLDER_ID, "문서", true);
+            KnowledgeNode previous = nodes.create(KnowledgeNode.create(USER_ID, NodeType.CATEGORY, "이전 카테고리", null));
+            KnowledgeNode current = nodes.create(KnowledgeNode.create(USER_ID, NodeType.CATEGORY, "현재 카테고리", null));
+            KnowledgeRelationService service = new KnowledgeRelationService(relations);
+            service.connect(previous, source.getNode(), RelationOrigin.USER);
+            service.connect(current, source.getNode(), RelationOrigin.USER);
+            previous.delete();
+            nodes.delete(previous);
+
+            NodeRef expected = new NodeRef(current.getId(), "현재 카테고리");
+            assertThat(list(20, null).items().getFirst().category()).isEqualTo(expected);
+            assertThat(useCase.get(USER_ID, source.getId()).category()).isEqualTo(expected);
         }
 
         @Test

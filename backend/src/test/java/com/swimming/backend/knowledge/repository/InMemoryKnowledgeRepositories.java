@@ -35,6 +35,11 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
+        public void updateTitle(KnowledgeNode node) {
+            stored.put(node.getId(), copy(node));
+        }
+
+        @Override
         public Optional<KnowledgeNode> findById(UUID id) {
             return Optional.ofNullable(stored.get(id)).filter(node -> !node.isDeleted()).map(Nodes::copy);
         }
@@ -158,7 +163,8 @@ public final class InMemoryKnowledgeRepositories {
                     node.getId(), node.getUserId(), node.getNodeType(),
                     node.getTitle(), node.getDescription(), node.isDeleted(),
                     createdAt,
-                    node.getUpdatedAt() == null ? createdAt : node.getUpdatedAt()
+                    node.getUpdatedAt() == null ? createdAt : node.getUpdatedAt(),
+                    node.getTitleRenamedAt()
             );
         }
     }

@@ -79,7 +79,8 @@ class FolderKnowledgeSourceControllerTest {
                 "MCP Server를 구성하는 방법을 설명한다.",
                 null,
                 new NodeRef(TOPIC_ID, "MCP 서버 구현하기"),
-                List.of(new NodeRef(SUBJECT_ID, "MCP"))
+                List.of(new NodeRef(SUBJECT_ID, "MCP")),
+                new NodeRef(UUID.fromString("00000000-0000-0000-0000-000000000018"), "MCP 서버 개발")
         );
     }
 
@@ -98,7 +99,8 @@ class FolderKnowledgeSourceControllerTest {
                 null,
                 "짧은 본문",
                 null,
-                List.of()
+                List.of(),
+                null
         );
     }
 
@@ -186,6 +188,8 @@ class FolderKnowledgeSourceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].sourceId").value(SOURCE_ID.toString()))
                 .andExpect(jsonPath("$.items[0].title").value("Spring AI MCP Reference"))
+                .andExpect(jsonPath("$.items[0].category.nodeId").value("00000000-0000-0000-0000-000000000018"))
+                .andExpect(jsonPath("$.items[0].category.title").value("MCP 서버 개발"))
                 .andExpect(jsonPath("$.nextCursor").value("cursor-abc"));
     }
 
@@ -201,7 +205,8 @@ class FolderKnowledgeSourceControllerTest {
                 .andExpect(jsonPath("$.items[0].content").value("짧은 본문"))
                 .andExpect(jsonPath("$.items[0].summary").isEmpty())
                 .andExpect(jsonPath("$.items[0].topic").isEmpty())
-                .andExpect(jsonPath("$.items[0].subjects").isEmpty());
+                .andExpect(jsonPath("$.items[0].subjects").isEmpty())
+                .andExpect(jsonPath("$.items[0].category").isEmpty());
     }
 
     @Test

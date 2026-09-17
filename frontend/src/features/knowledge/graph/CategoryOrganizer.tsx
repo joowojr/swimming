@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   DndContext,
@@ -6,12 +6,15 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
-  closestCorners,
+  closestCenter,
+  getFirstCollision,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import type { Announcements, DragEndEvent, DragOverEvent, DragStartEvent, UniqueIdentifier } from '@dnd-kit/core'
+import type { Announcements, CollisionDetection, DragEndEvent, DragOverEvent, DragStartEvent, UniqueIdentifier } from '@dnd-kit/core'
 import {
   SortableContext,
   arrayMove,
@@ -107,6 +110,9 @@ export default function CategoryOrganizer({
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null)
   /** 드래그를 취소하면 끌기 전 모습으로 되돌린다. */
   const groupsBeforeDragRef = useRef<DraftGroup[] | null>(null)
+  const lastOverIdRef = useRef<UniqueIdentifier | null>(null)
+  /** 카테고리를 막 옮긴 직후에는 레이아웃이 다시 잡히기 전이라 충돌 판정이 원래 카테고리로 튈 수 있다. */
+  const recentlyMovedToNewGroupRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -205,9 +211,47 @@ export default function CategoryOrganizer({
     onDragCancel: ({ active }) => `${titleOf(active.id)} 문서 옮기기를 취소했어요.`,
   }
 
+  const reviewGroups = state.kind === 'review' ? state.groups : null
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      recentlyMovedToNewGroupRef.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [reviewGroups])
+
+  /**
+   * dnd-kit 다중 목록 예제의 충돌 판정이다. 카테고리를 넘나들 때 판정이 두 카테고리 사이를 오가며
+   * 상태를 계속 바꾸는(엉키는) 문제를 막는다. 포인터가 카테고리 위에 있으면 그 안에서 가장 가까운 문서를 고른다.
+   */
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const pointerCollisions = pointerWithin(args)
+    const collisions = pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
+    let overId = getFirstCollision(collisions, 'id')
+
+    if (overId != null) {
+      if (typeof overId === 'string' && overId.startsWith(GROUP_DROP_PREFIX)) {
+        const key = overId.slice(GROUP_DROP_PREFIX.length)
+        const itemIds = new Set<UniqueIdentifier>(reviewGroups?.find((group) => group.key === key)?.sourceIds ?? [])
+        if (itemIds.size > 0) {
+          overId = closestCenter({
+            ...args,
+            droppableContainers: args.droppableContainers.filter((container) => itemIds.has(container.id)),
+          })[0]?.id ?? overId
+        }
+      }
+      lastOverIdRef.current = overId
+      return [{ id: overId }]
+    }
+
+    if (recentlyMovedToNewGroupRef.current) lastOverIdRef.current = args.active.id
+    return lastOverIdRef.current != null ? [{ id: lastOverIdRef.current }] : []
+  }, [reviewGroups])
+
   const handleDragStart = ({ active }: DragStartEvent) => {
     if (state.kind !== 'review') return
     groupsBeforeDragRef.current = state.groups
+    lastOverIdRef.current = null
     setActiveSourceId(String(active.id))
   }
 
@@ -219,6 +263,7 @@ export default function CategoryOrganizer({
       const fromKey = findGroupKey(groups, sourceId)
       const toKey = findGroupKey(groups, over.id)
       if (!fromKey || !toKey || fromKey === toKey) return groups
+      recentlyMovedToNewGroupRef.current = true
 
       return groups.map((group) => {
         if (group.key === fromKey) {
@@ -226,7 +271,10 @@ export default function CategoryOrganizer({
         }
         if (group.key !== toKey) return group
         const overIndex = group.sourceIds.indexOf(String(over.id))
-        const insertAt = overIndex >= 0 ? overIndex : group.sourceIds.length
+        // 끄는 문서가 대상 문서보다 아래로 내려갔으면 그 뒤에 넣는다.
+        const translated = active.rect.current.translated
+        const isBelowOver = translated !== null && translated.top > over.rect.top + over.rect.height / 2
+        const insertAt = overIndex >= 0 ? overIndex + (isBelowOver ? 1 : 0) : group.sourceIds.length
         return {
           ...group,
           sourceIds: [...group.sourceIds.slice(0, insertAt), sourceId, ...group.sourceIds.slice(insertAt)],
@@ -352,7 +400,7 @@ export default function CategoryOrganizer({
           <fieldset className={styles.editor} disabled={isSaving} aria-label="카테고리 초안 편집">
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={collisionDetection}
             accessibility={{
               announcements,
               screenReaderInstructions: {

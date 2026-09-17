@@ -49,6 +49,7 @@ public record GraphResponse(
     public enum RootType {
 
         FOLDER,
+        CATEGORY,
         SOURCE,
         SUBJECT,
         TOPIC;

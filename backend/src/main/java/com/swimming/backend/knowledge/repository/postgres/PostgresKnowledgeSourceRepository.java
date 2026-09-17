@@ -122,6 +122,57 @@ public class PostgresKnowledgeSourceRepository implements KnowledgeSourceReposit
     }
 
     @Override
+    public List<KnowledgeSource> findAllActiveByIds(Long userId, Collection<UUID> nodeIds) {
+        if (nodeIds.isEmpty()) {
+            return List.of();
+        }
+
+        return sourceJpaRepository.findAllActiveByIds(userId, nodeIds)
+                .stream()
+                .map(row -> toDomain(row.getNode(), row.getSource()))
+                .toList();
+    }
+
+    @Override
+    public List<KnowledgeSource> findAllActiveInFolderByIds(
+            Long userId,
+            Long folderId,
+            Collection<UUID> nodeIds
+    ) {
+        if (nodeIds.isEmpty()) {
+            return List.of();
+        }
+
+        return sourceJpaRepository.findAllActiveInFolderByIds(userId, folderId, nodeIds)
+                .stream()
+                .map(row -> toDomain(row.getNode(), row.getSource()))
+                .toList();
+    }
+
+    @Override
+    public List<UUID> findAliveNodeIdsInFolder(Long userId, Long folderId) {
+        return sourceJpaRepository.findAliveNodeIdsInFolder(userId, folderId);
+    }
+
+    @Override
+    public List<KnowledgeSource> findAllCategorizationTargets(
+            Long userId,
+            Long folderId,
+            Collection<UUID> nodeIds
+    ) {
+        if (nodeIds.isEmpty()) {
+            return List.of();
+        }
+
+        return sourceJpaRepository.findAllCategorizationTargetsInFolderByIds(
+                        userId, folderId, SourceProcessingStatus.COMPLETED, nodeIds
+                )
+                .stream()
+                .map(row -> toDomain(row.getNode(), row.getSource()))
+                .toList();
+    }
+
+    @Override
     public List<KnowledgeSource> findAllInFolderByCanonicalUrls(
             Long userId,
             Long folderId,

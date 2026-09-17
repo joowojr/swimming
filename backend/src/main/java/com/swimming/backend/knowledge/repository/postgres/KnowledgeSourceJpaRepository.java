@@ -25,6 +25,64 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
 
     List<KnowledgeSourceEntity> findAllByNodeIdIn(Collection<UUID> nodeIds);
 
+    /** 다른 도메인이 문서를 가리킬 때 쓴다. 존재·소유·삭제를 한 쿼리에서 판정한다. */
+    @Query("""
+            select s as source, n as node
+              from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+             where s.nodeId = n.id
+               and n.userId = :userId
+               and n.deleted = false
+               and s.nodeId in :nodeIds
+            """)
+    List<SourceWithNode> findAllActiveByIds(
+            @Param("userId") Long userId,
+            @Param("nodeIds") Collection<UUID> nodeIds
+    );
+
+    /** 위와 같되 폴더까지 좁힌다. 다른 폴더의 문서는 아예 돌아오지 않는다. */
+    @Query("""
+            select s as source, n as node
+              from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+             where s.nodeId = n.id
+               and n.userId = :userId
+               and n.deleted = false
+               and s.folderId = :folderId
+               and s.nodeId in :nodeIds
+            """)
+    List<SourceWithNode> findAllActiveInFolderByIds(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId,
+            @Param("nodeIds") Collection<UUID> nodeIds
+    );
+
+    /**
+     * Category 분류에 넣을 Source를 읽는다.
+     *
+     * <p>분류 대상은 이 Folder에 살아 있고 소화가 끝나 요약이 있는 내 문서다. 요청에
+     * 섞인 다른 폴더·다른 사용자·지운 Source는 아예 돌아오지 않는다.
+     *
+     * <p>정렬은 노드 생성 시각 오름차순이다. 같은 입력이면 LLM에 같은 순서로 보내야
+     * 두 번 실행한 결과를 견줄 수 있다.
+     */
+    @Query("""
+            select s as source, n as node
+              from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+             where s.nodeId = n.id
+               and n.userId = :userId
+               and n.deleted = false
+               and s.folderId = :folderId
+               and s.processingStatus = :status
+               and s.summary is not null
+               and s.nodeId in :nodeIds
+             order by n.createdAt asc, s.nodeId asc
+            """)
+    List<SourceWithNode> findAllCategorizationTargetsInFolderByIds(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId,
+            @Param("status") SourceProcessingStatus status,
+            @Param("nodeIds") Collection<UUID> nodeIds
+    );
+
     @Query("""
             select s as source, n as node
               from KnowledgeSourceEntity s, KnowledgeNodeEntity n
@@ -38,6 +96,20 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
             @Param("userId") Long userId,
             @Param("folderId") Long folderId,
             @Param("canonicalUrls") Collection<String> canonicalUrls
+    );
+
+    /** 이 Folder에 살아 있는 Source의 node id만. */
+    @Query("""
+            select s.nodeId
+              from KnowledgeSourceEntity s, KnowledgeNodeEntity n
+             where s.nodeId = n.id
+               and n.userId = :userId
+               and n.deleted = false
+               and s.folderId = :folderId
+            """)
+    List<UUID> findAliveNodeIdsInFolder(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId
     );
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)

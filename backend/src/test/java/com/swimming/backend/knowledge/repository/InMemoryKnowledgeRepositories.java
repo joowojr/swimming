@@ -193,6 +193,53 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
+        public List<KnowledgeSource> findAllActiveByIds(Long userId, Collection<UUID> nodeIds) {
+            return findAllByIds(nodeIds).stream()
+                    .filter(source -> source.getUserId().equals(userId))
+                    .toList();
+        }
+
+        @Override
+        public List<KnowledgeSource> findAllActiveInFolderByIds(
+                Long userId,
+                Long folderId,
+                Collection<UUID> nodeIds
+        ) {
+            return findAllActiveByIds(userId, nodeIds).stream()
+                    .filter(source -> folderId.equals(source.getFolderId()))
+                    .toList();
+        }
+
+        @Override
+        public List<UUID> findAliveNodeIdsInFolder(Long userId, Long folderId) {
+            return stored.values().stream()
+                    .filter(source -> source.getUserId().equals(userId))
+                    .filter(source -> !source.isDeleted())
+                    .filter(source -> folderId.equals(source.getFolderId()))
+                    .map(KnowledgeSource::getId)
+                    .toList();
+        }
+
+        @Override
+        public List<KnowledgeSource> findAllCategorizationTargets(
+                Long userId,
+                Long folderId,
+                Collection<UUID> nodeIds
+        ) {
+            if (nodeIds.isEmpty()) {
+                return List.of();
+            }
+            return findAllActiveInFolderByIds(userId, folderId, nodeIds).stream()
+                    .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
+                    .filter(source -> source.getSummary() != null)
+                    .sorted(Comparator
+                            .comparing((KnowledgeSource source) -> source.getNode().getCreatedAt(),
+                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                            .thenComparing(KnowledgeSource::getId))
+                    .toList();
+        }
+
+        @Override
         public void updateReadAt(UUID sourceId, Instant readAt) {
             KnowledgeSource source = stored.get(sourceId);
             if (source == null) {

@@ -35,7 +35,6 @@ import type { DailyPlanItem } from '../calendar/dailyPlanTypes'
 import { ensureTodayPlanItem } from '../calendar/todayPlan'
 import CreateSessionModal from '../sessions/CreateSessionModal'
 import TaskInfoModal from './TaskInfoModal'
-import TaskSourceModal from './TaskSourceModal'
 import TaskPickerModal from '../calendar/TaskPickerModal'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { useDailyPlanStore } from '../../store/dailyPlanStore'
@@ -140,7 +139,6 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
   const [updateError, setUpdateError] = useState<{ taskId: number; message: string } | null>(null)
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
   const [moveTarget, setMoveTarget] = useState<TaskMatrixItem | null>(null)
-  const [linkTarget, setLinkTarget] = useState<TaskMatrixItem | null>(null)
   const [addDraft, setAddDraft] = useState<{ priority: boolean; urgent: boolean } | null>(null)
   /** 끌기 시작한 순간의 구간들. 제자리 판단과 취소·실패 시 복구에 쓴다. */
   const sectionsBeforeDragRef = useRef<Record<string, SectionState> | null>(null)
@@ -574,7 +572,6 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
                                 <TaskFlagMenuItems
                                   disabled={isPending}
                                   session={{ onStart: () => void startSession(task), isPending }}
-                                  onLinkSources={() => setLinkTarget(task)}
                                   onMove={() => setMoveTarget(task)}
                                   onDelete={() => void deleteTask(task)}
                                 />
@@ -613,14 +610,6 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
           canEditFlags={false}
           plan={{ date: '' }}
           onClose={() => setMoveTarget(null)}
-        />
-      )}
-      {linkTarget && (
-        <TaskSourceModal
-          taskId={linkTarget.id}
-          taskTitle={linkTarget.title}
-          folderId={linkTarget.folderId}
-          onClose={() => setLinkTarget(null)}
         />
       )}
       {sessionDraft && (

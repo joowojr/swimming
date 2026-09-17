@@ -14,9 +14,9 @@ public final class CategorySuggestionInputSerializer {
 
         xml.append("<category-suggestion-input>");
 
-        xml.append("<folder-name>")
+        xml.append("<folder>")
                 .append(escapeXml(input.folderName()))
-                .append("</folder-name>");
+                .append("</folder>");
 
         xml.append("<documents>");
 
@@ -35,7 +35,7 @@ public final class CategorySuggestionInputSerializer {
     }
 
     private static void appendItem(StringBuilder xml, CategorySuggestionInput.Item item, int index) {
-        xml.append("<document index=\"").append(index).append("\">");
+        xml.append("<doc id=\"").append(index).append("\">");
 
         xml.append("<title>").append(escapeXml(item.title())).append("</title>");
         xml.append("<summary>").append(escapeXml(item.summary())).append("</summary>");

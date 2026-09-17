@@ -103,7 +103,7 @@ public class CategorySuggestionValidator {
 
             // 입력에 없던 번호를 지어냈다. 그런 문서는 존재하지 않으므로 뺀다.
             if (sourceId == null) {
-                log.warn("[category-suggestion] dropped an out-of-range document index");
+                log.warn("[category-suggestion] dropped an out-of-range doc id");
                 continue;
             }
 

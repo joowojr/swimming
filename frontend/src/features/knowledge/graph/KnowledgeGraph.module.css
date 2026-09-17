@@ -30,7 +30,7 @@
 .canvas {
   position: relative;
   min-width: 0;
-  height: 32rem;
+  height: var(--knowledge-graph-height);
   flex: 1 1 auto;
 }
 
@@ -196,20 +196,6 @@
 
 .category-hint-setup {
   width: 100%;
-  min-height: 1.875rem;
-  padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-primary);
-  border-radius: var(--radius-control);
-  color: var(--color-on-primary);
-  font: inherit;
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-button-weight);
-  background: var(--color-primary);
-}
-
-.category-hint-setup:disabled {
-  cursor: not-allowed;
-  opacity: .48;
 }
 
 .category-hint-preference {
@@ -242,7 +228,6 @@
 }
 
 .category-hint-close:focus-visible,
-.category-hint-setup:focus-visible,
 .category-hint-preference input:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--border-width);
@@ -308,11 +293,8 @@
 
 @media (min-width: 64rem) {
   .board {
+    --knowledge-graph-height: var(--knowledge-graph-height-wide);
     flex-direction: row;
-  }
-
-  .canvas {
-    height: 36rem;
   }
 }
 

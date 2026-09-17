@@ -6,9 +6,10 @@ import {
   ReactFlow,
 } from '@xyflow/react'
 import type { Edge, ReactFlowInstance } from '@xyflow/react'
-import { IconX } from '@tabler/icons-react'
+import { IconSparkles, IconX } from '@tabler/icons-react'
 import '@xyflow/react/dist/style.css'
 import type { ApiError } from '../../../api/client'
+import ActionButton from '../../../components/ActionButton'
 import GraphLayoutMenu from './GraphLayoutMenu'
 import GraphNodeCard from './GraphNodeCard'
 import type { KnowledgeFlowNode } from './GraphNodeCard'
@@ -37,7 +38,7 @@ type GraphState =
   | { status: 'error'; message: string }
 
 const nodeTypes = { knowledge: GraphNodeCard }
-const CATEGORY_HINT_SOURCE_COUNT = 6
+const CATEGORY_PREVIEW_MIN_SOURCES = 6
 const CATEGORY_PREVIEW_MAX_SOURCES = 50
 const CATEGORY_HINT_STORAGE_PREFIX = 'knowledge-category-hint-dismissed:'
 const SUBJECT_SUMMARY_NODE_PREFIX = '__subject-summary__:'
@@ -285,8 +286,11 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     [graph],
   )
   const sourceCount = graphSourceIds.length
+  // 테스트 중에는 카테고리가 있어도 안내를 표시한다. 테스트 후 아래 두 조건을 복원한다.
+  // const hasCategories = graph?.nodes.some((node) => node.type === 'CATEGORY') === true
   const showCategoryHint = !isCategoryHintDismissed
-    && (sourceCount >= CATEGORY_HINT_SOURCE_COUNT || graph?.truncated === true)
+    // && !hasCategories
+    && sourceCount >= CATEGORY_PREVIEW_MIN_SOURCES
 
   if (state.status === 'loading') {
     return (
@@ -392,9 +396,9 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
               </div>
               <p>카테고리로 묶으면 더 쉽게 탐색할 수 있어요.</p>
               <div className={styles['category-hint-actions']}>
-                <button
-                  type="button"
+                <ActionButton
                   className={styles['category-hint-setup']}
+                  icon={<IconSparkles size={16} stroke={1.8} aria-hidden="true" />}
                   onClick={() => {
                     if (hideCategoryHintAgain) {
                       localStorage.setItem(`${CATEGORY_HINT_STORAGE_PREFIX}${folderId}`, 'true')
@@ -404,8 +408,8 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
                     setIsOrganizingCategories(true)
                   }}
                 >
-                  설정하기
-                </button>
+                  AI 카테고리 정리
+                </ActionButton>
                 <label className={styles['category-hint-preference']}>
                   <input
                     type="checkbox"

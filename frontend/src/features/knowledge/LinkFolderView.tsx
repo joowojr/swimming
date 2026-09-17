@@ -7,7 +7,7 @@ import LinkComposer from './LinkComposer'
 import PendingSourceCard from './PendingSourceCard'
 import SourceFeedCard from './SourceFeedCard'
 import { getSources } from './knowledgeApi'
-import type { SourceCard } from './knowledgeTypes'
+import type { NodeRef, SourceCard } from './knowledgeTypes'
 import type { SourceDeleteResponse } from './knowledgeTypes'
 import { useFolderStore } from '../../store/folderStore'
 import { useSourceStore } from '../../store/sourceStore'
@@ -115,6 +115,17 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
       : current)
   }
 
+  const setNodeTitle = (node: NodeRef) => {
+    setState((current) => current.status === 'ready' ? {
+      ...current,
+      items: current.items.map((source) => ({
+        ...source,
+        topic: source.topic?.nodeId === node.nodeId ? node : source.topic,
+        category: source.category?.nodeId === node.nodeId ? node : source.category,
+      })),
+    } : current)
+  }
+
   /**
    * 카드가 낙관적으로 바꾼 읽음 표시를 목록에 반영한다. 실패하면 카드가 되돌려 준다.
    *
@@ -219,6 +230,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
                     onDeleted={removeSource}
                     onRetried={replaceSource}
                     onReadChanged={setSourceReadAt}
+                    onNodeTitleChanged={setNodeTitle}
                   />
                 ))}
               </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconArrowRight, IconPencil, IconPlus, IconSparkles, IconTrash, IconX } from '@tabler/icons-react'
+import { IconArrowRight, IconPlus, IconSparkles, IconTrash, IconX } from '@tabler/icons-react'
 import ActionButton from '../../../components/ActionButton'
 import InlineEditableText from '../../../components/InlineEditableText'
 import type { ApiError } from '../../../api/client'
@@ -221,7 +221,7 @@ export default function CategoryOrganizer({
           {state.kind === 'loading' ? 'AI가 문서를 살펴보고 있어요' : state.kind === 'review' ? 'AI가 제안한 카테고리' : '카테고리 초안을 가져오지 못했어요'}
         </h2>
         <p className={styles.lede}>{state.kind === 'review'
-          ? '이름을 더블클릭해 수정하거나 문서를 눌러 옮겨 보세요.'
+          ? '연필을 눌러 이름을 수정하거나 문서를 눌러 옮겨 보세요.'
           : `문서 ${sourceIds.length}개를 함께 보고 카테고리 초안을 준비해요.`}</p>
       </header>
 
@@ -267,14 +267,9 @@ export default function CategoryOrganizer({
                     disabled={isSaving}
                     requiredMessage="카테고리 이름을 입력해 주세요"
                     className={styles['group-title']}
+                    showEditButton
+                    displayClassName={styles['group-title-display']}
                     onSave={async (title) => renameGroup(group.key, title)}
-                  />
-                  {/* 이름을 고칠 수 있다는 표시. 편집은 이름을 더블 클릭해 시작한다. */}
-                  <IconPencil
-                    size={13}
-                    stroke={1.8}
-                    className={styles['group-edit-hint']}
-                    aria-hidden="true"
                   />
                   <span className={styles['group-count']}>
                     <span aria-hidden="true">·</span>
@@ -352,29 +347,36 @@ export default function CategoryOrganizer({
             ))}
           </ul>
 
-          <button type="button" className={styles['add-group']} onClick={addGroup}>
-            <IconPlus size={15} stroke={1.8} aria-hidden="true" />
+          <ActionButton
+            variant="outline"
+            className={styles['add-group']}
+            icon={<IconPlus size={16} stroke={1.8} aria-hidden="true" />}
+            onClick={addGroup}
+          >
             카테고리 만들기
-          </button>
+          </ActionButton>
           </fieldset>
 
-          <p className={styles['draft-note']}>
-            확정하면 폴더의 기존 카테고리를 이 구성으로 바꿔요. 문서가 없는 카테고리는 저장하지 않아요.
-          </p>
           {state.groups.every((group) => group.sourceIds.length === 0) && (
             <p className={styles.state}>저장할 카테고리가 없어요. 확정하면 기존 카테고리를 모두 해제해요.</p>
           )}
           {saveError && <p className={styles.state} role="alert">{saveError}</p>}
 
           <div className={styles.actions}>
-            <ActionButton variant="plain" onClick={onClose} disabled={isSaving}>그만두기</ActionButton>
             <ActionButton
+              className={styles['confirm-action']}
               onClick={() => void confirm()}
               isLoading={isSaving}
               loadingLabel="저장하고 있어요"
             >
               확정하기
             </ActionButton>
+            <ActionButton
+              className={styles['cancel-action']}
+              variant="plain"
+              onClick={onClose}
+              disabled={isSaving}
+            >그만두기</ActionButton>
           </div>
         </>
       )}

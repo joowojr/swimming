@@ -297,17 +297,18 @@
 }
 
 .subject {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
   max-width: 100%;
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-full);
-  color: var(--color-mute);
-  font-family: var(--font-family-mono);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
   font-size: var(--text-label-caps-size);
-  font-weight: var(--text-label-caps-weight);
+  font-weight: var(--text-button-weight);
   line-height: var(--text-label-caps-line-height);
   overflow-wrap: anywhere;
-  background: var(--color-surface-soft);
+  background: var(--color-tone-bay-leaf-tint);
 }
 
 /* 제목 바로 아래에서 이 문서가 무엇에 쓰이는지 한 줄로 받는다. 칩이 아니라 부제다. */
@@ -323,17 +324,22 @@
 .category {
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-2);
   max-width: 100%;
   min-width: 0;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary);
+  color: var(--color-mute);
+  font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
-  font-weight: var(--text-button-weight);
+  font-weight: var(--text-label-caps-weight);
   line-height: var(--text-label-caps-line-height);
   overflow-wrap: anywhere;
-  background: var(--color-tone-bay-leaf-tint);
+}
+
+.category-badge {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: transparent;
 }
 
 .topic {
@@ -348,9 +354,17 @@
   overflow-wrap: anywhere;
 }
 
-.topic-icon {
-  flex: 0 0 auto;
-  color: var(--color-mute);
+.node-title {
+  width: auto;
+  max-width: 100%;
+}
+
+.node-title input[aria-invalid='true'] {
+  border-color: var(--color-primary);
+}
+
+.title-error {
+  color: var(--color-primary);
 }
 
 @keyframes source-card-spin {

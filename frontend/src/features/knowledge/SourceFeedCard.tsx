@@ -5,17 +5,17 @@ import {
   IconEyeClosed,
   IconInfoCircle,
   IconLoader2,
-  IconPencil,
   IconRefresh,
 } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
-import { deleteSource, markSourceRead, markSourceUnread, retrySource } from './knowledgeApi'
+import InlineEditableText from '../../components/InlineEditableText'
+import { deleteSource, markSourceRead, markSourceUnread, retrySource, updateNodeTitle } from './knowledgeApi'
 import { SOURCE_STATUS_LABEL, sourceFailureMessage } from './knowledgeLabels'
 import { sourceMark } from './sourceIcon'
 import { formatSavedAt } from './sourceTime'
-import type { SourceCard, SourceDeleteResponse } from './knowledgeTypes'
+import type { NodeRef, SourceCard, SourceDeleteResponse } from './knowledgeTypes'
 import styles from './SourceFeedCard.module.css'
 
 interface SourceFeedCardProps {
@@ -24,6 +24,8 @@ interface SourceFeedCardProps {
   onRetried: (source: SourceCard) => void
   /** 읽음 표시가 바뀌었음을 목록에 알린다. 목록이 카드 상태의 주인이다. */
   onReadChanged: (sourceId: string, readAt: string | null) => void
+  /** 같은 노드를 참조하는 카드에도 저장한 이름을 반영한다. */
+  onNodeTitleChanged: (node: NodeRef) => void
 }
 
 function isDigesting(source: SourceCard) {
@@ -41,6 +43,7 @@ export default function SourceFeedCard({
   onDeleted,
   onRetried,
   onReadChanged,
+  onNodeTitleChanged,
 }: SourceFeedCardProps) {
   const [isConfirming, setIsConfirming] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -51,10 +54,21 @@ export default function SourceFeedCard({
   const [readError, setReadError] = useState<string | null>(null)
   const isRead = source.readAt !== null
   const subjects = source.subjects ?? []
+  const { topic, category } = source
   const savedAt = formatSavedAt(source.createdAt)
   const description = source.status === 'SOURCE_NOT_DIGEST'
     ? source.content
     : source.summary
+
+  const saveNodeTitle = async (nodeId: string, title: string) => {
+    const updated = await updateNodeTitle(nodeId, title)
+    onNodeTitleChanged(updated)
+  }
+
+  const titleErrorMessage = (error: unknown) => {
+    const apiError = typeof error === 'object' && error !== null ? error as ApiError : null
+    return apiError?.errors?.title ?? apiError?.message ?? '이름을 저장하지 못했어요. 다시 시도해 주세요.'
+  }
 
   const remove = async () => {
     if (isDeleting) return
@@ -180,18 +194,45 @@ export default function SourceFeedCard({
         </a>
       </h3>
 
-      {(source.category || source.topic) && (
+      {(category || topic) && (
         <div className={styles.classification}>
-          {source.topic && (
+          {topic && (
             <p className={styles.topic}>
-              <IconPencil className={styles['topic-icon']} size={12} stroke={1.8} aria-hidden="true" />
-              <span>{source.topic.title}</span>
+              <InlineEditableText
+                key={topic.nodeId}
+                value={topic.title}
+                ariaLabel="topic 이름"
+                requiredMessage="topic 이름을 입력해 주세요"
+                maxLength={500}
+                showEditButton
+                wrap
+                disabled={isDeleting || isRetrying || isDigesting(source)}
+                className={styles['node-title']}
+                errorClassName={styles['title-error']}
+                onSave={(title) => saveNodeTitle(topic.nodeId, title)}
+                getErrorMessage={titleErrorMessage}
+              />
             </p>
           )}
-          {source.category && (
+          {category && (
             <span className={styles.category}>
               <span className="sr-only">카테고리: </span>
-              {source.category.title}
+              <InlineEditableText
+                key={category.nodeId}
+                value={category.title}
+                ariaLabel="카테고리 이름"
+                requiredMessage="카테고리 이름을 입력해 주세요"
+                maxLength={500}
+                showEditButton
+                editingMessage="연결된 모든 지식의 카테고리가 함께 수정됩니다."
+                displayClassName={styles['category-badge']}
+                wrap
+                disabled={isDeleting}
+                className={styles['node-title']}
+                errorClassName={styles['title-error']}
+                onSave={(title) => saveNodeTitle(category.nodeId, title)}
+                getErrorMessage={titleErrorMessage}
+              />
             </span>
           )}
         </div>

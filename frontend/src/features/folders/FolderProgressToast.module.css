@@ -29,6 +29,11 @@
     animation: folder-progress-in var(--dur-modal) var(--ease-out) both;
 }
 
+.toast[data-complete='true'] {
+    border-color: var(--color-tone-bay-leaf);
+    background: var(--color-tone-bay-leaf-tint);
+}
+
 .leaving {
     animation: folder-progress-out var(--dur-short) var(--ease-in) both;
 }
@@ -45,6 +50,7 @@
  * 폴더가 아니라 진척을 둔다. 폴더 이름은 바로 옆에 있으니, 아이콘은 형식이 아니라
  * 내용을 가리킨다. */
 .icon {
+    position: relative;
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
@@ -55,6 +61,34 @@
     color: var(--color-mute);
     background: var(--color-surface-container-high);
     animation: folder-progress-icon var(--dur-short) var(--ease-out) var(--dur-micro) both;
+}
+
+.toast[data-complete='true'] .icon {
+    color: var(--color-tone-bay-leaf);
+    background: var(--color-surface-container-lowest);
+    animation: folder-progress-complete var(--dur-modal) var(--ease-out) var(--dur-short) both;
+}
+
+.toast[data-complete='true'] .icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: var(--border-width) solid currentColor;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: folder-progress-ring calc(var(--dur-modal) * 2) var(--ease-out) var(--dur-short) both;
+}
+
+.complete-check path {
+    stroke-dasharray: 1;
+    animation: folder-progress-check var(--dur-modal) var(--ease-out) var(--dur-short) both;
+}
+
+.complete-message {
+    color: var(--color-primary);
+    font-size: var(--text-label-caps-size);
+    line-height: var(--text-label-caps-line-height);
+    animation: folder-progress-line var(--dur-short) var(--ease-out) var(--dur-modal) both;
 }
 
 .lines {
@@ -161,6 +195,22 @@
     to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes folder-progress-complete {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+@keyframes folder-progress-check {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes folder-progress-ring {
+    from { opacity: .7; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.6); }
+}
+
 @keyframes folder-progress-line {
     from { opacity: 0; transform: translateY(var(--space-1)); }
     to { opacity: 1; transform: none; }
@@ -184,6 +234,16 @@
     .name,
     .progress {
         animation: none;
+    }
+
+    .toast[data-complete='true'] .icon,
+    .complete-check path,
+    .complete-message {
+        animation: none;
+    }
+
+    .toast[data-complete='true'] .icon::after {
+        display: none;
     }
 
     .close { transition: none; }

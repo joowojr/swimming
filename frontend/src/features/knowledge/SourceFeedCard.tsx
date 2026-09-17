@@ -182,17 +182,17 @@ export default function SourceFeedCard({
 
       {(source.category || source.topic) && (
         <div className={styles.classification}>
+          {source.topic && (
+            <p className={styles.topic}>
+              <IconPencil className={styles['topic-icon']} size={12} stroke={1.8} aria-hidden="true" />
+              <span>{source.topic.title}</span>
+            </p>
+          )}
           {source.category && (
             <span className={styles.category}>
               <span className="sr-only">카테고리: </span>
               {source.category.title}
             </span>
-          )}
-          {source.topic && (
-            <p className={styles.topic}>
-              <IconPencil className={styles['topic-icon']} size={12} stroke={1.8} aria-hidden="true" />
-              {source.topic.title}
-            </p>
           )}
         </div>
       )}
@@ -246,7 +246,7 @@ export default function SourceFeedCard({
       {readError && <p className={styles.error} role="alert">{readError}</p>}
 
       {subjects.length > 0 && (
-        <div className={styles.chips}>
+        <div className={styles.chips} aria-label="문서 키워드">
           {subjects.map((subject) => (
             <span key={subject.nodeId} className={styles.subject}>{subject.title}</span>
           ))}

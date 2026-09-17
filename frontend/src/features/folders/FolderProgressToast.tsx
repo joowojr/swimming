@@ -36,6 +36,10 @@ function label(progress: Progress) {
   return `${progress.done}/${progress.total}${progress.hasMore ? '+' : ''}`
 }
 
+function isComplete(progress: Progress | null) {
+  return progress !== null && progress.total > 0 && progress.done === progress.total && !progress.hasMore
+}
+
 /**
  * 역할: 폴더에 들어왔을 때 지금까지 쌓인 진척을 한 번 알린다.
  *
@@ -44,8 +48,7 @@ function label(progress: Progress) {
  * 세는 범위는 첫 페이지뿐이다. 폴더에 합계를 주는 API가 없어 더 있으면 '+'로만 알린다.
  * 정확한 합계가 필요해지면 세는 일은 서버로 옮긴다.
  *
- * 아직 확인 중이라 스스로 사라지지 않고, 셀 것이 없거나 요청이 실패해도 그 사실을 띄운다.
- * 조용히 사라지면 "안 뜬다"와 "띄울 것이 없다"를 구분할 수 없다.
+ * 빈 항목은 표시하지 않고, 둘 다 비어 있으면 배너도 숨긴다. 요청 실패는 별도로 알린다.
  *
  * 닫을 때까지 떠 있으므로 그 사이의 완료·읽음·삭제가 숫자에 들어와야 한다. 받아 둔 페이지는
  * "무엇이 이 폴더에 있었는가"만 정하고, 지금 어떤 상태인지는 taskStore·sourceStore에서
@@ -147,17 +150,35 @@ export default function FolderProgressToast({ folderId, folderName }: FolderProg
   // 한 줄로 잇는다. 줄을 나누면 어느 쪽이 제목인지 흐려진다.
   // 문자열로 합치지 않고 조각으로 두어 개수만 굵게 세울 수 있게 한다.
   const parts: Array<{ name: string; count: string; unit: string }> = []
-  if (tasks) parts.push({ name: '할 일', count: label(tasks), unit: '완료' })
-  if (sources) parts.push({ name: '링크', count: label(sources), unit: '읽음' })
+  if (tasks && tasks.total > 0) parts.push({ name: '할 일', count: label(tasks), unit: '완료' })
+  if (sources && sources.total > 0) parts.push({ name: '링크', count: label(sources), unit: '읽음' })
+
+  // 표시할 항목과 오류가 모두 없으면 빈 폴더에는 플로팅 독을 띄우지 않는다.
+  if (parts.length === 0 && failed.length === 0) return null
+  const allTasksDone = isComplete(tasks)
+  const allSourcesRead = isComplete(sources)
+  const completionMessage = allTasksDone && allSourcesRead
+    ? '할 일을 모두 완료하고 링크도 모두 읽었어요'
+    : allTasksDone
+      ? '할 일 모두 완료했어요'
+      : allSourcesRead
+        ? '링크 모두 읽었어요'
+        : null
+  const completionState = `${allTasksDone}-${allSourcesRead}`
 
   return (
     <div
       className={`${styles.toast} ${isLeaving ? styles.leaving : ''}`}
+      data-complete={completionMessage ? 'true' : undefined}
       role="status"
       onAnimationEnd={handleAnimationEnd}
     >
-      <span className={styles.icon} aria-hidden="true">
-        <IconProgressCheck size={24} stroke={1.8} />
+      <span key={completionState} className={styles.icon} aria-hidden="true">
+        {completionMessage ? (
+          <svg className={styles['complete-check']} width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12l4 4L19 6" pathLength="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : <IconProgressCheck size={24} stroke={1.8} />}
       </span>
 
       <div className={styles.lines}>
@@ -173,6 +194,9 @@ export default function FolderProgressToast({ folderId, folderName }: FolderProg
               </span>
             ))}
           </p>
+        )}
+        {completionMessage && (
+          <p key={completionState} className={styles['complete-message']}>{completionMessage}</p>
         )}
         {failed.map((reason) => <p className={styles.failure} key={reason}>{reason}</p>)}
       </div>

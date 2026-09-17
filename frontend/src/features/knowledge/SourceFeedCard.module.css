@@ -1,8 +1,6 @@
 /* Hallmark · component: source-feed-card · genre: modern-minimal · theme: Purposeful Journey
  * states: default · hover · focus · active · disabled · loading · error · success
- * contrast: pass · responsive: code-pass
- * critique: P5 H4 E4 S5 R5 V4
- * 카드 겉모양은 할 일 카드(ChecklistCard)와 같은 규격을 쓴다.
+ * 문서 제목을 중심으로 출처·분류·요약·키워드를 구분한다.
  */
 
 .card {
@@ -12,8 +10,11 @@
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--color-surface-container-lowest);
+  transition: border-color var(--dur-short) var(--ease-out),
+    box-shadow var(--dur-short) var(--ease-out),
+    background-color var(--dur-short) var(--ease-out);
 }
 
 .top,
@@ -94,7 +95,7 @@
 
 .error {
   margin: 0;
-  color: var(--color-error);
+  color: var(--color-primary);
   font-size: var(--text-label-caps-size);
 }
 
@@ -270,6 +271,10 @@
   line-height: var(--text-body-sm-line-height);
 }
 
+.summary {
+  overflow-wrap: anywhere;
+}
+
 .skeleton {
   display: flex;
   flex-direction: column;
@@ -289,19 +294,20 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-1);
 }
 
 .subject {
+  max-width: 100%;
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-default);
-  color: var(--color-primary);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);
   font-weight: var(--text-label-caps-weight);
   line-height: var(--text-label-caps-line-height);
-  white-space: nowrap;
-  background: var(--color-tone-fountain-tint);
+  overflow-wrap: anywhere;
+  background: var(--color-surface-soft);
 }
 
 /* 제목 바로 아래에서 이 문서가 무엇에 쓰이는지 한 줄로 받는다. 칩이 아니라 부제다. */
@@ -311,17 +317,20 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  margin-top: calc(var(--space-1) * -1);
+  margin-top: 0;
 }
 
 .category {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
   max-width: 100%;
   min-width: 0;
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-default);
+  border-radius: var(--radius-sm);
   color: var(--color-primary);
   font-size: var(--text-label-caps-size);
-  font-weight: var(--text-label-caps-weight);
+  font-weight: var(--text-button-weight);
   line-height: var(--text-label-caps-line-height);
   overflow-wrap: anywhere;
   background: var(--color-tone-bay-leaf-tint);
@@ -333,15 +342,15 @@
   min-width: 0;
   gap: var(--space-2);
   margin: 0;
-  color: var(--color-primary);
-  font-size: var(--text-label-caps-size);
-  line-height: var(--text-label-caps-line-height);
+  color: var(--color-mute);
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-md-line-height);
   overflow-wrap: anywhere;
 }
 
 .topic-icon {
   flex: 0 0 auto;
-  color: var(--color-ash);
+  color: var(--color-mute);
 }
 
 @keyframes source-card-spin {
@@ -350,7 +359,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
-    border-color: var(--color-hairline);
+    border-color: var(--color-ash);
+    box-shadow: var(--shadow-card);
   }
 
   .read:not(:disabled):hover {
@@ -384,12 +394,19 @@
 }
 
 @media (pointer: coarse) {
+  .read,
+  .delete {
+    min-width: var(--button-height);
+    min-height: var(--button-height);
+  }
+
   .retry {
     min-height: var(--button-height);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .card,
   .retry { transition: none; }
   .spinner { animation-duration: calc(var(--dur-modal) * 6); }
 }

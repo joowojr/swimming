@@ -18,6 +18,9 @@
 }
 
 .board {
+  /* 지식 그래프와 카테고리 편집 패널의 높이. 목록 개수가 화면을 늘리지 않게 한다.
+     편집 패널도 .board 안에 그려져 이 값을 물려받는다. */
+  --knowledge-graph-height: 32rem;
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -299,7 +302,7 @@
 
 @media (min-width: 64rem) {
   .board {
-    --knowledge-graph-height: var(--knowledge-graph-height-wide);
+    --knowledge-graph-height: 36rem;
     flex-direction: row;
   }
 }

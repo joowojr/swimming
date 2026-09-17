@@ -1,6 +1,6 @@
 /* Hallmark · component: mini music widget · genre: media chrome (Apple Music 계열)
  * 종이 톤의 앱 UI 위에 얹히는 미디어 크롬이라, 어두운 반투명 유리 + 시그니처 레드로
- * 일부러 다른 톤을 쓴다. 색은 tokens.css의 --music-* 를 따른다.
+ * 일부러 다른 톤을 쓴다. 색은 .widget에 둔 --music-* 를 따른다.
  */
 /*
  * 펼쳐도 조각이 늘지 않도록 표면(테두리·모서리·바탕·그림자)은 위젯 하나가 소유하고,
@@ -17,6 +17,16 @@
  * 세로로 긴 판에 반원 끝을 두면 알약도 카드도 아닌 것이 된다.
  */
 .widget {
+  /* 음악 위젯 전용 토큰. 미디어 크롬이지만 주변이 종이 톤이라 밝은 유리로 두고,
+     구분은 시그니처 레드와 흐림 질감이 맡는다. 위젯 안에서만 쓰여 전역 토큰에 두지 않는다. */
+  --music-surface: rgb(255 255 255 / 70%);
+  --music-surface-opaque: rgb(255 255 255 / 96%);
+  --music-raised: rgb(28 28 30 / 6%);
+  --music-hairline: rgb(28 28 30 / 10%);
+  --music-on-surface: var(--color-primary);
+  --music-on-surface-mute: var(--color-mute);
+  --music-accent: #fa2d48;
+  --music-blur: 20px;
   --music-widget-width: 17rem;
   /* 원의 지름. 칩 + 안쪽 여백 + 테두리로, 「이어서 보기」와 같은 값이 나온다. */
   --music-collapsed-size: calc(var(--space-12) + var(--space-2) * 2 + var(--border-width) * 2);

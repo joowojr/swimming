@@ -21,10 +21,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Source에 걸린 개념과 목적을 읽는다.
+ * Source에 걸린 개념·목적과 소속 카테고리를 읽는다.
  *
  * <p>Source를 통째로 받는 이유는 조회 횟수를 Source 개수와 무관하게 고정하기 위해서다.
- * 하나씩 읽으면 목록 20건에 관계 조회가 20번 나간다. 몇 건이든 관계 한 번, 제목 한 번이다.
+ * 하나씩 읽으면 목록 20건에 관계 조회가 20번 나간다. 몇 건이든 나가는 관계 한 번,
+ * 들어오는 카테고리 관계 한 번, 전체 제목 한 번이다.
  * {@link #read}가 {@link #readAll}을 그대로 부르는 것도 읽는 경로를 두 벌로 두지 않기
  * 위해서다.
  */
@@ -52,25 +53,31 @@ public class SourceGraphReader {
         }
 
         List<UUID> sourceIds = sources.stream().map(KnowledgeSource::getId).toList();
-        List<KnowledgeRelation> relations =
-                relationRepository.findAllByFromNodeIdIn(sourceIds, FROM_SOURCE);
+        List<KnowledgeRelation> relations = new ArrayList<>(
+                relationRepository.findAllByFromNodeIdIn(sourceIds, FROM_SOURCE));
+        relations.addAll(relationRepository.findAllByToNodeIdIn(sourceIds, List.of(RelationType.CONTAINS)));
 
         Map<UUID, String> titles = titlesOf(relations);
 
         Map<UUID, List<NodeRef>> subjects = new HashMap<>();
         Map<UUID, NodeRef> topics = new HashMap<>();
+        Map<UUID, NodeRef> categories = new HashMap<>();
 
         for (KnowledgeRelation relation : relations) {
-            String title = titles.get(relation.getToNodeId());
+            UUID linkedNodeId = relation.getRelationType() == RelationType.CONTAINS
+                    ? relation.getFromNodeId() : relation.getToNodeId();
+            String title = titles.get(linkedNodeId);
 
             // 관계는 있는데 노드가 없으면 그릴 이름이 없다. 조용히 뺀다.
             if (title == null) {
                 continue;
             }
 
-            NodeRef ref = new NodeRef(relation.getToNodeId(), title);
+            NodeRef ref = new NodeRef(linkedNodeId, title);
 
-            if (relation.getRelationType() == RelationType.SUPPORTS) {
+            if (relation.getRelationType() == RelationType.CONTAINS) {
+                categories.put(relation.getToNodeId(), ref);
+            } else if (relation.getRelationType() == RelationType.SUPPORTS) {
                 topics.put(relation.getFromNodeId(), ref);
             } else {
                 subjects.computeIfAbsent(relation.getFromNodeId(), key -> new ArrayList<>()).add(ref);
@@ -80,7 +87,8 @@ public class SourceGraphReader {
         for (UUID sourceId : sourceIds) {
             concepts.put(sourceId, new SourceConcepts(
                     topics.get(sourceId),
-                    subjects.getOrDefault(sourceId, List.of())
+                    subjects.getOrDefault(sourceId, List.of()),
+                    categories.get(sourceId)
             ));
         }
 
@@ -97,7 +105,10 @@ public class SourceGraphReader {
     }
 
     private Map<UUID, String> titlesOf(List<KnowledgeRelation> relations) {
-        List<UUID> nodeIds = relations.stream().map(KnowledgeRelation::getToNodeId).distinct().toList();
+        List<UUID> nodeIds = relations.stream()
+                .map(relation -> relation.getRelationType() == RelationType.CONTAINS
+                        ? relation.getFromNodeId() : relation.getToNodeId())
+                .distinct().toList();
 
         Map<UUID, String> titles = new LinkedHashMap<>();
         for (KnowledgeNode node : nodeRepository.findAllByIds(nodeIds)) {

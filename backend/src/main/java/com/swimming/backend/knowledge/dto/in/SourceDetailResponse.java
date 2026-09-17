@@ -18,6 +18,7 @@ import java.util.UUID;
  * @param readAt      이 링크를 읽은 시각. 아직 읽지 않았으면 {@code null}
  * @param status      {@code COMPLETED}가 아니면 아래 세 값은 비어 있다
  * @param topic       {@code COMPLETED}면 반드시 하나 있다
+ * @param category    현재 소속 카테고리. 배정되지 않았거나 삭제된 카테고리면 null
  */
 public record SourceDetailResponse(
         UUID sourceId,
@@ -36,7 +37,8 @@ public record SourceDetailResponse(
         boolean retryable,
         String summary,
         NodeRef topic,
-        List<NodeRef> subjects
+        List<NodeRef> subjects,
+        NodeRef category
 ) {
 
     public static SourceDetailResponse of(KnowledgeSource source, SourceConcepts concepts) {
@@ -57,7 +59,8 @@ public record SourceDetailResponse(
                 source.isRetryable(),
                 source.getSummary(),
                 concepts.topic(),
-                concepts.subjects()
+                concepts.subjects(),
+                concepts.category()
         );
     }
 }

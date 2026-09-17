@@ -61,8 +61,12 @@ export default function MiniMusicWidget() {
   const [draft, setDraft] = useState('')
   const [message, setMessage] = useState<string | null>(null)
 
-  // 목록을 펼친 동안에는 접을 수 없다. 접으면 방금 연 목록과 조작이 함께 사라진다.
-  const { isOpen, ref: widgetRef, approachProps, pin } = useRevealOnApproach<HTMLElement>(isExpanded)
+  // 목록을 펼친 동안에는 마우스가 떠나도 접지 않는다. 접으면 방금 연 목록과 조작이 함께 사라진다.
+  // 바깥을 누르거나 Esc를 받으면 목록도 함께 닫는다. 재생은 이어진다.
+  const { isOpen, ref: widgetRef, approachProps, pin } = useRevealOnApproach<HTMLElement>(
+    isExpanded,
+    () => setIsExpanded(false),
+  )
 
   useEffect(() => { void loadPlaces() }, [loadPlaces])
 

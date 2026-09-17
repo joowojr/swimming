@@ -69,8 +69,15 @@ export default function TimerWidget() {
   // 패널은 세션이 없을 때만 연다. 세션 중에는 세션 화면이 그 일을 한다.
   const isPanelOpen = isExpanded && !session
 
-  // 패널을 펼친 동안에는 접을 수 없다. 접으면 방금 연 패널과 조작이 함께 사라진다.
-  const { isOpen, ref, approachProps, pin } = useRevealOnApproach<HTMLElement>(isPanelOpen)
+  // 패널을 펼친 동안에는 마우스가 떠나도 접지 않는다. 접으면 방금 연 패널과 조작이 함께 사라진다.
+  // 바깥을 누르거나 Esc를 받으면 패널도 함께 닫는다. 세션 모달은 위젯 안에 그려져 바깥으로 치지 않고,
+  // 모달이 떠 있는 동안의 Esc는 모달만 닫는다.
+  const { isOpen, ref, approachProps, pin } = useRevealOnApproach<HTMLElement>(
+    isPanelOpen,
+    () => {
+      if (todayTasks === null) setIsExpanded(false)
+    },
+  )
 
   useEffect(() => {
     if (status === 'idle') void loadActiveSession()

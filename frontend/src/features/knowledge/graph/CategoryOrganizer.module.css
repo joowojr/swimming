@@ -303,17 +303,55 @@
   line-height: var(--text-label-caps-line-height);
   text-align: left;
   background: transparent;
-  cursor: pointer;
+}
+
+.source-handle {
+  display: inline-flex;
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-default);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: grab;
+  /* 손잡이에서만 브라우저 스크롤을 막아 터치 드래그를 받는다. */
+  touch-action: none;
+}
+
+.source-handle:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+/* 끌고 있는 원래 자리는 흐리게 남겨 어디서 왔는지 보여 준다. */
+.source-dragging {
+  opacity: .4;
+}
+
+.source-overlay {
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-md);
+  cursor: grabbing;
+}
+
+.source-overlay .source-handle {
+  cursor: grabbing;
+}
+
+.group-over {
+  border-color: var(--color-tone-fountain-tint);
+  background: var(--color-surface-soft);
 }
 
 .mark {
   flex: 0 0 auto;
   color: var(--color-mute);
-}
-
-.source-main[aria-pressed='true'] {
-  border-color: var(--color-tone-fountain-tint);
-  background: var(--color-tone-fountain-tint);
 }
 
 .source-title {
@@ -323,44 +361,6 @@
   -webkit-line-clamp: 1;
 }
 
-.move-targets {
-  position: absolute;
-  z-index: 2;
-  top: 100%;
-  left: 0;
-  display: grid;
-  min-width: 12rem;
-  gap: var(--space-1);
-  margin: var(--space-1) 0 0;
-  padding: var(--space-2);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  list-style: none;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-md);
-}
-
-.move-target {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--color-primary);
-  font: inherit;
-  font-size: var(--text-body-sm-size);
-  text-align: left;
-  background: transparent;
-  cursor: pointer;
-}
-
-.move-target:hover {
-  background: var(--color-surface-container-high);
-}
-
-.move-empty,
 .sources-empty {
   padding: var(--space-2);
   color: var(--color-mute);
@@ -393,8 +393,7 @@
 .close:focus-visible,
 .group-remove:focus-visible,
 .source-remove:focus-visible,
-.source-main:focus-visible,
-.move-target:focus-visible,
+.source-handle:focus-visible,
 .add-group:focus-visible {
   outline: var(--focus-ring-width) solid var(--color-focus-ring);
   outline-offset: var(--focus-ring-offset);
@@ -408,8 +407,9 @@
     background: var(--color-surface-container-high);
   }
 
-  .source-main:hover {
-    background: var(--color-surface-soft);
+  .source-handle:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-container-high);
   }
 
 }
@@ -417,6 +417,7 @@
 @media (pointer: coarse) {
   .close,
   .group-remove,
+  .source-handle,
   .source-remove {
     min-width: var(--button-height);
     min-height: var(--button-height);

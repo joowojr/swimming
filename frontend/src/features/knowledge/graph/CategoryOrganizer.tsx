@@ -1,5 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconArrowRight, IconPlus, IconSparkles, IconTrash, IconX } from '@tabler/icons-react'
+import type { ReactNode } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCorners,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import type { Announcements, DragEndEvent, DragOverEvent, DragStartEvent, UniqueIdentifier } from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { IconGripVertical, IconPlus, IconSparkles, IconTrash, IconX } from '@tabler/icons-react'
 import ActionButton from '../../../components/ActionButton'
 import InlineEditableText from '../../../components/InlineEditableText'
 import type { ApiError } from '../../../api/client'
@@ -28,7 +49,7 @@ interface DraftGroup {
 type OrganizerState =
   | { kind: 'loading'; messageIndex: number }
   | { kind: 'error'; message: string }
-  | { kind: 'review'; groups: DraftGroup[]; movingSourceId: string | null }
+  | { kind: 'review'; groups: DraftGroup[] }
 
 const LOADING_MESSAGE_INTERVAL_MS = 4000
 const LOADING_MESSAGES = [
@@ -43,6 +64,20 @@ function toGroups(categories: CategoryDraft[]): DraftGroup[] {
     title: category.title,
     sourceIds: category.sourceIds,
   }))
+}
+
+/** 카테고리 드롭 영역 id. 문서 id와 겹치지 않게 접두사를 붙인다. */
+const GROUP_DROP_PREFIX = 'group:'
+
+function groupDropId(key: string) {
+  return `${GROUP_DROP_PREFIX}${key}`
+}
+
+/** 드롭 대상이 카테고리 자체인지 문서인지에 따라 그 문서가 속한 카테고리 key를 찾는다. */
+function findGroupKey(groups: DraftGroup[], id: UniqueIdentifier): string | undefined {
+  const value = String(id)
+  if (value.startsWith(GROUP_DROP_PREFIX)) return value.slice(GROUP_DROP_PREFIX.length)
+  return groups.find((group) => group.sourceIds.includes(value))?.key
 }
 
 function errorMessage(error: unknown, fallback = '카테고리를 만들지 못했어요.') {
@@ -69,6 +104,9 @@ export default function CategoryOrganizer({
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const savingRef = useRef(false)
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(null)
+  /** 드래그를 취소하면 끌기 전 모습으로 되돌린다. */
+  const groupsBeforeDragRef = useRef<DraftGroup[] | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -79,7 +117,6 @@ export default function CategoryOrganizer({
           setState({
             kind: 'review',
             groups: toGroups(preview.categories),
-            movingSourceId: null,
           })
         }
       })
@@ -132,21 +169,6 @@ export default function CategoryOrganizer({
     ])
   }
 
-  /** 한 문서는 한 카테고리에만 속한다. 옮기면 원래 있던 자리에서 빠진다. */
-  const moveSource = (sourceId: string, toKey: string) => {
-    updateGroups((groups) => groups.map((group) => {
-      if (group.key === toKey) {
-        return group.sourceIds.includes(sourceId)
-          ? group
-          : { ...group, sourceIds: [...group.sourceIds, sourceId] }
-      }
-      return { ...group, sourceIds: group.sourceIds.filter((id) => id !== sourceId) }
-    }))
-    setState((current) => current.kind === 'review'
-      ? { ...current, movingSourceId: null }
-      : current)
-  }
-
   const removeSource = (sourceId: string) => {
     updateGroups((groups) => groups.map((group) => ({
       ...group,
@@ -154,10 +176,82 @@ export default function CategoryOrganizer({
     })))
   }
 
-  const startMoving = (sourceId: string) => {
-    setState((current) => current.kind === 'review'
-      ? { ...current, movingSourceId: current.movingSourceId === sourceId ? null : sourceId }
-      : current)
+  // 모바일은 손잡이를 잠깐 눌러야 드래그가 시작돼 스크롤과 구분된다.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const titleOf = (sourceId: UniqueIdentifier) =>
+    sourcesById.get(String(sourceId))?.title ?? '제목 없는 문서'
+
+  const groupTitleOf = (id: UniqueIdentifier | undefined) => {
+    if (state.kind !== 'review' || id === undefined) return undefined
+    const key = findGroupKey(state.groups, id)
+    return state.groups.find((group) => group.key === key)?.title
+  }
+
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `${titleOf(active.id)} 문서를 집었어요.`,
+    onDragOver: ({ active, over }) => {
+      const target = groupTitleOf(over?.id)
+      return target ? `${titleOf(active.id)} 문서가 ${target} 카테고리 위에 있어요.` : undefined
+    },
+    onDragEnd: ({ active, over }) => {
+      const target = groupTitleOf(over?.id)
+      return target ? `${titleOf(active.id)} 문서를 ${target} 카테고리에 놓았어요.` : `${titleOf(active.id)} 문서를 제자리에 두었어요.`
+    },
+    onDragCancel: ({ active }) => `${titleOf(active.id)} 문서 옮기기를 취소했어요.`,
+  }
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    if (state.kind !== 'review') return
+    groupsBeforeDragRef.current = state.groups
+    setActiveSourceId(String(active.id))
+  }
+
+  /** 다른 카테고리 위로 넘어가는 순간 문서를 그 카테고리로 옮긴다. 한 문서는 한 카테고리에만 속한다. */
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over) return
+    updateGroups((groups) => {
+      const sourceId = String(active.id)
+      const fromKey = findGroupKey(groups, sourceId)
+      const toKey = findGroupKey(groups, over.id)
+      if (!fromKey || !toKey || fromKey === toKey) return groups
+
+      return groups.map((group) => {
+        if (group.key === fromKey) {
+          return { ...group, sourceIds: group.sourceIds.filter((id) => id !== sourceId) }
+        }
+        if (group.key !== toKey) return group
+        const overIndex = group.sourceIds.indexOf(String(over.id))
+        const insertAt = overIndex >= 0 ? overIndex : group.sourceIds.length
+        return {
+          ...group,
+          sourceIds: [...group.sourceIds.slice(0, insertAt), sourceId, ...group.sourceIds.slice(insertAt)],
+        }
+      })
+    })
+  }
+
+  /** 같은 카테고리 안에서는 놓은 자리로 순서를 바꾼다. */
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    setActiveSourceId(null)
+    groupsBeforeDragRef.current = null
+    if (!over || active.id === over.id) return
+    updateGroups((groups) => groups.map((group) => {
+      const from = group.sourceIds.indexOf(String(active.id))
+      const to = group.sourceIds.indexOf(String(over.id))
+      return from >= 0 && to >= 0 ? { ...group, sourceIds: arrayMove(group.sourceIds, from, to) } : group
+    }))
+  }
+
+  const handleDragCancel = () => {
+    const snapshot = groupsBeforeDragRef.current
+    setActiveSourceId(null)
+    groupsBeforeDragRef.current = null
+    if (snapshot) updateGroups(() => snapshot)
   }
 
   const confirm = async () => {
@@ -221,7 +315,7 @@ export default function CategoryOrganizer({
           {state.kind === 'loading' ? 'AI가 문서를 살펴보고 있어요' : state.kind === 'review' ? 'AI가 제안한 카테고리' : '카테고리 초안을 가져오지 못했어요'}
         </h2>
         <p className={styles.lede}>{state.kind === 'review'
-          ? '연필을 눌러 이름을 수정하거나 문서를 눌러 옮겨 보세요.'
+          ? '연필을 눌러 이름을 수정하거나 손잡이로 문서를 끌어 옮겨 보세요.'
           : `문서 ${sourceIds.length}개를 함께 보고 카테고리 초안을 준비해요.`}</p>
       </header>
 
@@ -256,9 +350,23 @@ export default function CategoryOrganizer({
           )}
 
           <fieldset className={styles.editor} disabled={isSaving} aria-label="카테고리 초안 편집">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            accessibility={{
+              announcements,
+              screenReaderInstructions: {
+                draggable: '문서를 옮기려면 스페이스바를 누르고 방향키로 움직인 뒤 스페이스바로 놓으세요. 취소는 Esc예요.',
+              },
+            }}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
           <ul className={styles.groups}>
             {state.groups.map((group) => (
-              <li key={group.key} className={styles.group}>
+              <DroppableGroup key={group.key} groupKey={group.key}>
                 <div className={styles['group-header']}>
                   <InlineEditableText
                     value={group.title}
@@ -285,67 +393,43 @@ export default function CategoryOrganizer({
                   </button>
                 </div>
 
-                <ul className={styles.sources}>
-                  {group.sourceIds.map((sourceId) => {
-                    const source = sourcesById.get(sourceId)
-                    const isMoving = state.movingSourceId === sourceId
+                <SortableContext items={group.sourceIds} strategy={verticalListSortingStrategy}>
+                  <ul className={styles.sources}>
+                    {group.sourceIds.map((sourceId) => (
+                      <SortableSource
+                        key={sourceId}
+                        sourceId={sourceId}
+                        source={sourcesById.get(sourceId)}
+                        disabled={isSaving}
+                        onRemove={() => removeSource(sourceId)}
+                      />
+                    ))}
 
-                    return (
-                      <li key={sourceId} className={styles.source}>
-                        <button
-                          type="button"
-                          className={styles['source-main']}
-                          aria-pressed={isMoving}
-                          onClick={() => startMoving(sourceId)}
-                        >
-                          {sourceMark(source?.domain ?? null, 14, styles.mark)}
-                          <span className={styles['source-title']}>
-                            {source?.title ?? '제목 없는 문서'}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          className={styles['source-remove']}
-                          aria-label={`${source?.title ?? '문서'} 빼기`}
-                          onClick={() => removeSource(sourceId)}
-                        >
-                          <IconX size={14} stroke={1.8} aria-hidden="true" />
-                        </button>
-
-                        {isMoving && (
-                          <ul className={styles['move-targets']}>
-                            {state.groups
-                              .filter((target) => target.key !== group.key)
-                              .map((target) => (
-                                <li key={target.key}>
-                                  <button
-                                    type="button"
-                                    className={styles['move-target']}
-                                    onClick={() => moveSource(sourceId, target.key)}
-                                  >
-                                    <IconArrowRight size={13} stroke={1.8} aria-hidden="true" />
-                                    {target.title}
-                                  </button>
-                                </li>
-                              ))}
-                            {state.groups.length <= 1 && (
-                              <li className={styles['move-empty']}>옮길 카테고리가 없어요</li>
-                            )}
-                          </ul>
-                        )}
+                    {group.sourceIds.length === 0 && (
+                      <li className={styles['sources-empty']}>
+                        다른 카테고리의 문서를 여기로 끌어 놓을 수 있어요
                       </li>
-                    )
-                  })}
-
-                  {group.sourceIds.length === 0 && (
-                    <li className={styles['sources-empty']}>
-                      다른 카테고리의 문서를 눌러 옮길 수 있어요
-                    </li>
-                  )}
-                </ul>
-              </li>
+                    )}
+                  </ul>
+                </SortableContext>
+              </DroppableGroup>
             ))}
           </ul>
+
+          <DragOverlay>
+            {activeSourceId && (
+              <div className={`${styles.source} ${styles['source-overlay']}`}>
+                <span className={styles['source-handle']} aria-hidden="true">
+                  <IconGripVertical size={14} stroke={1.8} />
+                </span>
+                <span className={styles['source-main']}>
+                  {sourceMark(sourcesById.get(activeSourceId)?.domain ?? null, 14, styles.mark)}
+                  <span className={styles['source-title']}>{titleOf(activeSourceId)}</span>
+                </span>
+              </div>
+            )}
+          </DragOverlay>
+          </DndContext>
 
           <ActionButton
             variant="outline"
@@ -381,5 +465,70 @@ export default function CategoryOrganizer({
         </>
       )}
     </aside>
+  )
+}
+
+/** 카테고리 전체가 드롭 영역이다. 비어 있는 카테고리에도 문서를 놓을 수 있다. */
+function DroppableGroup({ groupKey, children }: { groupKey: string; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: groupDropId(groupKey) })
+  return (
+    <li
+      ref={setNodeRef}
+      className={`${styles.group} ${isOver ? styles['group-over'] : ''}`}
+    >
+      {children}
+    </li>
+  )
+}
+
+interface SortableSourceProps {
+  sourceId: string
+  source: SourceCard | undefined
+  disabled: boolean
+  onRemove: () => void
+}
+
+/** 손잡이로만 드래그를 시작한다. 줄의 나머지 부분은 모바일에서 스크롤로 남는다. */
+function SortableSource({ sourceId, source, disabled, onRemove }: SortableSourceProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sourceId, disabled })
+  const title = source?.title ?? '제목 없는 문서'
+
+  return (
+    <li
+      ref={setNodeRef}
+      className={`${styles.source} ${isDragging ? styles['source-dragging'] : ''}`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        className={styles['source-handle']}
+        aria-label={`${title} 옮기기`}
+        {...attributes}
+        {...listeners}
+      >
+        <IconGripVertical size={14} stroke={1.8} aria-hidden="true" />
+      </button>
+      <span className={styles['source-main']}>
+        {sourceMark(source?.domain ?? null, 14, styles.mark)}
+        <span className={styles['source-title']}>{title}</span>
+      </span>
+      <button
+        type="button"
+        className={styles['source-remove']}
+        aria-label={`${title} 빼기`}
+        onClick={onRemove}
+      >
+        <IconX size={14} stroke={1.8} aria-hidden="true" />
+      </button>
+    </li>
   )
 }

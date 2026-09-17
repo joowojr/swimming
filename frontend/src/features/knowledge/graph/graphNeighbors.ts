@@ -29,3 +29,41 @@ export function neighborsOf(
 export function touchesNode(edge: GraphEdge, nodeId: string) {
   return edge.from === nodeId || edge.to === nodeId
 }
+
+/** 카테고리를 골랐을 때 강조할 노드와 간선. */
+export interface CategoryReach {
+  nodeIds: Set<string>
+  edges: Set<GraphEdge>
+}
+
+/**
+ * 카테고리에서 category → source → topic → subject 방향으로만 따라간다.
+ *
+ * 간선 방향대로만 내려가므로 여러 문서가 함께 쓰는 subject·topic에서 거꾸로 올라가
+ * 다른 카테고리의 문서로 번지지 않는다. 문서가 직접 다루는 subject(ABOUT)도 같은 갈래로 본다.
+ */
+export function categoryReachOf(categoryId: string, edges: GraphEdge[]): CategoryReach {
+  const reachedEdges = new Set<GraphEdge>()
+  const follow = (fromIds: Set<string>, kinds: GraphEdge['kind'][]) => {
+    const next = new Set<string>()
+    for (const edge of edges) {
+      if (fromIds.has(edge.from) && kinds.includes(edge.kind)) {
+        reachedEdges.add(edge)
+        next.add(edge.to)
+      }
+    }
+    return next
+  }
+
+  const sourceIds = follow(new Set([categoryId]), ['CONTAINS'])
+  const topicIds = follow(sourceIds, ['SUPPORTS'])
+  const subjectIds = new Set([
+    ...follow(sourceIds, ['ABOUT']),
+    ...follow(topicIds, ['INVOLVES']),
+  ])
+
+  return {
+    nodeIds: new Set([categoryId, ...sourceIds, ...topicIds, ...subjectIds]),
+    edges: reachedEdges,
+  }
+}

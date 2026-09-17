@@ -97,6 +97,12 @@
   stroke: var(--color-tone-indigo);
 }
 
+/* 빛 점이 지나가는 선은 점선 관계(SUPPORTS)도 실선으로 이어 한 줄기로 읽히게 한다.
+   흐름은 선 위를 지나가는 빛 점(GraphFlowEdge)이 맡는다. */
+.edge-flow :global(.react-flow__edge-path) {
+  stroke-dasharray: none;
+}
+
 .legend {
   position: absolute;
   top: var(--space-4);

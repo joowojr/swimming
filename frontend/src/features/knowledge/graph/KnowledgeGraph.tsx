@@ -11,6 +11,7 @@ import '@xyflow/react/dist/style.css'
 import type { ApiError } from '../../../api/client'
 import ActionButton from '../../../components/ActionButton'
 import GraphLayoutMenu from './GraphLayoutMenu'
+import GraphFlowEdgeView, { GRAPH_EDGE_BORDER_RADIUS } from './GraphFlowEdge'
 import GraphNodeCard from './GraphNodeCard'
 import type { KnowledgeFlowNode } from './GraphNodeCard'
 import NodeInspector from './NodeInspector'
@@ -18,7 +19,7 @@ import CategoryOrganizer from './CategoryOrganizer'
 import { getFolderGraph } from './graphApi'
 import { layoutGraph, rootNodeId } from './graphLayout'
 import type { LayoutOptions } from './graphLayout'
-import { neighborsOf, touchesNode } from './graphNeighbors'
+import { categoryReachOf, neighborsOf, touchesNode } from './graphNeighbors'
 import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
 import type { SourceCard } from '../knowledgeTypes'
@@ -38,6 +39,7 @@ type GraphState =
   | { status: 'error'; message: string }
 
 const nodeTypes = { knowledge: GraphNodeCard }
+const edgeTypes = { flow: GraphFlowEdgeView }
 const CATEGORY_PREVIEW_MIN_SOURCES = 6
 const CATEGORY_PREVIEW_MAX_SOURCES = 50
 const CATEGORY_HINT_STORAGE_PREFIX = 'knowledge-category-hint-dismissed:'
@@ -105,21 +107,30 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       .filter((node) => node.type === 'SOURCE')
       .map((node) => node.nodeId)
     const showAllSubjects = sourceNodeIds.length <= MAX_SOURCES_WITH_VISIBLE_SUBJECTS
-    const highlighted = selectedNodeId
+    const selectedType = graph.nodes.find((node) => node.nodeId === selectedNodeId)?.type
+    const selectedCategoryId = selectedType === 'CATEGORY' ? selectedNodeId : null
+    // 문서·주제·키워드를 고르면 닿은 선에 빛 점을 보낸다. 폴더는 소속선뿐이라 제외한다.
+    const flowsFromSelected = selectedType === 'SOURCE' || selectedType === 'TOPIC' || selectedType === 'SUBJECT'
+    // 카테고리는 1-hop이 아니라 그 아래 갈래 전체를 강조한다.
+    const categoryReach = selectedCategoryId ? categoryReachOf(selectedCategoryId, graph.edges) : null
+    const highlighted = categoryReach?.nodeIds ?? (selectedNodeId
       ? neighborsOf(selectedNodeId, graph.edges, graph.nodes
           .filter((node) => node.type === 'SOURCE' || node.type === 'CATEGORY')
           .map((node) => node.nodeId))
-      : null
+      : null)
 
     const topicNumbers = numberTopics(graph)
     const positionedNodes = layoutGraph(graph, layout)
     const selectedSubjectId = graph.nodes.some(
       (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
     ) ? selectedNodeId : null
+    // 고른 카테고리에 이어진 키워드는 축소 중이어도 펼쳐 둔다. 강조한 갈래가 끝까지 보여야 한다.
     const hiddenSubjects = showAllSubjects || showSubjectDetails
       ? []
       : positionedNodes.filter(
-        ({ node }) => node.type === 'SUBJECT' && node.nodeId !== selectedSubjectId,
+        ({ node }) => node.type === 'SUBJECT'
+          && node.nodeId !== selectedSubjectId
+          && !categoryReach?.nodeIds.has(node.nodeId),
       )
     const hiddenSubjectIds = new Set(hiddenSubjects.map(({ node }) => node.nodeId))
 
@@ -221,7 +232,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
 
     // 열 배치라 선이 꺾이는 지점이 정해져 있다. 곡선보다 직각으로 꺾는 편이 겹칠 때 서로를
     // 덜 가리고, 같은 노드로 들어가는 선들이 한 줄기로 모여 보인다.
-    const shape = { type: 'smoothstep', pathOptions: { borderRadius: 18 } } as const
+    const shape = { type: 'smoothstep', pathOptions: { borderRadius: GRAPH_EDGE_BORDER_RADIUS } } as const
 
     const categorizedSourceIds = new Set(graph.edges
       .filter((edge) => edge.kind === 'CONTAINS')
@@ -243,22 +254,39 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
 
     const relationEdges: Edge[] = graph.edges
       .filter((edge) => !hiddenSubjectIds.has(edge.from) && !hiddenSubjectIds.has(edge.to))
-      .map((edge) => ({
-        ...shape,
-        id: `${edge.from}-${edge.to}-${edge.kind}`,
-        source: flip ? edge.to : edge.from,
-        target: flip ? edge.from : edge.to,
-        className: `${styles.edge} ${edge.kind === 'SUPPORTS' ? styles['edge-used-for'] : ''}`,
-        data: { active: selectedNodeId !== null && touchesNode(edge, selectedNodeId) },
-      }))
+      .map((edge) => {
+        // 빛 점이 출발하는 노드. 카테고리는 갈래를 따라 내려가고, 다른 노드는 고른 노드에서 이웃으로 나간다.
+        const flowStart = categoryReach
+          ? (categoryReach.edges.has(edge) ? edge.from : null)
+          : flowsFromSelected && selectedNodeId !== null && touchesNode(edge, selectedNodeId)
+            ? selectedNodeId
+            : null
+        const source = flip ? edge.to : edge.from
+        return {
+          ...shape,
+          ...(flowStart ? { type: 'flow' } : {}),
+          id: `${edge.from}-${edge.to}-${edge.kind}`,
+          source,
+          target: flip ? edge.from : edge.to,
+          className: `${styles.edge} ${edge.kind === 'SUPPORTS' ? styles['edge-used-for'] : ''} ${flowStart ? styles['edge-flow'] : ''}`,
+          data: {
+            active: categoryReach
+              ? flowStart !== null
+              : selectedNodeId !== null && touchesNode(edge, selectedNodeId),
+            // 점은 그린 방향(source → target)으로 간다. 출발 노드가 target 쪽이면 거꾸로 보낸다.
+            reverse: flowStart !== null && source !== flowStart,
+          },
+        }
+      })
 
     const summaryEdges: Edge[] = subjectSummaries.map((summary) => ({
       ...shape,
+      ...(selectedNodeId === summary.topicId ? { type: 'flow' } : {}),
       id: `summary-${summary.topicId}`,
       source: flip ? summary.id : summary.topicId,
       target: flip ? summary.topicId : summary.id,
       className: `${styles.edge} ${styles['edge-summary']}`,
-      data: { active: selectedNodeId === summary.topicId },
+      data: { active: selectedNodeId === summary.topicId, reverse: flip },
     }))
 
     // 고른 노드에 닿는 선만 진하게 두고 나머지는 뒤로 물린다. 고르기 전에는 모두 같은 무게다.
@@ -338,6 +366,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             nodesDraggable={false}
             nodesConnectable={false}
             edgesFocusable={false}

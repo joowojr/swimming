@@ -17,6 +17,7 @@ import { authActions, useAuthStore } from './store/authStore'
 import { useFolderStore } from './store/folderStore.ts'
 import { useActiveSessionStore } from './store/activeSessionStore'
 import { useDailyPlanStore } from './store/dailyPlanStore'
+import { useSourceStore } from './store/sourceStore'
 import { useTaskStore } from './store/taskStore'
 import HealthPage from './features/health/HealthPage'
 import styles from './App.module.css'
@@ -48,6 +49,7 @@ function App() {
   const resetFolders = useFolderStore((state) => state.reset)
   const clearActiveSession = useActiveSessionStore((state) => state.clear)
   const resetTasks = useTaskStore((state) => state.reset)
+  const resetSources = useSourceStore((state) => state.reset)
   const resetDailyPlans = useDailyPlanStore((state) => state.reset)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
@@ -59,6 +61,7 @@ function App() {
       resetFolders()
       clearActiveSession()
       resetTasks()
+      resetSources()
       resetDailyPlans()
       return
     }
@@ -67,7 +70,7 @@ function App() {
     if (auth.status !== 'authenticated' || userId === undefined) return
 
     void loadFolders(userId)
-  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetDailyPlans, resetFolders, resetTasks])
+  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetDailyPlans, resetFolders, resetSources, resetTasks])
 
   if (auth.status === 'checking') {
     return (

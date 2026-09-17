@@ -1,0 +1,290 @@
+/* 음악 위젯(MiniMusicWidget)과 같은 모양·같은 규칙으로 접히고 펼쳐진다. 독에 선 위젯들이 한 벌로 읽힌다.
+ *
+ * 평소에는 원이고, 다가가면 옆으로 늘어나 바가 된다. 자라는 값은 width 하나뿐이다.
+ * 안쪽 .bar는 늘 펼친 폭을 지키고, 접힌 동안에는 위젯의 overflow가 잘라 감춘다.
+ * 패널까지 열어 키가 커졌을 때만 모서리가 각을 되찾는다.
+ *
+ * 다만 접힌 원이 아이콘이 아니라 시간이다. 흘깃 보는 것이 타이머의 존재 이유라,
+ * 접혀 있어도 숫자는 남는다.
+ */
+.widget {
+  --timer-widget-width: 17rem;
+  /* 원의 지름. 음악 위젯의 접힌 원(칩 + 안쪽 여백 + 테두리)과 같은 값이라 독에서 크기가 맞는다.
+     타이머는 이 지름 전체를 숫자 원과 링이 채운다. */
+  --timer-collapsed-size: calc(var(--space-12) + var(--space-2) * 2 + var(--border-width) * 2);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  width: var(--timer-collapsed-size);
+  max-width: 100%;
+  /* 접힌 동안에는 테두리를 비워 둔다. 접힌 모양이 곧 숫자 원과 링이라, 테두리나 테두리처럼
+     보이는 1px 그림자(--shadow-floating의 첫 겹)가 있으면 원이 두 겹으로 보인다.
+     자리는 투명한 테두리로 지켜, 펼칠 때 색만 들어오고 크기는 흔들리지 않는다. */
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-card);
+  transition:
+    width var(--dur-short) var(--ease-out),
+    border-color var(--transition-short) var(--ease-out);
+}
+
+/* 펼치면 다른 플로팅(이어서 보기·음악)과 같은 테두리와 그림자를 입는다. */
+.widget[data-open='true'] {
+  width: var(--timer-widget-width);
+  border-color: var(--color-border-subtle);
+  box-shadow: var(--shadow-floating);
+}
+
+.widget[data-expanded='true'] {
+  border-radius: var(--radius-lg);
+}
+
+/* 접혀도 폭을 지킨다. 왼쪽 여백이 없어 숫자 원이 위젯의 왼쪽 끝에 붙고,
+   접히면 그 원만 남아 위젯을 가득 채운다. 오른쪽 여백은 조작 버튼 몫이다. */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: calc(var(--timer-widget-width) - var(--border-width) * 2);
+  padding: 0 var(--space-2) 0 0;
+}
+
+.widget[data-expanded='true'] .bar {
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+/* 앞쪽 숫자 원. 접혔을 때 이 원과 링이 곧 위젯 전체다.
+
+   채움은 background가 아니라 안쪽 그림자가 맡는다. 체크박스와 같은 방식이라, 재기
+   시작하면 검은 면이 가운데서 차오르고 끝나면 같은 길로 빠진다. */
+.dial {
+  --ring-color: var(--color-mute);
+  /* 진척 띠의 두께. 가는 선보다 꽉 찬 띠가 멀리서도 얼마나 왔는지를 바로 말한다. */
+  --ring-thickness: var(--space-1);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: center;
+  /* 투명한 테두리 안쪽을 가득 채운다. */
+  --dial-size: calc(var(--timer-collapsed-size) - var(--border-width) * 2);
+  width: var(--dial-size);
+  height: var(--dial-size);
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: var(--color-surface-container-high);
+  box-shadow: inset 0 0 0 0 var(--color-primary);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-button-weight);
+  /* 매초 바뀌는 숫자다. 폭이 고정되지 않으면 원 안에서 글자가 좌우로 덜컹거린다.
+     자간을 조금 좁혀 "+12:30"까지 칩 안에 들어오게 한다. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  transition:
+    box-shadow var(--dur-short) var(--ease-out),
+    color var(--transition-short) var(--ease-out);
+}
+
+/* 지난 만큼이 비고 남은 만큼이 띠로 남는다. mask가 가운데를 뚫어 숫자 밑을 지나지 않는다.
+   90분이면 초당 0.4도라 전환을 걸 이유가 없다. */
+.dial::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    transparent calc(var(--timer-progress, 0) * 1turn),
+    var(--ring-color) 0
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--ring-thickness)),
+    #000 calc(100% - var(--ring-thickness))
+  );
+  pointer-events: none;
+}
+
+/* 잴 것이 없으면 두를 것도 없다. 면도 채우지 않고 다른 플로팅 버튼처럼 흰 바탕에 아이콘만 둔다. */
+.widget[data-state='idle'] .dial {
+  background: var(--color-surface-container-lowest);
+}
+
+.widget[data-state='idle'] .dial::before {
+  display: none;
+}
+
+/* 재고 있는 동안에만 면이 찬다. 띠는 검은 면 위를 돌아 밝은 색을 쓴다. */
+.widget[data-state='running'] .dial {
+  --ring-color: var(--color-on-primary);
+  color: var(--color-on-primary);
+  /* spread가 반지름에 못 미치면 가장자리에 가는 테가 남는다. 지름의 절반으로 끝까지 채운다. */
+  box-shadow: inset 0 0 0 calc(var(--dial-size) / 2) var(--color-primary);
+}
+
+/* 정한 길이를 넘기면 면은 기본색으로 돌아가고 테도 물러난다. 벌하지 않는다.
+   더 센다는 것은 앞의 +가 말한다. */
+.widget[data-state='overtime'] .dial {
+  --ring-color: var(--color-mute);
+}
+
+.title {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+  white-space: nowrap;
+}
+
+.label {
+  overflow: hidden;
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.control {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-short) var(--ease-in-out),
+    background-color var(--transition-short) var(--ease-in-out);
+}
+
+.control-stop {
+  color: var(--color-mute);
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  max-height: 16rem;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+/* 고른 탭의 내용. 탭마다 시작 한 가지만 둔다. */
+.tab {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.source {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.source label {
+  min-width: 0;
+}
+
+.source input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--space-8);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-body-sm-size);
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface-container-lowest);
+}
+
+.source input::placeholder {
+  color: var(--color-mute);
+}
+
+.source input[aria-invalid='true'] {
+  background: var(--color-surface-container-high);
+}
+
+.source button {
+  min-height: var(--space-8);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-on-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  white-space: nowrap;
+  background: var(--color-primary);
+  cursor: pointer;
+}
+
+.source button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.message,
+.empty {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+/* 세션 탭의 시작 버튼. 타이머 탭의 시작 버튼과 같은 높이·모서리로 맞춘다. */
+.panel-action {
+  width: 100%;
+  min-height: var(--space-8);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.control:focus-visible,
+.source input:focus-visible,
+.source button:focus-visible,
+.panel-action:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .control:hover {
+    background: var(--color-surface-container-high);
+  }
+
+  .source button:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget,
+  .dial,
+  .control {
+    transition: none;
+  }
+}

@@ -1,4 +1,7 @@
 .demo {
+  /* Arcade 임베드의 16:9 화면 비율과 하단 컨트롤 높이. */
+  --arcade-aspect-height: 56.25%;
+  --arcade-controls-height: 2.5625rem;
   display: grid;
   gap: var(--space-3);
   min-width: 0;

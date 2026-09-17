@@ -3,10 +3,8 @@ import {
     IconChevronLeft,
     IconChevronRight,
     IconLoader2,
-    IconPlus,
 } from '@tabler/icons-react'
 import type {ApiError} from '../../api/client'
-import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
 import InlineEditableText from '../../components/InlineEditableText'
 import ChecklistCard from '../../components/ChecklistCard'
@@ -86,7 +84,17 @@ function monthDays(month: Date) {
     })
 }
 
-export default function DailyPlanner() {
+interface DailyPlannerProps {
+    /**
+     * 할 일 추가 모달의 열림 상태. 여는 버튼은 핀보드의 보기 전환 줄에 있어서, 그 상태만
+     * 위에서 받는다. 날짜와 목록은 여전히 이 컴포넌트가 소유한다 — 모달이 무엇을 담을지는
+     * 어느 날짜를 보고 있는지가 정하고, 그건 여기밖에 모른다.
+     */
+    isPickerOpen: boolean
+    onPickerClose: () => void
+}
+
+export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlannerProps) {
     const navigate = useNavigate()
     const today = useMemo(() => formatLocalDate(new Date()), [])
     const [selectedDate, setSelectedDate] = useState(today)
@@ -94,7 +102,6 @@ export default function DailyPlanner() {
     const calendarView = usePinboardViewStore((state) => state.calendarView)
     const setCalendarView = usePinboardViewStore((state) => state.setCalendarView)
     const [message, setMessage] = useState<string | null>(null)
-    const [isPickerOpen, setIsPickerOpen] = useState(false)
     const [sessionTaskId, setSessionTaskId] = useState<number | null>(null)
     const [pendingTaskId, setPendingTaskId] = useState<number | null>(null)
     const [moveTarget, setMoveTarget] = useState<DailyPlanItem | null>(null)
@@ -234,11 +241,6 @@ export default function DailyPlanner() {
         <section className={styles.widget} aria-labelledby="daily-planner-title">
             <div className={styles.calendarPanel}>
                 <header className={styles.calendarHeader}>
-                    <h2>
-                        {calendarView === 'week'
-                            ? formatDayRange(calendarDays)
-                            : dateFormatter.format(visibleMonth)}
-                    </h2>
                     <div className={styles.calendarNav}>
                         <button
                             type="button"
@@ -247,6 +249,11 @@ export default function DailyPlanner() {
                         >
                             <IconChevronLeft size={18} aria-hidden="true" />
                         </button>
+                        <h2>
+                            {calendarView === 'week'
+                                ? formatDayRange(calendarDays)
+                                : dateFormatter.format(visibleMonth)}
+                        </h2>
                         <button
                             type="button"
                             aria-label={calendarView === 'week' ? '다음 주' : '다음 달'}
@@ -376,12 +383,9 @@ export default function DailyPlanner() {
                     </>
                 )}
 
-                <ModalTriggerButton className={styles.addTask} dialogId="task-picker-dialog" variant="plain" icon={<IconPlus size={15} aria-hidden="true" />} onClick={() => setIsPickerOpen(true)}>
-                    <span className="sr-only">할 일 추가</span>
-                </ModalTriggerButton>
             </div>
 
-            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={() => setIsPickerOpen(false)} />}
+            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={onPickerClose} />}
             {moveTarget && (
                 <TaskInfoModal
                     taskId={moveTarget.taskId}

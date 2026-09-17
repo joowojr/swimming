@@ -18,6 +18,9 @@
 }
 
 .board {
+  /* 지식 그래프와 카테고리 편집 패널의 높이. 목록 개수가 화면을 늘리지 않게 한다.
+     편집 패널도 .board 안에 그려져 이 값을 물려받는다. */
+  --knowledge-graph-height: 32rem;
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -30,7 +33,7 @@
 .canvas {
   position: relative;
   min-width: 0;
-  height: 32rem;
+  height: var(--knowledge-graph-height);
   flex: 1 1 auto;
 }
 
@@ -97,6 +100,12 @@
   stroke: var(--color-tone-indigo);
 }
 
+/* 빛 점이 지나가는 선은 점선 관계(SUPPORTS)도 실선으로 이어 한 줄기로 읽히게 한다.
+   흐름은 선 위를 지나가는 빛 점(GraphFlowEdge)이 맡는다. */
+.edge-flow :global(.react-flow__edge-path) {
+  stroke-dasharray: none;
+}
+
 .legend {
   position: absolute;
   top: var(--space-4);
@@ -137,6 +146,10 @@
 
 .legend span[data-type='SOURCE']::before {
   background: var(--color-surface-container-lowest);
+}
+
+.legend span[data-type='CATEGORY']::before {
+  background: var(--color-tone-bay-leaf);
 }
 
 .legend span[data-type='TOPIC']::before {
@@ -192,20 +205,6 @@
 
 .category-hint-setup {
   width: 100%;
-  min-height: 1.875rem;
-  padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-primary);
-  border-radius: var(--radius-control);
-  color: var(--color-on-primary);
-  font: inherit;
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-button-weight);
-  background: var(--color-primary);
-}
-
-.category-hint-setup:disabled {
-  cursor: not-allowed;
-  opacity: .48;
 }
 
 .category-hint-preference {
@@ -238,7 +237,6 @@
 }
 
 .category-hint-close:focus-visible,
-.category-hint-setup:focus-visible,
 .category-hint-preference input:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--border-width);
@@ -304,11 +302,8 @@
 
 @media (min-width: 64rem) {
   .board {
+    --knowledge-graph-height: 36rem;
     flex-direction: row;
-  }
-
-  .canvas {
-    height: 36rem;
   }
 }
 

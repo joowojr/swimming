@@ -35,6 +35,11 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
+        public void updateTitle(KnowledgeNode node) {
+            stored.put(node.getId(), copy(node));
+        }
+
+        @Override
         public Optional<KnowledgeNode> findById(UUID id) {
             return Optional.ofNullable(stored.get(id)).filter(node -> !node.isDeleted()).map(Nodes::copy);
         }
@@ -158,7 +163,8 @@ public final class InMemoryKnowledgeRepositories {
                     node.getId(), node.getUserId(), node.getNodeType(),
                     node.getTitle(), node.getDescription(), node.isDeleted(),
                     createdAt,
-                    node.getUpdatedAt() == null ? createdAt : node.getUpdatedAt()
+                    node.getUpdatedAt() == null ? createdAt : node.getUpdatedAt(),
+                    node.getTitleRenamedAt()
             );
         }
     }
@@ -189,6 +195,53 @@ public final class InMemoryKnowledgeRepositories {
                     .filter(Objects::nonNull)
                     .filter(source -> !source.isDeleted())
                     .map(Sources::copy)
+                    .toList();
+        }
+
+        @Override
+        public List<KnowledgeSource> findAllActiveByIds(Long userId, Collection<UUID> nodeIds) {
+            return findAllByIds(nodeIds).stream()
+                    .filter(source -> source.getUserId().equals(userId))
+                    .toList();
+        }
+
+        @Override
+        public List<KnowledgeSource> findAllActiveInFolderByIds(
+                Long userId,
+                Long folderId,
+                Collection<UUID> nodeIds
+        ) {
+            return findAllActiveByIds(userId, nodeIds).stream()
+                    .filter(source -> folderId.equals(source.getFolderId()))
+                    .toList();
+        }
+
+        @Override
+        public List<UUID> findAliveNodeIdsInFolder(Long userId, Long folderId) {
+            return stored.values().stream()
+                    .filter(source -> source.getUserId().equals(userId))
+                    .filter(source -> !source.isDeleted())
+                    .filter(source -> folderId.equals(source.getFolderId()))
+                    .map(KnowledgeSource::getId)
+                    .toList();
+        }
+
+        @Override
+        public List<KnowledgeSource> findAllCategorizationTargets(
+                Long userId,
+                Long folderId,
+                Collection<UUID> nodeIds
+        ) {
+            if (nodeIds.isEmpty()) {
+                return List.of();
+            }
+            return findAllActiveInFolderByIds(userId, folderId, nodeIds).stream()
+                    .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
+                    .filter(source -> source.getSummary() != null)
+                    .sorted(Comparator
+                            .comparing((KnowledgeSource source) -> source.getNode().getCreatedAt(),
+                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                            .thenComparing(KnowledgeSource::getId))
                     .toList();
         }
 

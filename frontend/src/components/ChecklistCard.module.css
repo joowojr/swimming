@@ -27,6 +27,9 @@
   gap: var(--space-3);
 }
 
+/* 채움은 background가 아니라 안쪽 그림자가 맡는다. 색을 갈아 끼우면 칸이 한 프레임에
+   검게 변하지만, 그림자의 spread는 0에서 자라날 수 있어 가운데서 번지듯 찬다.
+   표시를 바꾸는 일이라 짧게 끊고, 되돌릴 때는 같은 길로 줄어든다. */
 .checkbox {
   position: relative;
   z-index: 1;
@@ -40,15 +43,26 @@
   border-radius: var(--radius-sm);
   color: var(--color-mute);
   background: var(--color-surface-container-lowest);
+  box-shadow: inset 0 0 0 0 var(--color-primary);
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
   cursor: pointer;
+  transition:
+    box-shadow var(--transition-short) var(--ease-out),
+    border-color var(--transition-short) var(--ease-out),
+    transform var(--dur-micro) var(--ease-in-out);
 }
 
+/* spread는 칸의 절반보다 커야 가운데에서 모서리까지 덮는다. */
 .checkbox:checked {
   border-color: var(--color-primary);
-  background: var(--color-primary);
-  box-shadow: inset 0 0 0 0.25rem var(--color-primary);
+  box-shadow: inset 0 0 0 0.75rem var(--color-primary);
+}
+
+/* 누르는 동안 살짝 눌린다. 손이 닿았다는 것만 알리는 정도로 얕게. */
+.checkbox:active:not(:disabled),
+.status:active:not(:disabled) {
+  transform: scale(0.92);
 }
 
 .checkbox:focus-visible {
@@ -61,7 +75,12 @@
   opacity: 0.55;
 }
 
-/* Task 상태 표시등. 체크박스와 크기·정렬을 맞춰 두 모드가 같은 자리에 놓이게 한다. */
+/* Task 상태 표시등. 체크박스와 크기·정렬·모양을 맞춰 두 모드가 같은 자리에 같은 꼴로 놓인다.
+   상태마다 도형이 달라지면 같은 목록에서 네모와 동그라미가 섞여, 무엇이 상태 차이이고
+   무엇이 종류 차이인지 흐려진다. 차이는 색과 안의 표시가 말한다.
+
+   채움은 체크박스와 같은 방식이다. background를 갈아 끼우지 않고 안쪽 그림자의 spread를
+   0에서 키워, 어느 상태로 가든 가운데에서 번지듯 찬다. */
 .status {
   position: relative;
   z-index: 1;
@@ -77,31 +96,69 @@
   border-radius: var(--radius-sm);
   color: var(--color-mute);
   background: var(--color-surface-container-lowest);
+  box-shadow: inset 0 0 0 0 var(--color-primary);
   outline: var(--focus-ring-width) solid transparent;
   outline-offset: var(--border-width);
   cursor: pointer;
+  transition:
+    box-shadow var(--transition-short) var(--ease-out),
+    border-color var(--transition-short) var(--ease-out),
+    color var(--transition-short) var(--ease-out),
+    transform var(--dur-micro) var(--ease-in-out);
 }
 
+/* 표시등 안의 아이콘은 상태가 바뀔 때 새로 붙는다. 그 자리에서 자라 들어오게 한다. */
+.status svg,
+.status-core {
+  animation: checklist-mark-in var(--dur-micro) var(--ease-out) both;
+}
+
+@keyframes checklist-mark-in {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* spread는 칸의 절반보다 커야 가운데에서 모서리까지 덮는다. 세 상태가 같은 값을 써서
+   서로 오갈 때는 색만 바뀌고 채운 넓이는 흔들리지 않는다. */
 .status[data-status='DOING'] {
-  border-radius: var(--radius-full);
   border-color: var(--chip-doing-fg);
   color: var(--chip-doing-fg);
-  background: var(--chip-doing-fg);
+  box-shadow: inset 0 0 0 0.75rem var(--chip-doing-fg);
+}
+
+/* 하는 중에만 테가 밖으로 번진다. 표시등이 20px이라 눈에 들어오려면 또렷해야 하지만,
+   주기는 느리게 두고 번진 뒤에는 쉰다 — 계속 깜빡이면 재촉이 된다.
+   칸 자신이 아니라 덧댄 테가 움직인다. 칸을 키우면 누를 때의 눌림(scale)과 부딪힌다. */
+.status[data-status='DOING']::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--focus-ring-width));
+  border: var(--focus-ring-width) solid var(--chip-doing-fg);
+  border-radius: inherit;
+  animation: status-pulse 1.8s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+/* 테두리에서 시작해 한 번 퍼지고, 사라진 채로 잠깐 쉬었다 다시 친다. 양쪽으로 왕복하는
+   숨쉬기보다 한 방향으로 번지는 쪽이 작은 표시등에서 또렷하게 읽힌다. */
+@keyframes status-pulse {
+  0% { opacity: 0.9; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.45); }
+  100% { opacity: 0; transform: scale(1.45); }
 }
 
 .status[data-status='DONE'] {
   border-color: var(--color-primary);
   color: var(--color-on-primary);
-  background: var(--color-primary);
-  box-shadow: inset 0 0 0 0.25rem var(--color-primary);
+  box-shadow: inset 0 0 0 0.75rem var(--color-primary);
 }
 
+/* 멈춤은 면을 옅게만 채운다. 테두리의 파선이 "지금은 아니다"를 말한다. */
 .status[data-status='HOLD'] {
-  border-radius: var(--radius-full);
   border-style: dashed;
   border-color: var(--chip-hold-border);
   color: var(--chip-hold-fg);
-  background: var(--chip-hold-bg);
+  box-shadow: inset 0 0 0 0.75rem var(--chip-hold-bg);
 }
 
 .status:focus-visible {
@@ -150,6 +207,29 @@
   flex: 0 0 auto;
   align-items: center;
   gap: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkbox,
+  .status {
+    transition: none;
+  }
+
+  .checkbox:active:not(:disabled),
+  .status:active:not(:disabled) {
+    transform: none;
+  }
+
+  .status svg,
+  .status-core,
+  .status[data-status='DOING']::after {
+    animation: none;
+  }
+
+  /* 움직이지 않는 대신 테를 옅게 남겨 둔다. 켜져 있다는 신호 자체는 지우지 않는다. */
+  .status[data-status='DOING']::after {
+    opacity: 0.45;
+  }
 }
 
 @media (max-width: 96rem), (max-height: 60rem) {

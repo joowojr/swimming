@@ -91,7 +91,7 @@ export default function GraphLayoutMenu({ value, onChange }: GraphLayoutMenuProp
       <button
         type="button"
         className={styles.trigger}
-        title="그래프 배치"
+        title="그래프 보기 방식"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         onClick={() => setIsOpen((open) => !open)}
@@ -100,7 +100,7 @@ export default function GraphLayoutMenu({ value, onChange }: GraphLayoutMenuProp
         보기
       </button>
       {isOpen && (
-        <div className={styles.panel} role="dialog" aria-label="그래프 배치">
+        <div className={styles.panel} role="dialog" aria-label="그래프 보기 방식">
           {renderGroup('방향', 'graph-axis', AXES, value.axis,
             (axis) => ({ ...value, axis }))}
           {renderGroup('시작', 'graph-order', ORDERS, value.order,

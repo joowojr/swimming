@@ -27,7 +27,7 @@ public class PostgresKnowledgeVectorSearchRepository implements KnowledgeVectorS
         return jdbcTemplate.query(
                 """
                 select n.id, n.user_id, n.node_type, n.title, n.description,
-                       n.is_deleted, n.created_at, n.updated_at
+                       n.is_deleted, n.created_at, n.updated_at, n.title_renamed_at
                   from knowledge_node n
                  where n.user_id = ?
                    and n.node_type = 'SUBJECT'
@@ -45,7 +45,9 @@ public class PostgresKnowledgeVectorSearchRepository implements KnowledgeVectorS
                         resultSet.getString("description"),
                         resultSet.getBoolean("is_deleted"),
                         resultSet.getTimestamp("created_at").toInstant(),
-                        resultSet.getTimestamp("updated_at").toInstant()
+                        resultSet.getTimestamp("updated_at").toInstant(),
+                        resultSet.getTimestamp("title_renamed_at") == null
+                                ? null : resultSet.getTimestamp("title_renamed_at").toInstant()
                 ),
                 userId, embeddingModel, vectorLiteral(titleEmbedding), limit
         );

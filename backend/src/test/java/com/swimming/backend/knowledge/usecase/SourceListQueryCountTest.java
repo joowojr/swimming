@@ -77,7 +77,7 @@ class SourceListQueryCountTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("Source가 몇 건이든 목록 조회는 다섯 문장으로 끝난다")
+    @DisplayName("카테고리를 포함한 목록 조회는 페이지 크기와 무관하게 여섯 문장으로 끝난다")
     void 목록_조회는_문장수가_고정이다() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("source-list-probe@example.com")
@@ -92,6 +92,8 @@ class SourceListQueryCountTest {
                 null
         ));
 
+        KnowledgeNode category = nodeRepository.create(KnowledgeNode.create(
+                user.getId(), NodeType.CATEGORY, "API 설계", null));
         IntStream.range(0, SOURCE_COUNT).forEach(sourceIndex -> {
             KnowledgeSource source = sourceRepository.save(KnowledgeSource.create(
                     user.getId(),
@@ -113,6 +115,7 @@ class SourceListQueryCountTest {
 
             relationService.connectAll(source.getNode(), subjects, RelationOrigin.AI);
             relationService.connect(source.getNode(), topic, RelationOrigin.AI);
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
         });
         entityManager.flush();
         entityManager.clear();
@@ -120,16 +123,21 @@ class SourceListQueryCountTest {
         Statistics statistics = entityManagerFactory
                 .unwrap(SessionFactory.class)
                 .getStatistics();
-        statistics.clear();
+        for (int pageSize : List.of(1, SOURCE_COUNT)) {
+            entityManager.clear();
+            statistics.clear();
+            var page = queryUseCase.list(user.getId(), folder.getId(), null, pageSize, null);
 
-        var page = queryUseCase.list(user.getId(), folder.getId(), null, SOURCE_COUNT, null);
+            assertThat(page.items()).hasSize(pageSize);
+            assertThat(page.items()).allSatisfy(item -> {
+                assertThat(item.subjects()).hasSize(SUBJECTS_PER_SOURCE);
+                assertThat(item.category().nodeId()).isEqualTo(category.getId());
+                assertThat(item.category().title()).isEqualTo("API 설계");
+            });
 
-        assertThat(page.items()).hasSize(SOURCE_COUNT);
-        assertThat(page.items())
-                .allSatisfy(item -> assertThat(item.subjects()).hasSize(SUBJECTS_PER_SOURCE));
-
-        // 폴더 소유 확인 1 + Source 페이지 1 + Source 노드 1 + 관계 1 + 개념·목적 제목 1
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(5);
-        assertThat(statistics.getCollectionLoadCount()).isZero();
+            // 폴더 1 + Source 페이지 1 + Source 노드 1 + 정방향 관계 1 + 카테고리 관계 1 + 제목 1
+            assertThat(statistics.getPrepareStatementCount()).isEqualTo(6);
+            assertThat(statistics.getCollectionLoadCount()).isZero();
+        }
     }
 }

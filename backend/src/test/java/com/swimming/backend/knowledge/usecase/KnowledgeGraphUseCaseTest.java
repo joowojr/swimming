@@ -10,6 +10,10 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationOrigin;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.GraphResponse;
+import com.swimming.backend.knowledge.dto.in.CategoryReplaceRequest;
+import com.swimming.backend.knowledge.service.SourceGraphReader;
+import com.swimming.backend.knowledge.service.graph.CategorySuggestionValidator;
+import com.swimming.backend.knowledge.service.llm.SourceCategorySuggestionService;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.graph.KnowledgeGraphAssembler;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
@@ -141,6 +145,111 @@ class KnowledgeGraphUseCaseTest {
 
         assertThat(titlesOf(response)).containsExactly("아직");
         assertThat(response.edges()).isEmpty();
+    }
+
+    @Test
+    void 폴더_그래프에_카테고리와_문서_소속_간선이_함께_나온다() {
+        KnowledgeSource source = givenSource("문서");
+        KnowledgeNode category = givenNode(NodeType.CATEGORY, "API 설계");
+        KnowledgeNode topic = givenNode(NodeType.TOPIC, "서버 구현");
+        KnowledgeNode subject = givenNode(NodeType.SUBJECT, "REST");
+        digest(source, topic, subject);
+        relationService.connect(category, source.getNode(), RelationOrigin.USER);
+
+        GraphResponse response = useCase.ofFolder(USER_ID, FOLDER_ID, 20);
+
+        assertThat(titlesOf(response)).containsExactlyInAnyOrder("문서", "API 설계", "서버 구현", "REST");
+        assertThat(response.nodes()).filteredOn(node -> node.type() == NodeType.CATEGORY)
+                .extracting(GraphResponse.Node::nodeId).containsExactly(category.getId());
+        assertThat(response.edges()).contains(new GraphResponse.Edge(
+                category.getId(), source.getId(), RelationType.CONTAINS));
+    }
+
+    @Test
+    void 카테고리_관계가_있어도_조회_상한_밖의_문서는_펼치지_않는다() {
+        KnowledgeSource older = givenSource("이전 문서");
+        KnowledgeSource recent = givenSource("최근 문서");
+        KnowledgeNode shared = givenNode(NodeType.CATEGORY, "함께 읽기");
+        KnowledgeNode olderOnly = givenNode(NodeType.CATEGORY, "이전 카테고리");
+        relationService.connect(shared, older.getNode(), RelationOrigin.USER);
+        relationService.connect(shared, recent.getNode(), RelationOrigin.USER);
+        relationService.connect(olderOnly, older.getNode(), RelationOrigin.USER);
+
+        GraphResponse response = useCase.ofFolder(USER_ID, FOLDER_ID, 1);
+
+        assertThat(titlesOf(response)).containsExactlyInAnyOrder("최근 문서", "함께 읽기");
+        assertThat(response.edges()).containsExactly(new GraphResponse.Edge(
+                shared.getId(), recent.getId(), RelationType.CONTAINS));
+        assertThat(response.truncated()).isTrue();
+    }
+
+    @Test
+    void 다른_폴더의_카테고리는_폴더_그래프에_포함하지_않는다() {
+        givenSource("내 폴더 문서");
+        KnowledgeSource other = sources.save(KnowledgeSource.create(
+                USER_ID, 99L, "다른 폴더 문서", "https://a.com/other", "https://a.com/other"));
+        nodes.create(other.getNode());
+        KnowledgeNode category = givenNode(NodeType.CATEGORY, "다른 폴더 카테고리");
+        relationService.connect(category, other.getNode(), RelationOrigin.USER);
+
+        GraphResponse response = useCase.ofFolder(USER_ID, FOLDER_ID, 20);
+
+        assertThat(titlesOf(response)).containsExactly("내 폴더 문서");
+        assertThat(response.edges()).isEmpty();
+    }
+
+    @Test
+    void 카테고리를_루트로_조회하면_포함된_문서가_나온다() {
+        KnowledgeSource first = givenSource("첫 문서");
+        KnowledgeSource second = givenSource("둘째 문서");
+        KnowledgeNode category = givenNode(NodeType.CATEGORY, "API 설계");
+        relationService.connectAll(category, List.of(first.getNode(), second.getNode()), RelationOrigin.USER);
+
+        for (int depth : List.of(1, 2)) {
+            GraphResponse response = useCase.ofNode(USER_ID, category.getId(), depth);
+            assertThat(response.root()).isEqualTo(new GraphResponse.Root(
+                    category.getId(), GraphResponse.RootType.CATEGORY, null, "API 설계"));
+            assertThat(titlesOf(response)).containsExactlyInAnyOrder("API 설계", "첫 문서", "둘째 문서");
+            assertThat(response.edges()).hasSize(2)
+                    .allMatch(edge -> edge.kind() == RelationType.CONTAINS);
+            assertThat(response.truncated()).isFalse();
+        }
+    }
+
+    @Test
+    void 문서_노드_조회에도_소속_카테고리가_나온다() {
+        KnowledgeSource source = givenSource("문서");
+        KnowledgeNode category = givenNode(NodeType.CATEGORY, "API 설계");
+        relationService.connect(category, source.getNode(), RelationOrigin.USER);
+
+        GraphResponse response = useCase.ofNode(USER_ID, source.getId(), 1);
+
+        assertThat(titlesOf(response)).containsExactlyInAnyOrder("문서", "API 설계");
+        assertThat(response.edges()).containsExactly(new GraphResponse.Edge(
+                category.getId(), source.getId(), RelationType.CONTAINS));
+    }
+
+    @Test
+    void 카테고리_교체_후_이전_카테고리와_간선은_조회에서_빠진다() {
+        KnowledgeSource source = givenSource("문서");
+        KnowledgeNode previous = givenNode(NodeType.CATEGORY, "이전 카테고리");
+        relationService.connect(previous, source.getNode(), RelationOrigin.USER);
+        KnowledgeCategoryUseCase categoryUseCase = new KnowledgeCategoryUseCase(
+                folderService, new KnowledgeSourceService(sources), new KnowledgeNodeService(nodes),
+                relationService, new SourceGraphReader(relations, nodes),
+                mock(SourceCategorySuggestionService.class), new CategorySuggestionValidator());
+
+        var saved = categoryUseCase.replace(USER_ID, FOLDER_ID, new CategoryReplaceRequest(List.of(
+                new CategoryReplaceRequest.Category("새 카테고리", List.of(source.getId())))));
+        UUID currentId = saved.categories().getFirst().nodeId();
+        GraphResponse response = useCase.ofFolder(USER_ID, FOLDER_ID, 20);
+
+        assertThat(titlesOf(response)).containsExactlyInAnyOrder("문서", "새 카테고리");
+        assertThat(response.edges()).containsExactly(new GraphResponse.Edge(
+                currentId, source.getId(), RelationType.CONTAINS));
+        assertThatThrownBy(() -> useCase.ofNode(USER_ID, previous.getId(), 1))
+                .isInstanceOf(BusinessException.class).extracting("errorCode")
+                .isEqualTo(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND);
     }
 
     @Test

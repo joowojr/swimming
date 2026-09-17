@@ -9,6 +9,7 @@ import {
   IconPlayerPlayFilled,
 } from '@tabler/icons-react'
 import ReactPlayer from 'react-player'
+import { useRevealOnApproach } from '../../../lib/useRevealOnApproach'
 import { useAuthStore } from '../../../store/authStore'
 import { usePlaceStore } from '../../../store/placeStore'
 import { normalizeYouTubeUrl, readRecentMusicHistory, rememberRecentMusic } from './recentMusicHistory'
@@ -39,6 +40,13 @@ function labelOf(url: string, provided: Track[]) {
  *
  * 세션 화면(`/sessions/:id`)은 AppShell 바깥 분기라 이 위젯이 없다. 세션에서 나오면
  * 그쪽 재생은 끊기고, 여기서 다시 고르면 처음부터 재생된다.
+ *
+ * 평소에는 아이콘만 있는 원이고, 다가가면 곡 이름과 조작이 펼쳐진다. 바로 위의
+ * 「이어서 보기」와 같은 규칙이고, 펼치는 계기 셋도 같다: 마우스를 올리거나, 키보드
+ * 초점이 닿거나, (마우스가 없는 기기에서) 한 번 누르거나.
+ *
+ * 재생 중에도 접힌다. 듣고 있다는 사실은 아이콘이 뛰는 것으로 알리고, 곡 이름과
+ * 일시정지는 다가갔을 때 내준다. 화면을 늘 가리고 있을 이유가 없다.
  */
 export default function MiniMusicWidget() {
   const panelId = useId()
@@ -52,6 +60,13 @@ export default function MiniMusicWidget() {
   const [recent, setRecent] = useState(() => readRecentMusicHistory(userId))
   const [draft, setDraft] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+
+  // 목록을 펼친 동안에는 마우스가 떠나도 접지 않는다. 접으면 방금 연 목록과 조작이 함께 사라진다.
+  // 바깥을 누르거나 Esc를 받으면 목록도 함께 닫는다. 재생은 이어진다.
+  const { isOpen, ref: widgetRef, approachProps, pin } = useRevealOnApproach<HTMLElement>(
+    isExpanded,
+    () => setIsExpanded(false),
+  )
 
   useEffect(() => { void loadPlaces() }, [loadPlaces])
 
@@ -108,7 +123,19 @@ export default function MiniMusicWidget() {
   }
 
   return (
-    <section className={styles.widget} data-expanded={isExpanded} aria-label="음악">
+    <section
+      ref={widgetRef}
+      className={styles.widget}
+      data-expanded={isExpanded}
+      data-open={isOpen ? 'true' : undefined}
+      data-playing={isPlaying ? 'true' : undefined}
+      aria-label="음악"
+      {...approachProps}
+      onClick={() => {
+        // 접혀 있으면 첫 누름은 펼치기다. 접힌 동안에는 아이콘 말고 누를 것이 없다.
+        if (!isOpen) pin()
+      }}
+    >
       {isExpanded && (
         <div className={styles.panel} id={panelId}>
           <form className={styles.source} onSubmit={submitSource}>
@@ -193,7 +220,9 @@ export default function MiniMusicWidget() {
       )}
 
       <div className={styles.bar}>
-        <IconMusic className={styles.mark} size={20} stroke={1.8} aria-hidden="true" />
+        <span className={styles['bar-mark']} aria-hidden="true">
+          <IconMusic size={20} stroke={1.8} />
+        </span>
         <span className={styles.title}>{track?.label ?? (isEmpty ? '음악 없음' : '음악 재생하기')}</span>
         {track && (
           <button

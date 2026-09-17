@@ -18,15 +18,20 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Subject와 Topic 노드를 읽는다.
+ * Subject·Topic 상세, Subject 삭제, Category·Topic 이름 수정을 조율한다.
  *
- * <p>{@code SOURCE} 노드는 이 경로가 맡지 않는다. Source는 {@link SourceQueryUseCase}와
- * {@link SourceCollectUseCase}가 맡고, 여기서는 404로 돌려준다. Graph 응답이 노드 타입을
- * 함께 주므로 잘못 부를 이유가 없고, 400보다 404가 맞다.
+ * <p>Source 상세는 {@link SourceQueryUseCase}가 맡으므로 상세 조회에서는 404로 돌려준다.
+ * 이름 수정은 Category·Topic만 허용한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,6 +46,43 @@ public class NodeUseCase {
     private final KnowledgeNodeService nodeService;
     private final KnowledgeRelationService relationService;
     private final KnowledgeSourceService sourceService;
+
+    /** Category와 Topic의 제목만 변경한다. 같은 폴더의 Category 이름은 중복될 수 없다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public NodeRef updateTitle(Long userId, UUID nodeId, String title) {
+        KnowledgeNode node = nodeService.getOwned(nodeId, userId);
+        node.renameByUser(title, Instant.now());
+        if (node.getNodeType() == NodeType.CATEGORY) {
+            validateCategoryTitle(userId, node);
+        }
+        nodeService.updateTitle(node);
+        return NodeRef.from(node);
+    }
+
+    private void validateCategoryTitle(Long userId, KnowledgeNode node) {
+        List<UUID> otherCategoryIds = nodeService.findCategoriesByNormalizedTitle(userId, node.getNormalizedTitle())
+                .stream().map(KnowledgeNode::getId).filter(id -> !id.equals(node.getId())).toList();
+        if (otherCategoryIds.isEmpty()) {
+            return;
+        }
+        List<UUID> categoryIds = new ArrayList<>(otherCategoryIds);
+        categoryIds.add(node.getId());
+        List<KnowledgeRelation> contains = relationService.findOutgoing(categoryIds, List.of(RelationType.CONTAINS));
+        Map<UUID, Long> folderBySourceId = sourceService.getOwnedAll(userId, contains.stream()
+                        .map(KnowledgeRelation::getToNodeId).distinct().toList())
+                .stream().collect(Collectors.toMap(KnowledgeSource::getId, KnowledgeSource::getFolderId));
+        Set<Long> nodeFolderIds = contains.stream()
+                .filter(relation -> relation.getFromNodeId().equals(node.getId()))
+                .map(relation -> folderBySourceId.get(relation.getToNodeId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        boolean duplicateInFolder = contains.stream()
+                .filter(relation -> !relation.getFromNodeId().equals(node.getId()))
+                .anyMatch(relation -> nodeFolderIds.contains(folderBySourceId.get(relation.getToNodeId())));
+        if (duplicateInFolder) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
+        }
+    }
 
     /**
      * Subject와 Topic Detail. 노드 하나에 걸린 문서와 개념을 모은다.

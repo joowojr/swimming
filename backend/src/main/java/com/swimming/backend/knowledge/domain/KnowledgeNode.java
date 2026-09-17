@@ -1,5 +1,7 @@
 package com.swimming.backend.knowledge.domain;
 
+import com.swimming.backend.common.exception.BusinessException;
+import com.swimming.backend.common.exception.ErrorCode;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -13,6 +15,9 @@ public class KnowledgeNode {
     private final NodeType nodeType;
 
     private String title;
+
+    /** 사용자가 제목을 마지막으로 수정한 시각. 수정 전에는 null이다. */
+    private Instant titleRenamedAt;
 
     /**
      * 표기 차이를 걷어낸 title. 조회 키이자 중복 판정 기준이다.
@@ -38,7 +43,8 @@ public class KnowledgeNode {
             String description,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            Instant titleRenamedAt
     ) {
         this.id = id;
         this.userId = userId;
@@ -49,6 +55,7 @@ public class KnowledgeNode {
         this.deleted = deleted;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.titleRenamedAt = titleRenamedAt;
     }
 
     public static KnowledgeNode create(
@@ -65,6 +72,7 @@ public class KnowledgeNode {
                 description,
                 false,
                 null,
+                null,
                 null
         );
     }
@@ -77,7 +85,8 @@ public class KnowledgeNode {
             String description,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            Instant titleRenamedAt
     ) {
         return new KnowledgeNode(
                 id,
@@ -87,13 +96,26 @@ public class KnowledgeNode {
                 description,
                 deleted,
                 createdAt,
-                updatedAt
+                updatedAt,
+                titleRenamedAt
         );
     }
 
     public void rename(String title) {
         this.title = title;
         this.normalizedTitle = NodeTitleNormalizer.normalize(title);
+    }
+
+    /** 사용자 이름 수정은 Category와 Topic에만 허용한다. */
+    public void renameByUser(String title, Instant renamedAt) {
+        if (nodeType != NodeType.CATEGORY && nodeType != NodeType.TOPIC) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_NODE_TITLE_NOT_EDITABLE);
+        }
+        String strippedTitle = title.strip();
+        if (!this.title.equals(strippedTitle)) {
+            rename(strippedTitle);
+            this.titleRenamedAt = renamedAt;
+        }
     }
 
     public void updateDescription(String description) {

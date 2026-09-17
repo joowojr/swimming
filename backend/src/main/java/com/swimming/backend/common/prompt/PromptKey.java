@@ -18,7 +18,10 @@ public enum PromptKey {
     SOURCE_DIGEST("source-digest"),
 
     /** 후보별 매칭 결과를 사용해 Subject를 기존 Subject에 맞추거나 새 이름으로 정한다. */
-    NODE_RESOLUTION_V2("node-resolution-v2");
+    NODE_RESOLUTION_V2("node-resolution-v2"),
+
+    /** Folder에 모인 문서 전체를 함께 보고 Category 묶음 초안을 만든다. */
+    CATEGORY_SUGGESTION("category-suggestion");
 
     private final String configName;
 

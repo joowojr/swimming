@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
+import java.time.Instant;
 
 @Getter
 @Entity
@@ -37,6 +38,10 @@ public class KnowledgeNodeEntity extends BaseTimeEntity {
     @Column(nullable = false, length = 500)
     private String title;
 
+    /** 사용자 제목 수정 시각. AI 생성·본문 추출로 정한 이름에는 null이다. */
+    @Column(name = "title_renamed_at")
+    private Instant titleRenamedAt;
+
     /** 표기 차이를 걷어낸 title. SUBJECT / TOPIC은 이 값으로 중복을 막는다. */
     @Column(name = "normalized_title", nullable = false, length = 500)
     private String normalizedTitle;
@@ -54,6 +59,7 @@ public class KnowledgeNodeEntity extends BaseTimeEntity {
             Long userId,
             NodeType nodeType,
             String title,
+            Instant titleRenamedAt,
             String normalizedTitle,
             String description,
             boolean deleted
@@ -62,6 +68,7 @@ public class KnowledgeNodeEntity extends BaseTimeEntity {
         this.userId = userId;
         this.nodeType = nodeType;
         this.title = title;
+        this.titleRenamedAt = titleRenamedAt;
         this.normalizedTitle = normalizedTitle;
         this.description = description;
         this.deleted = deleted;
@@ -69,5 +76,11 @@ public class KnowledgeNodeEntity extends BaseTimeEntity {
 
     public void delete() {
         this.deleted = true;
+    }
+
+    public void updateTitle(String title, String normalizedTitle, Instant titleRenamedAt) {
+        this.title = title;
+        this.normalizedTitle = normalizedTitle;
+        this.titleRenamedAt = titleRenamedAt;
     }
 }

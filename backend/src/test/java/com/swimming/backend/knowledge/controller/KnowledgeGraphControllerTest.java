@@ -106,6 +106,38 @@ class KnowledgeGraphControllerTest {
     }
 
     @Test
+    void 폴더_조회에_카테고리와_CONTAINS_간선을_반환한다() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+        when(graphUseCase.ofFolder(1L, 10L, 20)).thenReturn(new GraphResponse(
+                new GraphResponse.Root(null, GraphResponse.RootType.FOLDER, 10L, "Spring AI 공부"),
+                List.of(new GraphResponse.Node(categoryId, NodeType.CATEGORY, "API 설계", CREATED_AT),
+                        new GraphResponse.Node(SOURCE_ID, NodeType.SOURCE, "문서", CREATED_AT)),
+                List.of(new GraphResponse.Edge(categoryId, SOURCE_ID, RelationType.CONTAINS)), false));
+
+        mockMvc.perform(get("/api/knowledge/graph").param("folderId", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nodes[0].type").value("CATEGORY"))
+                .andExpect(jsonPath("$.edges[0].from").value(categoryId.toString()))
+                .andExpect(jsonPath("$.edges[0].to").value(SOURCE_ID.toString()))
+                .andExpect(jsonPath("$.edges[0].kind").value("CONTAINS"));
+    }
+
+    @Test
+    void 카테고리_루트의_그래프를_반환한다() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+        when(graphUseCase.ofNode(1L, categoryId, 1)).thenReturn(new GraphResponse(
+                new GraphResponse.Root(categoryId, GraphResponse.RootType.CATEGORY, null, "API 설계"),
+                List.of(new GraphResponse.Node(SOURCE_ID, NodeType.SOURCE, "문서", CREATED_AT)),
+                List.of(new GraphResponse.Edge(categoryId, SOURCE_ID, RelationType.CONTAINS)), false));
+
+        mockMvc.perform(get("/api/knowledge/nodes/" + categoryId + "/graph"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.root.type").value("CATEGORY"))
+                .andExpect(jsonPath("$.root.nodeId").value(categoryId.toString()))
+                .andExpect(jsonPath("$.edges[0].kind").value("CONTAINS"));
+    }
+
+    @Test
     @DisplayName("상한을 넘긴 limit은 조회하기 전에 거부한다")
     void rejectsTooLargeLimit() throws Exception {
         mockMvc.perform(get("/api/knowledge/graph").param("folderId", "10").param("limit", "51"))

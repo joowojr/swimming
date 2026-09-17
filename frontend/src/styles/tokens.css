@@ -100,11 +100,6 @@
     --text-button-line-height: 1.5rem;
     --text-button-weight: 480;
     --text-label-strong-weight: 700;
-    --text-landing-display-size: clamp(2.5rem, 5vw, 4.5rem);
-    --text-landing-display-line-height: 1.02;
-    --text-landing-display-tracking: -0.04em;
-    --text-landing-section-size: clamp(2rem, 4vw, 3.75rem);
-    --text-landing-section-line-height: 1.08;
 
     --text-display: var(--text-headline-xl-size);
     --text-heading: var(--text-headline-md-size);
@@ -129,23 +124,6 @@
     --layout-margin-desktop: 5rem;
     --layout-container-max: 80rem;
     --layout-page-padding-inline: var(--space-16);
-    --landing-header-height: 4.5rem;
-    --landing-shell-max: 100rem;
-    --landing-hero-shell-max: 112rem;
-    --landing-hero-margin-desktop: 3rem;
-    --landing-copy-column: 26rem;
-    --landing-copy-measure: 36rem;
-    --landing-title-measure: 11ch;
-    --landing-section-title-measure: 14ch;
-    --landing-footer-measure: 28ch;
-    --landing-login-width: 20rem;
-    --landing-step-number-width: 3rem;
-    --landing-step-title-width: 10rem;
-    --landing-section-space: 6rem;
-    --landing-logo-width: 9rem;
-    --arcade-aspect-height: 56.25%;
-    --arcade-controls-height: 2.5625rem;
-    --login-illustration-mobile-width: 16rem;
 
     /* Shape */
     --radius-sm: 0.5rem;
@@ -176,17 +154,6 @@
     --overlay-blur: 4px;
     --progress-height: 0.25rem;
 
-    /* 음악 위젯. 미디어 크롬이지만 주변이 종이 톤이라 밝은 유리로 두고,
-       구분은 시그니처 레드와 흐림 질감이 맡는다. */
-    --music-surface: rgb(255 255 255 / 70%);
-    --music-surface-opaque: rgb(255 255 255 / 96%);
-    --music-raised: rgb(28 28 30 / 6%);
-    --music-hairline: rgb(28 28 30 / 10%);
-    --music-on-surface: var(--color-primary);
-    --music-on-surface-mute: var(--color-mute);
-    --music-accent: #fa2d48;
-    --music-blur: 20px;
-
     --modal-width: 28rem;
     /* 좌우 2단 모달(입력 + 담은 목록)용. 한 단짜리는 --modal-width를 쓴다. */
     --modal-width-wide: 56rem;
@@ -200,6 +167,8 @@
     --dur-short: 220ms;
     --dur-modal: 300ms;
     --dur-reduced-motion: 1ms;
+    --dur-ai-cycle: 2400ms;
+    --dur-ai-stagger: 300ms;
     --transition-short: 140ms;
 }
 

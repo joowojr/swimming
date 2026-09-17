@@ -10,7 +10,9 @@
 
 .toast {
     position: fixed;
-    top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    /* 탑바를 덮지 않고 그 아래 내용 영역에서 시작한다. 탑바는 화면의 고정 틀이고
+       이 배너는 지금 보는 폴더의 이야기라, 둘이 겹치면 누구의 알림인지 흐려진다. */
+    top: calc(var(--top-bar-height) + var(--space-3) + env(safe-area-inset-top, 0px));
     left: 50%;
     z-index: var(--z-floating);
     display: flex;
@@ -25,6 +27,11 @@
     box-shadow: var(--shadow-floating);
     transform: translateX(-50%);
     animation: folder-progress-in var(--dur-modal) var(--ease-out) both;
+}
+
+.toast[data-complete='true'] {
+    border-color: var(--color-tone-bay-leaf);
+    background: var(--color-tone-bay-leaf-tint);
 }
 
 .leaving {
@@ -43,6 +50,7 @@
  * 폴더가 아니라 진척을 둔다. 폴더 이름은 바로 옆에 있으니, 아이콘은 형식이 아니라
  * 내용을 가리킨다. */
 .icon {
+    position: relative;
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
@@ -53,6 +61,34 @@
     color: var(--color-mute);
     background: var(--color-surface-container-high);
     animation: folder-progress-icon var(--dur-short) var(--ease-out) var(--dur-micro) both;
+}
+
+.toast[data-complete='true'] .icon {
+    color: var(--color-tone-bay-leaf);
+    background: var(--color-surface-container-lowest);
+    animation: folder-progress-complete var(--dur-modal) var(--ease-out) var(--dur-short) both;
+}
+
+.toast[data-complete='true'] .icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: var(--border-width) solid currentColor;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: folder-progress-ring calc(var(--dur-modal) * 2) var(--ease-out) var(--dur-short) both;
+}
+
+.complete-check path {
+    stroke-dasharray: 1;
+    animation: folder-progress-check var(--dur-modal) var(--ease-out) var(--dur-short) both;
+}
+
+.complete-message {
+    color: var(--color-primary);
+    font-size: var(--text-label-caps-size);
+    line-height: var(--text-label-caps-line-height);
+    animation: folder-progress-line var(--dur-short) var(--ease-out) var(--dur-modal) both;
 }
 
 .lines {
@@ -129,11 +165,13 @@
     outline-offset: var(--border-width);
 }
 
+/* 움직이는 거리는 내용 영역의 위 끝까지다. 배너의 z-index가 탑바보다 높아서, 더 올라가면
+   자리를 잡기 전 몇 프레임 동안 탑바 위에 겹쳐 그려진다. 가로 가운데 정렬을 유지해야 해서
+   두 변환을 함께 쓴다. */
 @keyframes folder-progress-in {
     from {
         opacity: 0;
-        /* 화면 밖에서 내려온다. 가로 가운데 정렬을 유지해야 해서 두 변환을 함께 쓴다. */
-        transform: translateX(-50%) translateY(calc(-1 * var(--space-12)));
+        transform: translateX(-50%) translateY(calc(-1 * var(--space-3)));
     }
     to {
         opacity: 1;
@@ -148,13 +186,29 @@
     }
     to {
         opacity: 0;
-        transform: translateX(-50%) translateY(calc(-1 * var(--space-6)));
+        transform: translateX(-50%) translateY(calc(-1 * var(--space-3)));
     }
 }
 
 @keyframes folder-progress-icon {
     from { opacity: 0; transform: scale(.7); }
     to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes folder-progress-complete {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+@keyframes folder-progress-check {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes folder-progress-ring {
+    from { opacity: .7; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.6); }
 }
 
 @keyframes folder-progress-line {
@@ -180,6 +234,16 @@
     .name,
     .progress {
         animation: none;
+    }
+
+    .toast[data-complete='true'] .icon,
+    .complete-check path,
+    .complete-message {
+        animation: none;
+    }
+
+    .toast[data-complete='true'] .icon::after {
+        display: none;
     }
 
     .close { transition: none; }

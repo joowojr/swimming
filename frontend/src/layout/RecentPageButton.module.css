@@ -74,23 +74,6 @@
   color: var(--color-mute);
 }
 
-/* 세션이 도는 동안에는 앞쪽 아이콘이 계속 뛴다.
-   재촉이 아니라 켜져 있다는 신호라 느리고 얕게 잡는다. */
-.recent-page[data-live='true'] {
-  border-color: var(--color-primary-fixed-dim);
-}
-
-.recent-page[data-live='true'] .mark {
-  color: var(--color-on-primary);
-  background: var(--color-primary);
-  animation: live-pulse 1.8s var(--ease-in-out) infinite;
-}
-
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.18); }
-}
-
 .copy {
   display: grid;
   min-width: 0;
@@ -147,10 +130,6 @@
 
 
 @media (prefers-reduced-motion: reduce) {
-  .recent-page[data-live='true'] .mark {
-    animation: none;
-  }
-
   .recent-page,
   .reveal {
     transition: none;

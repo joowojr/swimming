@@ -52,13 +52,9 @@
     gap: var(--space-2) var(--space-3);
 }
 
-/* 달 이름이 먼저 자리를 차지하고, 이동 버튼과 토글은 오른쪽에 모인다. */
-.calendarHeader h2 {
-    flex: 1 1 auto;
-}
-
 .calendarNav {
-    margin-inline-start: auto;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .calendarHeader h2,
@@ -69,13 +65,22 @@
 
 .calendarHeader h2 {
     min-width: 0;
+    overflow: hidden;
     color: var(--color-primary);
     font-size: var(--text-body-lg-size);
     font-weight: var(--text-button-weight);
+    /* 주 범위처럼 긴 글이 줄바꿈되면 양옆 화살표의 높이가 따라 늘어난다. */
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .calendarNav {
     gap: var(--space-1);
+}
+
+/* 날짜와 화살표 사이만 한 칸 더 띄운다. 화살표가 글자에 닿아 보이지 않을 만큼만. */
+.calendarNav h2 {
+    padding-inline: var(--space-1);
 }
 
 /* 날짜 줄 안으로 들어왔다. 날짜 이동 버튼 오른쪽에 붙는다. */
@@ -266,23 +271,6 @@
     text-align: center;
 }
 
-.addTask {
-    /* 목록 아래, 오른쪽 끝. 목록이 짧아도 패널 바닥에 붙어 자리가 흔들리지 않는다. */
-    align-self: flex-end;
-    margin-top: auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--space-8);
-    height: var(--space-8);
-    min-height: 0;
-    padding: 0;
-    border: 0;
-    border-radius: var(--radius-full);
-    color: var(--color-on-primary);
-    background: var(--color-primary);
-}
-
 .state {
     display: grid;
     flex: 1;
@@ -334,19 +322,13 @@ span.task-title-editor.is-priority.is-urgent button::before {
 
 @media (hover: hover) and (pointer: fine) {
     .calendarNav button:hover,
-    .day:hover:not([data-selected='true']),
-    .addTask:hover {
+    .day:hover:not([data-selected='true']) {
         background: var(--color-surface-container-high);
-    }
-
-    .addTask:hover {
-        color: var(--color-primary);
     }
 }
 
 .calendarNav button:focus-visible,
 .day:focus-visible,
-.addTask:focus-visible,
 .state button:focus-visible {
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
     outline-offset: var(--space-1);

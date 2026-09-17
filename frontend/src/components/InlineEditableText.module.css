@@ -11,6 +11,39 @@
   justify-items: start;
 }
 
+.display-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--space-2);
+}
+
+.edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--space-5);
+  height: var(--space-5);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.edit-button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.edit-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
+}
+
 .display,
 .input {
   display: block;
@@ -35,6 +68,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: text;
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* task 제목처럼 폭이 좁은 카드 안에서 쓰는 보기 모드.
@@ -90,8 +130,31 @@
   text-decoration: none;
 }
 
+.editing-message {
+  display: block;
+  max-width: 100%;
+  margin-top: var(--space-1);
+  color: var(--color-mute);
+  font-family: var(--font-family-sans);
+  font-weight: var(--text-body-sm-weight);
+  font-size: var(--text-label-caps-size);
+  line-height: var(--text-label-caps-line-height);
+  overflow-wrap: anywhere;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .display:hover:not(:disabled) {
     background: var(--color-surface-soft);
+  }
+
+  .edit-button:hover:not(:disabled) {
+    background: var(--color-surface-container-high);
+  }
+}
+
+@media (pointer: coarse) {
+  .edit-button {
+    min-width: var(--button-height);
+    min-height: var(--button-height);
   }
 }

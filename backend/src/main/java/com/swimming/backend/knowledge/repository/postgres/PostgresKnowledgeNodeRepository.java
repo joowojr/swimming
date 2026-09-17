@@ -1,5 +1,7 @@
 package com.swimming.backend.knowledge.repository.postgres;
 
+import com.swimming.backend.common.exception.BusinessException;
+import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.repository.KnowledgeNodeRepository;
@@ -19,6 +21,13 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
 
     private final KnowledgeNodeJpaRepository jpaRepository;
     private final JdbcTemplate jdbcTemplate;
+
+    @Override
+    public void updateTitle(KnowledgeNode node) {
+        KnowledgeNodeEntity entity = jpaRepository.findByIdAndUserIdAndDeletedFalse(node.getId(), node.getUserId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND));
+        entity.updateTitle(node.getTitle(), node.getNormalizedTitle(), node.getTitleRenamedAt());
+    }
 
     @Override
     public KnowledgeNode create(KnowledgeNode node) {
@@ -113,7 +122,8 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
                         subject.getDescription(),
                         false,
                         resultSet.getTimestamp("created_at").toInstant(),
-                        resultSet.getTimestamp("updated_at").toInstant()
+                        resultSet.getTimestamp("updated_at").toInstant(),
+                        null
                 ),
                 subject.getId(),
                 subject.getUserId(),
@@ -155,6 +165,7 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
                 .userId(node.getUserId())
                 .nodeType(node.getNodeType())
                 .title(node.getTitle())
+                .titleRenamedAt(node.getTitleRenamedAt())
                 .normalizedTitle(node.getNormalizedTitle())
                 .description(node.getDescription())
                 .deleted(node.isDeleted())
@@ -170,7 +181,8 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
                 entity.getDescription(),
                 entity.isDeleted(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getTitleRenamedAt()
         );
     }
 }

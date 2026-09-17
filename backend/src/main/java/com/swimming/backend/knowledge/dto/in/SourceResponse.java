@@ -22,6 +22,7 @@ import java.util.UUID;
  * @param status    소화가 어디까지 갔는지. {@code COMPLETED}가 아니면 아래 세 값은 비어 있다
  * @param topic     {@code COMPLETED}면 반드시 하나 있다
  * @param subjects  최대 4개
+ * @param category  현재 소속 카테고리. 배정되지 않았거나 삭제된 카테고리면 null
  */
 public record SourceResponse(
         UUID sourceId,
@@ -37,7 +38,8 @@ public record SourceResponse(
         String summary,
         String content,
         NodeRef topic,
-        List<NodeRef> subjects
+        List<NodeRef> subjects,
+        NodeRef category
 ) {
 
     public static SourceResponse of(KnowledgeSource source, SourceConcepts concepts) {
@@ -57,7 +59,8 @@ public record SourceResponse(
                         ? source.getContent()
                         : null,
                 concepts.topic(),
-                concepts.subjects()
+                concepts.subjects(),
+                concepts.category()
         );
     }
 

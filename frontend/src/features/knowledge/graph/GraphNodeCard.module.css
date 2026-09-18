@@ -47,6 +47,17 @@
   min-width: 0;
 }
 
+.documentCount {
+  flex: 0 0 auto;
+  margin-left: var(--space-1);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-body-sm-weight);
+  line-height: var(--text-body-sm-line-height);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* 링크를 저장한 순서. 제목과 같은 줄에 두어 카드 높이를 늘리지 않는다. */
 .order {
   display: inline-flex;
@@ -99,6 +110,7 @@
 
 /* Subject: 여러 문서가 함께 가리키는 키워드. 이름만 있으면 되므로 칩이다. */
 .node[data-type='CATEGORY'] {
+  width: calc(var(--space-12) * 4 + var(--space-8));
   border-color: var(--color-tone-bay-leaf);
   background: var(--color-tone-bay-leaf-tint);
 }

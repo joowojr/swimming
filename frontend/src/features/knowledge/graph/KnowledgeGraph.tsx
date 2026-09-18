@@ -125,6 +125,16 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     [positionedNodes],
   )
   const nodeById = useMemo(() => new Map(graph?.nodes.map((node) => [node.nodeId, node]) ?? []), [graph])
+  const documentCountsByCategory = useMemo(() => {
+    const documentIds = new Map<string, Set<string>>()
+    for (const edge of graph?.edges ?? []) {
+      if (edge.kind !== 'CONTAINS' || nodeById.get(edge.to)?.type !== 'SOURCE') continue
+      const ids = documentIds.get(edge.from) ?? new Set<string>()
+      ids.add(edge.to)
+      documentIds.set(edge.from, ids)
+    }
+    return new Map([...documentIds].map(([id, ids]) => [id, ids.size]))
+  }, [graph, nodeById])
   const subjectIdsByTopic = useMemo(() => {
     const result = new Map<string, Set<string>>()
     for (const edge of graph?.edges ?? []) {
@@ -242,6 +252,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
             && !summaryIsHighlighted,
           sourceCard: sourcesById.get(node.nodeId),
           order: topicNumbers.get(node.nodeId),
+          documentCount: node.type === 'CATEGORY' ? documentCountsByCategory.get(node.nodeId) ?? 0 : undefined,
           axis: layout.axis,
           subjectSummary: subjectSummary !== undefined,
           onSaveTitle: node.type === 'CATEGORY' || node.type === 'TOPIC' ? saveNodeTitle : undefined,
@@ -326,7 +337,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
         style: selectedNodeId !== null && !edge.data?.active ? { opacity: 0.12 } : undefined,
       })),
     }
-  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById, saveNodeTitle, drawnEdges, topicNumbers, positionedNodes, positionedById, subjectIdsByTopic])
+  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById, saveNodeTitle, drawnEdges, topicNumbers, positionedNodes, positionedById, subjectIdsByTopic, documentCountsByCategory])
 
   const selectedNode = graph?.nodes.find((node) => node.nodeId === selectedNodeId)
     ?? (selectedNodeId === rootNodeId && graph

@@ -47,7 +47,7 @@ const SUBJECT_FIRST: GraphNodeType[] = ['SUBJECT', 'TOPIC', 'SOURCE', 'CATEGORY'
  */
 const GAPS: Record<LayoutAxis, { rank: number; sibling: number }> = {
   horizontal: { rank: 300, sibling: 96 },
-  vertical: { rank: 150, sibling: 210 },
+  vertical: { rank: 150, sibling: 260 },
 }
 
 const START = 40

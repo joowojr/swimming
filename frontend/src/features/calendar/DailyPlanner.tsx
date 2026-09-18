@@ -332,6 +332,8 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
                                         title={
                                             <InlineEditableText
                                                 wrap
+                                                showEditButton
+                                                displayClassName={styles['title-row']}
                                                 value={item.title}
                                                 ariaLabel={`${item.urgent ? '즉시 ' : ''}${item.priority ? '중요 ' : ''}Task 제목`}
                                                 maxLength={255}

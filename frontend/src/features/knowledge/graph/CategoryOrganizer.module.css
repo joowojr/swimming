@@ -255,7 +255,6 @@
 }
 
 .group-title-display {
-  flex-direction: row-reverse;
   gap: var(--space-1);
 }
 

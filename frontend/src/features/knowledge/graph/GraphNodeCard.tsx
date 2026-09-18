@@ -20,6 +20,8 @@ export type KnowledgeNodeData = {
   subjectSummary?: boolean
   /** TOPIC 노드에만. 링크를 저장한 순서다(topicOrder). */
   order?: number
+  /** CATEGORY 노드에 직접 포함된 문서 수. */
+  documentCount?: number
   onSaveTitle?: (nodeId: string, title: string) => Promise<void>
 } & Record<string, unknown>
 
@@ -30,7 +32,7 @@ export type KnowledgeFlowNode = Node<KnowledgeNodeData, 'knowledge'>
  * Subject는 여러 문서가 함께 가리키는 키워드라 칩, Topic은 문서 하나가 만든 주제라 카드다.
  */
 export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlowNode>) {
-  const { node, dimmed, sourceCard, axis, subjectSummary, order, onSaveTitle } = data
+  const { node, dimmed, sourceCard, axis, subjectSummary, order, documentCount, onSaveTitle } = data
   const incoming = axis === 'vertical' ? Position.Top : Position.Left
   const outgoing = axis === 'vertical' ? Position.Bottom : Position.Right
 
@@ -79,6 +81,11 @@ export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlo
               return apiError?.errors?.title ?? apiError?.message ?? '이름을 저장하지 못했어요. 다시 시도해 주세요.'
             }}
           />
+          {node.type === 'CATEGORY' && documentCount !== undefined && (
+            <span className={styles.documentCount} aria-label={`포함 문서 ${documentCount}개`}>
+              · {documentCount}개
+            </span>
+          )}
         </div>
       ) : <span className={styles.title}>
         {order !== undefined && (

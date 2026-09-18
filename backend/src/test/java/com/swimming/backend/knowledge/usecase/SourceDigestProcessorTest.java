@@ -1,4 +1,4 @@
-package com.swimming.backend.knowledge.service.llm;
+package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;

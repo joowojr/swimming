@@ -1,4 +1,4 @@
-package com.swimming.backend.knowledge.service.llm;
+package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -12,6 +12,7 @@ import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.graph.CategoryAssignmentService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

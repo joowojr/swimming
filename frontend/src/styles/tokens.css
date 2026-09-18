@@ -1,6 +1,7 @@
 /* Design tokens synchronized with docs/design.md structured frontmatter. */
 :root {
     --color-surface: #f7f4ed;
+    --color-surface-bright: #faf9f6;  /* Cowork Board 배경. 탑바·사이드바도 이 화면에서는 같은 색을 쓴다 */
     --color-surface-container-lowest: #ffffff;
     --color-surface-container-high: #ebe7e7;
     --color-surface-container-highest: #e5e2e1;

@@ -9,6 +9,7 @@ import DailyPlanner from '../calendar/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
 import type { FolderLoadStatus } from './folderTypes.ts'
 import TaskMatrix from '../tasks/TaskMatrix'
+import UpdateNoticeCard from '../updates/UpdateNoticeCard'
 import styles from './PinBoard.module.css'
 
 interface PinBoardProps {
@@ -123,6 +124,9 @@ export default function PinBoard({
           </div>
         )}
       </section>
+
+      {/* 배포마다 새 기능을 잠시 알린다. 왼쪽 아래 플로팅 독 옆에 떠 있어 자리를 차지하지 않는다. */}
+      <UpdateNoticeCard />
 
       {/*
       <aside className={styles['dashboard-aside']} aria-labelledby="upcoming-targets-title">

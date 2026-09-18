@@ -1,0 +1,201 @@
+/* 접힌 플로팅 독 옆에 배치하며, 펼쳐진 위젯은 카드 위에 표시한다. */
+.notice {
+  --dock-inset: var(--space-8);
+  --dock-item-size: calc(var(--space-12) + var(--space-2) * 2 + var(--border-width) * 2);
+  --notice-left: calc(var(--dock-inset) + var(--dock-item-size) + var(--space-3));
+
+  position: fixed;
+  left: var(--notice-left);
+  bottom: var(--dock-inset);
+  z-index: calc(var(--z-floating) - 1);
+  display: flex;
+  flex-direction: column;
+  width: min(20rem, calc(100% - var(--notice-left) - var(--dock-inset)));
+  max-height: calc(100dvh - var(--dock-inset) * 2 - var(--top-bar-height));
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-family: var(--font-family-sans);
+  letter-spacing: var(--text-label-caps-letter-spacing);
+  background: var(--color-surface-card);
+  box-shadow: none;
+  animation: notice-in var(--dur-short) var(--ease-out);
+}
+
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  color: var(--color-primary);
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  min-width: 0;
+  gap: var(--space-1) var(--space-2);
+}
+
+.date {
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-body-sm-weight);
+  line-height: var(--text-body-sm-line-height);
+  font-variant-numeric: tabular-nums;
+}
+
+.heading strong {
+  font-size: var(--text-body-md-size);
+  font-weight: var(--text-headline-md-weight);
+  line-height: var(--text-body-md-line-height);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.close {
+  display: inline-grid;
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 auto;
+  place-items: center;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--dur-micro), color var(--dur-micro);
+}
+
+.close:focus-visible,
+.confirm:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-width);
+}
+
+.items {
+  display: grid;
+  min-height: 0;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.item + .item {
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-ash);
+}
+
+.icon {
+  display: inline-grid;
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  background: transparent;
+}
+
+.itemContent {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.item strong {
+  display: block;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-headline-md-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.item p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.confirm {
+  width: auto;
+  min-height: var(--button-height);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: transparent;
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .close:hover {
+    background: var(--color-surface-container-high);
+  }
+
+  .confirm:hover:not(:disabled) {
+    border-color: transparent;
+    background: var(--color-surface-container-high);
+  }
+}
+
+@media (max-width: 48rem) {
+  .notice {
+    --dock-inset: var(--space-4);
+    --notice-left: var(--dock-inset);
+    /* 모바일에서는 세 개의 접힌 독 버튼 위로 올려 읽을 폭을 확보한다. */
+    bottom: calc(var(--dock-inset) + var(--dock-item-size) * 3 + var(--space-2) * 2 + var(--space-3));
+    max-height: calc(100dvh - var(--dock-inset) * 2 - var(--dock-item-size) * 3 - var(--space-2) * 2 - var(--space-3) - var(--top-bar-height));
+  }
+
+}
+
+@media (pointer: coarse) {
+  .close {
+    width: var(--button-height);
+    height: var(--button-height);
+  }
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice {
+    animation: none;
+  }
+
+  .close {
+    transition: none;
+  }
+}

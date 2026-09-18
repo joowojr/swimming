@@ -23,7 +23,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class NodeUseCaseTest {
 
@@ -38,6 +41,7 @@ class NodeUseCaseTest {
     private KnowledgeRelationService relationService;
 
     private NodeUseCase useCase;
+    private FolderService folderService;
 
     /** 개념을 지운 뒤 문서 카드에서 이름이 사라졌는지 확인할 때 쓴다. */
     private SourceQueryUseCase sourceQueryUseCase;
@@ -45,15 +49,16 @@ class NodeUseCaseTest {
     @BeforeEach
     void setUp() {
         sources = new InMemoryKnowledgeRepositories.Sources();
-        nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
+        nodes = new InMemoryKnowledgeRepositories.Nodes().withFolderGraph(sources, relations);
+        folderService = mock(FolderService.class);
 
         relationService = new KnowledgeRelationService(relations);
 
         KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
 
-        useCase = new NodeUseCase(nodeService, relationService, sourceService);
+        useCase = new NodeUseCase(nodeService, relationService, sourceService, folderService);
         sourceQueryUseCase = new SourceQueryUseCase(
                 mock(FolderService.class),
                 sourceService,
@@ -130,6 +135,27 @@ class NodeUseCaseTest {
                     .hasMessage(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE.getMessage());
             assertThat(nodes.findById(category.getId()).orElseThrow().getTitle()).isEqualTo("원래 이름");
             assertThat(nodes.findById(category.getId()).orElseThrow().getTitleRenamedAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("Category 이름 수정은 Replace·소화 중 배정과 같은 폴더 잠금을 잡는다")
+        void locksFolderWhenRenamingCategory() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "기존 분류");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+
+            useCase.updateTitle(USER_ID, category.getId(), "새 분류");
+
+            verify(folderService).lockOwned(USER_ID, FOLDER_ID);
+        }
+
+        @Test
+        @DisplayName("담긴 문서가 없는 Category는 어느 폴더에도 보이지 않으므로 잠금 없이 이름을 바꾼다")
+        void renamesCategoryWithoutSources() {
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "기존 분류");
+
+            assertThat(useCase.updateTitle(USER_ID, category.getId(), "새 분류").title()).isEqualTo("새 분류");
+            verify(folderService, never()).lockOwned(any(), any());
         }
 
         @Test

@@ -2,6 +2,7 @@ package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -19,13 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Subject·Topic 상세, Subject 삭제, Category·Topic 이름 수정을 조율한다.
@@ -46,6 +43,7 @@ public class NodeUseCase {
     private final KnowledgeNodeService nodeService;
     private final KnowledgeRelationService relationService;
     private final KnowledgeSourceService sourceService;
+    private final FolderService folderService;
 
     /** Category와 Topic의 제목만 변경한다. 같은 폴더의 Category 이름은 중복될 수 없다. */
     @Transactional(propagation = Propagation.REQUIRED)
@@ -59,29 +57,38 @@ public class NodeUseCase {
         return NodeRef.from(node);
     }
 
+    /**
+     * 같은 폴더의 살아 있는 Category와 정규화 이름이 겹치면 거절한다.
+     *
+     * <p>Replace·소화 중 배정과 같은 폴더 잠금을 잡는다. 잠그지 않으면 그 사이 같은 이름의
+     * Category가 생겨 중복이 저장될 수 있다. 담긴 Source가 없는 Category는 어느 폴더에서도
+     * 조회되지 않으므로 비교할 대상이 없다.
+     */
     private void validateCategoryTitle(Long userId, KnowledgeNode node) {
-        List<UUID> otherCategoryIds = nodeService.findCategoriesByNormalizedTitle(userId, node.getNormalizedTitle())
-                .stream().map(KnowledgeNode::getId).filter(id -> !id.equals(node.getId())).toList();
-        if (otherCategoryIds.isEmpty()) {
+        Optional<Long> folderId = folderOf(userId, node.getId());
+        if (folderId.isEmpty()) {
             return;
         }
-        List<UUID> categoryIds = new ArrayList<>(otherCategoryIds);
-        categoryIds.add(node.getId());
-        List<KnowledgeRelation> contains = relationService.findOutgoing(categoryIds, List.of(RelationType.CONTAINS));
-        Map<UUID, Long> folderBySourceId = sourceService.getOwnedAll(userId, contains.stream()
-                        .map(KnowledgeRelation::getToNodeId).distinct().toList())
-                .stream().collect(Collectors.toMap(KnowledgeSource::getId, KnowledgeSource::getFolderId));
-        Set<Long> nodeFolderIds = contains.stream()
-                .filter(relation -> relation.getFromNodeId().equals(node.getId()))
-                .map(relation -> folderBySourceId.get(relation.getToNodeId()))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        boolean duplicateInFolder = contains.stream()
-                .filter(relation -> !relation.getFromNodeId().equals(node.getId()))
-                .anyMatch(relation -> nodeFolderIds.contains(folderBySourceId.get(relation.getToNodeId())));
+
+        folderService.lockOwned(userId, folderId.get());
+        boolean duplicateInFolder = nodeService.findCategoriesInFolder(userId, folderId.get()).stream()
+                .anyMatch(other -> !other.getId().equals(node.getId())
+                        && other.getNormalizedTitle().equals(node.getNormalizedTitle()));
         if (duplicateInFolder) {
             throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
         }
+    }
+
+    /** Category의 폴더는 담긴 Source에서 파생한다. 한 Category의 Source는 모두 같은 폴더다. */
+    private Optional<Long> folderOf(Long userId, UUID categoryId) {
+        List<UUID> sourceIds = relationService.findOutgoing(List.of(categoryId), List.of(RelationType.CONTAINS))
+                .stream().map(KnowledgeRelation::getToNodeId).toList();
+        if (sourceIds.isEmpty()) {
+            return Optional.empty();
+        }
+        return sourceService.getOwnedAll(userId, sourceIds).stream()
+                .map(KnowledgeSource::getFolderId)
+                .findFirst();
     }
 
     /**

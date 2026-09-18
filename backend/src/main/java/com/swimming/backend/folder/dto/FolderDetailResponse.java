@@ -20,7 +20,8 @@ public record FolderDetailResponse(
         LocalDate targetDate,
         FolderStatus status,
         FolderTagResponse tag,
-        Instant pinnedAt
+        Instant pinnedAt,
+        long sourceCount
 ) {
     public static FolderDetailResponse from(Folder folder) {
         return new FolderDetailResponse(
@@ -32,7 +33,8 @@ public record FolderDetailResponse(
                 folder.getTag() == null
                         ? null
                         : FolderTagResponse.from(folder.getTag()),
-                folder.getPinnedAt()
+                folder.getPinnedAt(),
+                folder.getSourceCount()
         );
     }
 }

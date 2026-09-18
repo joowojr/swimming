@@ -154,6 +154,7 @@ export default function InlineEditableText({
         </>
       ) : showEditButton ? (
         <span className={`${styles['display-row']} ${displayClassName ?? ''}`}>
+          {display}
           <button
             type="button"
             className={styles['edit-button']}
@@ -163,7 +164,6 @@ export default function InlineEditableText({
           >
             <IconPencil size={12} stroke={1.8} aria-hidden="true" />
           </button>
-          {display}
         </span>
       ) : display}
       {error && (

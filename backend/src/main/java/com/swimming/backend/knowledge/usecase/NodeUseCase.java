@@ -2,6 +2,7 @@ package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -19,13 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Subject·Topic 상세, Subject 삭제, Category·Topic 이름 수정을 조율한다.
@@ -46,6 +43,7 @@ public class NodeUseCase {
     private final KnowledgeNodeService nodeService;
     private final KnowledgeRelationService relationService;
     private final KnowledgeSourceService sourceService;
+    private final FolderService folderService;
 
     /** Category와 Topic의 제목만 변경한다. 같은 폴더의 Category 이름은 중복될 수 없다. */
     @Transactional(propagation = Propagation.REQUIRED)
@@ -59,43 +57,53 @@ public class NodeUseCase {
         return NodeRef.from(node);
     }
 
+    /**
+     * 같은 폴더의 살아 있는 Category와 정규화 이름이 겹치면 거절한다.
+     *
+     * <p>Replace·소화 중 배정과 같은 폴더 잠금을 잡는다. 잠그지 않으면 그 사이 같은 이름의
+     * Category가 생겨 중복이 저장될 수 있다. 담긴 Source가 없는 Category는 어느 폴더에서도
+     * 조회되지 않으므로 비교할 대상이 없다.
+     */
     private void validateCategoryTitle(Long userId, KnowledgeNode node) {
-        List<UUID> otherCategoryIds = nodeService.findCategoriesByNormalizedTitle(userId, node.getNormalizedTitle())
-                .stream().map(KnowledgeNode::getId).filter(id -> !id.equals(node.getId())).toList();
-        if (otherCategoryIds.isEmpty()) {
+        Optional<Long> folderId = folderOf(userId, node.getId());
+        if (folderId.isEmpty()) {
             return;
         }
-        List<UUID> categoryIds = new ArrayList<>(otherCategoryIds);
-        categoryIds.add(node.getId());
-        List<KnowledgeRelation> contains = relationService.findOutgoing(categoryIds, List.of(RelationType.CONTAINS));
-        Map<UUID, Long> folderBySourceId = sourceService.getOwnedAll(userId, contains.stream()
-                        .map(KnowledgeRelation::getToNodeId).distinct().toList())
-                .stream().collect(Collectors.toMap(KnowledgeSource::getId, KnowledgeSource::getFolderId));
-        Set<Long> nodeFolderIds = contains.stream()
-                .filter(relation -> relation.getFromNodeId().equals(node.getId()))
-                .map(relation -> folderBySourceId.get(relation.getToNodeId()))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        boolean duplicateInFolder = contains.stream()
-                .filter(relation -> !relation.getFromNodeId().equals(node.getId()))
-                .anyMatch(relation -> nodeFolderIds.contains(folderBySourceId.get(relation.getToNodeId())));
+
+        folderService.lockOwned(userId, folderId.get());
+        boolean duplicateInFolder = nodeService.findCategoriesInFolder(userId, folderId.get()).stream()
+                .anyMatch(other -> !other.getId().equals(node.getId())
+                        && other.getNormalizedTitle().equals(node.getNormalizedTitle()));
         if (duplicateInFolder) {
             throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
         }
     }
 
+    /** Category의 폴더는 담긴 Source에서 파생한다. 한 Category의 Source는 모두 같은 폴더다. */
+    private Optional<Long> folderOf(Long userId, UUID categoryId) {
+        List<UUID> sourceIds = relationService.findOutgoing(List.of(categoryId), List.of(RelationType.CONTAINS))
+                .stream().map(KnowledgeRelation::getToNodeId).toList();
+        if (sourceIds.isEmpty()) {
+            return Optional.empty();
+        }
+        return sourceService.getOwnedAll(userId, sourceIds).stream()
+                .map(KnowledgeSource::getFolderId)
+                .findFirst();
+    }
+
     /**
-     * Subject와 Topic Detail. 노드 하나에 걸린 문서와 개념을 모은다.
+     * Subject·Topic·Category Detail. 노드 하나에 걸린 문서와 개념을 모은다.
      *
-     * <p>문서는 어느 쪽이든 역방향 한 번으로 읽는다. {@code ABOUT}은 Subject를,
+     * <p>Subject·Topic의 문서는 역방향 한 번으로 읽는다. {@code ABOUT}은 Subject를,
      * {@code SUPPORTS}는 Topic을 가리키므로 두 관계를 함께 물어도 결과가 섞이지 않는다.
+     * Category는 {@code CONTAINS}로 문서를 가리키므로 정방향으로 읽는다.
      */
     public NodeDetailResponse get(Long userId, UUID nodeId) {
         KnowledgeNode node = requireConceptNode(nodeService.getOwned(nodeId, userId));
 
         return NodeDetailResponse.of(
                 node,
-                sourcesOf(nodeId),
+                sourcesOf(node),
                 node.getNodeType() == NodeType.SUBJECT ? topicsOf(nodeId) : List.of(),
                 node.getNodeType() == NodeType.TOPIC ? subjectsOf(nodeId) : List.of()
         );
@@ -116,6 +124,11 @@ public class NodeUseCase {
         if (node.getNodeType() == NodeType.TOPIC) {
             throw new BusinessException(ErrorCode.KNOWLEDGE_TOPIC_NOT_DELETABLE);
         }
+        // Category는 폴더 구성의 일부라 Replace로만 바뀐다. 하나만 지우면 담긴 Source가
+        // 미분류로 남는데, 구성이 생긴 뒤의 미분류는 정상 상태가 아니다.
+        if (node.getNodeType() == NodeType.CATEGORY) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_NOT_DELETABLE);
+        }
         node.delete();
         nodeService.delete(node);
     }
@@ -129,10 +142,13 @@ public class NodeUseCase {
     }
 
     /** @return 최근 순. Topic이면 항상 한 개다 */
-    private List<NodeDetailResponse.SourceRef> sourcesOf(UUID nodeId) {
-        List<UUID> sourceIds = fromNodeIds(
-                relationService.findIncoming(List.of(nodeId), FROM_SOURCE)
-        );
+    private List<NodeDetailResponse.SourceRef> sourcesOf(KnowledgeNode node) {
+        List<UUID> sourceIds = node.getNodeType() == NodeType.CATEGORY
+                ? relationService.findOutgoing(List.of(node.getId()), List.of(RelationType.CONTAINS)).stream()
+                        .map(KnowledgeRelation::getToNodeId)
+                        .distinct()
+                        .toList()
+                : fromNodeIds(relationService.findIncoming(List.of(node.getId()), FROM_SOURCE));
 
         return sourceService.findAllByIds(sourceIds).stream()
                 .sorted(Comparator

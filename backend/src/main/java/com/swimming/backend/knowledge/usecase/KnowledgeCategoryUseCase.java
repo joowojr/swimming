@@ -4,18 +4,8 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
-import com.swimming.backend.knowledge.domain.KnowledgeNode;
-import com.swimming.backend.knowledge.domain.KnowledgeRelation;
-import com.swimming.backend.knowledge.domain.KnowledgeSource;
-import com.swimming.backend.knowledge.domain.NodeTitleNormalizer;
-import com.swimming.backend.knowledge.domain.NodeType;
-import com.swimming.backend.knowledge.domain.RelationOrigin;
-import com.swimming.backend.knowledge.domain.RelationType;
-import com.swimming.backend.knowledge.dto.in.CategoryPreviewResponse;
-import com.swimming.backend.knowledge.dto.in.CategoryReplaceRequest;
-import com.swimming.backend.knowledge.dto.in.CategoryReplaceResponse;
-import com.swimming.backend.knowledge.dto.in.NodeRef;
-import com.swimming.backend.knowledge.dto.in.SourceConcepts;
+import com.swimming.backend.knowledge.domain.*;
+import com.swimming.backend.knowledge.dto.in.*;
 import com.swimming.backend.knowledge.dto.out.CategorySuggestionInput;
 import com.swimming.backend.knowledge.dto.out.CategorySuggestionResult;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
@@ -29,14 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -109,7 +92,7 @@ public class KnowledgeCategoryUseCase {
             Long folderId,
             CategoryReplaceRequest request
     ) {
-        folderService.getReference(userId, folderId);
+        folderService.lockOwned(userId, folderId);
         validateAssignment(request.categories());
 
         Set<UUID> requestedSourceIds = flattenSourceIds(request.categories());
@@ -250,25 +233,6 @@ public class KnowledgeCategoryUseCase {
      * {@link KnowledgeNodeService#findAllByIds}에서 빠진다.
      */
     private List<KnowledgeNode> aliveCategoriesInFolder(Long userId, Long folderId) {
-        List<UUID> sourceNodeIds = sourceService.findAliveNodeIdsInFolder(userId, folderId);
-        if (sourceNodeIds.isEmpty()) {
-            return List.of();
-        }
-
-        List<KnowledgeRelation> contains = relationService.findIncoming(
-                sourceNodeIds,
-                List.of(RelationType.CONTAINS)
-        );
-        if (contains.isEmpty()) {
-            return List.of();
-        }
-
-        Set<UUID> categoryIds = contains.stream()
-                .map(KnowledgeRelation::getFromNodeId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        return nodeService.findAllByIds(categoryIds).stream()
-                .filter(node -> node.getNodeType() == NodeType.CATEGORY)
-                .toList();
+        return nodeService.findCategoriesInFolder(userId, folderId);
     }
 }

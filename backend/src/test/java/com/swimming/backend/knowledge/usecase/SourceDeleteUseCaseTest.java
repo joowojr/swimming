@@ -63,7 +63,7 @@ class SourceDeleteUseCaseTest {
         useCase = new SourceDeleteUseCase(sourceService, nodeService, relationService, folderService);
         listUseCase = new SourceQueryUseCase(folderService, sourceService, conceptReader);
         detailUseCase = listUseCase;
-        nodeDetailUseCase = new NodeUseCase(nodeService, relationService, sourceService);
+        nodeDetailUseCase = new NodeUseCase(nodeService, relationService, sourceService, mock(FolderService.class));
         graphUseCase = new KnowledgeGraphUseCase(
                 folderService,
                 sourceService,

@@ -71,6 +71,7 @@ public enum ErrorCode {
     INVALID_KNOWLEDGE_BRANCH(HttpStatus.BAD_REQUEST, "지식 구조의 연결이 올바르지 않습니다"),
     INVALID_GRAPH_DEPTH(HttpStatus.BAD_REQUEST, "그래프 확장 단계가 올바르지 않습니다"),
     KNOWLEDGE_TOPIC_NOT_DELETABLE(HttpStatus.CONFLICT, "목적은 문서를 삭제하면 함께 사라집니다"),
+    KNOWLEDGE_CATEGORY_NOT_DELETABLE(HttpStatus.CONFLICT, "묶음은 폴더의 묶음 구성을 다시 정하면 사라집니다"),
     KNOWLEDGE_SOURCE_NOT_RETRYABLE(HttpStatus.CONFLICT, "본문 수집을 마치고 정리에 실패한 링크만 다시 분석할 수 있습니다"),
     KNOWLEDGE_CATEGORY_SOURCE_COUNT_INSUFFICIENT(
             HttpStatus.CONFLICT,

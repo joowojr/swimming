@@ -32,6 +32,11 @@ spring:
       # spring.config.import 로 끌어다 쓰고, 그 파일이 유일한 출처가 된다.
 
 app:
+  typesafe:
+    base-url: https://api.typesafe.ai
+    api-key: ${TYPESAFE_API_KEY:}
+    connect-timeout: 3s
+    response-timeout: 30s
   calendar:
     holiday:
       kasi:

@@ -21,9 +21,9 @@ import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.CategoryAssignmentService;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
-import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 class SourceCollectUseCaseTest {
 
@@ -94,8 +95,10 @@ class SourceCollectUseCaseTest {
                             resolutionService,
                             new SourceGraphWriter(
                                     nodeService,
-                                    new KnowledgeRelationService(relations)
-                            )
+                                    new KnowledgeRelationService(relations),
+                                    mock(FolderService.class)
+                            ),
+                            mock(CategoryAssignmentService.class)
                     ),
                     new SourceGraphReader(relations, nodes)
             );
@@ -401,7 +404,8 @@ class SourceCollectUseCaseTest {
                     nodeService,
                     digestService,
                     mock(NodeResolutionService.class),
-                    mock(SourceGraphWriter.class)
+                    mock(SourceGraphWriter.class),
+                    mock(CategoryAssignmentService.class)
             );
             useCase = new SourceCollectUseCase(
                     mock(SourceFetchDispatcher.class),

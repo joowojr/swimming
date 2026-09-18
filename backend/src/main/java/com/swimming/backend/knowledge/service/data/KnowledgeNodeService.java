@@ -30,8 +30,8 @@ public class KnowledgeNodeService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<KnowledgeNode> findCategoriesByNormalizedTitle(Long userId, String normalizedTitle) {
-        return nodeRepository.findAllByNormalizedTitles(userId, NodeType.CATEGORY, List.of(normalizedTitle));
+    public List<KnowledgeNode> findCategoriesInFolder(Long userId, Long folderId) {
+        return nodeRepository.findCategoriesInFolder(userId, folderId);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

@@ -32,6 +32,7 @@ app:
 logging:
   level:
     org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: DEBUG
+    com.swimming.backend.common.client.TypeSafeClient: DEBUG
     com.swimming.backend.knowledge.service: debug
     com.swimming.backend.knowledge.service.crawl.WebFetchService: DEBUG
     com.swimming.backend.calendar.service: debug

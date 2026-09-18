@@ -1,4 +1,4 @@
-package com.swimming.backend.knowledge.experiment;
+package com.swimming.backend.knowledge.benchmark;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

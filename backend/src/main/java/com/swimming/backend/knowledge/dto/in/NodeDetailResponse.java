@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Subject와 Topic Detail. 노드 하나와, 그 노드에 걸린 문서·개념이다.
+ * Subject·Topic·Category Detail. 노드 하나와, 그 노드에 걸린 문서·개념이다.
  *
  * <p>둘이 한 모양을 쓰는 이유는 화면이 같기 때문이다. 어느 쪽이 채워지는지만 다르다.
  *
@@ -17,6 +17,7 @@ import java.util.UUID;
  *   <tr><th>type</th><th>sources</th><th>topics</th><th>subjects</th></tr>
  *   <tr><td>SUBJECT</td><td>이 개념을 다루는 문서(N개)</td><td>이 개념이 걸리는 목적</td><td>비어 있음</td></tr>
  *   <tr><td>TOPIC</td><td>이 목적을 설명하는 문서(항상 1개)</td><td>비어 있음</td><td>이 목적이 걸치는 개념</td></tr>
+ *   <tr><td>CATEGORY</td><td>이 묶음에 담긴 문서(N개)</td><td>비어 있음</td><td>비어 있음</td></tr>
  * </table>
  *
  * <p>Topic의 {@code sources}가 항상 1개인 것은 Topic을 Source마다 새로 만들고 재사용

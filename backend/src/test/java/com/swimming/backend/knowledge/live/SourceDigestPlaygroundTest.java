@@ -32,12 +32,13 @@ import com.swimming.backend.knowledge.service.crawl.WebFetchService;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.CategoryAssignmentService;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.DigestContextTrimmer;
-import com.swimming.backend.knowledge.service.llm.SourceDigestProcessor;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
+import com.swimming.backend.knowledge.usecase.SourceDigestProcessor;
 import com.swimming.backend.knowledge.usecase.SourceCollectUseCase;
 import com.swimming.backend.folder.service.FolderService;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -146,8 +147,10 @@ class SourceDigestPlaygroundTest {
                 resolutionService,
                 new SourceGraphWriter(
                         nodeService,
-                        new KnowledgeRelationService(relations)
-                )
+                        new KnowledgeRelationService(relations),
+                        mock(FolderService.class)
+                ),
+                mock(CategoryAssignmentService.class)
         );
         var collectUseCase = new SourceCollectUseCase(
                 fetchService(),

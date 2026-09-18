@@ -68,6 +68,12 @@ public class PostgresKnowledgeNodeRepository implements KnowledgeNodeRepository 
     }
 
     @Override
+    public List<KnowledgeNode> findCategoriesInFolder(Long userId, Long folderId) {
+        return jpaRepository.findCategoriesInFolder(userId, folderId).stream()
+                .map(PostgresKnowledgeNodeRepository::toDomain).toList();
+    }
+
+    @Override
     public List<KnowledgeNode> findAllByUserIdAndNodeType(Long userId, NodeType nodeType) {
         return jpaRepository.findAllByUserIdAndNodeTypeAndDeletedFalseOrderByCreatedAtDesc(userId, nodeType)
                 .stream()

@@ -1,0 +1,145 @@
+.dialog {
+  width: min(calc(100% - var(--space-8)), var(--category-confirm-modal-width));
+  height: fit-content;
+  color: var(--color-primary);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-md-size);
+  font-weight: var(--text-body-md-weight);
+  line-height: var(--text-body-md-line-height);
+  animation: modal-enter var(--dur-modal) var(--ease-out);
+}
+
+.dialog::backdrop {
+  animation: backdrop-enter var(--dur-modal) var(--ease-out);
+}
+
+.surface {
+  width: 100%;
+  box-shadow: var(--shadow-floating);
+}
+
+.surface .header {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: calc(var(--space-10) + var(--space-1));
+  height: calc(var(--space-10) + var(--space-1));
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--transition-short), background-color var(--transition-short);
+}
+
+.close:focus-visible {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+}
+
+.close:active {
+  background: var(--color-surface-container-highest);
+  transform: translateY(var(--border-width));
+}
+
+.body {
+  display: grid;
+  min-height: 0;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+.question {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-md-line-height);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.question strong {
+  font-weight: var(--text-button-weight);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+
+.confirm {
+  width: 100%;
+  min-height: unset;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-full);
+  font-size: var(--text-body-md-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-md-line-height);
+  transition: background-color var(--transition-short), transform var(--dur-micro) var(--ease-out);
+}
+
+.confirm:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.cancel {
+  min-height: var(--space-10);
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .close:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-container-high);
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog,
+  .dialog::backdrop {
+    animation: none;
+  }
+
+  .close,
+  .confirm {
+    transition: none;
+  }
+}

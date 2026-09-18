@@ -29,6 +29,24 @@
   -webkit-line-clamp: 2;
 }
 
+.editableTitle {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.editableTitle .order {
+  flex: 0 0 auto;
+}
+
+.editor {
+  flex: 1;
+  min-width: 0;
+}
+
 /* 링크를 저장한 순서. 제목과 같은 줄에 두어 카드 높이를 늘리지 않는다. */
 .order {
   display: inline-flex;
@@ -101,6 +119,7 @@
 
 /* Topic: 문서 하나가 만든 적용 주제. Subject와 성격이 달라 톤으로 가른다. */
 .node[data-type='TOPIC'] {
+  width: calc(var(--space-12) * 4);
   border-color: var(--color-tone-indigo-tint);
   background: var(--color-tone-indigo-tint);
 }

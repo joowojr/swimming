@@ -4,6 +4,8 @@ import type { LayoutAxis } from './graphLayout'
 import type { GraphNode } from './graphTypes'
 import { sourceMark } from '../sourceIcon'
 import type { SourceCard } from '../knowledgeTypes'
+import type { ApiError } from '../../../api/client'
+import InlineEditableText from '../../../components/InlineEditableText'
 import styles from './GraphNodeCard.module.css'
 
 export type KnowledgeNodeData = {
@@ -18,6 +20,7 @@ export type KnowledgeNodeData = {
   subjectSummary?: boolean
   /** TOPIC 노드에만. 링크를 저장한 순서다(topicOrder). */
   order?: number
+  onSaveTitle?: (nodeId: string, title: string) => Promise<void>
 } & Record<string, unknown>
 
 export type KnowledgeFlowNode = Node<KnowledgeNodeData, 'knowledge'>
@@ -27,7 +30,7 @@ export type KnowledgeFlowNode = Node<KnowledgeNodeData, 'knowledge'>
  * Subject는 여러 문서가 함께 가리키는 키워드라 칩, Topic은 문서 하나가 만든 주제라 카드다.
  */
 export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlowNode>) {
-  const { node, dimmed, sourceCard, axis, subjectSummary, order } = data
+  const { node, dimmed, sourceCard, axis, subjectSummary, order, onSaveTitle } = data
   const incoming = axis === 'vertical' ? Position.Top : Position.Left
   const outgoing = axis === 'vertical' ? Position.Bottom : Position.Right
 
@@ -40,7 +43,36 @@ export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlo
       data-subject-summary={subjectSummary || undefined}
     >
       <Handle className={styles.handle} type="target" position={incoming} isConnectable={false} />
-      <span className={styles.title}>
+      {onSaveTitle && (node.type === 'CATEGORY' || node.type === 'TOPIC') ? (
+        <div
+          className={`${styles.editableTitle} nodrag nopan nowheel`}
+          onClick={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          {order !== undefined && (
+            <span className={styles.order}>
+              <span className="sr-only">저장 순서 </span>
+              {order}
+            </span>
+          )}
+          <InlineEditableText
+            className={styles.editor}
+            value={node.title}
+            ariaLabel={node.type === 'CATEGORY' ? '카테고리 이름' : '주제 이름'}
+            requiredMessage="이름을 입력해 주세요."
+            maxLength={500}
+            wrap
+            showEditButton
+            onSave={(title) => onSaveTitle(node.nodeId, title)}
+            getErrorMessage={(error: unknown) => {
+              const apiError = typeof error === 'object' && error !== null ? error as ApiError : null
+              return apiError?.errors?.title ?? apiError?.message ?? '이름을 저장하지 못했어요. 다시 시도해 주세요.'
+            }}
+          />
+        </div>
+      ) : <span className={styles.title}>
         {order !== undefined && (
           <span className={styles.order}>
             <span className="sr-only">저장 순서 </span>
@@ -48,7 +80,7 @@ export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlo
           </span>
         )}
         {node.title}
-      </span>
+      </span>}
       {node.type === 'SOURCE' && (
         <span className={styles.origin}>
           {sourceMark(sourceCard?.domain ?? null, 15, styles.mark)}

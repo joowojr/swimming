@@ -379,7 +379,7 @@ export default function CategoryOrganizer({
           </div>
           <p className={styles.state}>{LOADING_MESSAGES[state.messageIndex]}</p>
           <div className={styles['draft-skeletons']} aria-hidden="true">
-            {[0, 1, 2].map((index) => <div key={index} className={styles['draft-skeleton']}><span /><span /><span /></div>)}
+            {[0, 1].map((index) => <div key={index} className={styles['draft-skeleton']}><span /><span /><span /></div>)}
           </div>
           <p className={styles['draft-note']}>카테고리 초안은 확정 전까지 저장되지 않아요.</p>
         </div>

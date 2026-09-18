@@ -67,6 +67,23 @@ public class KnowledgeRelationService {
                 .toList());
     }
 
+    /**
+     * 이 노드들에서 나가는 같은 타입의 관계를 모두 끊는다.
+     *
+     * <p>노드를 지우는 것만으로는 간선이 남는다. 조회가 지운 노드를 걸러 주므로 화면에는
+     * 드러나지 않지만, 사라진 묶음의 간선이 행으로 남아 있을 이유가 없다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public int disconnectAllFrom(Collection<UUID> fromNodeIds, RelationType relationType) {
+        return relationRepository.deleteAllFrom(fromNodeIds, relationType);
+    }
+
+    /** 소유권과 현재 소속을 확인한 문서 한 건의 카테고리 연결을 끊는다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void disconnect(UUID fromNodeId, UUID toNodeId, RelationType relationType) {
+        relationRepository.delete(fromNodeId, toNodeId, relationType);
+    }
+
     /** 이 노드들에서 나가는 관계. Source가 다루는 개념처럼 정방향으로 읽는다. */
     @Transactional(
             propagation = Propagation.REQUIRED,

@@ -12,6 +12,7 @@ import com.swimming.backend.knowledge.dto.out.SourceFetchResult;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
 import com.swimming.backend.knowledge.service.crawl.SourceFetchDispatcher;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class SourceCollectUseCase {
 
     private final SourceDigestProcessor digestProcessor;
     private final SourceGraphReader conceptReader;
+    private final SourceGraphWriter graphWriter;
 
     /**
      * Folder에 링크를 저장한다. 본문을 가져오는 것부터 AI 소화까지 여기서 끝난다.
@@ -86,12 +88,6 @@ public class SourceCollectUseCase {
         List<Saved> saved = new ArrayList<>(fetched.size());
         for (SourceFetchResult result : fetched) {
             saved.add(saveSourceGraph(userId, folderId, result, existingSources));
-        }
-
-        // 새로 만들었거나 이미 있었거나, 어느 쪽이든 이 Folder에 링크가 있다는 뜻이다.
-        // 중복 판정이 Folder 안만 보므로 ALREADY_SAVED도 이 Folder의 링크를 가리킨다.
-        if (saved.stream().anyMatch(item -> item.result() != SourceCollectResponse.Result.FAILED)) {
-            folderService.updateHasSource(userId, folderId, true);
         }
 
         return new SourceCollectResponse(toItems(userId, saved));
@@ -154,8 +150,15 @@ public class SourceCollectUseCase {
             );
         }
 
-        KnowledgeSource created = sourceService.save(toSource(userId, folderId, document));
+        KnowledgeSource candidate = toSource(userId, folderId, document);
+        KnowledgeSource created = graphWriter.saveSourceInTransaction(candidate);
         existingSources.put(document.canonicalUrl(), created);
+
+        // 폴더 잠금 아래 재확인한 중복은 다시 소화하지 않는다.
+        if (!created.getId().equals(candidate.getId())) {
+            return new Saved(result.requestedUrl(), SourceCollectResponse.Result.ALREADY_SAVED,
+                    created.getId(), null, false);
+        }
 
         // 소화가 실패해도 예외를 던지지 않는다. 상태만 남고 원문은 그대로 있다.
         digestProcessor.digest(userId, created.getId());

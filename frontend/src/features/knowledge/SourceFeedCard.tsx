@@ -11,11 +11,12 @@ import type { ApiError } from '../../api/client'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import InlineEditableText from '../../components/InlineEditableText'
-import { deleteSource, markSourceRead, markSourceUnread, retrySource, updateNodeTitle } from './knowledgeApi'
+import { deleteSource, markSourceRead, markSourceUnread, retrySource } from './knowledgeApi'
 import { SOURCE_STATUS_LABEL, sourceFailureMessage } from './knowledgeLabels'
 import { sourceMark } from './sourceIcon'
 import { formatSavedAt } from './sourceTime'
 import type { NodeRef, SourceCard, SourceDeleteResponse } from './knowledgeTypes'
+import { useCategoryMergeGuard } from './useCategoryMergeGuard'
 import styles from './SourceFeedCard.module.css'
 
 interface SourceFeedCardProps {
@@ -25,7 +26,8 @@ interface SourceFeedCardProps {
   /** 읽음 표시가 바뀌었음을 목록에 알린다. 목록이 카드 상태의 주인이다. */
   onReadChanged: (sourceId: string, readAt: string | null) => void
   /** 같은 노드를 참조하는 카드에도 저장한 이름을 반영한다. */
-  onNodeTitleChanged: (node: NodeRef) => void
+  /** 합쳐지면 node.nodeId가 previousNodeId와 달라진다. 가리키던 것을 옮겨 달라는 뜻이다. */
+  onNodeTitleChanged: (previousNodeId: string, node: NodeRef, sourceId?: string) => void
 }
 
 function isDigesting(source: SourceCard) {
@@ -52,6 +54,7 @@ export default function SourceFeedCard({
   const [retryError, setRetryError] = useState<string | null>(null)
   const [isTogglingRead, setIsTogglingRead] = useState(false)
   const [readError, setReadError] = useState<string | null>(null)
+  const { saveTitle, dialog: categoryMergeDialog } = useCategoryMergeGuard('source')
   const isRead = source.readAt !== null
   const subjects = source.subjects ?? []
   const { topic, category } = source
@@ -61,8 +64,10 @@ export default function SourceFeedCard({
     : source.summary
 
   const saveNodeTitle = async (nodeId: string, title: string) => {
-    const updated = await updateNodeTitle(nodeId, title)
-    onNodeTitleChanged(updated)
+    const sourceId = nodeId === category?.nodeId ? source.sourceId : undefined
+    const updated = await saveTitle(nodeId, title, sourceId)
+    if (!updated) return
+    onNodeTitleChanged(nodeId, updated, updated.nodeId !== nodeId ? sourceId : undefined)
   }
 
   const titleErrorMessage = (error: unknown) => {
@@ -224,7 +229,7 @@ export default function SourceFeedCard({
                 requiredMessage="카테고리 이름을 입력해 주세요"
                 maxLength={500}
                 showEditButton
-                editingMessage="연결된 모든 지식의 카테고리가 함께 수정됩니다."
+                tooltipMessage="같은 이름이 있으면 이 문서만 옮기고, 없으면 카테고리 이름을 수정합니다."
                 displayClassName={styles['category-badge']}
                 wrap
                 disabled={isDeleting}
@@ -293,6 +298,8 @@ export default function SourceFeedCard({
           ))}
         </div>
       )}
+
+      {categoryMergeDialog}
     </article>
   )
 }

@@ -11,6 +11,26 @@
   justify-items: start;
 }
 
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(24rem, calc(100vw - 2 * var(--space-4)));
+  left: clamp(var(--space-4), var(--tooltip-left), calc(100vw - min(24rem, 100vw - 2 * var(--space-4)) - var(--space-4)));
+  top: min(calc(var(--tooltip-top) + var(--space-2)), calc(100dvh - 6rem));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  box-shadow: var(--shadow-floating);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-body-sm-weight);
+  line-height: var(--text-body-sm-line-height);
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
 .display-row {
   display: flex;
   align-items: center;
@@ -128,18 +148,6 @@
   letter-spacing: normal;
   line-height: var(--text-body-sm-line-height);
   text-decoration: none;
-}
-
-.editing-message {
-  display: block;
-  max-width: 100%;
-  margin-top: var(--space-1);
-  color: var(--color-mute);
-  font-family: var(--font-family-sans);
-  font-weight: var(--text-body-sm-weight);
-  font-size: var(--text-label-caps-size);
-  line-height: var(--text-label-caps-line-height);
-  overflow-wrap: anywhere;
 }
 
 @media (hover: hover) and (pointer: fine) {

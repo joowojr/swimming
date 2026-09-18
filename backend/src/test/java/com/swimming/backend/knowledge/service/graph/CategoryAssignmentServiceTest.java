@@ -29,6 +29,7 @@ class CategoryAssignmentServiceTest {
 
     private final KnowledgeNode mcp = KnowledgeNode.create(USER_ID, NodeType.CATEGORY, "MCP 서버 구현", null);
 
+    private com.swimming.backend.folder.service.FolderService folderService;
     private KnowledgeNodeService nodeService;
     private CategoryAssignmentDecider decider;
     private SourceGraphWriter graphWriter;
@@ -39,7 +40,9 @@ class CategoryAssignmentServiceTest {
         nodeService = mock(KnowledgeNodeService.class);
         decider = mock(CategoryAssignmentDecider.class);
         graphWriter = mock(SourceGraphWriter.class);
-        service = new CategoryAssignmentService(nodeService, decider, graphWriter);
+        folderService = mock(com.swimming.backend.folder.service.FolderService.class);
+        when(folderService.getSourceCount(USER_ID, FOLDER_ID)).thenReturn(6L);
+        service = new CategoryAssignmentService(folderService, nodeService, decider, graphWriter);
         when(nodeService.findCategoriesInFolder(USER_ID, FOLDER_ID)).thenReturn(List.of(mcp));
     }
 
@@ -101,4 +104,12 @@ class CategoryAssignmentServiceTest {
         verify(decider, never()).decide(any());
         verify(graphWriter, never()).createCategoryAssignmentInTransaction(any(), any());
     }
+    @Test
+    void 링크가_5개면_판정과_저장을_건너뛴다() {
+        when(folderService.getSourceCount(USER_ID, FOLDER_ID)).thenReturn(5L);
+        service.assign(completedSource(), digest("WAL 정리"));
+        verify(decider, never()).decide(any());
+        verify(graphWriter, never()).createCategoryAssignmentInTransaction(any(), any());
+    }
+
 }

@@ -35,6 +35,7 @@ export interface FolderDetail {
   status: FolderStatus
   tag: FolderTag | null
   pinnedAt: string | null
+  sourceCount: number
 }
 
 export interface CreateFolderRequest {

@@ -78,11 +78,12 @@ class SourceDigestProcessorTest {
         graphWriter = new SourceGraphWriter(
                 new KnowledgeNodeService(nodes),
                 new KnowledgeRelationService(relations),
-                mock(FolderService.class)
+                mock(FolderService.class),
+                new com.swimming.backend.knowledge.service.data.KnowledgeSourceService(sources, mock(FolderService.class))
         );
 
         useCase = new SourceDigestProcessor(
-                new KnowledgeSourceService(sources),
+                new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)),
                 new KnowledgeNodeService(nodes),
                 digestService,
                 nodeResolutionService,
@@ -299,7 +300,7 @@ class SourceDigestProcessorTest {
         SourceGraphWriter failing = mock(SourceGraphWriter.class);
         doThrow(new RuntimeException("db down")).when(failing).createDigestGraphInTransaction(any(), any(), any());
         useCase = new SourceDigestProcessor(
-                new KnowledgeSourceService(sources),
+                new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)),
                 new KnowledgeNodeService(nodes),
                 digestService,
                 nodeResolutionService,

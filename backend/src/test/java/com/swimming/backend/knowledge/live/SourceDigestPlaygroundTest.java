@@ -125,7 +125,7 @@ class SourceDigestPlaygroundTest {
         var sources = new InMemoryKnowledgeRepositories.Sources();
         var nodes = new InMemoryKnowledgeRepositories.Nodes();
         var relations = new InMemoryKnowledgeRepositories.Relations();
-        var sourceService = new KnowledgeSourceService(sources);
+        var sourceService = new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class));
         var nodeService = new KnowledgeNodeService(nodes);
         var resolutionService = mock(NodeResolutionService.class);
         when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
@@ -148,17 +148,22 @@ class SourceDigestPlaygroundTest {
                 new SourceGraphWriter(
                         nodeService,
                         new KnowledgeRelationService(relations),
-                        mock(FolderService.class)
+                        mock(FolderService.class),
+                        new com.swimming.backend.knowledge.service.data.KnowledgeSourceService(sources, mock(FolderService.class))
                 ),
                 mock(CategoryAssignmentService.class)
         );
+        FolderService collectionFolderService = mock(FolderService.class);
+        when(collectionFolderService.lockOwned(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong()))
+                .thenAnswer(invocation -> com.swimming.backend.folder.domain.Folder.create(invocation.getArgument(0), null, "폴더", "", null));
         var collectUseCase = new SourceCollectUseCase(
                 fetchService(),
-                mock(FolderService.class),
+                collectionFolderService,
                 sourceService,
                 digestUseCase,
-                new SourceGraphReader(relations, nodes)
-        );
+                new SourceGraphReader(relations, nodes),
+                    new SourceGraphWriter(new KnowledgeNodeService(nodes), new KnowledgeRelationService(relations), collectionFolderService, sourceService)
+            );
 
         System.out.printf("%n모델: %s (%s) | 링크 %d개%n", model, provider, urls.size());
 

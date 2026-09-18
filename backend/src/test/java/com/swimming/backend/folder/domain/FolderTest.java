@@ -6,8 +6,33 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FolderTest {
+
+    @Test
+    void 링크_개수를_증감하고_링크_유무를_계산한다() {
+        Folder folder = Folder.create(1L, null, "폴더", "설명", null);
+        assertThat(folder.getSourceCount()).isZero();
+        assertThat(folder.isHasSource()).isFalse();
+
+        folder.incrementSourceCount();
+        folder.incrementSourceCount();
+        folder.decrementSourceCount();
+        assertThat(folder.getSourceCount()).isEqualTo(1);
+        assertThat(folder.isHasSource()).isTrue();
+
+        folder.decrementSourceCount();
+        assertThat(folder.getSourceCount()).isZero();
+        assertThat(folder.isHasSource()).isFalse();
+    }
+
+    @Test
+    void 링크가_없으면_개수를_감소시키지_않는다() {
+        Folder folder = Folder.create(1L, null, "폴더", "설명", null);
+        assertThatThrownBy(folder::decrementSourceCount).isInstanceOf(IllegalStateException.class);
+        assertThat(folder.getSourceCount()).isZero();
+    }
 
     @Test
     @DisplayName("프로젝트를 생성하면 문자열을 정규화하고 진행 중 상태가 된다")

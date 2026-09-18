@@ -62,7 +62,7 @@ class KnowledgeGraphUseCaseTest {
 
         useCase = new KnowledgeGraphUseCase(
                 folderService,
-                new KnowledgeSourceService(sources),
+                new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)),
                 nodeService,
                 relationService,
                 new KnowledgeGraphAssembler(nodeService)
@@ -230,12 +230,12 @@ class KnowledgeGraphUseCaseTest {
     }
 
     @Test
-    void 카테고리_교체_후_이전_카테고리와_간선은_조회에서_빠진다() {
+    void 카테고리_교체_후_이전_카테고리는_지워지고_간선도_함께_사라진다() {
         KnowledgeSource source = givenSource("문서");
         KnowledgeNode previous = givenNode(NodeType.CATEGORY, "이전 카테고리");
         relationService.connect(previous, source.getNode(), RelationOrigin.USER);
         KnowledgeCategoryUseCase categoryUseCase = new KnowledgeCategoryUseCase(
-                folderService, new KnowledgeSourceService(sources), new KnowledgeNodeService(nodes),
+                folderService, new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)), new KnowledgeNodeService(nodes),
                 relationService, new SourceGraphReader(relations, nodes),
                 mock(SourceCategorySuggestionService.class), new CategorySuggestionValidator());
 
@@ -250,6 +250,9 @@ class KnowledgeGraphUseCaseTest {
         assertThatThrownBy(() -> useCase.ofNode(USER_ID, previous.getId(), 1))
                 .isInstanceOf(BusinessException.class).extracting("errorCode")
                 .isEqualTo(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND);
+        // 조회에서 빠지는 데 그치지 않는다. 사라진 묶음의 간선은 행으로도 남지 않는다.
+        assertThat(relationService.findOutgoing(List.of(previous.getId()), List.of(RelationType.CONTAINS)))
+                .isEmpty();
     }
 
     @Test

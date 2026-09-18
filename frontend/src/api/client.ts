@@ -7,6 +7,7 @@ interface ProblemDetail {
   code?: string
   detail?: string
   errors?: Record<string, string>
+  targetCategory?: { nodeId: string; title: string }
 }
 
 export interface ApiError {
@@ -14,6 +15,7 @@ export interface ApiError {
   code?: string
   message?: string
   errors?: Record<string, string>
+  targetCategory?: { nodeId: string; title: string }
 }
 
 interface RefreshResponse {
@@ -68,6 +70,7 @@ function toApiError(error: AxiosError<ProblemDetail>): ApiError {
     code: problemDetail?.code,
     message: problemDetail?.detail,
     errors: problemDetail?.errors,
+    targetCategory: problemDetail?.targetCategory,
   }
 }
 

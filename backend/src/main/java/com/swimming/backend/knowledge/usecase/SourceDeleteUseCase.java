@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.folder.service.FolderService;
+import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -53,16 +54,19 @@ public class SourceDeleteUseCase {
     @Transactional(propagation = Propagation.REQUIRED)
     public SourceDeleteResponse delete(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
+        Folder folder = folderService.lockOwned(userId, source.getFolderId());
+        source = sourceService.getOwned(sourceId, userId);
         List<UUID> subjectIds = subjectIdsOf(sourceId);
 
         nodeService.deleteAll(userId, topicIdsOf(sourceId));
 
         sourceService.delete(source);
+        folder.decrementSourceCount();
+        folderService.updateSourceCount(userId, folder.getId(), folder.getSourceCount());
         deleteOrphanSubjects(userId, subjectIds);
 
         Long folderId = source.getFolderId();
-        boolean hasSource = sourceService.existsInFolder(userId, folderId);
-        folderService.updateHasSource(userId, folderId, hasSource);
+        boolean hasSource = folder.isHasSource();
         return new SourceDeleteResponse(folderId, hasSource);
     }
 

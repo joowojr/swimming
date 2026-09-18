@@ -8,6 +8,7 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.usecase.NodeUseCase;
+import com.swimming.backend.knowledge.exception.CategoryTitleDuplicateException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -150,14 +152,57 @@ class KnowledgeNodeControllerTest {
     }
 
     @Test
-    @DisplayName("카테고리 이름 충돌은 ProblemDetail 409로 반환한다")
-    void rejectsDuplicateCategoryTitle() throws Exception {
+    void 전체_병합은_대상_카테고리_ID를_전달하고_대상_노드를_반환한다() throws Exception {
+        UUID targetId = UUID.randomUUID();
+        when(nodeUseCase.merge(1L, TOPIC_ID, targetId, null)).thenReturn(new NodeRef(targetId, "대상 분류"));
+        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/merge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetCategoryId\":\"" + targetId + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nodeId").value(targetId.toString()));
+        verify(nodeUseCase).merge(1L, TOPIC_ID, targetId, null);
+    }
+
+    @Test
+    void 문서_ID를_전달하면_단건_이동_유스케이스를_호출한다() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        when(nodeUseCase.merge(1L, categoryId, targetId, SOURCE_ID)).thenReturn(new NodeRef(targetId, "대상 분류"));
+        mockMvc.perform(put("/api/knowledge/nodes/" + categoryId + "/merge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetCategoryId\":\"" + targetId + "\",\"sourceId\":\"" + SOURCE_ID + "\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.nodeId").value(targetId.toString()));
+        verify(nodeUseCase).merge(1L, categoryId, targetId, SOURCE_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"targetCategoryId\":null}", "{\"targetCategoryId\":\"invalid\"}",
+            "{\"targetCategoryId\":\"99999999-9999-9999-9999-999999999999\",\"sourceId\":\"invalid\"}"})
+    @DisplayName("병합 대상 누락과 잘못된 UUID는 400으로 거절한다")
+    void validatesMergeRequest(String body) throws Exception {
+        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/merge")
+                        .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 중복_이름_수정은_409로_거절한다() throws Exception {
+        UUID targetId = UUID.randomUUID();
         when(nodeUseCase.updateTitle(1L, TOPIC_ID, "중복"))
-                .thenThrow(new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE));
+                .thenThrow(new CategoryTitleDuplicateException(new NodeRef(targetId, "기존 이름")));
         mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"중복\"}"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("KNOWLEDGE_CATEGORY_TITLE_DUPLICATE"));
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("KNOWLEDGE_CATEGORY_TITLE_DUPLICATE"))
+                .andExpect(jsonPath("$.targetCategory.nodeId").value(targetId.toString()))
+                .andExpect(jsonPath("$.targetCategory.title").value("기존 이름"));
+    }
+
+    @Test
+    void 기존_PUT_제목_수정_경로는_허용하지_않는다() throws Exception {
+        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"수정\"}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     private record AuthUserArgumentResolver(AuthUser authUser)

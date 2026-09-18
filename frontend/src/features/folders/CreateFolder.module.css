@@ -1,8 +1,8 @@
-.create-project-dialog {
+.create-folder-dialog {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  width: min(calc(100% - var(--space-8)), 35rem);
+  width: min(calc(100% - var(--space-8)), var(--folder-modal-width));
   max-width: none;
   height: fit-content;
   max-height: calc(100svh - var(--space-8));
@@ -15,15 +15,16 @@
   animation: modal-enter var(--dur-modal) var(--ease-out);
 }
 
-.create-project-dialog::backdrop {
+.create-folder-dialog::backdrop {
   background: var(--overlay-scrim);
   backdrop-filter: blur(var(--overlay-blur));
   animation: modal-backdrop-enter var(--dur-modal) var(--ease-out);
 }
 
-.create-project-modal {
+.create-folder-modal {
   display: flex;
   width: 100%;
+  height: min(calc(100svh - var(--space-8)), var(--folder-modal-height));
   max-height: calc(100svh - var(--space-8));
   overflow: hidden;
   flex-direction: column;
@@ -66,6 +67,8 @@
   flex: 0 0 auto;
   padding: 0;
   border: 0;
+  outline: none;
+  box-shadow: none;
   border-radius: var(--radius-full);
   color: var(--color-mute);
   background: transparent;
@@ -74,12 +77,17 @@
     background-color var(--transition-short);
 }
 
+.modal-close:focus-visible {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+}
+
 .modal-close:active:not(:disabled) {
   background: var(--color-surface-container-highest);
   transform: translateY(1px);
 }
 
-.create-project-modal form {
+.create-folder-modal form {
   display: flex;
   min-height: 0;
   flex: 1;
@@ -92,6 +100,7 @@
   gap: var(--space-3);
   padding: var(--space-6);
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .modal-field {
@@ -329,8 +338,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .create-project-dialog,
-  .create-project-dialog::backdrop {
+  .create-folder-dialog,
+  .create-folder-dialog::backdrop {
     animation-duration: 150ms;
     animation-name: modal-backdrop-enter;
   }
@@ -346,8 +355,8 @@
 }
 
 @media (max-width: 48rem) {
-  .create-project-dialog,
-  .create-project-modal {
+  .create-folder-dialog,
+  .create-folder-modal {
     max-height: calc(100svh - var(--space-8));
   }
 

@@ -57,19 +57,18 @@ public class FolderEntity extends BaseTimeEntity {
     private boolean deleted;
 
     /**
-     * 이 폴더에 살아 있는 링크가 있는지. 링크 도메인이 갱신하는 파생 상태다.
+     * 이 폴더에 살아 있는 링크의 개수. 링크 도메인이 갱신하는 파생 상태다.
      *
-     * <p>도메인 {@link Folder}에 두지 않는다. 사용자가 편집하는 속성이 아니라서
-     * {@link #apply}가 지나가며 덮으면 안 된다.
+     * <p>도메인이 계산한 값을 전용 변경 메서드로 반영한다.
+     * 일반 폴더 정보 수정인 {@link #apply}가 지나가며 덮으면 안 된다.
      */
-    @Getter(AccessLevel.NONE)
-    @Column(name = "has_source", nullable = false)
-    private boolean hasSource;
+    @Column(name = "source_count", nullable = false)
+    private long sourceCount;
 
     /**
      * 이 폴더를 고정한 시각. 고정하지 않았으면 null이다.
      *
-     * <p>{@code hasSource}와 같은 이유로 {@link #apply}가 옮기지 않는다. 폴더 수정과
+     * <p>{@code sourceCount}와 같은 이유로 {@link #apply}가 옮기지 않는다. 폴더 수정과
      * 고정은 서로 다른 API라, 폴더를 수정했다고 고정이 풀리면 안 된다.
      */
     @Column(name = "pinned_at")
@@ -83,6 +82,7 @@ public class FolderEntity extends BaseTimeEntity {
         this.targetDate = folder.getTargetDate();
         this.status = folder.getStatus();
         this.deleted = folder.isDeleted();
+        this.sourceCount = folder.getSourceCount();
     }
 
     public static FolderEntity from(
@@ -93,7 +93,7 @@ public class FolderEntity extends BaseTimeEntity {
         return new FolderEntity(folder, user, tag);
     }
 
-    /** hasSource와 pinnedAt은 옮기지 않는다. 폴더 수정이 다른 API의 값을 덮으면 안 된다. */
+    /** sourceCount와 pinnedAt은 옮기지 않는다. 폴더 수정이 다른 API의 값을 덮으면 안 된다. */
     public void apply(Folder folder, FolderTagEntity tag) {
         this.tag = tag;
         this.name = folder.getName();
@@ -108,11 +108,11 @@ public class FolderEntity extends BaseTimeEntity {
     }
 
     public boolean hasSource() {
-        return hasSource;
+        return sourceCount > 0;
     }
 
-    public void updateHasSource(boolean hasSource) {
-        this.hasSource = hasSource;
+    public void updateSourceCount(long sourceCount) {
+        this.sourceCount = sourceCount;
     }
 
     /** 고정하면 시각을 남기고, 해제하면 지운다. 이미 고정한 폴더를 다시 고정하면 시각을 새로 쓴다. */
@@ -130,7 +130,7 @@ public class FolderEntity extends BaseTimeEntity {
                 targetDate,
                 status,
                 deleted,
-                hasSource,
+                sourceCount,
                 pinnedAt,
                 getCreatedAt(),
                 getUpdatedAt()

@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.service.graph;
 
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.NodeTitleNormalizer;
 import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
@@ -20,6 +21,9 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class CategoryAssignmentService {
+    static final int MIN_SOURCE_COUNT = 6;
+
+    private final FolderService folderService;
     private final KnowledgeNodeService nodeService;
     private final CategoryAssignmentDecider decider;
     private final SourceGraphWriter graphWriter;
@@ -31,6 +35,7 @@ public class CategoryAssignmentService {
     public void assign(KnowledgeSource source, SourceDigestResult digest) {
         if (source.getProcessingStatus() != SourceProcessingStatus.COMPLETED) return;
         try {
+            if (folderService.getSourceCount(source.getUserId(), source.getFolderId()) < MIN_SOURCE_COUNT) return;
             var categories = candidates(source.getUserId(), source.getFolderId());
             if (categories.isEmpty()) return;
             // 제안 이름이 비어도 요약으로 기존 Category 재사용은 판정한다. 새로 만들지만 못한다.

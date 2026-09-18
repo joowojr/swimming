@@ -1,5 +1,7 @@
 package com.swimming.backend.common.exception;
 
+import com.swimming.backend.knowledge.exception.CategoryTitleDuplicateException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -12,6 +14,13 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CategoryTitleDuplicateException.class)
+    public ProblemDetail handleCategoryTitleDuplicate(CategoryTitleDuplicateException exception) {
+        ProblemDetail problemDetail = handleBusiness(exception);
+        problemDetail.setProperty("targetCategory", exception.getTargetCategory());
+        return problemDetail;
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusiness(BusinessException exception) {

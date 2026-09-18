@@ -211,7 +211,8 @@ class FolderControllerTest {
                 null,
                 FolderStatus.ARCHIVED,
                 null,
-                Instant.parse("2026-09-11T10:00:00Z")
+                Instant.parse("2026-09-11T10:00:00Z"),
+                7L
         ));
 
         mockMvc.perform(get("/api/folders/10"))
@@ -219,6 +220,7 @@ class FolderControllerTest {
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.name").value("프로젝트"))
                 .andExpect(jsonPath("$.status").value("ARCHIVED"))
+                .andExpect(jsonPath("$.sourceCount").value(7))
                 .andExpect(jsonPath("$.pinnedAt").value("2026-09-11T10:00:00Z"))
                 .andExpect(jsonPath("$.tasks").doesNotExist())
                 .andExpect(jsonPath("$.progress").doesNotExist());

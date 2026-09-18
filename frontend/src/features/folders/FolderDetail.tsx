@@ -300,7 +300,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
       <FolderViewSwitch folderId={folder.id} current={isLinkView ? 'links' : 'tasks'} />
 
-      <FolderProgressToast folderId={folder.id} folderName={folder.name} />
+      <FolderProgressToast folderId={folder.id} folderName={folder.name} sourceCount={folder.sourceCount} />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}

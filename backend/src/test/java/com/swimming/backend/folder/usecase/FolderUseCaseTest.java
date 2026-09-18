@@ -157,6 +157,19 @@ class FolderUseCaseTest {
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("프로젝트");
         assertThat(response.description()).isEqualTo("설명");
+        assertThat(response.sourceCount()).isZero();
+    }
+
+    @Test
+    void 폴더_상세에_저장된_링크_개수를_반환한다() {
+        Folder folder = folder(10L, "프로젝트", "설명", null);
+        folder.incrementSourceCount();
+        folder.incrementSourceCount();
+        when(folderService.getOne(1L, 10L)).thenReturn(folder);
+
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
+
+        assertThat(response.sourceCount()).isEqualTo(2);
     }
 
     @Test

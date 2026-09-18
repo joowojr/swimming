@@ -313,3 +313,9 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.18); }
 }
+
+@media (max-width: 48rem) {
+  .widget {
+    display: none;
+  }
+}

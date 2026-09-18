@@ -15,10 +15,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusiness(BusinessException exception) {
-        ErrorCode errorCode = exception.getErrorCode();
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                errorCode.getStatus(), errorCode.getMessage());
-        problemDetail.setProperty("code", errorCode.name());
+                exception.getStatus(), exception.getMessage());
+        problemDetail.setProperty("code", exception.getCode());
         return problemDetail;
     }
 

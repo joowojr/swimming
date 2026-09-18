@@ -33,6 +33,6 @@ public interface KnowledgeRelationRepository {
 
     void delete(UUID fromNodeId, UUID toNodeId, RelationType relationType);
 
-    /** 한 노드에서 나가는 같은 타입의 관계를 모두 지우고 지운 수를 돌려준다. */
-    int deleteAllFrom(UUID fromNodeId, RelationType relationType);
+    /** 이 노드들에서 나가는 같은 타입의 관계를 모두 지우고 지운 수를 돌려준다. */
+    int deleteAllFrom(Collection<UUID> fromNodeIds, RelationType relationType);
 }

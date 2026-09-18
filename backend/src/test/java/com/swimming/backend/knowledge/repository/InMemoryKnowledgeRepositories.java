@@ -624,9 +624,9 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
-        public int deleteAllFrom(UUID fromNodeId, RelationType relationType) {
+        public int deleteAllFrom(Collection<UUID> fromNodeIds, RelationType relationType) {
             List<String> keys = stored.entrySet().stream()
-                    .filter(entry -> entry.getValue().getFromNodeId().equals(fromNodeId)
+                    .filter(entry -> fromNodeIds.contains(entry.getValue().getFromNodeId())
                             && entry.getValue().getRelationType() == relationType)
                     .map(Map.Entry::getKey)
                     .toList();

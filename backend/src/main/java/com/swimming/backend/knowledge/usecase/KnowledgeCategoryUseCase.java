@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
  * 때 전체 맥락을 함께 보고 초안을 만든다.
  *
  * <p>확정은 PUT으로 전체 교체한다. 살아 있던 Category는 soft delete하고 요청 항목을
- * 전부 새로 만든다. {@code knowledge_relation}에는 soft delete가 없으므로 CONTAINS
- * 행은 남기고, 죽은 Category는 조회에서 빠진다.
+ * 전부 새로 만든다. {@code knowledge_relation}에는 soft delete가 없으므로 사라지는
+ * Category의 CONTAINS 행은 지운다.
  */
 @Service
 @RequiredArgsConstructor
@@ -101,10 +101,11 @@ public class KnowledgeCategoryUseCase {
 
         List<KnowledgeNode> existingCategories = aliveCategoriesInFolder(userId, folderId);
         if (!existingCategories.isEmpty()) {
-            nodeService.deleteAll(
-                    userId,
-                    existingCategories.stream().map(KnowledgeNode::getId).toList()
-            );
+            List<UUID> existingIds = existingCategories.stream().map(KnowledgeNode::getId).toList();
+            // 노드만 지우면 CONTAINS 행이 남는다. 조회가 죽은 Category를 걸러 주므로 화면에는
+            // 드러나지 않지만, 갈아엎을 때마다 쌓이므로 간선도 함께 걷어낸다.
+            relationService.disconnectAllFrom(existingIds, RelationType.CONTAINS);
+            nodeService.deleteAll(userId, existingIds);
         }
 
         List<CategoryReplaceResponse.Category> results = new ArrayList<>();

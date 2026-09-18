@@ -107,7 +107,7 @@ public class NodeUseCase {
                 .stream().map(KnowledgeRelation::getToNodeId).toList();
 
         relationService.connectAll(into, nodeService.findAllByIds(sourceIds), RelationOrigin.USER);
-        relationService.disconnectAllFrom(from.getId(), RelationType.CONTAINS);
+        relationService.disconnectAllFrom(List.of(from.getId()), RelationType.CONTAINS);
         from.delete();
         nodeService.delete(from);
         return into;

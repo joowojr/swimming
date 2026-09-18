@@ -240,6 +240,27 @@ class NodeUseCaseTest {
         }
 
         @Test
+        @DisplayName("Category는 그 묶음에 담긴 문서를 모으고 다른 묶음의 문서는 넣지 않는다")
+        void describesCategory() {
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "MCP 서버 구현");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "WAL 정리");
+            KnowledgeSource first = givenSource("첫 문서");
+            KnowledgeSource second = givenSource("둘째 문서");
+            relationService.connect(category, first.getNode(), RelationOrigin.USER);
+            relationService.connect(category, second.getNode(), RelationOrigin.AI);
+            relationService.connect(other, givenSource("다른 문서").getNode(), RelationOrigin.USER);
+
+            NodeDetailResponse response = useCase.get(USER_ID, category.getId());
+
+            assertThat(response.type()).isEqualTo(NodeType.CATEGORY);
+            assertThat(response.sources())
+                    .extracting(NodeDetailResponse.SourceRef::title)
+                    .containsExactlyInAnyOrder("첫 문서", "둘째 문서");
+            assertThat(response.topics()).isEmpty();
+            assertThat(response.subjects()).isEmpty();
+        }
+
+        @Test
         @DisplayName("Topic은 그 목적을 설명하는 문서 하나와 걸치는 개념을 준다")
         void describesTopic() {
             KnowledgeNode topic = givenNode(NodeType.TOPIC, "MCP 서버 구현하기");
@@ -352,6 +373,22 @@ class NodeUseCaseTest {
 
             assertThat(useCase.get(USER_ID, topic.getId()).title())
                     .isEqualTo("MCP 서버 구현하기");
+        }
+
+        @Test
+        @DisplayName("묶음은 혼자 지울 수 없다. 폴더의 묶음 구성을 다시 정해야 사라진다")
+        void rejectsCategory() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "MCP 서버 구현");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+
+            assertThatThrownBy(() -> useCase.delete(USER_ID, category.getId()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.KNOWLEDGE_CATEGORY_NOT_DELETABLE);
+
+            assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).category())
+                    .isEqualTo(new NodeRef(category.getId(), "MCP 서버 구현"));
         }
 
         @Test

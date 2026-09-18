@@ -92,17 +92,18 @@ public class NodeUseCase {
     }
 
     /**
-     * Subject와 Topic Detail. 노드 하나에 걸린 문서와 개념을 모은다.
+     * Subject·Topic·Category Detail. 노드 하나에 걸린 문서와 개념을 모은다.
      *
-     * <p>문서는 어느 쪽이든 역방향 한 번으로 읽는다. {@code ABOUT}은 Subject를,
+     * <p>Subject·Topic의 문서는 역방향 한 번으로 읽는다. {@code ABOUT}은 Subject를,
      * {@code SUPPORTS}는 Topic을 가리키므로 두 관계를 함께 물어도 결과가 섞이지 않는다.
+     * Category는 {@code CONTAINS}로 문서를 가리키므로 정방향으로 읽는다.
      */
     public NodeDetailResponse get(Long userId, UUID nodeId) {
         KnowledgeNode node = requireConceptNode(nodeService.getOwned(nodeId, userId));
 
         return NodeDetailResponse.of(
                 node,
-                sourcesOf(nodeId),
+                sourcesOf(node),
                 node.getNodeType() == NodeType.SUBJECT ? topicsOf(nodeId) : List.of(),
                 node.getNodeType() == NodeType.TOPIC ? subjectsOf(nodeId) : List.of()
         );
@@ -123,6 +124,11 @@ public class NodeUseCase {
         if (node.getNodeType() == NodeType.TOPIC) {
             throw new BusinessException(ErrorCode.KNOWLEDGE_TOPIC_NOT_DELETABLE);
         }
+        // Category는 폴더 구성의 일부라 Replace로만 바뀐다. 하나만 지우면 담긴 Source가
+        // 미분류로 남는데, 구성이 생긴 뒤의 미분류는 정상 상태가 아니다.
+        if (node.getNodeType() == NodeType.CATEGORY) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_NOT_DELETABLE);
+        }
         node.delete();
         nodeService.delete(node);
     }
@@ -136,10 +142,13 @@ public class NodeUseCase {
     }
 
     /** @return 최근 순. Topic이면 항상 한 개다 */
-    private List<NodeDetailResponse.SourceRef> sourcesOf(UUID nodeId) {
-        List<UUID> sourceIds = fromNodeIds(
-                relationService.findIncoming(List.of(nodeId), FROM_SOURCE)
-        );
+    private List<NodeDetailResponse.SourceRef> sourcesOf(KnowledgeNode node) {
+        List<UUID> sourceIds = node.getNodeType() == NodeType.CATEGORY
+                ? relationService.findOutgoing(List.of(node.getId()), List.of(RelationType.CONTAINS)).stream()
+                        .map(KnowledgeRelation::getToNodeId)
+                        .distinct()
+                        .toList()
+                : fromNodeIds(relationService.findIncoming(List.of(node.getId()), FROM_SOURCE));
 
         return sourceService.findAllByIds(sourceIds).stream()
                 .sorted(Comparator

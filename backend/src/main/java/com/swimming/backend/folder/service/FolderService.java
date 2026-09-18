@@ -61,7 +61,7 @@ public class FolderService {
         return FolderReference.from(getOwnedFolderEntity(userId, folderId).toDomain());
     }
 
-    /** 호출자의 짧은 저장 트랜잭션에서 폴더별 변경을 직렬화한다. */
+    /** 폴더를 잠금 조회해 도메인 객체로 반환한다. 잠금은 호출자의 트랜잭션 종료까지 유지된다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public Folder lockOwned(Long userId, Long folderId) {
         return getOwnedFolderForUpdate(userId, folderId).toDomain();
@@ -126,7 +126,7 @@ public class FolderService {
         folderRepository.flush();
     }
 
-    /** UseCase에서 도메인이 계산한 개수를 링크 저장·삭제와 같은 트랜잭션에서 반영한다. */
+    /** 도메인이 계산한 개수를 링크 저장·삭제와 같은 트랜잭션에서 반영한다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public void updateSourceCount(Long userId, Long folderId, long sourceCount) {
         getOwnedFolderForUpdate(userId, folderId).updateSourceCount(sourceCount);

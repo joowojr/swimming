@@ -56,7 +56,7 @@ class NodeUseCaseTest {
         relationService = new KnowledgeRelationService(relations);
 
         KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
-        KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
+        KnowledgeSourceService sourceService = new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class));
 
         useCase = new NodeUseCase(nodeService, relationService, sourceService, folderService);
         sourceQueryUseCase = new SourceQueryUseCase(

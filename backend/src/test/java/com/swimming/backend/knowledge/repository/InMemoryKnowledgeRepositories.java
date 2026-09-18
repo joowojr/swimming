@@ -338,13 +338,6 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
-        public boolean existsInFolder(Long userId, Long folderId) {
-            return stored.values().stream().anyMatch(source -> source.getUserId().equals(userId)
-                    && !source.isDeleted()
-                    && source.getFolderId().equals(folderId));
-        }
-
-        @Override
         public List<KnowledgeSource> findPage(SourcePageQuery query) {
             Comparator<KnowledgeSource> recentFirst = Comparator
                     .comparing((KnowledgeSource source) -> source.getNode().getCreatedAt())

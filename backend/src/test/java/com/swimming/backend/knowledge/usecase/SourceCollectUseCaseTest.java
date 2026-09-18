@@ -68,8 +68,10 @@ class SourceCollectUseCaseTest {
             fetchService = mock(SourceFetchDispatcher.class);
             digestService = mock(SourceDigestService.class);
             folderService = mock(FolderService.class);
+            when(folderService.lockOwned(anyLong(), anyLong())).thenAnswer(invocation ->
+                    com.swimming.backend.folder.domain.Folder.create(invocation.getArgument(0), null, "폴더", "", null));
 
-            KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
+            KnowledgeSourceService sourceService = new KnowledgeSourceService(sources, folderService);
             KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
             NodeResolutionService resolutionService = mock(NodeResolutionService.class);
             when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
@@ -96,11 +98,13 @@ class SourceCollectUseCaseTest {
                             new SourceGraphWriter(
                                     nodeService,
                                     new KnowledgeRelationService(relations),
-                                    mock(FolderService.class)
+                                    mock(FolderService.class),
+                                    new com.swimming.backend.knowledge.service.data.KnowledgeSourceService(sources, mock(FolderService.class))
                             ),
                             mock(CategoryAssignmentService.class)
                     ),
-                    new SourceGraphReader(relations, nodes)
+                    new SourceGraphReader(relations, nodes),
+                    new SourceGraphWriter(nodeService, new KnowledgeRelationService(relations), folderService, sourceService)
             );
 
             givenDigested("MCP 서버 구현하기", "MCP", "Tool Calling");
@@ -351,7 +355,7 @@ class SourceCollectUseCaseTest {
 
             collect(FOLDER_ID, "https://a.com/1");
 
-            verify(folderService).updateHasSource(USER_ID, FOLDER_ID, true);
+            verify(folderService).updateSourceCount(USER_ID, FOLDER_ID, 1);
         }
 
         @Test
@@ -362,7 +366,7 @@ class SourceCollectUseCaseTest {
 
             collect(FOLDER_ID, "https://a.com/1");
 
-            verify(folderService, never()).updateHasSource(anyLong(), anyLong(), anyBoolean());
+            verify(folderService, never()).updateSourceCount(anyLong(), anyLong(), anyLong());
         }
 
         @Test
@@ -396,7 +400,7 @@ class SourceCollectUseCaseTest {
             sources = new InMemoryKnowledgeRepositories.Sources();
             InMemoryKnowledgeRepositories.Nodes nodes = new InMemoryKnowledgeRepositories.Nodes();
             InMemoryKnowledgeRepositories.Relations relations = new InMemoryKnowledgeRepositories.Relations();
-            KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
+            KnowledgeSourceService sourceService = new KnowledgeSourceService(sources, mock(FolderService.class));
             KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
             digestService = mock(SourceDigestService.class);
             SourceDigestProcessor digestProcessor = new SourceDigestProcessor(
@@ -412,7 +416,8 @@ class SourceCollectUseCaseTest {
                     mock(FolderService.class),
                     sourceService,
                     digestProcessor,
-                    new SourceGraphReader(relations, nodes)
+                    new SourceGraphReader(relations, nodes),
+                    mock(SourceGraphWriter.class)
             );
         }
 

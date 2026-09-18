@@ -63,9 +63,8 @@ public class FolderService {
 
     /** 호출자의 짧은 저장 트랜잭션에서 폴더별 변경을 직렬화한다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void lockOwned(Long userId, Long folderId) {
-        folderRepository.findOwnedForUpdate(userId, folderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
+    public Folder lockOwned(Long userId, Long folderId) {
+        return getOwnedFolderForUpdate(userId, folderId).toDomain();
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -114,7 +113,7 @@ public class FolderService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long folderId) {
-        FolderEntity entity = getOwnedFolderEntity(userId, folderId);
+        FolderEntity entity = getOwnedFolderForUpdate(userId, folderId);
         if (folderRepository.countActiveTasks(userId, folderId) > 0) {
             throw new BusinessException(ErrorCode.FOLDER_HAS_TASKS);
         }
@@ -127,16 +126,21 @@ public class FolderService {
         folderRepository.flush();
     }
 
-    /**
-     * 이 폴더에 살아 있는 링크가 있는지 기록한다. 값은 링크 도메인이 정해 넘긴다.
-     *
-     * <p>folder는 왜 켜지고 꺼지는지 모른 채 자기 컬럼만 쓴다. folder가 knowledge에
-     * 물어보면 의존 방향이 뒤집힌다.
-     */
+    /** UseCase에서 도메인이 계산한 개수를 링크 저장·삭제와 같은 트랜잭션에서 반영한다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void updateHasSource(Long userId, Long folderId, boolean hasSource) {
-        getOwnedFolderEntity(userId, folderId).updateHasSource(hasSource);
+    public void updateSourceCount(Long userId, Long folderId, long sourceCount) {
+        getOwnedFolderForUpdate(userId, folderId).updateSourceCount(sourceCount);
         folderRepository.flush();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public long getSourceCount(Long userId, Long folderId) {
+        return getOwnedFolderEntity(userId, folderId).getSourceCount();
+    }
+
+    private FolderEntity getOwnedFolderForUpdate(Long userId, Long folderId) {
+        return folderRepository.findOwnedForUpdate(userId, folderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
     }
 
     /**

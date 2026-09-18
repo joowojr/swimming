@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.service.data;
 
 import com.swimming.backend.common.exception.BusinessException;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.repository.KnowledgeSourceRepository;
@@ -20,9 +21,24 @@ import java.util.UUID;
 public class KnowledgeSourceService {
 
     private final KnowledgeSourceRepository sourceRepository;
+    private final FolderService folderService;
+
+    /** 폴더 잠금 아래 중복을 확인하고 신규 링크만 저장한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public KnowledgeSource create(KnowledgeSource source) {
+        Long userId = source.getUserId();
+        Long folderId = source.getFolderId();
+        folderService.lockOwned(userId, folderId);
+        var existing = sourceRepository.findAllInFolderByCanonicalUrls(
+                userId, folderId, List.of(source.getCanonicalUrl()));
+        if (!existing.isEmpty()) return existing.getFirst();
+        return sourceRepository.save(source);
+    }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public KnowledgeSource save(KnowledgeSource source) {
+        folderService.lockOwned(source.getUserId(), source.getFolderId());
+        getOwned(source.getId(), source.getUserId());
         return sourceRepository.save(source);
     }
 
@@ -51,8 +67,11 @@ public class KnowledgeSourceService {
     /** 원문은 남기고 노드만 지운 것으로 표시한다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(KnowledgeSource source) {
-        source.delete();
-        sourceRepository.save(source);
+        folderService.lockOwned(source.getUserId(), source.getFolderId());
+        KnowledgeSource current = getOwned(source.getId(), source.getUserId());
+        current.delete();
+        sourceRepository.save(current);
+
     }
 
     @Transactional(
@@ -157,14 +176,6 @@ public class KnowledgeSourceService {
         sourceRepository.saveSummaryEmbedding(
                 userId, sourceId, summaryEmbedding, embeddingModel
         );
-    }
-
-    @Transactional(
-            propagation = Propagation.REQUIRED,
-            readOnly = true
-    )
-    public boolean existsInFolder(Long userId, Long folderId) {
-        return sourceRepository.existsInFolder(userId, folderId);
     }
 
     @Transactional(

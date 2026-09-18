@@ -62,7 +62,7 @@ class KnowledgeGraphUseCaseTest {
 
         useCase = new KnowledgeGraphUseCase(
                 folderService,
-                new KnowledgeSourceService(sources),
+                new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)),
                 nodeService,
                 relationService,
                 new KnowledgeGraphAssembler(nodeService)
@@ -235,7 +235,7 @@ class KnowledgeGraphUseCaseTest {
         KnowledgeNode previous = givenNode(NodeType.CATEGORY, "이전 카테고리");
         relationService.connect(previous, source.getNode(), RelationOrigin.USER);
         KnowledgeCategoryUseCase categoryUseCase = new KnowledgeCategoryUseCase(
-                folderService, new KnowledgeSourceService(sources), new KnowledgeNodeService(nodes),
+                folderService, new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)), new KnowledgeNodeService(nodes),
                 relationService, new SourceGraphReader(relations, nodes),
                 mock(SourceCategorySuggestionService.class), new CategorySuggestionValidator());
 

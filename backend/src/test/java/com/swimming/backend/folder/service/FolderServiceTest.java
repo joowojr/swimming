@@ -251,12 +251,12 @@ class FolderServiceTest {
     @DisplayName("프로젝트를 soft delete하고 연결된 데이터를 보존한다")
     void softDeletesOwnedFolder() {
         FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
-        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+        when(folderRepository.findOwnedForUpdate(1L, 10L)).thenReturn(Optional.of(entity));
 
         folderService.delete(1L, 10L);
 
         assertThat(entity.isDeleted()).isTrue();
-        verify(folderRepository).findByIdAndUser_IdAndDeletedFalse(10L, 1L);
+        verify(folderRepository).findOwnedForUpdate(1L, 10L);
         verify(folderRepository).flush();
         verify(folderRepository, never()).delete(entity);
     }
@@ -266,8 +266,8 @@ class FolderServiceTest {
     void rejectsDeleteWhileSourcesRemain() {
         // 링크는 folder_id가 NOT NULL이라 폴더에서 떼어 둘 자리가 없다.
         FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
-        entity.updateHasSource(true);
-        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+        entity.updateSourceCount(1);
+        when(folderRepository.findOwnedForUpdate(1L, 10L)).thenReturn(Optional.of(entity));
 
         assertThatThrownBy(() -> folderService.delete(1L, 10L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -281,7 +281,7 @@ class FolderServiceTest {
     void keepsHasSourceThroughUpdate() {
         // 사용자가 편집하는 속성이 아니다. 수정 경로가 지나가며 끄면 삭제 가드가 뚫린다.
         FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
-        entity.updateHasSource(true);
+        entity.updateSourceCount(1);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder updated = folderService.update(
@@ -295,15 +295,15 @@ class FolderServiceTest {
     }
 
     @Test
-    @DisplayName("링크 유무를 기록한다")
-    void updatesHasSource() {
+    @DisplayName("UseCase가 전달한 링크 수를 엔티티에 반영한다")
+    void updatesSourceCount() {
         FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
-        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+        when(folderRepository.findOwnedForUpdate(1L, 10L)).thenReturn(Optional.of(entity));
 
-        folderService.updateHasSource(1L, 10L, true);
+        folderService.updateSourceCount(1L, 10L, 1);
         assertThat(entity.hasSource()).isTrue();
 
-        folderService.updateHasSource(1L, 10L, false);
+        folderService.updateSourceCount(1L, 10L, 0);
         assertThat(entity.hasSource()).isFalse();
     }
 

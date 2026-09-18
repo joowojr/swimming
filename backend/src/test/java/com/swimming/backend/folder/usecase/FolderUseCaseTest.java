@@ -64,7 +64,7 @@ class FolderUseCaseTest {
         );
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", targetDate,
-                FolderStatus.IN_PROGRESS, false, false, null, null, null
+                FolderStatus.IN_PROGRESS, false, 0, null, null, null
         );
         when(folderTagService.getOne(1L, 3L)).thenReturn(tag);
         when(folderService.create(any(Folder.class))).thenReturn(folder);
@@ -90,7 +90,7 @@ class FolderUseCaseTest {
         FolderTag tag = FolderTag.restore(4L, 1L, "포트폴리오", null, null);
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", null,
-                FolderStatus.IN_PROGRESS, false, false, null, null, null
+                FolderStatus.IN_PROGRESS, false, 0, null, null, null
         );
         CreateFolderRequest request = new CreateFolderRequest(
                 "프로젝트",
@@ -210,7 +210,7 @@ class FolderUseCaseTest {
     ) {
         return Folder.restore(
                 id, 1L, null, name, description, targetDate,
-                FolderStatus.IN_PROGRESS, false, false, null, null, null
+                FolderStatus.IN_PROGRESS, false, 0, null, null, null
         );
     }
 }

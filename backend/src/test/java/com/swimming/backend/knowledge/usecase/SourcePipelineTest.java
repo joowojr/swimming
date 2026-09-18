@@ -63,7 +63,7 @@ class SourcePipelineTest {
         fetchService = mock(SourceFetchDispatcher.class);
         digestService = mock(SourceDigestService.class);
 
-        KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
+        KnowledgeSourceService sourceService = new KnowledgeSourceService(sources, mock(FolderService.class));
         NodeResolutionService resolutionService = mock(NodeResolutionService.class);
         when(resolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
             List<String> candidates = invocation.getArgument(2);
@@ -92,17 +92,22 @@ class SourcePipelineTest {
                 new SourceGraphWriter(
                         new KnowledgeNodeService(nodes),
                         new KnowledgeRelationService(relations),
-                        mock(FolderService.class)
+                        mock(FolderService.class),
+                        new com.swimming.backend.knowledge.service.data.KnowledgeSourceService(sources, mock(FolderService.class))
                 ),
                 mock(CategoryAssignmentService.class)
         );
+        FolderService collectionFolderService = mock(FolderService.class);
+        when(collectionFolderService.lockOwned(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong()))
+                .thenAnswer(invocation -> com.swimming.backend.folder.domain.Folder.create(invocation.getArgument(0), null, "폴더", "", null));
         collectUseCase = new SourceCollectUseCase(
                 fetchService,
-                mock(FolderService.class),
+                collectionFolderService,
                 sourceService,
                 digestProcessor,
-                new SourceGraphReader(relations, nodes)
-        );
+                new SourceGraphReader(relations, nodes),
+                    new SourceGraphWriter(new KnowledgeNodeService(nodes), new KnowledgeRelationService(relations), collectionFolderService, sourceService)
+            );
     }
 
     private void givenFetched(String url, String title) {

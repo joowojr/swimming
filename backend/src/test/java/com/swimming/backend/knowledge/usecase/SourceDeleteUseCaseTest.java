@@ -52,11 +52,15 @@ class SourceDeleteUseCaseTest {
 
         relationService = new KnowledgeRelationService(relations);
 
+        folderService = mock(FolderService.class);
+        org.mockito.Mockito.when(folderService.lockOwned(USER_ID, FOLDER_ID)).thenAnswer(invocation ->
+                com.swimming.backend.folder.domain.Folder.restore(FOLDER_ID, USER_ID, null, "폴더", "", null,
+                        com.swimming.backend.folder.domain.FolderStatus.IN_PROGRESS, false,
+                        sources.findAliveNodeIdsInFolder(USER_ID, FOLDER_ID).size(), null, null, null));
         KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
-        KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
+        KnowledgeSourceService sourceService = new KnowledgeSourceService(sources, folderService);
         SourceGraphReader conceptReader = new SourceGraphReader(relations, nodes);
 
-        folderService = mock(FolderService.class);
         when(folderService.getReference(USER_ID, FOLDER_ID))
                 .thenReturn(new FolderReference(FOLDER_ID, "Spring AI 공부", "설명"));
 
@@ -198,7 +202,7 @@ class SourceDeleteUseCaseTest {
 
         SourceDeleteResponse response = useCase.delete(USER_ID, source.getId());
 
-        verify(folderService).updateHasSource(USER_ID, FOLDER_ID, false);
+        verify(folderService).updateSourceCount(USER_ID, FOLDER_ID, 0);
         assertThat(response).isEqualTo(new SourceDeleteResponse(FOLDER_ID, false));
     }
 
@@ -212,7 +216,7 @@ class SourceDeleteUseCaseTest {
 
         SourceDeleteResponse response = useCase.delete(USER_ID, removed.getId());
 
-        verify(folderService).updateHasSource(USER_ID, FOLDER_ID, true);
+        verify(folderService).updateSourceCount(USER_ID, FOLDER_ID, 1);
         assertThat(response).isEqualTo(new SourceDeleteResponse(FOLDER_ID, true));
     }
 

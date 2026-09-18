@@ -18,8 +18,8 @@ interface InlineEditableTextProps {
   wrap?: boolean
   /** 제목은 일반 텍스트로 표시하고 연필 버튼으로만 편집을 시작한다. */
   showEditButton?: boolean
-  /** 편집을 시작했을 때 입력창 아래에 보여 줄 영향 범위 안내. */
-  editingMessage?: string
+  /** 연필 버튼과 입력창의 툴팁으로 보여 줄 영향 범위 안내. */
+  tooltipMessage?: string
   onSave: (value: string) => Promise<void>
   getErrorMessage?: (error: unknown) => string
 }
@@ -36,7 +36,7 @@ export default function InlineEditableText({
   disabled = false,
   wrap = false,
   showEditButton = false,
-  editingMessage,
+  tooltipMessage,
   onSave,
   getErrorMessage,
 }: InlineEditableTextProps) {
@@ -137,6 +137,8 @@ export default function InlineEditableText({
             value={draft}
             maxLength={maxLength}
             aria-label={ariaLabel}
+            title={tooltipMessage}
+            aria-description={tooltipMessage}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? errorId : undefined}
             disabled={isSaving}
@@ -148,9 +150,6 @@ export default function InlineEditableText({
             onBlur={() => void save()}
             onKeyDown={handleEditorKeyDown}
           />
-          {editingMessage && (
-            <span className={styles['editing-message']} role="status">{editingMessage}</span>
-          )}
         </>
       ) : showEditButton ? (
         <span className={`${styles['display-row']} ${displayClassName ?? ''}`}>
@@ -159,6 +158,8 @@ export default function InlineEditableText({
             type="button"
             className={styles['edit-button']}
             aria-label={`${ariaLabel} 수정`}
+            title={tooltipMessage}
+            aria-description={tooltipMessage}
             disabled={disabled}
             onClick={startEditing}
           >

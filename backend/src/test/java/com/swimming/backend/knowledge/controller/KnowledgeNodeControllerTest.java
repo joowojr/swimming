@@ -8,6 +8,7 @@ import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.usecase.NodeUseCase;
+import com.swimming.backend.knowledge.exception.CategoryTitleDuplicateException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -185,11 +186,16 @@ class KnowledgeNodeControllerTest {
 
     @Test
     void 중복_이름_수정은_409로_거절한다() throws Exception {
+        UUID targetId = UUID.randomUUID();
         when(nodeUseCase.updateTitle(1L, TOPIC_ID, "중복"))
-                .thenThrow(new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE));
+                .thenThrow(new CategoryTitleDuplicateException(new NodeRef(targetId, "기존 이름")));
         mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"중복\"}"))
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("KNOWLEDGE_CATEGORY_TITLE_DUPLICATE"))
+                .andExpect(jsonPath("$.targetCategory.nodeId").value(targetId.toString()))
+                .andExpect(jsonPath("$.targetCategory.title").value("기존 이름"));
     }
 
     @Test

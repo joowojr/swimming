@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
 import ActionButton from '../../components/ActionButton'
 import modalStyles from '../../components/ModalShell.module.css'
-import type { FindCategoryMergeTarget } from './categoryMerge'
+import type { ApiError } from '../../api/client'
+import { mergeCategory, updateNodeTitle } from './knowledgeApi'
 import type { NodeRef } from './knowledgeTypes'
 import styles from './useCategoryMergeGuard.module.css'
 
@@ -11,15 +12,8 @@ interface Pending {
   decide: (merge: boolean) => void
 }
 
-type CategoryEditDecision = { kind: 'rename' } | { kind: 'merge'; target: NodeRef } | { kind: 'cancel' }
-
-/**
- * 이름을 바꾸면 다른 카테고리와 합쳐지는 경우, 보내기 전에 물어본다.
- *
- * 대상이 없으면 이름 수정, 승인하면 대상 노드, 취소하면 저장 중단을 반환한다.
- * Feed는 문서 한 건 이동, Graph는 전체 병합을 확인한다.
- */
-export function useCategoryMergeGuard(findMergeTarget: FindCategoryMergeTarget, scope: 'category' | 'source' = 'category') {
+/** PATCH 중복 응답에서 받은 대상으로 문서 한 건 이동 또는 전체 병합을 확인한다. */
+export function useCategoryMergeGuard(scope: 'category' | 'source' = 'category') {
   const [pending, setPending] = useState<Pending | null>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
 
@@ -34,21 +28,30 @@ export function useCategoryMergeGuard(findMergeTarget: FindCategoryMergeTarget, 
    * 신원을 고정해 둔다. 이것을 쓰는 저장 함수가 useCallback으로 묶여 있고, 그 함수가 매
    * 렌더 새로 만들어지면 그래프가 ReactFlow에 매번 새 노드 배열을 넘겨 렌더가 멈추지 않는다.
    */
-  const ask = useCallback(async (nodeId: string, title: string): Promise<CategoryEditDecision> => {
-    const target = await findMergeTarget(nodeId, title)
-    if (!target) return { kind: 'rename' }
-
-    return new Promise<CategoryEditDecision>((resolve) => {
+  const ask = useCallback((target: NodeRef): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
       setPending({
         target,
         decide: (merge) => {
           dialogRef.current?.close()
           setPending(null)
-          resolve(merge ? { kind: 'merge', target } : { kind: 'cancel' })
+          resolve(merge)
         },
       })
     })
-  }, [findMergeTarget])
+  }, [])
+
+  const saveTitle = useCallback(async (nodeId: string, title: string, sourceId?: string): Promise<NodeRef | null> => {
+    try {
+      return await updateNodeTitle(nodeId, title)
+    } catch (error: unknown) {
+      const apiError = error as ApiError | null
+      if (apiError?.status !== 409 || apiError.code !== 'KNOWLEDGE_CATEGORY_TITLE_DUPLICATE'
+          || !apiError.targetCategory) throw error
+      if (!await ask(apiError.targetCategory)) return null
+      return mergeCategory(nodeId, apiError.targetCategory.nodeId, sourceId)
+    }
+  }, [ask])
 
   const dialog = pending && (
     <dialog
@@ -91,5 +94,5 @@ export function useCategoryMergeGuard(findMergeTarget: FindCategoryMergeTarget, 
     </dialog>
   )
 
-  return { ask, dialog }
+  return { saveTitle, dialog }
 }

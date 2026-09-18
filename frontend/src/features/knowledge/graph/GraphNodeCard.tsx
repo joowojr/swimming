@@ -75,6 +75,9 @@ export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlo
             maxLength={500}
             wrap
             showEditButton
+            tooltipMessage={node.type === 'CATEGORY'
+              ? '연결된 모든 문서에 적용돼요. 같은 이름이 있으면 카테고리를 합쳐요.'
+              : undefined}
             onSave={(title) => onSaveTitle(node.nodeId, title)}
             getErrorMessage={(error: unknown) => {
               const apiError = typeof error === 'object' && error !== null ? error as ApiError : null

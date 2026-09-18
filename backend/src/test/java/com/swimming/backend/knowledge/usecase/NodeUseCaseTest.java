@@ -10,6 +10,7 @@ import com.swimming.backend.knowledge.domain.RelationOrigin;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
+import com.swimming.backend.knowledge.exception.CategoryTitleDuplicateException;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
@@ -206,8 +207,10 @@ class NodeUseCaseTest {
             relationService.connect(category, source.getNode(), RelationOrigin.USER);
             relationService.connect(target, existing.getNode(), RelationOrigin.USER);
             assertThatThrownBy(() -> useCase.updateTitle(USER_ID, category.getId(), "api_설계"))
-                    .isInstanceOfSatisfying(BusinessException.class,
-                            error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE));
+                    .isInstanceOfSatisfying(CategoryTitleDuplicateException.class, error -> {
+                        assertThat(error.getErrorCode()).isEqualTo(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
+                        assertThat(error.getTargetCategory()).isEqualTo(NodeRef.from(target));
+                    });
             assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).category()).isEqualTo(NodeRef.from(category));
         }
 

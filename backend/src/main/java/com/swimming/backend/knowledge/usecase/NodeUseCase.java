@@ -11,6 +11,7 @@ import com.swimming.backend.knowledge.domain.RelationOrigin;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
+import com.swimming.backend.knowledge.exception.CategoryTitleDuplicateException;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
@@ -51,8 +52,10 @@ public class NodeUseCase {
     public NodeRef updateTitle(Long userId, UUID nodeId, String title) {
         KnowledgeNode node = nodeService.getOwned(nodeId, userId);
         node.renameByUser(title, Instant.now());
-        if (node.getNodeType() == NodeType.CATEGORY && findDuplicateCategory(userId, node).isPresent()) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
+        if (node.getNodeType() == NodeType.CATEGORY) {
+            findDuplicateCategory(userId, node).ifPresent(duplicate -> {
+                throw new CategoryTitleDuplicateException(NodeRef.from(duplicate));
+            });
         }
         nodeService.updateTitle(node);
         return NodeRef.from(node);

@@ -130,18 +130,6 @@
   text-decoration: none;
 }
 
-.editing-message {
-  display: block;
-  max-width: 100%;
-  margin-top: var(--space-1);
-  color: var(--color-mute);
-  font-family: var(--font-family-sans);
-  font-weight: var(--text-body-sm-weight);
-  font-size: var(--text-label-caps-size);
-  line-height: var(--text-label-caps-line-height);
-  overflow-wrap: anywhere;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .display:hover:not(:disabled) {
     background: var(--color-surface-soft);

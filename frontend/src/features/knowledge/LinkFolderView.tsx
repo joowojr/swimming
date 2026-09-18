@@ -119,16 +119,17 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
       : current)
   }
 
-  const setNodeTitle = (node: NodeRef) => {
+  // 이름 수정은 같은 노드를 참조하는 모든 카드, 단건 이동은 해당 카드만 갱신한다.
+  const setNodeTitle = useCallback((previousNodeId: string, node: NodeRef, sourceId?: string) => {
     setState((current) => current.status === 'ready' ? {
       ...current,
-      items: current.items.map((source) => ({
+      items: current.items.map((source) => sourceId && source.sourceId !== sourceId ? source : ({
         ...source,
-        topic: source.topic?.nodeId === node.nodeId ? node : source.topic,
-        category: source.category?.nodeId === node.nodeId ? node : source.category,
+        topic: source.topic?.nodeId === previousNodeId ? node : source.topic,
+        category: source.category?.nodeId === previousNodeId ? node : source.category,
       })),
     } : current)
-  }
+  }, [])
 
   /**
    * 카드가 낙관적으로 바꾼 읽음 표시를 목록에 반영한다. 실패하면 카드가 되돌려 준다.
@@ -235,7 +236,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
                     onRetried={replaceSource}
                     onReadChanged={setSourceReadAt}
                     onNodeTitleChanged={setNodeTitle}
-                  />
+                        />
                 ))}
               </div>
               {state.nextCursor && (

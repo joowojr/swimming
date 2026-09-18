@@ -10,6 +10,7 @@ import TasksPage from './features/tasks/TasksPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
 import type { Folder } from './features/folders/folderTypes.ts'
 import AppShell from './layout/AppShell'
+import TimerEndSoundScheduler from './features/timer/TimerEndSoundScheduler'
 import LoginPage from './pages/login/LoginPage.tsx'
 import PublicHomePage from './pages/landing/PublicHomePage.tsx'
 import UserSettingsPage from './features/settings/UserSettingsPage'
@@ -48,6 +49,8 @@ function App() {
   const removeFolder = useFolderStore((state) => state.remove)
   const resetFolders = useFolderStore((state) => state.reset)
   const clearActiveSession = useActiveSessionStore((state) => state.clear)
+  const activeSessionStatus = useActiveSessionStore((state) => state.status)
+  const loadActiveSession = useActiveSessionStore((state) => state.load)
   const resetTasks = useTaskStore((state) => state.reset)
   const resetSources = useSourceStore((state) => state.reset)
   const resetDailyPlans = useDailyPlanStore((state) => state.reset)
@@ -71,6 +74,12 @@ function App() {
 
     void loadFolders(userId)
   }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetDailyPlans, resetFolders, resetSources, resetTasks])
+
+  // 진행 중인 세션은 로그인한 뒤 어느 화면으로 들어오든 한 번 불러온다. 이후 갱신은 세션을 다루는 화면이 맡는다.
+  // 세션 화면은 AppShell 밖이라 셸 안의 위젯에 맡기면 세션 화면으로 바로 들어올 때 비어 있다.
+  useEffect(() => {
+    if (auth.status === 'authenticated' && activeSessionStatus === 'idle') void loadActiveSession()
+  }, [auth.status, activeSessionStatus, loadActiveSession])
 
   if (auth.status === 'checking') {
     return (
@@ -96,12 +105,16 @@ function App() {
     navigate('/')
   }
 
+  // 알림음 예약은 로그인한 뒤의 두 분기(세션 화면, 셸)에 모두 둔다. 오가며 다시 붙어도 지난 시각은 걸지 않는다.
   if (auth.status === 'authenticated' && location.pathname.startsWith('/sessions/')) {
     return (
-      <Routes>
-        <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
-        <Route path="*" element={<Navigate to="/pinboard" replace />} />
-      </Routes>
+      <>
+        <TimerEndSoundScheduler />
+        <Routes>
+          <Route path="/sessions/:sessionId" element={<PersonalSessionPage />} />
+          <Route path="*" element={<Navigate to="/pinboard" replace />} />
+        </Routes>
+      </>
     )
   }
 
@@ -121,6 +134,7 @@ function App() {
       userEmail={auth.user?.email ?? null}
       onLogin={() => navigate('/')}
     >
+      <TimerEndSoundScheduler />
       <Routes>
         <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
         <Route path="/sessions" element={<DiveSessionFeedPage />} />

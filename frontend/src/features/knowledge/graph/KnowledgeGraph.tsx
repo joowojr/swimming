@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -22,7 +22,8 @@ import type { LayoutOptions } from './graphLayout'
 import { categoryReachOf, neighborsOf, subjectReachOf, touchesNode, withoutRedundantAbout } from './graphNeighbors'
 import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
-import type { SourceCard } from '../knowledgeTypes'
+import type { NodeRef, SourceCard } from '../knowledgeTypes'
+import { updateNodeTitle } from '../knowledgeApi'
 import type { CategoryReplaceResponse } from './categoryTypes'
 import styles from './KnowledgeGraph.module.css'
 
@@ -31,6 +32,7 @@ interface KnowledgeGraphProps {
   /** 목록에서 이미 받아 둔 카드. sourceId와 nodeId가 같아 SOURCE 노드에 붙는다. */
   sources: SourceCard[]
   onCategoriesReplaced: (response: CategoryReplaceResponse) => void
+  onNodeTitleChanged: (node: NodeRef) => void
 }
 
 type GraphState =
@@ -62,7 +64,7 @@ function errorMessage(error: unknown) {
  * 그래프 자체를 보여 주는 화면이 아니라 관계를 따라 문서를 소화하는 Navigation UI다(UX §6).
  * 그래서 배치는 매번 같고(graphLayout), 노드를 고르면 1-hop만 남기고 흐려진다.
  */
-export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced }: KnowledgeGraphProps) {
+export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced, onNodeTitleChanged }: KnowledgeGraphProps) {
   const [state, setState] = useState<GraphState>({ status: 'loading' })
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [layout, setLayout] = useState<Required<LayoutOptions>>({
@@ -100,6 +102,42 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
 
   const graph = state.status === 'ready' ? state.graph : null
 
+  const saveNodeTitle = useCallback(async (nodeId: string, title: string) => {
+    const updated = await updateNodeTitle(nodeId, title)
+    setState((current) => current.status === 'ready' ? {
+      ...current,
+      graph: {
+        ...current.graph,
+        nodes: current.graph.nodes.map((node) => node.nodeId === updated.nodeId
+          ? { ...node, title: updated.title }
+          : node),
+      },
+    } : current)
+    onNodeTitleChanged(updated)
+  }, [onNodeTitleChanged])
+
+  // 선택은 강조만 바꾼다. 전체 배치와 관계 전처리는 그래프·배치 설정이 바뀔 때만 계산한다.
+  const drawnEdges = useMemo(() => graph ? withoutRedundantAbout(graph.edges) : [], [graph])
+  const topicNumbers = useMemo(() => graph ? numberTopics(graph) : new Map<string, number>(), [graph])
+  const positionedNodes = useMemo(() => graph ? layoutGraph(graph, layout) : [], [graph, layout])
+  const positionedById = useMemo(
+    () => new Map(positionedNodes.map((entry) => [entry.node.nodeId, entry])),
+    [positionedNodes],
+  )
+  const nodeById = useMemo(() => new Map(graph?.nodes.map((node) => [node.nodeId, node]) ?? []), [graph])
+  const subjectIdsByTopic = useMemo(() => {
+    const result = new Map<string, Set<string>>()
+    for (const edge of graph?.edges ?? []) {
+      for (const [topicId, subjectId] of [[edge.from, edge.to], [edge.to, edge.from]]) {
+        if (nodeById.get(topicId)?.type !== 'TOPIC' || nodeById.get(subjectId)?.type !== 'SUBJECT') continue
+        const ids = result.get(topicId) ?? new Set<string>()
+        ids.add(subjectId)
+        result.set(topicId, ids)
+      }
+    }
+    return result
+  }, [graph, nodeById])
+
   const { nodes, edges } = useMemo(() => {
     if (!graph) return { nodes: [] as KnowledgeFlowNode[], edges: [] as Edge[] }
 
@@ -108,7 +146,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       .map((node) => node.nodeId)
     const showAllSubjects = sourceNodeIds.length <= MAX_SOURCES_WITH_VISIBLE_SUBJECTS
     // 강조도 화면에 그린 선을 따른다. 선이 없는 노드가 밝게 남으면 왜 이어졌는지 보이지 않는다.
-    const drawnEdges = withoutRedundantAbout(graph.edges)
     const selectedType = graph.nodes.find((node) => node.nodeId === selectedNodeId)?.type
     // 문서·주제를 고르면 닿은 선에 빛 점을 보낸다. 폴더는 소속선뿐이라 제외한다.
     const flowsFromSelected = selectedType === 'SOURCE' || selectedType === 'TOPIC'
@@ -126,8 +163,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
           .map((node) => node.nodeId))
       : null)
 
-    const topicNumbers = numberTopics(graph)
-    const positionedNodes = layoutGraph(graph, layout)
     const selectedSubjectId = graph.nodes.some(
       (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
     ) ? selectedNodeId : null
@@ -144,8 +179,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     const visiblePositionedNodes = positionedNodes.filter(
       ({ node }) => !hiddenSubjectIds.has(node.nodeId),
     )
-    const positionedById = new Map(positionedNodes.map((entry) => [entry.node.nodeId, entry]))
-    const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]))
 
     // 축소 상태에서는 전체 Subject를 한 덩어리로 만들지 않는다. Topic마다 직접 이어진
     // Subject만 세어 요약해야 어떤 주제에 딸린 키워드인지 공간적으로 남는다.
@@ -154,21 +187,8 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       : positionedNodes
         .filter(({ node }) => node.type === 'TOPIC')
         .flatMap((topicEntry) => {
-          const subjectIds = new Set(
-            graph.edges.flatMap((edge) => {
-              const neighborId = edge.from === topicEntry.node.nodeId
-                ? edge.to
-                : edge.to === topicEntry.node.nodeId
-                  ? edge.from
-                  : null
-              return neighborId
-                && hiddenSubjectIds.has(neighborId)
-                && nodeById.get(neighborId)?.type === 'SUBJECT'
-                ? [neighborId]
-                : []
-            }),
-          )
-          const subjects = [...subjectIds]
+          const subjects = [...(subjectIdsByTopic.get(topicEntry.node.nodeId) ?? [])]
+            .filter((subjectId) => hiddenSubjectIds.has(subjectId))
             .map((subjectId) => positionedById.get(subjectId))
             .filter((entry) => entry !== undefined)
           if (subjects.length === 0) return []
@@ -224,6 +244,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
           order: topicNumbers.get(node.nodeId),
           axis: layout.axis,
           subjectSummary: subjectSummary !== undefined,
+          onSaveTitle: node.type === 'CATEGORY' || node.type === 'TOPIC' ? saveNodeTitle : undefined,
         },
         ariaLabel: subjectSummary
           ? `${subjectSummary.topicTitle}의 키워드 ${subjectSummary.count}개 펼쳐 보기`
@@ -305,7 +326,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
         style: selectedNodeId !== null && !edge.data?.active ? { opacity: 0.12 } : undefined,
       })),
     }
-  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById])
+  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById, saveNodeTitle, drawnEdges, topicNumbers, positionedNodes, positionedById, subjectIdsByTopic])
 
   const selectedNode = graph?.nodes.find((node) => node.nodeId === selectedNodeId)
     ?? (selectedNodeId === rootNodeId && graph
@@ -432,6 +453,14 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
               </div>
               <p>카테고리로 묶으면 더 쉽게 탐색할 수 있어요.</p>
               <div className={styles['category-hint-actions']}>
+                <label className={styles['category-hint-preference']}>
+                  <input
+                    type="checkbox"
+                    checked={hideCategoryHintAgain}
+                    onChange={(event) => setHideCategoryHintAgain(event.target.checked)}
+                  />
+                  다시 보지 않기
+                </label>
                 <ActionButton
                   className={styles['category-hint-setup']}
                   icon={<IconSparkles size={16} stroke={1.8} aria-hidden="true" />}
@@ -446,14 +475,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
                 >
                   AI 카테고리 정리
                 </ActionButton>
-                <label className={styles['category-hint-preference']}>
-                  <input
-                    type="checkbox"
-                    checked={hideCategoryHintAgain}
-                    onChange={(event) => setHideCategoryHintAgain(event.target.checked)}
-                  />
-                  다시 보지 않기
-                </label>
               </div>
             </aside>
           )}

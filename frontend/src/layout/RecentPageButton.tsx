@@ -82,7 +82,7 @@ export default function RecentPageButton() {
     if (!recentHref || !recent) return null
 
     const { label, detail } = describe(recentHref, recent.label, folders)
-    return { href: recentHref, eyebrow: '최근 보기', label, detail, icon: recent.icon }
+    return { href: recentHref, eyebrow: '최근 방문', label, detail, icon: recent.icon }
   }
 
   const destination = buildDestination()

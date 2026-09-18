@@ -9,6 +9,7 @@ import {TASK_STATUS_LABEL} from '../tasks/taskLabels'
 import type {TaskStatus} from '../tasks/taskTypes'
 import type {City, Place} from '../places/placeTypes'
 import {usePlaceStore} from '../../store/placeStore'
+import {useTimerStore} from '../../store/timerStore'
 import {startPersonalSession} from './sessionApi'
 import {GROUP_ROOM_MOCK} from './sessionMocks'
 import type {SessionDetailResponse} from './sessionTypes'
@@ -81,6 +82,7 @@ export default function CreateSessionModal({
   const cities = usePlaceStore((state) => state.cities)
   const placesStatus = usePlaceStore((state) => state.status)
   const loadPlaces = usePlaceStore((state) => state.load)
+  const stopTimer = useTimerStore((state) => state.stop)
   const [placeId, setPlaceId] = useState<number | null>(null)
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(45)
   const [customMinutes, setCustomMinutes] = useState('')
@@ -170,7 +172,7 @@ export default function CreateSessionModal({
 
     setIsSubmitting(true)
     try {
-      onStarted(await startPersonalSession({
+      const started = await startPersonalSession({
         taskIds: selectedTaskIds,
         placeId: selectedPlace.place.id,
         // 캘린더 시간은 한 구간이 아니라 휴식까지 포함한 세션 전체 길이다.
@@ -178,7 +180,10 @@ export default function CreateSessionModal({
         focusDurationSec: durationMinutes * 60,
         breakDurationSec: hasBreak ? breakMinutes * 60 : 0,
         repeatCount: repeat,
-      }))
+      })
+      // 한 번에 재는 것은 하나다. 흐르던 독립 타이머는 세션이 시작되면 끝낸다.
+      stopTimer()
+      onStarted(started)
     } catch (error) {
       setSubmitError(
         isApiError(error) && error.message

@@ -46,10 +46,18 @@ export default function GraphNodeCard({ data, selected }: NodeProps<KnowledgeFlo
       {onSaveTitle && (node.type === 'CATEGORY' || node.type === 'TOPIC') ? (
         <div
           className={`${styles.editableTitle} nodrag nopan nowheel`}
-          onClick={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest('button, input')) event.stopPropagation()
+          }}
+          onDoubleClick={(event) => {
+            if ((event.target as HTMLElement).closest('button, input')) event.stopPropagation()
+          }}
+          onPointerDown={(event) => {
+            if ((event.target as HTMLElement).closest('button, input')) event.stopPropagation()
+          }}
+          onKeyDown={(event) => {
+            if ((event.target as HTMLElement).closest('button, input')) event.stopPropagation()
+          }}
         >
           {order !== undefined && (
             <span className={styles.order}>

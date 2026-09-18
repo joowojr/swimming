@@ -116,6 +116,28 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     onNodeTitleChanged(updated)
   }, [onNodeTitleChanged])
 
+  // 선택은 강조만 바꾼다. 전체 배치와 관계 전처리는 그래프·배치 설정이 바뀔 때만 계산한다.
+  const drawnEdges = useMemo(() => graph ? withoutRedundantAbout(graph.edges) : [], [graph])
+  const topicNumbers = useMemo(() => graph ? numberTopics(graph) : new Map<string, number>(), [graph])
+  const positionedNodes = useMemo(() => graph ? layoutGraph(graph, layout) : [], [graph, layout])
+  const positionedById = useMemo(
+    () => new Map(positionedNodes.map((entry) => [entry.node.nodeId, entry])),
+    [positionedNodes],
+  )
+  const nodeById = useMemo(() => new Map(graph?.nodes.map((node) => [node.nodeId, node]) ?? []), [graph])
+  const subjectIdsByTopic = useMemo(() => {
+    const result = new Map<string, Set<string>>()
+    for (const edge of graph?.edges ?? []) {
+      for (const [topicId, subjectId] of [[edge.from, edge.to], [edge.to, edge.from]]) {
+        if (nodeById.get(topicId)?.type !== 'TOPIC' || nodeById.get(subjectId)?.type !== 'SUBJECT') continue
+        const ids = result.get(topicId) ?? new Set<string>()
+        ids.add(subjectId)
+        result.set(topicId, ids)
+      }
+    }
+    return result
+  }, [graph, nodeById])
+
   const { nodes, edges } = useMemo(() => {
     if (!graph) return { nodes: [] as KnowledgeFlowNode[], edges: [] as Edge[] }
 
@@ -124,7 +146,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       .map((node) => node.nodeId)
     const showAllSubjects = sourceNodeIds.length <= MAX_SOURCES_WITH_VISIBLE_SUBJECTS
     // 강조도 화면에 그린 선을 따른다. 선이 없는 노드가 밝게 남으면 왜 이어졌는지 보이지 않는다.
-    const drawnEdges = withoutRedundantAbout(graph.edges)
     const selectedType = graph.nodes.find((node) => node.nodeId === selectedNodeId)?.type
     // 문서·주제를 고르면 닿은 선에 빛 점을 보낸다. 폴더는 소속선뿐이라 제외한다.
     const flowsFromSelected = selectedType === 'SOURCE' || selectedType === 'TOPIC'
@@ -142,8 +163,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
           .map((node) => node.nodeId))
       : null)
 
-    const topicNumbers = numberTopics(graph)
-    const positionedNodes = layoutGraph(graph, layout)
     const selectedSubjectId = graph.nodes.some(
       (node) => node.nodeId === selectedNodeId && node.type === 'SUBJECT',
     ) ? selectedNodeId : null
@@ -160,8 +179,6 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     const visiblePositionedNodes = positionedNodes.filter(
       ({ node }) => !hiddenSubjectIds.has(node.nodeId),
     )
-    const positionedById = new Map(positionedNodes.map((entry) => [entry.node.nodeId, entry]))
-    const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]))
 
     // 축소 상태에서는 전체 Subject를 한 덩어리로 만들지 않는다. Topic마다 직접 이어진
     // Subject만 세어 요약해야 어떤 주제에 딸린 키워드인지 공간적으로 남는다.
@@ -170,21 +187,8 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       : positionedNodes
         .filter(({ node }) => node.type === 'TOPIC')
         .flatMap((topicEntry) => {
-          const subjectIds = new Set(
-            graph.edges.flatMap((edge) => {
-              const neighborId = edge.from === topicEntry.node.nodeId
-                ? edge.to
-                : edge.to === topicEntry.node.nodeId
-                  ? edge.from
-                  : null
-              return neighborId
-                && hiddenSubjectIds.has(neighborId)
-                && nodeById.get(neighborId)?.type === 'SUBJECT'
-                ? [neighborId]
-                : []
-            }),
-          )
-          const subjects = [...subjectIds]
+          const subjects = [...(subjectIdsByTopic.get(topicEntry.node.nodeId) ?? [])]
+            .filter((subjectId) => hiddenSubjectIds.has(subjectId))
             .map((subjectId) => positionedById.get(subjectId))
             .filter((entry) => entry !== undefined)
           if (subjects.length === 0) return []
@@ -322,7 +326,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
         style: selectedNodeId !== null && !edge.data?.active ? { opacity: 0.12 } : undefined,
       })),
     }
-  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById, saveNodeTitle])
+  }, [graph, layout, selectedNodeId, showSubjectDetails, sourcesById, saveNodeTitle, drawnEdges, topicNumbers, positionedNodes, positionedById, subjectIdsByTopic])
 
   const selectedNode = graph?.nodes.find((node) => node.nodeId === selectedNodeId)
     ?? (selectedNodeId === rootNodeId && graph

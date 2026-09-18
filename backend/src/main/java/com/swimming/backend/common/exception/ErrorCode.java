@@ -64,7 +64,6 @@ public enum ErrorCode {
     // KNOWLEDGE DOMAIN
     KNOWLEDGE_NODE_NOT_FOUND(HttpStatus.NOT_FOUND, "지식 노드를 찾을 수 없습니다"),
     KNOWLEDGE_NODE_TITLE_NOT_EDITABLE(HttpStatus.BAD_REQUEST, "카테고리와 목적 노드만 이름을 수정할 수 있습니다"),
-    KNOWLEDGE_CATEGORY_TITLE_DUPLICATE(HttpStatus.CONFLICT, "같은 폴더에 이미 있는 카테고리 이름입니다"),
     INVALID_KNOWLEDGE_FOLDER(HttpStatus.BAD_REQUEST, "지식 폴더가 아닙니다"),
     INVALID_KNOWLEDGE_RELATION(HttpStatus.BAD_REQUEST, "지식 관계의 연결 방향이 올바르지 않습니다"),
     INVALID_KNOWLEDGE_CURSOR(HttpStatus.BAD_REQUEST, "목록 조회 커서가 올바르지 않습니다"),

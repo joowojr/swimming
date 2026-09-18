@@ -139,6 +139,12 @@ public class PostgresKnowledgeRelationRepository implements KnowledgeRelationRep
         );
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED)
+    public int deleteAllFrom(UUID fromNodeId, RelationType relationType) {
+        return jpaRepository.deleteAllFrom(fromNodeId, relationType);
+    }
+
     private static KnowledgeRelation toDomain(KnowledgeRelationEntity entity) {
         return KnowledgeRelation.restore(
                 entity.getFromNodeId(),

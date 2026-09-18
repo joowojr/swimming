@@ -139,3 +139,35 @@
     transform: none;
   }
 }
+
+@media (max-width: 48rem) {
+  .recent-page {
+    --recent-reveal-max-width: calc(100vw - var(--space-4) * 2 - var(--space-10) - var(--space-1) * 2 - var(--border-width) * 2);
+    padding: var(--space-1);
+  }
+
+  .mark {
+    width: var(--space-10);
+    height: var(--space-10);
+  }
+
+  .mark > svg,
+  .arrow {
+    width: var(--space-4);
+    height: var(--space-4);
+  }
+
+  .reveal,
+  .reveal-content {
+    max-width: var(--recent-reveal-max-width);
+  }
+
+  .reveal-content {
+    gap: var(--space-2);
+    padding-inline: var(--space-2) var(--space-3);
+  }
+
+  .eyebrow {
+    display: none;
+  }
+}

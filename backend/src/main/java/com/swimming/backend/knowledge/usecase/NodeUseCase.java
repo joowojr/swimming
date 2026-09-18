@@ -7,6 +7,7 @@ import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
+import com.swimming.backend.knowledge.domain.RelationOrigin;
 import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
@@ -18,8 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,38 +46,71 @@ public class NodeUseCase {
     private final KnowledgeSourceService sourceService;
     private final FolderService folderService;
 
-    /** Category와 Topic의 제목만 변경한다. 같은 폴더의 Category 이름은 중복될 수 없다. */
+    /**
+     * Category와 Topic의 제목을 바꾼다.
+     *
+     * <p>같은 폴더에 같은 이름의 Category가 이미 있으면 거절하지 않고 <b>그쪽으로 합친다.</b>
+     * 담고 있던 Source를 기존 Category로 옮기고 이름을 바꾸려던 Category는 지운다.
+     * 사용자가 같은 이름을 붙였다는 것은 같은 묶음으로 보겠다는 뜻이기 때문이다.
+     *
+     * <p>합쳐지면 <b>돌려주는 노드의 id가 요청한 id와 달라진다.</b> 부르는 쪽은 응답의 id로
+     * 가리키던 것을 바꿔야 한다.
+     *
+     * <p>Topic은 합치지 않는다. Topic 하나가 가리키는 Source는 항상 하나라는 계약이 있어
+     * (기능정의서 §11.1) 둘을 합치면 그 계약이 깨진다.
+     */
     @Transactional(propagation = Propagation.REQUIRED)
     public NodeRef updateTitle(Long userId, UUID nodeId, String title) {
         KnowledgeNode node = nodeService.getOwned(nodeId, userId);
         node.renameByUser(title, Instant.now());
+
         if (node.getNodeType() == NodeType.CATEGORY) {
-            validateCategoryTitle(userId, node);
+            Optional<KnowledgeNode> duplicate = findDuplicateCategory(userId, node);
+            if (duplicate.isPresent()) {
+                return NodeRef.from(mergeCategory(node, duplicate.get()));
+            }
         }
+
         nodeService.updateTitle(node);
         return NodeRef.from(node);
     }
 
     /**
-     * 같은 폴더의 살아 있는 Category와 정규화 이름이 겹치면 거절한다.
+     * 같은 폴더에서 정규화 이름이 같은 다른 Category를 찾는다.
      *
      * <p>Replace·소화 중 배정과 같은 폴더 잠금을 잡는다. 잠그지 않으면 그 사이 같은 이름의
      * Category가 생겨 중복이 저장될 수 있다. 담긴 Source가 없는 Category는 어느 폴더에서도
      * 조회되지 않으므로 비교할 대상이 없다.
      */
-    private void validateCategoryTitle(Long userId, KnowledgeNode node) {
+    private Optional<KnowledgeNode> findDuplicateCategory(Long userId, KnowledgeNode node) {
         Optional<Long> folderId = folderOf(userId, node.getId());
         if (folderId.isEmpty()) {
-            return;
+            return Optional.empty();
         }
 
         folderService.lockOwned(userId, folderId.get());
-        boolean duplicateInFolder = nodeService.findCategoriesInFolder(userId, folderId.get()).stream()
-                .anyMatch(other -> !other.getId().equals(node.getId())
-                        && other.getNormalizedTitle().equals(node.getNormalizedTitle()));
-        if (duplicateInFolder) {
-            throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
-        }
+        return nodeService.findCategoriesInFolder(userId, folderId.get()).stream()
+                .filter(other -> !other.getId().equals(node.getId())
+                        && other.getNormalizedTitle().equals(node.getNormalizedTitle()))
+                .findFirst();
+    }
+
+    /**
+     * 담고 있던 Source를 기존 Category로 옮기고 원래 Category를 지운다.
+     *
+     * <p>근거는 Replace와 같이 {@code USER}로 둔다. 어느 묶음에 담을지를 사용자가 이름으로
+     * 정했기 때문이다. 같은 Source가 이미 담겨 있으면 저장소가 자연키로 합쳐 준다.
+     */
+    private KnowledgeNode mergeCategory(KnowledgeNode from, KnowledgeNode into) {
+        List<UUID> sourceIds = relationService
+                .findOutgoing(List.of(from.getId()), List.of(RelationType.CONTAINS))
+                .stream().map(KnowledgeRelation::getToNodeId).toList();
+
+        relationService.connectAll(into, nodeService.findAllByIds(sourceIds), RelationOrigin.USER);
+        relationService.disconnectAllFrom(from.getId(), RelationType.CONTAINS);
+        from.delete();
+        nodeService.delete(from);
+        return into;
     }
 
     /** Category의 폴더는 담긴 Source에서 파생한다. 한 Category의 Source는 모두 같은 폴더다. */

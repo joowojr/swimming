@@ -3,9 +3,11 @@ package com.swimming.backend.knowledge.usecase;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
+import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationOrigin;
+import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.dto.in.NodeDetailResponse;
 import com.swimming.backend.knowledge.dto.in.NodeRef;
 import com.swimming.backend.knowledge.repository.InMemoryKnowledgeRepositories;
@@ -14,6 +16,8 @@ import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.service.SourceGraphReader;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -123,18 +127,54 @@ class NodeUseCaseTest {
         }
 
         @Test
-        @DisplayName("같은 폴더의 Category 정규화 이름 중복은 저장하지 않는다")
-        void rejectsDuplicateCategoryInFolder() {
-            KnowledgeSource source = givenSource("문서");
+        @DisplayName("같은 폴더에 같은 이름의 Category가 있으면 그쪽으로 합치고 원래 것은 지운다")
+        void mergesIntoDuplicateCategoryInFolder() {
+            KnowledgeSource mine = givenSource("옮겨갈 문서");
+            KnowledgeSource theirs = givenSource("이미 담긴 문서");
             KnowledgeNode category = givenNode(NodeType.CATEGORY, "원래 이름");
             KnowledgeNode other = givenNode(NodeType.CATEGORY, "API 설계");
-            relationService.connect(category, source.getNode(), RelationOrigin.USER);
-            relationService.connect(other, source.getNode(), RelationOrigin.USER);
-            assertThatThrownBy(() -> useCase.updateTitle(USER_ID, category.getId(), "api_설계"))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE.getMessage());
-            assertThat(nodes.findById(category.getId()).orElseThrow().getTitle()).isEqualTo("원래 이름");
-            assertThat(nodes.findById(category.getId()).orElseThrow().getTitleRenamedAt()).isNull();
+            relationService.connect(category, mine.getNode(), RelationOrigin.USER);
+            relationService.connect(other, theirs.getNode(), RelationOrigin.USER);
+
+            NodeRef merged = useCase.updateTitle(USER_ID, category.getId(), "api_설계");
+
+            // 돌려주는 것은 살아남은 쪽이다. 요청한 id와 다르다.
+            assertThat(merged.nodeId()).isEqualTo(other.getId());
+            assertThat(merged.title()).isEqualTo("API 설계");
+            // findById는 지운 노드를 걸러낸다. 비어 있다는 것이 곧 지워졌다는 뜻이다.
+            assertThat(nodes.findById(category.getId())).isEmpty();
+            assertThat(nodes.findById(other.getId()).orElseThrow().getTitle()).isEqualTo("API 설계");
+        }
+
+        @Test
+        @DisplayName("합칠 때 담고 있던 문서를 옮기고 원래 묶음의 간선은 지운다")
+        void movesContainedSourcesOnMerge() {
+            KnowledgeSource mine = givenSource("옮겨갈 문서");
+            KnowledgeSource theirs = givenSource("이미 담긴 문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "원래 이름");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "API 설계");
+            relationService.connect(category, mine.getNode(), RelationOrigin.USER);
+            relationService.connect(other, theirs.getNode(), RelationOrigin.USER);
+
+            useCase.updateTitle(USER_ID, category.getId(), "API 설계");
+
+            assertThat(relationService.findOutgoing(List.of(other.getId()), List.of(RelationType.CONTAINS)))
+                    .extracting(KnowledgeRelation::getToNodeId)
+                    .containsExactlyInAnyOrder(mine.getId(), theirs.getId());
+            // 간선을 남기지 않는다. 노드만 지우면 조회가 걸러 줄 뿐 행은 남는다.
+            assertThat(relationService.findOutgoing(List.of(category.getId()), List.of(RelationType.CONTAINS)))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("담긴 문서가 없는 Category는 비교할 폴더가 없어 그대로 이름만 바뀐다")
+        void renamesEmptyCategoryWithoutMerge() {
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "원래 이름");
+
+            NodeRef renamed = useCase.updateTitle(USER_ID, category.getId(), "새 이름");
+
+            assertThat(renamed.nodeId()).isEqualTo(category.getId());
+            assertThat(nodes.findById(category.getId()).orElseThrow().getTitle()).isEqualTo("새 이름");
         }
 
         @Test

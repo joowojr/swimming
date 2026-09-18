@@ -623,6 +623,17 @@ public final class InMemoryKnowledgeRepositories {
             stored.remove(key(fromNodeId, toNodeId, relationType));
         }
 
+        @Override
+        public int deleteAllFrom(UUID fromNodeId, RelationType relationType) {
+            List<String> keys = stored.entrySet().stream()
+                    .filter(entry -> entry.getValue().getFromNodeId().equals(fromNodeId)
+                            && entry.getValue().getRelationType() == relationType)
+                    .map(Map.Entry::getKey)
+                    .toList();
+            keys.forEach(stored::remove);
+            return keys.size();
+        }
+
         static KnowledgeRelation copy(KnowledgeRelation relation) {
             return KnowledgeRelation.restore(
                     relation.getFromNodeId(), relation.getToNodeId(), relation.getRelationType(),

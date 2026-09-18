@@ -13,7 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +27,8 @@ import java.util.UUID;
  * 사용자 전역에서 재사용되므로 {@code /api/knowledge} 아래 평평하게 둔다.
  *
  * <p>{@code SOURCE} 상세는 {@link KnowledgeSourceController}가 맡는다. 이름 수정은
- * Category·Topic만 허용하며 Source·Subject 요청은 400으로 거절한다.
+ * Category·Topic만 허용하며 Source·Subject 요청은 400으로 거절한다. 같은 이름의 Category가
+ * 이미 있으면 거절하지 않고 그쪽으로 합친다.
  */
 @Tag(name = "지식 노드", description = "개념·목적 상세와 개념 삭제, 카테고리·목적 이름 수정.")
 @RestController
@@ -37,8 +38,13 @@ public class KnowledgeNodeController {
 
     private final NodeUseCase nodeUseCase;
 
-    /** Category와 Topic의 이름만 바꾸고 노드 ID와 관계는 유지한다. */
-    @PatchMapping("/{nodeId}/title")
+    /**
+     * Category와 Topic의 이름을 놓는다.
+     *
+     * <p>같은 폴더에 같은 이름의 Category가 있으면 그쪽으로 합쳐지고, 그때는 <b>응답의
+     * nodeId가 요청한 nodeId와 다르다.</b> 부르는 쪽은 응답의 id를 따라가야 한다.
+     */
+    @PutMapping("/{nodeId}/title")
     public ResponseEntity<NodeRef> updateTitle(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable UUID nodeId,

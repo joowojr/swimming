@@ -288,3 +288,25 @@
     transition: none;
   }
 }
+
+@media (max-width: 48rem) {
+  .widget {
+    --timer-collapsed-size: calc(var(--space-10) + var(--space-1) * 2 + var(--border-width) * 2);
+    --timer-widget-width: min(calc(var(--space-12) * 5), calc(100vw - var(--space-4) * 2));
+  }
+
+  .bar {
+    gap: var(--space-1);
+    padding-right: var(--space-1);
+  }
+
+  .dial > svg {
+    width: var(--space-4);
+    height: var(--space-4);
+  }
+
+  .panel {
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+}

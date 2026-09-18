@@ -50,6 +50,7 @@ function errorMessage(error: unknown) {
 
 /** 공통 폴더 정보 아래에서 이 폴더에 저장된 Source를 최근 순으로 보여준다. */
 export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
+  const invalidateSourceFolder = useSourceStore((store) => store.invalidateFolder)
   const updateFolderHasSource = useFolderStore((store) => store.updateHasSource)
   const setStoredReadAt = useSourceStore((store) => store.setReadAt)
   const removeStoredSources = useSourceStore((store) => store.remove)
@@ -94,9 +95,10 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
     setState((current) => current.status === 'ready'
       ? { ...current, items: current.items.filter((item) => item.sourceId !== sourceId) }
       : current)
-    // 폴더 진척을 함께 세는 쪽이 이 링크를 분모에서 빼야 한다.
+    // 삭제된 링크는 읽음 상태 캐시에서도 제거한다.
     removeStoredSources([sourceId])
     updateFolderHasSource(response.folderId, response.hasSource)
+    invalidateSourceFolder(response.folderId)
   }
 
   const prependSource = (source: SourceCard) => {
@@ -105,6 +107,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
       const rest = current.items.filter((item) => item.sourceId !== source.sourceId)
       return { ...current, items: [source, ...rest] }
     })
+    invalidateSourceFolder(folderId)
   }
 
   const replaceSource = (source: SourceCard) => {
@@ -130,8 +133,7 @@ export default function LinkFolderView({ folderId }: LinkFolderViewProps) {
   /**
    * 카드가 낙관적으로 바꾼 읽음 표시를 목록에 반영한다. 실패하면 카드가 되돌려 준다.
    *
-   * 되돌리는 경우도 이 함수를 거치므로, 스토어에도 같이 적어 두면 폴더 진척 배너가
-   * 보는 값과 목록이 어긋날 일이 없다.
+   * 되돌리는 경우도 이 함수를 거치므로 읽음 상태 캐시에도 함께 반영한다.
    */
   const setSourceReadAt = (sourceId: string, readAt: string | null) => {
     setStoredReadAt(sourceId, readAt)

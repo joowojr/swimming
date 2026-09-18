@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -118,7 +119,7 @@ class KnowledgeNodeControllerTest {
         when(nodeUseCase.updateTitle(1L, TOPIC_ID, "새 목적"))
                 .thenReturn(new NodeRef(TOPIC_ID, "새 목적"));
 
-        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+        mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"새 목적\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nodeId").value(TOPIC_ID.toString()))
@@ -130,7 +131,7 @@ class KnowledgeNodeControllerTest {
     @ValueSource(strings = {"{}", "{\"title\":null}", "{\"title\":\"\"}", "{\"title\":\"   \"}"})
     @DisplayName("제목 누락과 빈 제목은 ProblemDetail 400으로 거절한다")
     void rejectsBlankTitle(String body) throws Exception {
-        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+        mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.title").exists());
@@ -141,24 +142,61 @@ class KnowledgeNodeControllerTest {
     void validatesTitleLength() throws Exception {
         String title = "가".repeat(500);
         when(nodeUseCase.updateTitle(1L, TOPIC_ID, title)).thenReturn(new NodeRef(TOPIC_ID, title));
-        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+        mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"" + title + "\"}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+        mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"" + title + "가\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("합쳐지면 요청한 id가 아니라 살아남은 노드를 돌려준다")
-    void returnsSurvivingNodeWhenMerged() throws Exception {
-        UUID survivorId = UUID.fromString("99999999-9999-9999-9999-999999999999");
-        when(nodeUseCase.updateTitle(1L, TOPIC_ID, "중복"))
-                .thenReturn(new NodeRef(survivorId, "중복"));
-        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"중복\"}"))
+    void 전체_병합은_대상_카테고리_ID를_전달하고_대상_노드를_반환한다() throws Exception {
+        UUID targetId = UUID.randomUUID();
+        when(nodeUseCase.merge(1L, TOPIC_ID, targetId, null)).thenReturn(new NodeRef(targetId, "대상 분류"));
+        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/merge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetCategoryId\":\"" + targetId + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nodeId").value(survivorId.toString()));
+                .andExpect(jsonPath("$.nodeId").value(targetId.toString()));
+        verify(nodeUseCase).merge(1L, TOPIC_ID, targetId, null);
+    }
+
+    @Test
+    void 문서_ID를_전달하면_단건_이동_유스케이스를_호출한다() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        when(nodeUseCase.merge(1L, categoryId, targetId, SOURCE_ID)).thenReturn(new NodeRef(targetId, "대상 분류"));
+        mockMvc.perform(put("/api/knowledge/nodes/" + categoryId + "/merge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetCategoryId\":\"" + targetId + "\",\"sourceId\":\"" + SOURCE_ID + "\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.nodeId").value(targetId.toString()));
+        verify(nodeUseCase).merge(1L, categoryId, targetId, SOURCE_ID);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"targetCategoryId\":null}", "{\"targetCategoryId\":\"invalid\"}",
+            "{\"targetCategoryId\":\"99999999-9999-9999-9999-999999999999\",\"sourceId\":\"invalid\"}"})
+    @DisplayName("병합 대상 누락과 잘못된 UUID는 400으로 거절한다")
+    void validatesMergeRequest(String body) throws Exception {
+        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/merge")
+                        .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 중복_이름_수정은_409로_거절한다() throws Exception {
+        when(nodeUseCase.updateTitle(1L, TOPIC_ID, "중복"))
+                .thenThrow(new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE));
+        mockMvc.perform(patch("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"중복\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void 기존_PUT_제목_수정_경로는_허용하지_않는다() throws Exception {
+        mockMvc.perform(put("/api/knowledge/nodes/" + TOPIC_ID + "/title")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"수정\"}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     private record AuthUserArgumentResolver(AuthUser authUser)

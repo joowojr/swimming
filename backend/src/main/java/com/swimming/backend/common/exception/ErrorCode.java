@@ -77,6 +77,7 @@ public enum ErrorCode {
             "정리할 링크가 6개 이상 모이면 묶어 드릴 수 있습니다"
     ),
     INVALID_KNOWLEDGE_CATEGORY_ASSIGNMENT(HttpStatus.BAD_REQUEST, "묶음 구성이 올바르지 않습니다"),
+    KNOWLEDGE_CATEGORY_TITLE_DUPLICATE(HttpStatus.CONFLICT, "같은 폴더에 같은 이름의 카테고리가 있습니다"),
     KNOWLEDGE_CATEGORY_PREVIEW_FAILURE(HttpStatus.BAD_GATEWAY, "링크를 묶는 데 실패했습니다"),
 
     // USER DOMAIN

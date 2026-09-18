@@ -78,6 +78,12 @@ public class KnowledgeRelationService {
         return relationRepository.deleteAllFrom(fromNodeIds, relationType);
     }
 
+    /** 소유권과 현재 소속을 확인한 문서 한 건의 카테고리 연결을 끊는다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void disconnect(UUID fromNodeId, UUID toNodeId, RelationType relationType) {
+        relationRepository.delete(fromNodeId, toNodeId, relationType);
+    }
+
     /** 이 노드들에서 나가는 관계. Source가 다루는 개념처럼 정방향으로 읽는다. */
     @Transactional(
             propagation = Propagation.REQUIRED,

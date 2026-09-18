@@ -46,33 +46,49 @@ public class NodeUseCase {
     private final KnowledgeSourceService sourceService;
     private final FolderService folderService;
 
-    /**
-     * Category와 Topic의 제목을 바꾼다.
-     *
-     * <p>같은 폴더에 같은 이름의 Category가 이미 있으면 거절하지 않고 <b>그쪽으로 합친다.</b>
-     * 담고 있던 Source를 기존 Category로 옮기고 이름을 바꾸려던 Category는 지운다.
-     * 사용자가 같은 이름을 붙였다는 것은 같은 묶음으로 보겠다는 뜻이기 때문이다.
-     *
-     * <p>합쳐지면 <b>돌려주는 노드의 id가 요청한 id와 달라진다.</b> 부르는 쪽은 응답의 id로
-     * 가리키던 것을 바꿔야 한다.
-     *
-     * <p>Topic은 합치지 않는다. Topic 하나가 가리키는 Source는 항상 하나라는 계약이 있어
-     * (기능정의서 §11.1) 둘을 합치면 그 계약이 깨진다.
-     */
+    /** Category·Topic의 이름만 수정한다. 중복 Category로의 이동은 merge가 맡는다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public NodeRef updateTitle(Long userId, UUID nodeId, String title) {
         KnowledgeNode node = nodeService.getOwned(nodeId, userId);
         node.renameByUser(title, Instant.now());
-
-        if (node.getNodeType() == NodeType.CATEGORY) {
-            Optional<KnowledgeNode> duplicate = findDuplicateCategory(userId, node);
-            if (duplicate.isPresent()) {
-                return NodeRef.from(mergeCategory(node, duplicate.get()));
-            }
+        if (node.getNodeType() == NodeType.CATEGORY && findDuplicateCategory(userId, node).isPresent()) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE);
         }
-
         nodeService.updateTitle(node);
         return NodeRef.from(node);
+    }
+
+    /** 지정한 기존 Category로 문서 한 건 또는 전체를 옮긴다. 제목은 변경하지 않는다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public NodeRef merge(Long userId, UUID nodeId, UUID targetCategoryId, UUID sourceId) {
+        KnowledgeNode from = nodeService.getOwned(nodeId, userId);
+        KnowledgeNode into = nodeService.getOwned(targetCategoryId, userId);
+        if (from.getNodeType() != NodeType.CATEGORY || into.getNodeType() != NodeType.CATEGORY
+                || from.getId().equals(into.getId())) {
+            throw new BusinessException(ErrorCode.INVALID_KNOWLEDGE_CATEGORY_ASSIGNMENT);
+        }
+        Long folderId = folderOf(userId, from.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_KNOWLEDGE_CATEGORY_ASSIGNMENT));
+        folderService.lockOwned(userId, folderId);
+        if (!folderOf(userId, into.getId()).filter(folderId::equals).isPresent()) {
+            throw new BusinessException(ErrorCode.INVALID_KNOWLEDGE_CATEGORY_ASSIGNMENT);
+        }
+        if (sourceId == null) return NodeRef.from(mergeCategory(from, into));
+
+        KnowledgeSource source = sourceService.getOwned(sourceId, userId);
+        List<KnowledgeRelation> contained = relationService.findOutgoing(
+                List.of(from.getId()), List.of(RelationType.CONTAINS));
+        if (!source.getFolderId().equals(folderId)
+                || contained.stream().noneMatch(relation -> relation.getToNodeId().equals(sourceId))) {
+            throw new BusinessException(ErrorCode.INVALID_KNOWLEDGE_CATEGORY_ASSIGNMENT);
+        }
+        relationService.disconnect(from.getId(), sourceId, RelationType.CONTAINS);
+        relationService.connect(into, source.getNode(), RelationOrigin.USER);
+        if (contained.size() == 1) {
+            from.delete();
+            nodeService.delete(from);
+        }
+        return NodeRef.from(into);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useId, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -41,15 +41,13 @@ const SESSION_DIALOG_ID = 'timer-create-session-dialog'
  * 있으면 세션만 보여 주고, 타이머는 뒤에서 그대로 흐르다가 세션이 끝나면 다시 보인다.
  * 세션이 없을 때 패널에서 분을 적어 타이머를 시작하거나 세션 시작 모달을 연다.
  *
- * 진행 중인 세션을 처음 불러오는 자리이기도 하다. 이 위젯은 셸이 떠 있는 내내 살아 있어
- * 어느 화면에서 들어오든 한 번은 지나간다. 이후 갱신은 세션을 다루는 화면이 맡는다.
+ * 진행 중인 세션을 처음 불러오는 일은 App이 맡는다. 세션 화면은 셸 밖이라 이 위젯이 없다.
+ * 끝나는 시각의 알림음은 TimerEndSoundScheduler가 맡는다.
  */
 export default function TimerWidget() {
   const navigate = useNavigate()
   const panelId = useId()
   const session = useActiveSessionStore((state) => state.session)
-  const status = useActiveSessionStore((state) => state.status)
-  const loadActiveSession = useActiveSessionStore((state) => state.load)
   const markSessionCreated = useActiveSessionStore((state) => state.markCreated)
   const freeTimer = useTimerStore((state) => state.timer)
   const startTimer = useTimerStore((state) => state.start)
@@ -78,10 +76,6 @@ export default function TimerWidget() {
       if (todayTasks === null) setIsExpanded(false)
     },
   )
-
-  useEffect(() => {
-    if (status === 'idle') void loadActiveSession()
-  }, [status, loadActiveSession])
 
   const countdown = measured
     ? formatCountdown(measured.startedAt, measured.plannedDurationSec, now)

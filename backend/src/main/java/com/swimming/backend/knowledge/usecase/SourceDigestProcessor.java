@@ -1,4 +1,4 @@
-package com.swimming.backend.knowledge.service.llm;
+package com.swimming.backend.knowledge.usecase;
 
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -10,7 +10,9 @@ import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
 import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.CategoryAssignmentService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
+import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,7 @@ public class SourceDigestProcessor {
     private final SourceDigestService digestService;
     private final NodeResolutionService nodeResolutionService;
     private final SourceGraphWriter graphWriter;
+    private final CategoryAssignmentService categoryAssignmentService;
 
     public SourceDigestResponse digest(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
@@ -108,7 +111,9 @@ public class SourceDigestProcessor {
         source.completeDigestion(result.summary(), ANALYSIS_VERSION);
         KnowledgeSource saved = sourceService.save(source);
 
-        writeGraph(saved, result, resolvedSubjects);
+        createDigestGraph(saved, result, resolvedSubjects);
+        // 배정 실패는 안에서 삼킨다. 소화 결과와 응답에 영향을 주지 않는다.
+        categoryAssignmentService.assign(saved, result);
 
         return SourceDigestResponse.of(saved, result);
     }
@@ -167,13 +172,13 @@ public class SourceDigestProcessor {
      * <p>지금은 로그로만 남는다. 반영이 빠진 Source를 다시 이어 붙이는 경로가 필요해지면
      * 그때 상태를 따로 둔다.
      */
-    private void writeGraph(
+    private void createDigestGraph(
             KnowledgeSource source,
             SourceDigestResult result,
             List<ResolvedNode> resolvedSubjects
     ) {
         try {
-            graphWriter.write(source, result, resolvedSubjects);
+            graphWriter.createDigestGraphInTransaction(source, result, resolvedSubjects);
         } catch (RuntimeException exception) {
             log.warn(
                     "[source-digest] graph write failed sourceId={} reason={}",

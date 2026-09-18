@@ -190,25 +190,86 @@ JavaScript로 본문을 만드는 문서는 선택적으로 Lambda에서 렌더�
 
 ### 핵심 데이터 관계
 
+아래 다이어그램은 [전체 ERD](docs/erd.mmd)에서 서비스의 핵심 관계만 추린 것입니다.
+
+```mermaid
+erDiagram
+    USERS ||--o{ FOLDERS : owns
+    USERS ||--o{ TASKS : owns
+    USERS ||--o{ NOTES : owns
+    USERS ||--o{ SESSIONS : runs
+    USERS ||--o{ KNOWLEDGE_NODE : owns
+
+    FOLDERS o|--o{ TASKS : contains
+    TASKS ||--o{ DAILY_PLAN_ITEMS : plans
+    SESSIONS ||--|{ SESSION_TASKS : contains
+    TASKS ||--o{ SESSION_TASKS : focuses
+
+    FOLDERS o|--o{ NOTES : contextualizes
+    SESSIONS o|--o{ NOTES : contextualizes
+
+    FOLDERS ||--o{ KNOWLEDGE_SOURCE : collects
+    KNOWLEDGE_NODE ||--o| KNOWLEDGE_SOURCE : details
+    KNOWLEDGE_NODE ||--o{ KNOWLEDGE_BRANCH : structures
+    KNOWLEDGE_NODE ||--o{ KNOWLEDGE_RELATION : connects
+```
+
 - 사용자는 폴더, Task, 메모, 세션과 지식 노드를 소유합니다.
 - Task는 폴더 없이 `미분류`로 둘 수 있고, 캘린더와 세션에서 재사용합니다.
 - 개인 세션은 여러 Task와 연결되며 종료 시 실제 집중 시간과 Task별 완료 여부를 보존합니다.
 - Knowledge Source는 하나의 폴더에 속하며 여러 Subject와 하나의 Topic에 연결됩니다.
 - Subject는 사용자 범위에서 재사용하고 Topic은 Source마다 별도로 생성합니다.
 
-전체 관계는 [ERD](docs/erd.mmd), 실제 DDL은 [Flyway migration](backend/src/main/resources/db/migration), 설계 결정은 [Architecture](docs/ARCHITECTURE.md)에서 확인할 수 있습니다.
+실제 DDL은 [Flyway migration](backend/src/main/resources/db/migration), 설계 결정은 [Architecture](docs/ARCHITECTURE.md)에서 확인할 수 있습니다.
 
 ## 🛠 기술 스택
 
-| 영역 | 기술 | 버전·용도 |
+### Backend
+
+| 기술 | 적용 영역 | 채택 이유 |
 | --- | --- | --- |
-| Frontend | React, TypeScript, Vite | React 19.2.8, TypeScript 6.0.3, Vite 8.2.1 |
-| State & API | Zustand, Axios, React Router | 5.0.15, 1.19.0, 7.18.2 |
-| Graph UI | React Flow | 12.11.6 |
-| Backend | Java, Spring Boot, Gradle | Java 21, Spring Boot 4.1.0, Gradle 9.5.1 |
-| AI | Spring AI | 2.0.0 |
-| Data | PostgreSQL, pgvector, JPA, Flyway | PostgreSQL 17, 768차원 Summary embedding |
-| Infrastructure | Docker, Terraform, AWS | EC2, RDS, ECR, S3, CloudFront, Lambda, SSM, Secrets Manager |
+| Java 21 · Spring Boot 4.1 | REST API와 도메인 로직 | 객체지향의 캡슐화·다형성과 정적 타입 안정성을 활용해 도메인의 상태와 행위를 구조적으로 모델링하고, 인증·검증·데이터 접근을 Spring 생태계 안에서 통합 |
+| Spring Data JPA | 영속성 계층 | 단건 변경 감지와 Repository 기반 데이터 접근을 일관된 방식으로 구성 |
+| PostgreSQL 17 · pgvector | 관계형 데이터와 임베딩 저장 | 트랜잭션 데이터와 벡터 검색 데이터를 하나의 저장소에서 관리 |
+| Flyway | DB 스키마 버전 관리 | 애플리케이션 배포와 스키마 변경 이력을 재현 가능한 마이그레이션으로 관리 |
+| Spring Security · JWT · Google OAuth | 인증·인가 | 무상태 API 인증과 Google 로그인을 동일한 보안 계층에서 처리 |
+| Caffeine | 공휴일 데이터 캐시 | 과거·현재·미래의 변경 가능성에 따라 TTL을 다르게 적용해 반복되는 외부 API 호출을 줄임 |
+| jsoup · Readability4J | 링크 본문 수집 | 정적 HTML 파싱과 본문 추출을 우선 수행하고 필요한 경우에만 Lambda 렌더링 사용 |
+
+### Frontend
+
+| 기술 | 적용 영역 | 채택 이유 |
+| --- | --- | --- |
+| React 19 · TypeScript 6 | SPA 화면과 기능 컴포넌트 | 기능별 UI를 컴포넌트로 분리하고 API·상태 모델의 타입 안정성 확보 |
+| Vite 8 | 개발 서버와 프로덕션 빌드 | 빠른 개발 환경과 `/api`, `/ws` 프록시를 단순한 설정으로 제공 |
+| Zustand | 클라이언트 상태 관리 | 인증·폴더·Task·세션 상태를 기능별 store로 나누고 필요한 상태만 구독 |
+| React Router | 클라이언트 라우팅 | 로그인 상태와 기능 화면에 따른 SPA 라우팅 구성 |
+| Axios | API 통신 | 공통 API 클라이언트에서 인증 헤더와 오류 처리를 일관되게 적용 |
+| React Flow | 지식 그래프 | Source·Subject·Topic 관계를 탐색 가능한 노드 그래프로 시각화 |
+| CSS Modules · Design Tokens | 화면 스타일 | 컴포넌트별 스타일 범위를 격리하면서 색상·간격·폰트를 공통 토큰으로 관리 |
+
+### Infrastructure
+
+| 기술·서비스 | 적용 영역 | 채택 이유 |
+| --- | --- | --- |
+| Terraform | AWS 인프라 관리 | 네트워크·컴퓨팅·스토리지·권한 구성을 코드로 관리하고 변경 전 plan 검증 |
+| CloudFront · S3 | Frontend 배포 | 정적 SPA를 비공개 S3에 저장하고 CloudFront OAC를 통해서만 제공 |
+| EC2 · Docker Compose · Nginx | Backend 운영 | 현재 규모에서 단일 호스트 배포 구조를 유지하면서 컨테이너 실행과 TLS 종단 처리 |
+| RDS for PostgreSQL | 운영 데이터베이스 | 애플리케이션과 분리된 private subnet에서 암호화·백업·삭제 방지 적용 |
+| AWS Lambda | JavaScript 페이지 렌더링 인프라 | 브라우저 워크로드를 Backend 컨테이너에서 격리하고 필요한 요청에만 실행 |
+| ECR | 컨테이너 이미지 저장 | 변경 불가능한 커밋 SHA 태그와 push 시 이미지 스캔으로 배포 이미지 관리 |
+| IAM · SSM · Secrets Manager | 접근 및 비밀 관리 | 장기 Access Key와 SSH 포트 없이 역할 기반 배포·운영 접근 구성 |
+| CloudWatch | 로그와 운영 관측 | 애플리케이션·Lambda 로그와 EC2·RDS 주요 지표 및 알람 통합 |
+
+### AI & Tools
+
+| 기술·도구 | 적용 영역 | 채택 이유 |
+| --- | --- | --- |
+| [Asset Generation Pipeline](asset-gen/README.md) · Gradio | 몰입형 세션 배경 자산 제작 | OpenAI 이미지 생성 또는 로컬 이미지 선택부터 입력 검수·사용자 승인·Runway 영상 생성·MP4 다운로드·선택적 S3 업로드까지 독립형 UI에서 연결 |
+| Spring AI | LLM·Embedding 연동 | OpenAI와 로컬 Ollama 모델의 설정과 호출 구조를 Spring 애플리케이션에 통합 |
+| OpenAI | Task 정리·링크 요약·Embedding·이미지 생성 | 자연어 기반 구조화와 지식 노드 탐색에 필요한 채팅·Embedding·이미지 API를 제공 |
+| Google Stitch | UI 디자인 | 서비스의 주요 화면 시안을 제작하고 레이아웃과 사용자 흐름을 구체화 |
+| Playwright | JavaScript 페이지 렌더링 | 정적 HTML로 본문을 수집하지 못하는 문서를 Lambda에서 브라우저로 렌더링 |
 
 <details>
 <summary><strong>디렉터리 구조 보기</strong></summary>

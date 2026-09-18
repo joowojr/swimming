@@ -10,11 +10,12 @@ import java.util.List;
  *
  * @param topic    소화가 끝난 Source면 반드시 하나 있다
  * @param subjects 최대 4개
+ * @param category 현재 소속 카테고리. 배정되지 않았거나 삭제된 카테고리면 null
  */
-public record SourceConcepts(NodeRef topic, List<NodeRef> subjects) {
+public record SourceConcepts(NodeRef topic, List<NodeRef> subjects, NodeRef category) {
 
     /** 아직 소화되지 않았거나 소화에 실패한 Source. */
     public static SourceConcepts empty() {
-        return new SourceConcepts(null, List.of());
+        return new SourceConcepts(null, List.of(), null);
     }
 }

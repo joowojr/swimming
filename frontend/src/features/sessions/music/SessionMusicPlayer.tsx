@@ -18,6 +18,7 @@ import {
   readRecentMusicHistory,
   rememberRecentMusic,
 } from './recentMusicHistory'
+import { fetchYouTubeMeta } from './youtubeOembed'
 import styles from './SessionMusicPlayer.module.css'
 
 export interface SessionMusicOption {
@@ -60,6 +61,15 @@ export default function SessionMusicPlayer({
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
 
   const markAsReady = () => setStatus('ready')
+
+  /**
+   * 재생이 시작되면 이름을 한 번 받아 기록에 캐시한다.
+   * 못 받으면 아무 일도 하지 않고 주소가 그대로 남는다.
+   */
+  const nameRecent = async (url: string) => {
+    const meta = await fetchYouTubeMeta(url)
+    if (meta) setRecentHistory(rememberRecentMusic(historyOwnerId, url, new Date(), meta))
+  }
 
   const saveSource = async (nextSource: string | null) => {
     const draftSource = nextSource?.trim() || null
@@ -210,7 +220,7 @@ export default function SessionMusicPlayer({
                       void saveSource(entry.url)
                     }}
                   >
-                    <span>{entry.url}</span>
+                    <span>{entry.title ?? entry.url}</span>
                     <time dateTime={entry.playedAt}>{playedAtFormatter.format(new Date(entry.playedAt))}</time>
                   </button>
                   <button
@@ -251,6 +261,7 @@ export default function SessionMusicPlayer({
             onPlay={() => {
               markAsReady()
               setRecentHistory(rememberRecentMusic(historyOwnerId, source))
+              void nameRecent(source)
             }}
             onError={() => {
               setStatus('error')

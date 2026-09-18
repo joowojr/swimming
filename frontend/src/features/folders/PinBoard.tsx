@@ -1,16 +1,18 @@
+import { useState } from 'react'
+import { IconPlus } from '@tabler/icons-react'
+import ModalTriggerButton from '../../components/ModalTriggerButton'
 import ModeToggle from '../../components/ModeToggle'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import { useAuthStore } from '../../store/authStore'
 import { usePinboardViewStore } from '../../store/pinboardViewStore'
 import DailyPlanner from '../calendar/DailyPlanner.tsx'
 import ContinueSessionWidget from '../sessions/ContinueSessionWidget'
-import NoteCard from '../note/NoteCard.tsx'
-import type { Folder, FolderLoadStatus } from './folderTypes.ts'
+import type { FolderLoadStatus } from './folderTypes.ts'
 import TaskMatrix from '../tasks/TaskMatrix'
+import UpdateNoticeCard from '../updates/UpdateNoticeCard'
 import styles from './PinBoard.module.css'
 
 interface PinBoardProps {
-  folders: Folder[]
   status: FolderLoadStatus
   onRetry: () => void
 }
@@ -29,7 +31,6 @@ function formatTargetDate(targetDate: string) {
 */
 
 export default function PinBoard({
-  folders,
   status,
   onRetry,
 }: PinBoardProps) {
@@ -40,6 +41,9 @@ export default function PinBoard({
   const setPlannerView = usePinboardViewStore((state) => state.setPlannerView)
   const matrixFilter = usePinboardViewStore((state) => state.matrixFilter)
   const setMatrixFilter = usePinboardViewStore((state) => state.setMatrixFilter)
+  // 여는 버튼이 보기 전환 줄에 있어 열림 상태만 여기 둔다. 무엇을 담을지는 날짜를 아는
+  // DailyPlanner가 정한다.
+  const [isTaskPickerOpen, setIsTaskPickerOpen] = useState(false)
   /*
   const upcomingProjects = useMemo(
     () =>
@@ -62,10 +66,7 @@ export default function PinBoard({
             <p>오늘은 무엇부터 시작해볼까요?</p>
           </div>
           <div className={styles['dashboard-actions']}>
-            {/*<div className={styles['mode-toggle']} aria-label="핀보드 보기 모드">*/}
-            {/*  <button type="button" className={styles['mode-toggle-active']} aria-pressed="true">루틴</button>*/}
-            {/*  <button type="button" aria-pressed="false" disabled>가볍게</button>*/}
-            {/*</div>*/}
+            <ContinueSessionWidget/>
           </div>
         </header>
 
@@ -80,54 +81,52 @@ export default function PinBoard({
             <button type="button" onClick={onRetry}>다시 불러오기</button>
           </div>
         ) : (
-            <>
-              {/*폴더 정리 표*/}
-            {/*<section className={styles['folder-metrics']} aria-label="폴더 요약">*/}
-            {/*  {metrics.map(({ label, value, icon: Icon, tone }) => (*/}
-            {/*    <article className={styles['metric-card']} key={label}>*/}
-            {/*      <span className={`${styles['metric-icon']} ${tone}`} aria-hidden="true">*/}
-            {/*        <Icon size={24} stroke={1.7} />*/}
-            {/*      </span>*/}
-            {/*      <div>*/}
-            {/*        <p>{label}</p>*/}
-            {/*        <strong>{value}</strong>*/}
-            {/*      </div>*/}
-            {/*    </article>*/}
-            {/*  ))}*/}
-            {/*</section>*/}
-
-              <div className={styles['home-grid']}>
-                <div className={styles['home-main']}>
-                  <ContinueSessionWidget/>
-                  <div className={styles['planner-area']}>
-                    <div className={styles['planner-controls']}>
-                      <ModeToggle
-                        className={styles['planner-toggle']}
-                        ariaLabel="Task 보기 방식"
-                        options={PLANNER_VIEW_OPTIONS}
-                        value={plannerView}
-                        onChange={setPlannerView}
-                      />
-                      {plannerView === 'matrix' && (
-                        <TaskFilterMenu
-                          value={matrixFilter}
-                          onChange={setMatrixFilter}
-                          showFlags={false}
-                          triggerClassName={styles['planner-filter']}
-                        />
-                      )}
-                    </div>
-                    {plannerView === 'daily'
-                      ? <DailyPlanner/>
-                      : <TaskMatrix statusFilter={matrixFilter.status}/>}
-                  </div>
-                </div>
-
-                <NoteCard folders={folders} />
+          <div className={styles['home-main']}>
+            <div className={styles['planner-area']}>
+              <div className={styles['planner-controls']}>
+                <ModeToggle
+                  className={styles['planner-toggle']}
+                  ariaLabel="Task 보기 방식"
+                  options={PLANNER_VIEW_OPTIONS}
+                  value={plannerView}
+                  onChange={setPlannerView}
+                />
+                {plannerView === 'matrix' ? (
+                  <TaskFilterMenu
+                    value={matrixFilter}
+                    onChange={setMatrixFilter}
+                    showFlags={false}
+                    triggerClassName={styles['planner-filter']}
+                  />
+                ) : (
+                  <ModalTriggerButton
+                    className={styles['planner-add']}
+                    dialogId="task-picker-dialog"
+                    variant="plain"
+                    icon={<IconPlus size={15} aria-hidden="true" />}
+                    isOpen={isTaskPickerOpen}
+                    aria-label="할 일 추가"
+                    onClick={() => setIsTaskPickerOpen(true)}
+                  >
+                    <span>할 일 추가</span>
+                  </ModalTriggerButton>
+                )}
               </div>
-            </>
+              {plannerView === 'daily'
+                ? (
+                  <DailyPlanner
+                    isPickerOpen={isTaskPickerOpen}
+                    onPickerClose={() => setIsTaskPickerOpen(false)}
+                  />
+                )
+                : <TaskMatrix statusFilter={matrixFilter.status}/>}
+            </div>
+          </div>
         )}
       </section>
+
+      {/* 배포마다 새 기능을 잠시 알린다. 왼쪽 아래 플로팅 독 옆에 떠 있어 자리를 차지하지 않는다. */}
+      <UpdateNoticeCard />
 
       {/*
       <aside className={styles['dashboard-aside']} aria-labelledby="upcoming-targets-title">

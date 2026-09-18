@@ -12,7 +12,17 @@ public enum RelationType {
 
     ABOUT(NodeType.SOURCE, NodeType.SUBJECT),
     SUPPORTS(NodeType.SOURCE, NodeType.TOPIC),
-    INVOLVES(NodeType.TOPIC, NodeType.SUBJECT);
+    INVOLVES(NodeType.TOPIC, NodeType.SUBJECT),
+
+    /**
+     * Category가 Source를 담는다.
+     *
+     * <p>방향이 Category에서 Source로 가는 이유는, 이 관계를 읽는 쪽이 언제나
+     * "이 묶음에 무엇이 들었나"이기 때문이다. Source 쪽에 컬럼으로 두지 않는 것은
+     * 묶음이 Preview·Confirm으로 통째로 갈아엎히는 값이라 Source를 건드리지 않고
+     * 관계만 지우고 다시 만드는 편이 단순하기 때문이다.
+     */
+    CONTAINS(NodeType.CATEGORY, NodeType.SOURCE);
 
     private final NodeType fromType;
     private final NodeType toType;

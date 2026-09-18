@@ -40,3 +40,4 @@ terraform.rc
 !/docs/PRD.md
 
 CLAUDE.md
+AGENTS.md

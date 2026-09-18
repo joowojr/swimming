@@ -6,7 +6,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  width: min(calc(100% - var(--space-8)), var(--modal-width));
+  width: min(calc(100% - var(--space-8)), var(--modal-width-wide));
   max-width: none;
   max-height: calc(100svh - var(--space-8));
   margin: auto;
@@ -25,6 +25,7 @@
 .modal {
   display: flex;
   max-height: calc(100svh - var(--space-8));
+  min-height: 0;
   overflow: hidden;
   flex-direction: column;
   border: 0;
@@ -77,12 +78,134 @@
   cursor: not-allowed;
 }
 
+/* 좌: 담는 곳 · 우: 담긴 것. 두 단이 각자 스크롤한다. */
+.panes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  overflow: hidden;
+}
+
 .body {
   display: grid;
+  align-content: start;
   gap: var(--space-6);
-  padding: var(--space-6) var(--space-8) var(--space-8);
+  min-height: 0;
+  padding: var(--space-6) var(--space-6) var(--space-8);
   overflow-y: auto;
 }
+
+.stage {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  overflow-y: auto;
+}
+
+.stage-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.stage h3 {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.stage-heading > span {
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.stage-empty {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.stage ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  /* 단 배경이 없으므로 줄 자체가 모달 바탕과 구분돼야 한다. */
+  background: var(--color-surface-container-highest);
+}
+
+.stage li > span {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.stage small {
+  overflow: hidden;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage strong {
+  overflow-wrap: anywhere;
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-body-sm-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.stage li button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-short) var(--ease-in-out),
+    background-color var(--transition-short) var(--ease-in-out),
+    opacity var(--dur-micro) var(--ease-in-out);
+}
+
+.stage li button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 제목 입력과 담기 버튼은 한 줄에 둔다. */
+.quick-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--space-2);
+}
+
 
 .mode-panel[hidden] {
   display: none;
@@ -103,11 +226,10 @@
 
 .quick-add label,
 .task-select > label,
-.selected-tasks h3 {
-  color: var(--color-mute);
-  font-size: var(--text-body-sm-size);
-  font-weight: var(--text-label-strong-weight);
-  line-height: var(--text-body-sm-line-height);
+
+.planning-option-group {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .planning-option-field {
@@ -310,37 +432,7 @@
 
 /* 링크 폴더·폴더 상세의 더 보기와 같은 모양을 쓴다. */
 .load-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  margin-inline: auto;
-  min-height: 1.875rem;
   margin-block-start: var(--space-2);
-  padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  color: var(--color-primary);
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-button-weight);
-  background: var(--color-surface-container-lowest);
-  cursor: pointer;
-}
-
-.load-more:disabled {
-  cursor: wait;
-  opacity: .55;
-}
-
-.load-more:active:not(:disabled) {
-  transform: translateY(var(--border-width));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .load-more:hover:not(:disabled) {
-    border-color: var(--color-hairline);
-    background: var(--color-surface-soft);
-  }
 }
 
 .state {
@@ -402,120 +494,21 @@
   padding: 0 var(--space-6) var(--space-6);
 }
 
-.selected-tasks {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-}
 
-.selected-tasks-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
 
-.selected-tasks h3 {
-  margin: 0;
-}
 
-.selected-tasks-heading > span {
-  color: var(--color-mute);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-}
 
-.selected-tasks ul {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.selected-tasks li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-2);
+
+
+
+
+
+
+/* ActionButton 기본값은 --radius-default라, 이 모달의 입력·목록(--radius-md)과 모서리를 맞춘다. */
+.submit-action,
+.stage-action {
   border-radius: var(--radius-md);
-  color: var(--color-primary);
-  background: var(--color-surface-container-highest);
-}
-
-.selected-tasks li > span {
-  display: grid;
-  min-width: 0;
-  gap: var(--space-1);
-}
-
-.selected-tasks small {
-  overflow: hidden;
-  color: var(--color-mute);
-  font-size: var(--text-body-sm-size);
-  line-height: var(--text-body-sm-line-height);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.selected-tasks strong {
-  overflow-wrap: anywhere;
-  font-size: var(--text-body-sm-size);
-  font-weight: var(--text-body-sm-weight);
-  line-height: var(--text-body-sm-line-height);
-}
-
-.selected-tasks li button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-height);
-  height: var(--control-height);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-full);
-  color: var(--color-mute);
-  background: transparent;
-  cursor: pointer;
-  transition:
-    color var(--transition-short) var(--ease-in-out),
-    background-color var(--transition-short) var(--ease-in-out),
-    opacity var(--dur-micro) var(--ease-in-out);
-}
-
-.selected-tasks li button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.footer > button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: var(--control-height);
-  padding: 0 var(--space-4);
-  border: 0;
-  border-radius: var(--radius-md);
-  color: var(--color-on-primary);
-  background: var(--color-primary);
-  font-size: var(--text-button-size);
-  font-weight: var(--text-button-weight);
-  line-height: var(--text-button-line-height);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background-color var(--transition-short) var(--ease-in-out),
-    opacity var(--dur-micro) var(--ease-in-out),
-    transform var(--dur-micro) var(--ease-in-out);
-}
-
-.footer > button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .error {
@@ -530,16 +523,16 @@
 .quick-add input:focus-visible,
 .task-select select:focus-visible,
 .group li button:focus-visible,
-.selected-tasks li button:focus-visible,
-.footer > button:focus-visible {
+.stage li button:focus-visible,
+.submit-action:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-width);
 }
 
 .header button:active:not(:disabled),
 .group li button:active:not(:disabled),
-.selected-tasks li button:active:not(:disabled),
-.footer > button:active:not(:disabled) {
+.stage li button:active:not(:disabled),
+.submit-action:active:not(:disabled) {
   transform: scale(0.98);
 }
 
@@ -577,15 +570,32 @@
     background: var(--color-surface-container-high);
   }
 
-  .group li button[aria-pressed='true']:hover:not(:disabled),
-  .footer > button:hover:not(:disabled) {
+  .group li button[aria-pressed='true']:hover:not(:disabled) {
     background: var(--color-primary-pressed);
   }
 
-  .selected-tasks li button:hover:not(:disabled) {
+  .stage li button:hover:not(:disabled) {
     color: var(--color-primary);
     background: var(--color-surface-container-high);
   }
+}
+
+/* 좁아지면 두 단을 위아래로 쌓는다. 담긴 목록이 아래에 오도록 순서를 유지한다. */
+@media (max-width: 48rem) {
+  .panes {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+
+  .body,
+  .stage {
+    overflow: visible;
+  }
+
+  .body {
+    padding-bottom: var(--space-6);
+  }
+
 }
 
 @media (max-width: 30rem) {
@@ -593,7 +603,8 @@
     padding: var(--space-6) var(--space-6) 0;
   }
 
-  .body {
+  .body,
+  .stage {
     padding: var(--space-6);
   }
 
@@ -615,15 +626,13 @@
   .task-select select,
   .group li,
   .group li button,
-  .selected-tasks li button,
-  .footer > button {
-    transition: none;
-  }
+  .stage li button,
+
 
   .header button:active:not(:disabled),
   .group li button:active:not(:disabled),
-  .selected-tasks li button:active:not(:disabled),
-  .footer > button:active:not(:disabled) {
+  .stage li button:active:not(:disabled),
+  .submit-action:active:not(:disabled) {
     transform: none;
   }
 

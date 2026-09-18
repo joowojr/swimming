@@ -38,8 +38,8 @@ export interface LayoutOptions {
   sort?: NodeSort
 }
 
-const SOURCE_FIRST: GraphNodeType[] = ['FOLDER', 'SOURCE', 'TOPIC', 'SUBJECT']
-const SUBJECT_FIRST: GraphNodeType[] = ['SUBJECT', 'TOPIC', 'SOURCE', 'FOLDER']
+const SOURCE_FIRST: GraphNodeType[] = ['FOLDER', 'CATEGORY', 'SOURCE', 'TOPIC', 'SUBJECT']
+const SUBJECT_FIRST: GraphNodeType[] = ['SUBJECT', 'TOPIC', 'SOURCE', 'CATEGORY', 'FOLDER']
 
 /**
  * rank는 진행 방향(열과 열 사이), sibling은 같은 열 안의 간격이다.
@@ -47,7 +47,7 @@ const SUBJECT_FIRST: GraphNodeType[] = ['SUBJECT', 'TOPIC', 'SOURCE', 'FOLDER']
  */
 const GAPS: Record<LayoutAxis, { rank: number; sibling: number }> = {
   horizontal: { rank: 300, sibling: 96 },
-  vertical: { rank: 150, sibling: 210 },
+  vertical: { rank: 150, sibling: 260 },
 }
 
 const START = 40
@@ -104,7 +104,9 @@ export function layoutGraph(
   graph: GraphResponse,
   { axis = 'horizontal', order = 'source-first', sort = 'linked' }: LayoutOptions = {},
 ): PositionedNode[] {
-  const columnOrder = order === 'subject-first' ? SUBJECT_FIRST : SOURCE_FIRST
+  const hasCategories = graph.nodes.some((node) => node.type === 'CATEGORY')
+  const columnOrder = (order === 'subject-first' ? SUBJECT_FIRST : SOURCE_FIRST)
+    .filter((type) => type !== 'CATEGORY' || hasCategories)
   const columns = columnOrder.map(() => [] as GraphNode[])
 
   // root가 Folder면 노드 목록에 없으므로 Folder 열에 직접 세운다.

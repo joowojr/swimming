@@ -55,6 +55,24 @@ export interface DeleteTasksRequest {
   taskIds: number[]
 }
 
+/** 한 번에 만들 할 일 하나. 필드 구성은 POST /api/tasks의 본문과 같다. */
+export interface CreateTaskDraft {
+  title: string
+  folderId?: number | null
+  priority?: boolean
+  urgent?: boolean
+  planDate?: string | null
+}
+
+/**
+ * 모달 하나에서 담은 할 일을 한 번에 만든다.
+ * 사용자에게는 "모두 추가" 한 번이라 서버가 한 트랜잭션으로 처리하고,
+ * 하나라도 실패하면 아무것도 만들지 않는다. 부분 성공 상태는 없다.
+ */
+export interface CreateTasksBatchRequest {
+  tasks: CreateTaskDraft[]
+}
+
 export interface TaskResponse {
   id: number
   folderId: number | null

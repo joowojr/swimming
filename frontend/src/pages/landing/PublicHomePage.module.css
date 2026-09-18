@@ -2,6 +2,26 @@
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5 */
 
 .public-home {
+  /* 랜딩 전용 토큰. 이 페이지 안에서만 쓰여 전역 토큰에 두지 않는다. */
+  --text-landing-display-size: clamp(2.5rem, 5vw, 4.5rem);
+  --text-landing-display-line-height: 1.02;
+  --text-landing-display-tracking: -0.04em;
+  --text-landing-section-size: clamp(2rem, 4vw, 3.75rem);
+  --text-landing-section-line-height: 1.08;
+  --landing-header-height: 4.5rem;
+  --landing-shell-max: 100rem;
+  --landing-hero-shell-max: 112rem;
+  --landing-hero-margin-desktop: 3rem;
+  --landing-copy-column: 26rem;
+  --landing-copy-measure: 36rem;
+  --landing-title-measure: 11ch;
+  --landing-section-title-measure: 14ch;
+  --landing-footer-measure: 28ch;
+  --landing-login-width: 20rem;
+  --landing-step-number-width: 3rem;
+  --landing-step-title-width: 10rem;
+  --landing-section-space: 6rem;
+  --landing-logo-width: 9rem;
   min-height: 100svh;
   color: var(--color-primary);
   background: var(--color-canvas);

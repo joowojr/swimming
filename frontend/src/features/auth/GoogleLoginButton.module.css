@@ -1,9 +1,11 @@
 .login {
   display: grid;
-  /* 구글 버튼은 컨테이너 너비 안에서 최대 320px로 렌더링한다. */
+  /* 구글 버튼은 컨테이너 너비 안에서 최대 320px로 렌더링한다.
+     랜딩과 로그인 페이지가 함께 쓰는 버튼이라 폭은 버튼이 직접 가진다. */
+  --google-login-max-width: 20rem;
   justify-items: center;
   width: 100%;
-  max-width: var(--landing-login-width);
+  max-width: var(--google-login-max-width);
   gap: var(--space-3);
   margin-top: var(--space-8);
 }

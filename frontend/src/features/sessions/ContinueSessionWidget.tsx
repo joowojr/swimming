@@ -8,6 +8,8 @@ import { getTodayPlanItems } from '../calendar/todayPlan'
 import CreateSessionModal from './CreateSessionModal'
 import { useActiveSessionStore } from '../../store/activeSessionStore'
 import { pickRandomPlace, usePlaceStore } from '../../store/placeStore'
+import type { BackgroundAsset } from '../places/placeTypes'
+import { formatRemaining, useSessionClock } from './sessionTimer'
 import styles from './ContinueSessionWidget.module.css'
 
 type ContinueSessionWidgetVariant = 'home' | 'empty-session'
@@ -16,9 +18,22 @@ interface ContinueSessionWidgetProps {
   variant?: ContinueSessionWidgetVariant
 }
 
-function formatDuration(seconds: number) {
-  const minutes = Math.floor(seconds / 60)
-  return minutes >= 60 && minutes % 60 === 0 ? `${minutes / 60}시간` : `${minutes}분`
+/** 배경 한 장. 영상은 썸네일이 있으면 그쪽을 쓴다. */
+function BackgroundMedia({ asset }: { asset: BackgroundAsset }) {
+  if (!asset.url) return null
+
+  return asset.type === 'VIDEO' ? (
+    <video
+      src={asset.thumbnailUrl ?? asset.url}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+    />
+  ) : (
+    <img src={asset.url} alt="" />
+  )
 }
 
 export default function ContinueSessionWidget({ variant = 'home' }: ContinueSessionWidgetProps) {
@@ -34,6 +49,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
   const [todayTasks, setTodayTasks] = useState<DailyPlanItem[] | null>(null)
   const [isPreparingStart, setIsPreparingStart] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  const now = useSessionClock(session?.id ?? null)
 
   useEffect(() => {
     void loadActiveSession()
@@ -51,6 +67,9 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
   }, [status, hasSessionBackground, loadPlaces])
 
   const openStartModal = async () => {
+    // 카드와 그 안의 버튼이 같은 클릭을 받는다. 준비 중이거나 이미 열렸으면 한 번만 연다.
+    if (isPreparingStart || todayTasks !== null) return
+
     setIsPreparingStart(true)
     setStartError(null)
     try {
@@ -78,20 +97,11 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
       <section
           className={`${styles.widget} ${styles[variant]} ${isEmpty ? styles['is-invite'] : ''}`}
           aria-labelledby="continue-session-title"
+          // 카드 어디를 눌러도 시작할 수 있다. 키보드와 스크린 리더는 안쪽 버튼이 맡는다.
+          onClick={isEmpty ? () => void openStartModal() : undefined}
       >
         <div className={styles.thumbnail} aria-hidden="true">
-          {background?.url && (background.type === 'VIDEO' ? (
-              <video
-                src={background.thumbnailUrl ?? background.url}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-              />
-          ) : (
-              <img src={background.url} alt="" />
-          ))}
+          {background?.url && <BackgroundMedia asset={background} />}
         </div>
 
         <div className={styles.content}>
@@ -112,7 +122,7 @@ export default function ContinueSessionWidget({ variant = 'home' }: ContinueSess
                 <p>{currentTask?.folderName ?? session.place.name}</p>
                 <div className={styles.meta}>
                   <span>{session.place.cityName} · {session.place.name}</span>
-                  <span><IconClock aria-hidden="true" />{formatDuration(session.plannedDurationSec)}</span>
+                  <span><IconClock aria-hidden="true" />{formatRemaining(session, now)}</span>
                 </div>
               </>
           ) : status === 'error' ? (

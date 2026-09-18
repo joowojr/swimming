@@ -18,6 +18,9 @@ public interface KnowledgeNodeRepository {
 
     void delete(KnowledgeNode node);
 
+    /** 조회한 영속 Entity의 변경 감지로 제목과 정규화 제목을 함께 반영한다. */
+    void updateTitle(KnowledgeNode node);
+
     Optional<KnowledgeNode> findById(UUID id);
 
     Optional<KnowledgeNode> findByIdAndUserId(UUID id, Long userId);
@@ -25,6 +28,8 @@ public interface KnowledgeNodeRepository {
     List<KnowledgeNode> findAllByIds(Collection<UUID> ids);
 
     List<KnowledgeNode> findAllByUserIdAndNodeType(Long userId, NodeType nodeType);
+
+    List<KnowledgeNode> findCategoriesInFolder(Long userId, Long folderId);
 
     /**
      * Subject / Topic resolution의 매칭 단계에서 사용한다.

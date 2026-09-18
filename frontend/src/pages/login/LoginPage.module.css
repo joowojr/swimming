@@ -1,4 +1,5 @@
 .login-page {
+  --login-illustration-mobile-width: 16rem;
   display: flex;
   align-items: center;
   justify-content: center;

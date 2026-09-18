@@ -23,7 +23,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class NodeUseCaseTest {
 
@@ -38,6 +41,7 @@ class NodeUseCaseTest {
     private KnowledgeRelationService relationService;
 
     private NodeUseCase useCase;
+    private FolderService folderService;
 
     /** 개념을 지운 뒤 문서 카드에서 이름이 사라졌는지 확인할 때 쓴다. */
     private SourceQueryUseCase sourceQueryUseCase;
@@ -45,15 +49,16 @@ class NodeUseCaseTest {
     @BeforeEach
     void setUp() {
         sources = new InMemoryKnowledgeRepositories.Sources();
-        nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
+        nodes = new InMemoryKnowledgeRepositories.Nodes().withFolderGraph(sources, relations);
+        folderService = mock(FolderService.class);
 
         relationService = new KnowledgeRelationService(relations);
 
         KnowledgeNodeService nodeService = new KnowledgeNodeService(nodes);
         KnowledgeSourceService sourceService = new KnowledgeSourceService(sources);
 
-        useCase = new NodeUseCase(nodeService, relationService, sourceService);
+        useCase = new NodeUseCase(nodeService, relationService, sourceService, folderService);
         sourceQueryUseCase = new SourceQueryUseCase(
                 mock(FolderService.class),
                 sourceService,
@@ -90,6 +95,122 @@ class NodeUseCaseTest {
     }
 
     @Nested
+    @DisplayName("카테고리와 목적 이름 수정")
+    class TitleUpdateTest {
+        @Test
+        @DisplayName("Topic 이름 수정은 공백을 제거하고 문서와 상세 응답에 반영하며 관계를 유지한다")
+        void updatesTopicTitle() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode topic = givenNode(NodeType.TOPIC, "기존 목적");
+            KnowledgeNode subject = givenNode(NodeType.SUBJECT, "개념");
+            digest(source, topic, subject);
+            assertThat(useCase.updateTitle(USER_ID, topic.getId(), "  새 목적  "))
+                    .isEqualTo(new NodeRef(topic.getId(), "새 목적"));
+            assertThat(nodes.findById(topic.getId()).orElseThrow().getNormalizedTitle()).isEqualTo("새목적");
+            assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).topic().title()).isEqualTo("새 목적");
+            assertThat(useCase.get(USER_ID, topic.getId()).subjects()).containsExactly(NodeRef.from(subject));
+        }
+
+        @Test
+        @DisplayName("Category 이름 수정은 포함된 문서 카드에도 반영한다")
+        void updatesCategoryTitle() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "기존 분류");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+            useCase.updateTitle(USER_ID, category.getId(), "새 분류");
+            assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).category())
+                    .isEqualTo(new NodeRef(category.getId(), "새 분류"));
+        }
+
+        @Test
+        @DisplayName("같은 폴더의 Category 정규화 이름 중복은 저장하지 않는다")
+        void rejectsDuplicateCategoryInFolder() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "원래 이름");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "API 설계");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+            relationService.connect(other, source.getNode(), RelationOrigin.USER);
+            assertThatThrownBy(() -> useCase.updateTitle(USER_ID, category.getId(), "api_설계"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ErrorCode.KNOWLEDGE_CATEGORY_TITLE_DUPLICATE.getMessage());
+            assertThat(nodes.findById(category.getId()).orElseThrow().getTitle()).isEqualTo("원래 이름");
+            assertThat(nodes.findById(category.getId()).orElseThrow().getTitleRenamedAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("Category 이름 수정은 Replace·소화 중 배정과 같은 폴더 잠금을 잡는다")
+        void locksFolderWhenRenamingCategory() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "기존 분류");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+
+            useCase.updateTitle(USER_ID, category.getId(), "새 분류");
+
+            verify(folderService).lockOwned(USER_ID, FOLDER_ID);
+        }
+
+        @Test
+        @DisplayName("담긴 문서가 없는 Category는 어느 폴더에도 보이지 않으므로 잠금 없이 이름을 바꾼다")
+        void renamesCategoryWithoutSources() {
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "기존 분류");
+
+            assertThat(useCase.updateTitle(USER_ID, category.getId(), "새 분류").title()).isEqualTo("새 분류");
+            verify(folderService, never()).lockOwned(any(), any());
+        }
+
+        @Test
+        @DisplayName("다른 폴더와 삭제된 카테고리의 이름 및 자기 이름은 중복으로 거절하지 않는다")
+        void allowsOtherFolderDeletedAndOwnTitle() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeSource otherSource = sources.save(KnowledgeSource.create(USER_ID, 20L, "다른 문서", "https://b.com", "https://b.com"));
+            nodes.create(otherSource.getNode());
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "API 설계");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "API 설계");
+            KnowledgeNode deleted = givenNode(NodeType.CATEGORY, "API 설계");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+            relationService.connect(other, otherSource.getNode(), RelationOrigin.USER);
+            relationService.connect(deleted, source.getNode(), RelationOrigin.USER);
+            deleted.delete();
+            nodes.delete(deleted);
+            assertThat(useCase.updateTitle(USER_ID, category.getId(), "api_설계").title()).isEqualTo("api_설계");
+        }
+
+        @Test
+        @DisplayName("Topic은 문서별로 독립적이라 같은 이름을 허용한다")
+        void allowsDuplicateTopicTitles() {
+            givenNode(NodeType.TOPIC, "같은 목적");
+            KnowledgeNode topic = givenNode(NodeType.TOPIC, "원래 목적");
+            assertThat(useCase.updateTitle(USER_ID, topic.getId(), "같은 목적").title()).isEqualTo("같은 목적");
+        }
+
+        @Test
+        @DisplayName("Subject와 Source는 이름 수정 대상이 아니다")
+        void rejectsUnsupportedTypes() {
+            for (NodeType type : java.util.List.of(NodeType.SUBJECT, NodeType.SOURCE)) {
+                KnowledgeNode node = givenNode(type, "원래 이름");
+                assertThatThrownBy(() -> useCase.updateTitle(USER_ID, node.getId(), "수정"))
+                        .isInstanceOf(BusinessException.class)
+                        .hasMessage(ErrorCode.KNOWLEDGE_NODE_TITLE_NOT_EDITABLE.getMessage());
+                assertThat(nodes.findById(node.getId()).orElseThrow().getTitle()).isEqualTo("원래 이름");
+            }
+        }
+
+        @Test
+        @DisplayName("남의 노드와 삭제된 노드 및 없는 노드는 수정할 수 없다")
+        void rejectsUnownedDeletedAndMissingNodes() {
+            KnowledgeNode other = nodes.create(KnowledgeNode.create(OTHER_USER_ID, NodeType.TOPIC, "목적", null));
+            KnowledgeNode deleted = givenNode(NodeType.CATEGORY, "분류");
+            deleted.delete();
+            nodes.delete(deleted);
+            for (UUID id : java.util.List.of(other.getId(), deleted.getId(), UUID.randomUUID())) {
+                assertThatThrownBy(() -> useCase.updateTitle(USER_ID, id, "수정"))
+                        .isInstanceOf(BusinessException.class)
+                        .hasMessage(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND.getMessage());
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("상세")
     class DetailTest {
 
@@ -116,6 +237,27 @@ class NodeUseCaseTest {
             assertThat(response.subjects())
                     .as("Subject 화면에는 다른 개념을 담지 않는다")
                     .isEmpty();
+        }
+
+        @Test
+        @DisplayName("Category는 그 묶음에 담긴 문서를 모으고 다른 묶음의 문서는 넣지 않는다")
+        void describesCategory() {
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "MCP 서버 구현");
+            KnowledgeNode other = givenNode(NodeType.CATEGORY, "WAL 정리");
+            KnowledgeSource first = givenSource("첫 문서");
+            KnowledgeSource second = givenSource("둘째 문서");
+            relationService.connect(category, first.getNode(), RelationOrigin.USER);
+            relationService.connect(category, second.getNode(), RelationOrigin.AI);
+            relationService.connect(other, givenSource("다른 문서").getNode(), RelationOrigin.USER);
+
+            NodeDetailResponse response = useCase.get(USER_ID, category.getId());
+
+            assertThat(response.type()).isEqualTo(NodeType.CATEGORY);
+            assertThat(response.sources())
+                    .extracting(NodeDetailResponse.SourceRef::title)
+                    .containsExactlyInAnyOrder("첫 문서", "둘째 문서");
+            assertThat(response.topics()).isEmpty();
+            assertThat(response.subjects()).isEmpty();
         }
 
         @Test
@@ -231,6 +373,22 @@ class NodeUseCaseTest {
 
             assertThat(useCase.get(USER_ID, topic.getId()).title())
                     .isEqualTo("MCP 서버 구현하기");
+        }
+
+        @Test
+        @DisplayName("묶음은 혼자 지울 수 없다. 폴더의 묶음 구성을 다시 정해야 사라진다")
+        void rejectsCategory() {
+            KnowledgeSource source = givenSource("문서");
+            KnowledgeNode category = givenNode(NodeType.CATEGORY, "MCP 서버 구현");
+            relationService.connect(category, source.getNode(), RelationOrigin.USER);
+
+            assertThatThrownBy(() -> useCase.delete(USER_ID, category.getId()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.KNOWLEDGE_CATEGORY_NOT_DELETABLE);
+
+            assertThat(sourceQueryUseCase.get(USER_ID, source.getId()).category())
+                    .isEqualTo(new NodeRef(category.getId(), "MCP 서버 구현"));
         }
 
         @Test

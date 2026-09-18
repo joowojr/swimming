@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
+import com.swimming.backend.task.dto.in.CreateTasksBatchRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
@@ -17,6 +18,7 @@ import com.swimming.backend.task.dto.in.UpdateTaskUrgentRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -52,6 +54,18 @@ public class TaskController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    /**
+     * 담은 할 일을 한 번에 만든다. 만들어진 자원이 여럿이라 가리킬 URI가 하나가 아니므로
+     * Location 없이 목록만 돌려준다.
+     */
+    @PostMapping("/tasks/batch")
+    public ResponseEntity<List<TaskResponse>> createBatch(
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @RequestBody CreateTasksBatchRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(taskUseCase.createBatch(authUser.id(), request));
     }
 
     /** size / cursor로 이어 읽는다. 폴더 정보는 GET /api/folders/{folderId}가 따로 준다. */

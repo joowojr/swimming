@@ -17,9 +17,10 @@ import {
     deleteDailyPlanItem,
     getDailyPlans,
 } from './dailyPlanApi'
-import type {TaskResponse, TaskStatus, TaskSummaryResponse} from '../tasks/taskTypes'
+import type {TaskResponse, TaskStatus} from '../tasks/taskTypes'
 import type {DailyPlan, DailyPlanItem} from './dailyPlanTypes'
 import TaskPickerModal from './TaskPickerModal'
+import type { TaskPickerSubmission } from './TaskPickerModal'
 import styles from './DailyPlanBoard.module.css'
 import {formatLocalDate, parseLocalDate} from '../../lib/date'
 
@@ -99,18 +100,21 @@ export default function DailyPlanBoard() {
         setDrafts((current) => ({...current, [savedPlan.date]: savedPlan.items}))
     }
 
-    const addTasks = async (tasks: TaskSummaryResponse[]) => {
-        if (tasks.length === 0) return
-        replacePlan(await addDailyPlanItems(selectedDate, {taskIds: tasks.map((task) => task.id)}))
-    }
-
-    const addTask = async (title: string, folderId: number | null, priority: boolean, urgent: boolean) => {
-        replacePlan(await addDailyPlanItems(selectedDate, {
-            title,
-            priority,
-            urgent,
-            ...(folderId === null ? {} : {folderId}),
-        }))
+    /** 모달에서 담은 것을 한 번에 캘린더에 넣는다. 이미 있는 할 일과 새로 만들 할 일은 경로가 다르다. */
+    const addPickedTasks = async ({existingTaskIds, newTasks}: TaskPickerSubmission) => {
+        if (existingTaskIds.length > 0) {
+            replacePlan(await addDailyPlanItems(selectedDate, {taskIds: existingTaskIds}))
+        }
+        if (newTasks.length > 0) {
+            replacePlan(await addDailyPlanItems(selectedDate, {
+                tasks: newTasks.map(({title, folderId, priority, urgent}) => ({
+                    title,
+                    priority,
+                    urgent,
+                    ...(folderId === null ? {} : {folderId}),
+                })),
+            }))
+        }
     }
 
     const changeTaskTitle = async (item: DailyPlanItem, title: string) => {
@@ -366,7 +370,7 @@ export default function DailyPlanBoard() {
             {isPickerOpen && <TaskPickerModal
                 initialPlanDate={selectedDate}
                                               selectedTaskIds={new Set(draftItems.map((item) => item.taskId))}
-                                              onAdd={addTasks} onAddTask={addTask}
+                                              onAddTasks={addPickedTasks}
                                               onClose={() => setIsPickerOpen(false)}/>}
             {sessionTaskId !== null && (
                 <CreateSessionModal

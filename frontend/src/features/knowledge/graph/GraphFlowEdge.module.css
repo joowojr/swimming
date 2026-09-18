@@ -1,0 +1,14 @@
+.dot {
+  /* 진한 강조선 위에서 빛처럼 보이도록 밝은 남색으로 채우고, 흰 바탕에서도 보이게 남색 테두리를 둔다. */
+  fill: color-mix(in oklab, var(--color-tone-indigo) 45%, var(--color-surface-container-lowest));
+  stroke: var(--color-tone-indigo);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+/* SMIL 애니메이션은 CSS animation 설정으로 멈추지 않아 점 자체를 감춘다. 선 강조는 그대로 남는다. */
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    display: none;
+  }
+}

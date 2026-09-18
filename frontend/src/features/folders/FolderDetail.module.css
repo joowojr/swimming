@@ -32,20 +32,7 @@
   white-space: nowrap;
 }
 
-.detail-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
-  align-items: start;
-  gap: var(--space-8);
-}
-
 .detail-main {
-  min-width: 0;
-}
-
-.detail-aside {
-  position: sticky;
-  top: var(--space-6);
   min-width: 0;
 }
 
@@ -305,39 +292,8 @@
   background: transparent;
 }
 
-/* 링크 폴더의 더 보기와 같은 모양을 쓴다. */
 .load-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  margin-inline: auto;
-  min-height: 1.875rem;
   margin-block-start: var(--space-3);
-  padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  color: var(--color-primary);
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-button-weight);
-  background: var(--color-surface-container-lowest);
-  cursor: pointer;
-}
-
-.load-more:disabled {
-  cursor: wait;
-  opacity: .55;
-}
-
-.load-more:active:not(:disabled) {
-  transform: translateY(var(--border-width));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .load-more:hover:not(:disabled) {
-    border-color: var(--color-hairline);
-    background: var(--color-surface-soft);
-  }
 }
 
 .task-list-toolbar {
@@ -485,16 +441,6 @@
   .task-actions {
     width: 100%;
     justify-content: space-between;
-  }
-}
-
-@media (max-width: 64rem) {
-  .detail-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .detail-aside {
-    position: static;
   }
 }
 

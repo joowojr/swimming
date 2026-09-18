@@ -3,9 +3,11 @@ import {IconChevronRight} from '@tabler/icons-react'
 import {Link, useMatch, useNavigate} from 'react-router-dom'
 import type {ApiError} from '../../api/client'
 import DeleteIconButton from '../../components/DeleteIconButton'
+import LoadMoreButton from '../../components/LoadMoreButton'
 import TaskFilterMenu from '../../components/TaskFilterMenu'
 import FolderHeader from './FolderHeader'
 import FolderViewSwitch from './FolderViewSwitch'
+import FolderProgressToast from './FolderProgressToast'
 import {
   EMPTY_TASK_FILTER,
   countActiveFilters,
@@ -13,12 +15,12 @@ import {
 } from '../tasks/taskFilter'
 import type { TaskFilter } from '../tasks/taskFilter'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
+import { useTaskStore } from '../../store/taskStore'
 import {deleteTasks, getFolderTasks} from '../tasks/taskApi'
 import type { TaskSummaryResponse } from '../tasks/taskTypes'
 import {getFolder} from './folderApi.ts'
 import type {Folder, FolderDetail as FolderDetailData} from './folderTypes.ts'
 import TaskList from '../tasks/TaskList'
-import NoteCard from '../note/NoteCard'
 import LinkFolderView from '../knowledge/LinkFolderView'
 import styles from './FolderDetail.module.css'
 
@@ -68,16 +70,9 @@ const FolderBreadcrumb = memo(function FolderBreadcrumb({ folder }: { folder: Fo
   )
 })
 
-const FolderNoteWidget = memo(function FolderNoteWidget({ folder }: { folder: FolderDetailData }) {
-  return (
-    <aside className={styles['detail-aside']} aria-label="폴더 노트">
-      <NoteCard folders={[folder]} folderId={folder.id} />
-    </aside>
-  )
-})
-
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
   const navigate = useNavigate()
+  const removeTasksFromStore = useTaskStore((state) => state.remove)
   const isLinkView = useMatch('/folders/:folderId/links') !== null
   const navigateRef = useRef(navigate)
   const onDeletedRef = useRef(onDeleted)
@@ -165,6 +160,9 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setDeleteError(null)
     try {
       await deleteTasks({ taskIds: [...taskIdsToDelete] })
+      // 매트릭스·할 일 페이지의 삭제와 같게, 사라진 task를 스토어에도 알린다.
+      // 이 화면의 목록만 지우면 같은 task를 세는 다른 화면이 계속 들고 있는다.
+      removeTasksFromStore([...taskIdsToDelete])
       setTasks((current) => {
         if (current.status !== 'ready') return current
 
@@ -290,8 +288,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     <article className={styles.page} aria-labelledby="folder-detail-title">
       <FolderBreadcrumb folder={folder} />
 
-      <div className={styles['detail-layout']}>
-        <div className={styles['detail-main']}>
+      <div className={styles['detail-main']}>
 
       <FolderHeader
         folder={folder}
@@ -302,6 +299,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       />
 
       <FolderViewSwitch folderId={folder.id} current={isLinkView ? 'links' : 'tasks'} />
+
+      <FolderProgressToast folderId={folder.id} folderName={folder.name} />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}
@@ -429,21 +428,15 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
             onTaskUpdated={reloadTasks}
           />
           {tasks.status === 'ready' && tasks.hasNext && (
-            <button
-              type="button"
+            <LoadMoreButton
               className={styles['load-more']}
-              disabled={isLoadingMoreTasks}
+              isLoading={isLoadingMoreTasks}
               onClick={() => void loadMoreTasks()}
-            >
-              {isLoadingMoreTasks ? '불러오는 중' : '더 보기'}
-            </button>
+            />
           )}
         </div>
             </section>
           )}
-        </div>
-
-        <FolderNoteWidget folder={folder} />
       </div>
     </article>
   )

@@ -1,6 +1,7 @@
 import { client } from '../../api/client'
 import type { CursorPage, CursorPageQuery } from '../../api/types'
 import type {
+  CreateTasksBatchRequest,
   DeleteTasksRequest,
   TaskResponse,
   UpdateTaskStatusRequest,
@@ -26,6 +27,17 @@ export async function createTaskWithOptionalPlan(request: {
   planDate?: string | null
 }): Promise<TaskResponse> {
   const response = await client.post<TaskResponse>('/tasks', request)
+  return response.data
+}
+
+/**
+ * 모달에서 담은 할 일을 한 번에 만든다. 서버가 한 트랜잭션으로 처리하므로
+ * 하나라도 실패하면 아무것도 만들어지지 않는다.
+ */
+export async function createTasksBatch(
+  request: CreateTasksBatchRequest,
+): Promise<TaskResponse[]> {
+  const response = await client.post<TaskResponse[]>('/tasks/batch', request)
   return response.data
 }
 

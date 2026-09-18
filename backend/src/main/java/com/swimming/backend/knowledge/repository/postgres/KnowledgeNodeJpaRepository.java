@@ -15,6 +15,19 @@ import java.util.UUID;
 /** 조회는 모두 지운 노드를 거른다. 지운 것이 그래프나 목록에 되살아나지 않게 한다. */
 public interface KnowledgeNodeJpaRepository extends JpaRepository<KnowledgeNodeEntity, UUID> {
 
+    @Query("""
+            select distinct c from KnowledgeNodeEntity c
+              join KnowledgeRelationEntity r on r.fromNodeId = c.id
+              join KnowledgeSourceEntity s on s.nodeId = r.toNodeId
+              join KnowledgeNodeEntity sn on sn.id = s.nodeId
+             where c.userId = :userId and c.nodeType = com.swimming.backend.knowledge.domain.NodeType.CATEGORY
+               and c.deleted = false and sn.deleted = false and sn.userId = :userId
+               and s.folderId = :folderId
+               and r.relationType = com.swimming.backend.knowledge.domain.RelationType.CONTAINS
+             order by c.id
+            """)
+    List<KnowledgeNodeEntity> findCategoriesInFolder(@Param("userId") Long userId, @Param("folderId") Long folderId);
+
     Optional<KnowledgeNodeEntity> findByIdAndDeletedFalse(UUID id);
 
     Optional<KnowledgeNodeEntity> findByIdAndUserIdAndDeletedFalse(UUID id, Long userId);

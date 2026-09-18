@@ -25,6 +25,16 @@ public class KnowledgeNodeService {
     private final KnowledgeNodeRepository nodeRepository;
 
     @Transactional(propagation = Propagation.REQUIRED)
+    public void updateTitle(KnowledgeNode node) {
+        nodeRepository.updateTitle(node);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<KnowledgeNode> findCategoriesInFolder(Long userId, Long folderId) {
+        return nodeRepository.findCategoriesInFolder(userId, folderId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
     public KnowledgeNode create(
             Long userId,
             NodeType nodeType,

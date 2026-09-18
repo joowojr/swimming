@@ -39,21 +39,27 @@
   line-height: var(--text-body-sm-line-height);
 }
 
+.title-row {
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
 .task-title {
   min-width: 0;
 }
 
-.task-title.is-priority button::before {
+.task-title.is-priority .title-row > span::before {
   content: '📌';
   margin-right: var(--space-2);
 }
 
-.task-title.is-urgent button::before {
+.task-title.is-urgent .title-row > span::before {
   content: '⚡';
   margin-right: var(--space-2);
 }
 
-.task-title.is-priority.is-urgent button::before {
+.task-title.is-priority.is-urgent .title-row > span::before {
   content: '⚡ 📌';
 }
 

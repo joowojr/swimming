@@ -1,10 +1,17 @@
 import { client } from '../../api/client'
 import type {
+  NodeRef,
   SourceCollectResponse,
   SourceDeleteResponse,
   SourceListQuery,
   SourceListResponse,
 } from './knowledgeTypes'
+
+/** Category 또는 Topic 제목만 바꾸고 수정한 노드 참조를 반환한다. */
+export async function updateNodeTitle(nodeId: string, title: string): Promise<NodeRef> {
+  const response = await client.patch<NodeRef>(`/knowledge/nodes/${nodeId}/title`, { title })
+  return response.data
+}
 
 export async function getSources(
   folderId: number,

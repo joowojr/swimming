@@ -39,9 +39,6 @@ public class DailyPlanItemEntity extends BaseTimeEntity {
     @Column(name = "task_id", nullable = false)
     private Long taskId;
 
-    @Column(name = "order_idx", nullable = false)
-    private int orderIdx;
-
     private DailyPlanItemEntity(Long userId, LocalDate planDate, DailyPlanItem item) {
         this.userId = userId;
         this.planDate = planDate;
@@ -54,23 +51,16 @@ public class DailyPlanItemEntity extends BaseTimeEntity {
 
     void apply(DailyPlanItem item) {
         this.taskId = item.getTaskId();
-        this.orderIdx = item.getOrderIdx();
     }
 
-    public void updateDate(LocalDate planDate, int orderIdx) {
+    public void updateDate(LocalDate planDate) {
         this.planDate = planDate;
-        this.orderIdx = orderIdx;
-    }
-
-    public void changeOrder(int orderIdx) {
-        this.orderIdx = orderIdx;
     }
 
     public DailyPlanItem toDomain() {
         return DailyPlanItem.restore(
                 id,
                 taskId,
-                orderIdx,
                 getCreatedAt(),
                 getUpdatedAt()
         );

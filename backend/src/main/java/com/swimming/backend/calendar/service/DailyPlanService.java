@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -30,7 +29,7 @@ public class DailyPlanService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<DailyPlanItem> getItems(Long userId, LocalDate planDate) {
-        return dailyPlanItemRepository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(userId, planDate)
+        return dailyPlanItemRepository.findAllByUserIdAndPlanDateOrderByIdAsc(userId, planDate)
                 .stream()
                 .map(DailyPlanItemEntity::toDomain)
                 .toList();
@@ -46,17 +45,6 @@ public class DailyPlanService {
         dailyPlanItemBatchRepository.insertAll(userId, planDate, items);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void reorder(Long userId, LocalDate planDate, Map<Long, Integer> orderIdxByItemId) {
-        List<DailyPlanItemEntity> items =
-                dailyPlanItemRepository.findAllByUserIdAndPlanDateOrderByOrderIdxAsc(userId, planDate);
-        items.forEach(item -> {
-            Integer orderIdx = orderIdxByItemId.get(item.getId());
-            if (orderIdx != null) item.changeOrder(orderIdx);
-        });
-        dailyPlanItemRepository.saveAll(items);
-    }
-
     /**
      * 아직 계획에 없는 Task를 그 날짜의 맨 뒤에 담는다. 이미 있으면 아무것도 하지 않는다.
      * 계획 항목 id를 모르는 화면(폴더 목록)에서 날짜를 고를 때 쓴다.
@@ -66,7 +54,7 @@ public class DailyPlanService {
         if (containsAnyTasks(userId, planDate, List.of(taskId))) {
             return;
         }
-        save(userId, planDate, DailyPlanItem.restore(null, taskId, getItems(userId, planDate).size(), null, null));
+        save(userId, planDate, DailyPlanItem.createTask(taskId));
     }
 
     /**
@@ -90,7 +78,7 @@ public class DailyPlanService {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_TASKS);
         }
 
-        item.updateDate(toDate, getItems(userId, toDate).size());
+        item.updateDate(toDate);
         dailyPlanItemRepository.flush();
         return fromDate;
     }

@@ -21,6 +21,31 @@ public interface KnowledgeSourceRepository {
 
     List<KnowledgeSource> findAllByIds(Collection<UUID> nodeIds);
 
+    /** 살아 있는 내 문서만. 존재·소유·삭제를 한 쿼리에서 판정한다. */
+    List<KnowledgeSource> findAllActiveByIds(Long userId, Collection<UUID> nodeIds);
+
+    /** 위와 같되 폴더까지 좁힌다. */
+    List<KnowledgeSource> findAllActiveInFolderByIds(Long userId, Long folderId, Collection<UUID> nodeIds);
+
+    /**
+     * 이 Folder에 살아 있는 Source의 node id.
+     *
+     * <p>Category soft delete 대상을 고를 때, 그 Source로 들어오는 {@code CONTAINS}를
+     * 찾기 위한 입력이 된다.
+     */
+    List<UUID> findAliveNodeIdsInFolder(Long userId, Long folderId);
+
+    /**
+     * Category 분류에 넣을 수 있는 Source를 이 Folder에서 읽는다.
+     *
+     * <p>분류 대상은 살아 있고 소화가 끝나 요약이 있는 Source다. 오래된 것부터 돌려준다.
+     */
+    List<KnowledgeSource> findAllCategorizationTargets(
+            Long userId,
+            Long folderId,
+            Collection<UUID> nodeIds
+    );
+
     void saveSummaryEmbedding(
             Long userId,
             UUID sourceId,

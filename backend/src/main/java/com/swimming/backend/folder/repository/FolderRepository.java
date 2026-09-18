@@ -14,6 +14,10 @@ import java.util.Set;
 
 public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select f from FolderEntity f where f.id = :folderId and f.user.id = :userId and f.deleted = false")
+    Optional<FolderEntity> findOwnedForUpdate(@Param("userId") Long userId, @Param("folderId") Long folderId);
+
     /**
      * 고정한 폴더가 먼저 오고, 그 안에서는 최근에 고정한 순이다. 고정하지 않은 폴더는
      * 뒤에서 기존대로 최근 생성 순이다. NULLS LAST는 메서드 이름으로 쓸 수 없어 쿼리로 둔다.

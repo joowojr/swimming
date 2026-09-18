@@ -79,10 +79,16 @@ public class KnowledgeGraphUseCase {
                 TOPIC_TO_SUBJECT
         );
 
+        // 상한 안의 문서를 담는 카테고리만 읽는다. 카테고리의 다른 문서까지 펼치지 않는다.
+        List<KnowledgeRelation> fromCategories = relationService.findIncoming(
+                sources.stream().map(KnowledgeSource::getId).toList(),
+                List.of(RelationType.CONTAINS)
+        );
+
         return assembler.assemble(
                 GraphResponse.Root.of(folder),
                 sources.stream().map(KnowledgeSource::getNode).toList(),
-                Stream.concat(fromSources.stream(), fromTopics.stream()).toList(),
+                Stream.of(fromSources, fromTopics, fromCategories).flatMap(List::stream).toList(),
                 truncated
         );
     }
@@ -126,7 +132,10 @@ public class KnowledgeGraphUseCase {
         List<UUID> rootId = List.of(root.getId());
 
         return switch (root.getNodeType()) {
-            case SOURCE -> relationService.findOutgoing(rootId, FROM_SOURCE);
+            case SOURCE -> Stream.concat(
+                    relationService.findOutgoing(rootId, FROM_SOURCE).stream(),
+                    relationService.findIncoming(rootId, List.of(RelationType.CONTAINS)).stream()
+            ).toList();
             case SUBJECT -> relationService.findIncoming(
                     rootId,
                     List.of(RelationType.ABOUT, RelationType.INVOLVES)
@@ -135,6 +144,8 @@ public class KnowledgeGraphUseCase {
                     relationService.findIncoming(rootId, List.of(RelationType.SUPPORTS)).stream(),
                     relationService.findOutgoing(rootId, TOPIC_TO_SUBJECT).stream()
             ).toList();
+            // 묶음에서 읽을 것은 담긴 문서뿐이다. Category는 다른 노드와 이어지지 않는다.
+            case CATEGORY -> relationService.findOutgoing(rootId, List.of(RelationType.CONTAINS));
         };
     }
 

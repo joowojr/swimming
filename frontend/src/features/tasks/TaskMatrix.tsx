@@ -1,8 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
+import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  getFirstCollision,
+  pointerWithin,
+  rectIntersection,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import type { CollisionDetection, DragEndEvent, DragOverEvent, UniqueIdentifier } from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { IconLoader2 } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import type { ApiError } from '../../api/client'
 import AddItemButton from '../../components/AddItemButton'
+import LoadMoreButton from '../../components/LoadMoreButton'
 import ChecklistCard from '../../components/ChecklistCard'
 import FolderLink from '../../components/FolderLink'
 import InlineEditableText from '../../components/InlineEditableText'
@@ -15,7 +39,7 @@ import TaskPickerModal from '../calendar/TaskPickerModal'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { useDailyPlanStore } from '../../store/dailyPlanStore'
 import { useTaskStore } from '../../store/taskStore'
-import { createTaskWithOptionalPlan } from './taskApi'
+import { createTasksBatch } from './taskApi'
 import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from './taskApi'
 import type { TaskFilter } from './taskFilter'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from './taskLabels'
@@ -55,21 +79,44 @@ const matrixSections: MatrixSection[] = [
   },
   {
     id: 'standard',
-    title: '일반',
+    title: '일정' +
+        '',
     apiSection: 'STANDARD',
   },
 ]
 
 const initialSectionState = (): SectionState => ({ items: [], nextCursor: null, hasNext: true, status: 'loading' })
 
-function autoScrollDuringDrag(container: HTMLElement, clientY: number) {
-  const bounds = container.getBoundingClientRect()
-  const edgeSize = 56
-  if (clientY < bounds.top + edgeSize) {
-    container.scrollBy({ top: -16 })
-  } else if (clientY > bounds.bottom - edgeSize) {
-    container.scrollBy({ top: 16 })
-  }
+/** 입력 중인 칸에서 글자를 고르거나 값을 고르는 동작은 드래그로 가로채지 않는다. 버튼은 짧게 누르면 그대로 눌린다. */
+function startsOnFormField(target: EventTarget | null) {
+  return target instanceof Element
+    && target.closest('input, select, textarea, [contenteditable="true"]') !== null
+}
+
+/** 카드 전체를 잡아 끈다. 마우스는 조금 움직여야, 터치는 길게 눌러야 시작해 클릭·스크롤과 구분된다. */
+class CardMouseSensor extends MouseSensor {
+  static activators = MouseSensor.activators.map(({ eventName, handler }) => ({
+    eventName,
+    handler: (...args: Parameters<typeof handler>) =>
+      !startsOnFormField(args[0].nativeEvent.target) && handler(...args),
+  }))
+}
+
+class CardTouchSensor extends TouchSensor {
+  static activators = TouchSensor.activators.map(({ eventName, handler }) => ({
+    eventName,
+    handler: (...args: Parameters<typeof handler>) =>
+      !startsOnFormField(args[0].nativeEvent.target) && handler(...args),
+  }))
+}
+
+/** 구간 드롭 영역 id. 숫자인 task id와 겹치지 않게 접두사를 붙인다. */
+const SECTION_DROP_PREFIX = 'section:'
+
+/** 드롭 대상이 구간 자체인지 task인지에 따라 그 task가 들어 있는 구간 id를 찾는다. */
+function findSectionId(sections: Record<string, SectionState>, id: UniqueIdentifier): string | undefined {
+  if (typeof id === 'string' && id.startsWith(SECTION_DROP_PREFIX)) return id.slice(SECTION_DROP_PREFIX.length)
+  return Object.entries(sections).find(([, section]) => section.items.some((task) => task.id === id))?.[0]
 }
 
 interface TaskMatrixProps {
@@ -93,8 +140,11 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
   const [sessionDraft, setSessionDraft] = useState<{ taskId: number; todayTasks: DailyPlanItem[] } | null>(null)
   const [moveTarget, setMoveTarget] = useState<TaskMatrixItem | null>(null)
   const [addDraft, setAddDraft] = useState<{ priority: boolean; urgent: boolean } | null>(null)
-  const [dragState, setDragState] = useState<{ taskId: number; sourceSection: string } | null>(null)
-  const [dropTarget, setDropTarget] = useState<{ sectionId: string; taskId: number | null } | null>(null)
+  /** 끌기 시작한 순간의 구간들. 제자리 판단과 취소·실패 시 복구에 쓴다. */
+  const sectionsBeforeDragRef = useRef<Record<string, SectionState> | null>(null)
+  const lastOverIdRef = useRef<UniqueIdentifier | null>(null)
+  /** 구간을 막 옮긴 직후에는 레이아웃이 다시 잡히기 전이라 충돌 판정이 원래 구간으로 튈 수 있다. */
+  const recentlyMovedToNewSectionRef = useRef(false)
 
   const loadingSections = useRef(new Set<string>())
   const sectionsRef = useRef(sections)
@@ -116,7 +166,6 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
     loadingSections.current.add(section.id)
     setSections((value) => ({ ...value, [section.id]: { ...value[section.id], status: 'loading' } }))
     try {
-      if (!reset) await new Promise((resolve) => window.setTimeout(resolve, 400))
       const page = await getTaskMatrixPage(section.apiSection, {
         cursor: reset ? null : current.nextCursor,
         status: statusFilterRef.current === 'ALL' ? undefined : statusFilterRef.current,
@@ -233,39 +282,132 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
       ?? '제목을 저장하지 못했습니다.'
   }
 
-  const dropTask = async (targetSection: MatrixSection, targetTaskId: number | null, insertBefore: boolean) => {
-    if (!dragState || dragState.taskId === targetTaskId) return
-    const sourceItems = sectionsRef.current[dragState.sourceSection]?.items ?? []
-    const targetItems = (sectionsRef.current[targetSection.id]?.items ?? [])
-      .filter((task) => task.id !== dragState.taskId)
-    const targetIndex = targetTaskId === null
-      ? targetItems.length
-      : targetItems.findIndex((task) => task.id === targetTaskId) + (insertBefore ? 0 : 1)
-    if (targetIndex < 0) return
-    const sourceIndex = sourceItems.findIndex((task) => task.id === dragState.taskId)
-    if (dragState.sourceSection === targetSection.id && sourceIndex >= 0 && targetIndex === sourceIndex) return
-    setPendingTaskId(dragState.taskId)
+  const sensors = useSensors(
+    useSensor(CardMouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(CardTouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      recentlyMovedToNewSectionRef.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [sections])
+
+  /**
+   * dnd-kit 다중 목록 예제의 충돌 판정이다. 구간을 넘나들 때 판정이 두 구간 사이를 오가며
+   * 상태를 계속 바꾸는(엉키는) 문제를 막는다. 포인터가 구간 위에 있으면 그 구간에서 가장 가까운 카드를 고른다.
+   */
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const pointerCollisions = pointerWithin(args)
+    const collisions = pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
+    let overId = getFirstCollision(collisions, 'id')
+
+    if (overId != null) {
+      if (typeof overId === 'string' && overId.startsWith(SECTION_DROP_PREFIX)) {
+        const itemIds = new Set<UniqueIdentifier>(
+          (sections[overId.slice(SECTION_DROP_PREFIX.length)]?.items ?? []).map((task) => task.id),
+        )
+        if (itemIds.size > 0) {
+          overId = closestCenter({
+            ...args,
+            droppableContainers: args.droppableContainers.filter((container) => itemIds.has(container.id)),
+          })[0]?.id ?? overId
+        }
+      }
+      lastOverIdRef.current = overId
+      return [{ id: overId }]
+    }
+
+    if (recentlyMovedToNewSectionRef.current) lastOverIdRef.current = args.active.id
+    return lastOverIdRef.current != null ? [{ id: lastOverIdRef.current }] : []
+  }, [sections])
+
+  const handleDragStart = () => {
+    sectionsBeforeDragRef.current = sectionsRef.current
+    lastOverIdRef.current = null
     setUpdateError(null)
+  }
+
+  /** 다른 구간 위로 넘어가는 순간 화면에서 먼저 옮겨 놓을 자리를 보여 준다. 저장은 놓을 때 한다. */
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over) return
+    setSections((current) => {
+      const fromId = findSectionId(current, active.id)
+      const toId = findSectionId(current, over.id)
+      if (!fromId || !toId || fromId === toId) return current
+      const task = current[fromId].items.find((item) => item.id === active.id)
+      if (!task) return current
+      const targetItems = current[toId].items
+      const overIndex = targetItems.findIndex((item) => item.id === over.id)
+      // 끄는 카드가 대상 카드보다 아래로 내려갔으면 그 뒤에 넣는다.
+      const translated = active.rect.current.translated
+      const isBelowOver = translated !== null && translated.top > over.rect.top + over.rect.height / 2
+      const insertAt = overIndex >= 0 ? overIndex + (isBelowOver ? 1 : 0) : targetItems.length
+      recentlyMovedToNewSectionRef.current = true
+      return {
+        ...current,
+        [fromId]: { ...current[fromId], items: current[fromId].items.filter((item) => item.id !== active.id) },
+        [toId]: { ...current[toId], items: [...targetItems.slice(0, insertAt), task, ...targetItems.slice(insertAt)] },
+      }
+    })
+  }
+
+  const handleDragCancel = () => {
+    if (sectionsBeforeDragRef.current) setSections(sectionsBeforeDragRef.current)
+    sectionsBeforeDragRef.current = null
+  }
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    const before = sectionsBeforeDragRef.current
+    sectionsBeforeDragRef.current = null
+    const taskId = Number(active.id)
+    const current = sectionsRef.current
+    const targetSectionId = over ? findSectionId(current, over.id) : undefined
+    const sourceSectionId = before ? findSectionId(before, taskId) : undefined
+    if (!before || !over || !targetSectionId || !sourceSectionId) {
+      if (before) setSections(before)
+      return
+    }
+
+    // 같은 구간 안에서는 놓은 자리로 순서를 바꾼다. 다른 구간으로는 onDragOver가 이미 옮겼다.
+    let targetItems = current[targetSectionId].items
+    const fromIndex = targetItems.findIndex((task) => task.id === taskId)
+    const overIndex = targetItems.findIndex((task) => task.id === over.id)
+    if (fromIndex >= 0 && overIndex >= 0 && fromIndex !== overIndex) {
+      targetItems = arrayMove(targetItems, fromIndex, overIndex)
+    }
+    const targetIndex = targetItems.findIndex((task) => task.id === taskId)
+    const sourceIndex = before[sourceSectionId].items.findIndex((task) => task.id === taskId)
+    if (sourceSectionId === targetSectionId && targetIndex === sourceIndex) {
+      setSections(before)
+      return
+    }
+
+    setSections({ ...current, [targetSectionId]: { ...current[targetSectionId], items: targetItems } })
+    const targetSection = matrixSections.find((section) => section.id === targetSectionId)
+    const sourceSection = matrixSections.find((section) => section.id === sourceSectionId)
+    if (!targetSection) return
+    setPendingTaskId(taskId)
     try {
-      await moveTask(dragState.taskId, {
+      await moveTask(taskId, {
         scope: 'MATRIX',
         targetSection: targetSection.apiSection,
         previousTaskId: targetItems[targetIndex - 1]?.id ?? null,
-        nextTaskId: targetItems[targetIndex]?.id ?? null,
+        nextTaskId: targetItems[targetIndex + 1]?.id ?? null,
         ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
       })
-      const sourceSection = matrixSections.find((section) => section.id === dragState.sourceSection)
       await Promise.all([
-        sourceSection ? loadSection(sourceSection, true) : Promise.resolve(),
+        sourceSection && sourceSection !== targetSection ? loadSection(sourceSection, true) : Promise.resolve(),
         loadSection(targetSection, true),
       ])
     } catch (error: unknown) {
+      setSections(before)
       const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
-      setUpdateError({ taskId: dragState.taskId, message: apiMessage ?? '할 일을 옮기지 못했습니다.' })
+      setUpdateError({ taskId, message: apiMessage ?? '할 일을 옮기지 못했습니다.' })
     } finally {
       setPendingTaskId(null)
-      setDragState(null)
-      setDropTarget(null)
     }
   }
 
@@ -323,29 +465,26 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
           <button type="button" onClick={retryLoad}>다시 불러오기</button>
         </div>
       ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collisionDetection}
+          accessibility={{
+            screenReaderInstructions: {
+              draggable: '카드에 초점을 둔 채 스페이스바를 누르고 방향키로 움직인 뒤 스페이스바로 놓으세요. 취소는 Esc예요.',
+            },
+          }}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={(event) => void handleDragEnd(event)}
+          onDragCancel={handleDragCancel}
+        >
         <div className={styles.grid}>
           {groupedTasks.map((section) => (
-            <section
+            <DroppableQuadrant
+              sectionId={section.id}
               className={styles.quadrant}
               aria-labelledby={`${section.id}-title`}
               key={section.id}
-              onScroll={(event) => {
-                const element = event.currentTarget
-                const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 48
-                if (isNearBottom) void loadSection(section)
-              }}
-              onDragOver={(event) => {
-                if (!dragState) return
-                event.preventDefault()
-                event.dataTransfer.dropEffect = 'move'
-                autoScrollDuringDrag(event.currentTarget, event.clientY)
-                setDropTarget((current) => current?.sectionId === section.id && current.taskId === null
-                  ? current : { sectionId: section.id, taskId: null })
-              }}
-              onDrop={(event) => {
-                event.preventDefault()
-                void dropTask(section, null, false)
-              }}
             >
               <header className={styles['quadrant-header']}>
                 <h3 id={`${section.id}-title`}>{section.title}</h3>
@@ -373,42 +512,17 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
               ) : section.tasks.length === 0 ? (
                 <p className={styles.empty}>할 일을 추가해주세요.</p>
               ) : (
+                <SortableContext items={section.tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
                 <ol className={styles.list}>
                   {section.tasks.map((task) => {
                     const isPending = pendingTaskId === task.id
                     return (
-                      <li
-                        className={`${styles[`is-${task.status.toLowerCase()}`]} ${dropTarget?.sectionId === section.id && dropTarget.taskId === task.id ? styles.dropTarget : ''} ${dragState?.taskId === task.id ? styles.dragging : ''}`}
-                        aria-busy={isPending}
+                      <SortableTask
+                        className={styles[`is-${task.status.toLowerCase()}`]}
+                        taskId={task.id}
+                        disabled={isPending}
+                        isPending={isPending}
                         key={task.id}
-                        draggable={!isPending}
-                        onDragStart={(event) => {
-                          event.dataTransfer.effectAllowed = 'move'
-                          event.dataTransfer.setData('text/plain', String(task.id))
-                          event.dataTransfer.setDragImage(event.currentTarget, event.currentTarget.offsetWidth / 2, event.currentTarget.offsetHeight / 2)
-                          setDragState({ taskId: task.id, sourceSection: section.id })
-                        }}
-                        onDragEnd={() => {
-                          setDragState(null)
-                          setDropTarget(null)
-                        }}
-                        onDragOver={(event) => {
-                          if (!dragState || dragState.taskId === task.id) return
-                          event.preventDefault()
-                          event.stopPropagation()
-                          event.dataTransfer.dropEffect = 'move'
-                          const container = event.currentTarget.closest(`.${styles.quadrant}`)
-                          if (container instanceof HTMLElement) autoScrollDuringDrag(container, event.clientY)
-                          event.currentTarget.dataset.dropPosition = event.clientY < event.currentTarget.getBoundingClientRect().top + event.currentTarget.offsetHeight / 2 ? 'before' : 'after'
-                          setDropTarget({ sectionId: section.id, taskId: task.id })
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          const insertBefore = event.currentTarget.dataset.dropPosition !== 'after'
-                          delete event.currentTarget.dataset.dropPosition
-                          void dropTask(section, task.id, insertBefore)
-                        }}
                       >
                         <ChecklistCard
                           status={task.status}
@@ -465,24 +579,26 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
                             </>
                           )}
                         />
-                      </li>
+                      </SortableTask>
                     )
                   })}
                 </ol>
+                </SortableContext>
               )}
-              {section.sectionState.status === 'error' && section.tasks.length > 0 && (
-                <button type="button" className={styles.loadMore} onClick={() => void loadSection(section)}>
-                  더 불러오기
-                </button>
+              {section.tasks.length > 0 && section.sectionState.status === 'error' && (
+                <p className={styles.error} role="alert">더 불러오지 못했습니다. 다시 눌러 주세요.</p>
               )}
-              {section.sectionState.status === 'loading' && section.tasks.length > 0 && (
-                <div className={styles.sectionLoading} role="status" aria-label="추가 목록을 불러오는 중">
-                  <IconLoader2 className={styles.spinner} size={16} aria-hidden="true" />
-                </div>
+              {section.tasks.length > 0 && section.sectionState.hasNext && (
+                <LoadMoreButton
+                  className={styles['load-more']}
+                  isLoading={section.sectionState.status === 'loading'}
+                  onClick={() => void loadSection(section)}
+                />
               )}
-            </section>
+            </DroppableQuadrant>
           ))}
         </div>
+        </DndContext>
       )}
       {moveTarget && (
         <TaskInfoModal
@@ -512,14 +628,10 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
           selectedTaskIds={new Set()}
           initialPriority={addDraft.priority}
           initialUrgent={addDraft.urgent}
-          onAdd={async () => undefined}
-          onAddTask={async (title, folderId, priority, urgent, planDate) => {
-            await createTaskWithOptionalPlan({
-              title,
-              priority,
-              urgent,
-              folderId,
-              planDate,
+          onAddTasks={async ({ newTasks, planDate }) => {
+            if (newTasks.length === 0) return
+            await createTasksBatch({
+              tasks: newTasks.map((task) => ({ ...task, planDate })),
             })
             // 생성 응답에 캘린더 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
             if (planDate) invalidatePlanDate(planDate)
@@ -529,5 +641,61 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
         />
       )}
     </section>
+  )
+}
+
+type DroppableQuadrantProps = ComponentProps<'section'> & { sectionId: string }
+
+/** 구간 전체가 드롭 영역이다. 비어 있는 구간에도 할 일을 놓을 수 있다. */
+function DroppableQuadrant({ sectionId, className, ...props }: DroppableQuadrantProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: `${SECTION_DROP_PREFIX}${sectionId}` })
+  return (
+    <section
+      ref={setNodeRef}
+      className={`${className ?? ''} ${isOver ? styles['quadrant-over'] : ''}`}
+      {...props}
+    />
+  )
+}
+
+interface SortableTaskProps {
+  taskId: number
+  className?: string
+  disabled: boolean
+  isPending: boolean
+  children: ReactNode
+}
+
+function SortableTask({ taskId, className, disabled, isPending, children }: SortableTaskProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: taskId,
+    disabled,
+    // 카드 안에 버튼이 여럿 있어 카드 자체를 버튼으로 알리지 않는다.
+    attributes: { role: 'listitem', roleDescription: '옮길 수 있는 할 일' },
+  })
+
+  return (
+    <li
+      ref={(element) => {
+        setNodeRef(element)
+        // 키보드 드래그는 카드 자체에 초점이 있을 때만 시작한다. 안쪽 버튼의 스페이스바는 그대로 둔다.
+        setActivatorNodeRef(element)
+      }}
+      className={`${className ?? ''} ${isDragging ? styles.dragging : ''}`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      aria-busy={isPending}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </li>
   )
 }

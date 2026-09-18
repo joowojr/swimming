@@ -5,7 +5,7 @@ import { UPDATE_NOTES, currentUpdateNote } from './updateNotes'
 import styles from './UpdateNoticeCard.module.css'
 
 /** 마지막으로 닫은 소식의 id. 새 배포의 소식은 id가 달라 다시 뜬다. */
-const DISMISSED_KEY = 'swimming-dismissed-update-9-18-2'
+const DISMISSED_KEY = 'swimming-dismissed-update-9-18'
 
 function readDismissedId() {
   try {

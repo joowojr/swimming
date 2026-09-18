@@ -297,7 +297,7 @@ class SourceDigestProcessorTest {
         when(digestService.digest(any())).thenReturn(digestResult());
 
         SourceGraphWriter failing = mock(SourceGraphWriter.class);
-        doThrow(new RuntimeException("db down")).when(failing).write(any(), any(), any());
+        doThrow(new RuntimeException("db down")).when(failing).createDigestGraphInTransaction(any(), any(), any());
         useCase = new SourceDigestProcessor(
                 new KnowledgeSourceService(sources),
                 new KnowledgeNodeService(nodes),

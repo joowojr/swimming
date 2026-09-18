@@ -64,7 +64,7 @@ class SourceGraphWriterTest {
                         nodes.create(KnowledgeNode.create(USER_ID, NodeType.SUBJECT, title, null))
                 ))
                 .toList();
-        writer.write(source, result, subjects);
+        writer.createDigestGraphInTransaction(source, result, subjects);
     }
 
     private List<KnowledgeRelation> from(UUID fromNodeId, RelationType relationType) {
@@ -126,8 +126,8 @@ class SourceGraphWriterTest {
         ));
         List<ResolvedNode> resolved = List.of(ResolvedNode.created("MCP", subject));
 
-        writer.write(source, result("MCP 서버 구현하기", "MCP"), resolved);
-        writer.write(source, result("MCP 서버 구현하기", "MCP"), resolved);
+        writer.createDigestGraphInTransaction(source, result("MCP 서버 구현하기", "MCP"), resolved);
+        writer.createDigestGraphInTransaction(source, result("MCP 서버 구현하기", "MCP"), resolved);
 
         assertThat(from(source.getNode().getId(), RelationType.ABOUT)).hasSize(1);
     }
@@ -151,7 +151,7 @@ class SourceGraphWriterTest {
         KnowledgeNode category = categoryInFolder("MCP 서버 구현");
         KnowledgeSource target = sources.save(source("https://a.com/new"));
 
-        boolean written = writer.writeCategory(target, new CategoryAssignmentDecision.Reuse(category.getId()));
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Reuse(category.getId()));
 
         assertThat(written).isTrue();
         assertThat(categoriesContaining(target)).containsExactly(category.getId());
@@ -166,8 +166,8 @@ class SourceGraphWriterTest {
         nodes.softDeleteAllOwnedByIds(USER_ID, List.of(deleted.getId()));
         KnowledgeSource target = sources.save(source("https://a.com/new"));
 
-        boolean unknown = writer.writeCategory(target, new CategoryAssignmentDecision.Reuse(UUID.randomUUID()));
-        boolean dead = writer.writeCategory(target, new CategoryAssignmentDecision.Reuse(deleted.getId()));
+        boolean unknown = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Reuse(UUID.randomUUID()));
+        boolean dead = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Reuse(deleted.getId()));
 
         assertThat(unknown).isFalse();
         assertThat(dead).isFalse();
@@ -180,7 +180,7 @@ class SourceGraphWriterTest {
         KnowledgeNode category = categoryInFolder("MCP 서버 구현");
         KnowledgeSource target = sources.save(source("https://a.com/new"));
 
-        boolean written = writer.writeCategory(target, new CategoryAssignmentDecision.Create("mcp서버 구현"));
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Create("mcp서버 구현"));
 
         assertThat(written).isTrue();
         assertThat(categoriesContaining(target)).containsExactly(category.getId());
@@ -193,7 +193,7 @@ class SourceGraphWriterTest {
         categoryInFolder("MCP 서버 구현");
         KnowledgeSource target = sources.save(source("https://a.com/new"));
 
-        boolean written = writer.writeCategory(target, new CategoryAssignmentDecision.Create("WAL 정리"));
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Create("WAL 정리"));
 
         assertThat(written).isTrue();
         List<UUID> contained = categoriesContaining(target);
@@ -207,7 +207,7 @@ class SourceGraphWriterTest {
     void 구성이_없으면_배정하지_않는다() {
         KnowledgeSource target = sources.save(source("https://a.com/new"));
 
-        boolean written = writer.writeCategory(target, new CategoryAssignmentDecision.Create("WAL 정리"));
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Create("WAL 정리"));
 
         assertThat(written).isFalse();
         assertThat(nodes.findAllByUserIdAndNodeType(USER_ID, NodeType.CATEGORY)).isEmpty();
@@ -221,7 +221,7 @@ class SourceGraphWriterTest {
         KnowledgeSource target = sources.save(source("https://a.com/new"));
         new KnowledgeRelationService(relations).connect(confirmed, target.getNode(), RelationOrigin.USER);
 
-        boolean written = writer.writeCategory(target, new CategoryAssignmentDecision.Reuse(other.getId()));
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Reuse(other.getId()));
 
         assertThat(written).isFalse();
         assertThat(categoriesContaining(target)).containsExactly(confirmed.getId());
@@ -233,7 +233,7 @@ class SourceGraphWriterTest {
         categoryInFolder("MCP 서버 구현");
         KnowledgeSource target = sources.save(source("https://a.com/new"));
 
-        boolean written = writer.writeCategory(target, new CategoryAssignmentDecision.Skip());
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Skip());
 
         assertThat(written).isFalse();
         assertThat(categoriesContaining(target)).isEmpty();

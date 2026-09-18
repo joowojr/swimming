@@ -44,11 +44,6 @@ public class JevCategoryAssignmentDecider implements CategoryAssignmentDecider {
         if (input.summary() == null || input.summary().isBlank())
             throw new IllegalArgumentException("요약이 비어 있습니다.");
         boolean proposed = !NodeTitleNormalizer.normalize(input.proposedCategoryTitle()).isEmpty();
-        if (proposed) {
-            var exact = input.categories().stream().filter(c -> NodeTitleNormalizer.normalize(c.title())
-                    .equals(NodeTitleNormalizer.normalize(input.proposedCategoryTitle()))).findFirst();
-            if (exact.isPresent()) return new CategoryAssignmentDecision.Reuse(exact.get().nodeId());
-        }
         // Choice는 NEW/NONE을 포함해 최대 255개. 후보를 임의로 잘라 배정하지 않는다.
         if (input.categories().size() > 254) throw new IllegalArgumentException("카테고리 후보가 너무 많습니다.");
         var criteria = new LinkedHashMap<String, String>();

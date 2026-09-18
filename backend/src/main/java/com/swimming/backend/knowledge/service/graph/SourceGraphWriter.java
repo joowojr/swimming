@@ -48,7 +48,7 @@ public class SourceGraphWriter {
      * {@link SourceDigestService}가 소화 실패로 돌린다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void write(
+    public void createDigestGraphInTransaction(
             KnowledgeSource source,
             SourceDigestResult result,
             List<ResolvedNode> resolvedSubjects
@@ -75,7 +75,7 @@ public class SourceGraphWriter {
      * Confirm과 같은 폴더 잠금을 잡고 후보를 다시 읽어 판정을 검증한다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public boolean writeCategory(KnowledgeSource source, CategoryAssignmentDecision decision) {
+    public boolean createCategoryAssignmentInTransaction(KnowledgeSource source, CategoryAssignmentDecision decision) {
         Long userId = source.getUserId();
         folderService.lockOwned(userId, source.getFolderId());
 

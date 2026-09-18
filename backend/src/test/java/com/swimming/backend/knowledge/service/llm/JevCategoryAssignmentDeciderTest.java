@@ -18,7 +18,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,14 +90,5 @@ class JevCategoryAssignmentDeciderTest {
         CategoryAssignmentDecision decision = decider.decide(input(null));
 
         assertThat(decision).isEqualTo(new CategoryAssignmentDecision.Skip());
-    }
-
-    @Test
-    @DisplayName("제안 이름이 기존 이름과 정규화 기준으로 같으면 모델을 부르지 않고 재사용한다")
-    void 같은_이름은_모델_없이_재사용한다() {
-        CategoryAssignmentDecision decision = decider.decide(input("mcp서버 구현"));
-
-        assertThat(decision).isEqualTo(new CategoryAssignmentDecision.Reuse(MCP.nodeId()));
-        verify(client, never()).systemOne(any());
     }
 }

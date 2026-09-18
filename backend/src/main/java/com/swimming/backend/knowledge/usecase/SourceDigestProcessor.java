@@ -111,7 +111,7 @@ public class SourceDigestProcessor {
         source.completeDigestion(result.summary(), ANALYSIS_VERSION);
         KnowledgeSource saved = sourceService.save(source);
 
-        writeGraph(saved, result, resolvedSubjects);
+        createDigestGraph(saved, result, resolvedSubjects);
         // 배정 실패는 안에서 삼킨다. 소화 결과와 응답에 영향을 주지 않는다.
         categoryAssignmentService.assign(saved, result);
 
@@ -172,13 +172,13 @@ public class SourceDigestProcessor {
      * <p>지금은 로그로만 남는다. 반영이 빠진 Source를 다시 이어 붙이는 경로가 필요해지면
      * 그때 상태를 따로 둔다.
      */
-    private void writeGraph(
+    private void createDigestGraph(
             KnowledgeSource source,
             SourceDigestResult result,
             List<ResolvedNode> resolvedSubjects
     ) {
         try {
-            graphWriter.write(source, result, resolvedSubjects);
+            graphWriter.createDigestGraphInTransaction(source, result, resolvedSubjects);
         } catch (RuntimeException exception) {
             log.warn(
                     "[source-digest] graph write failed sourceId={} reason={}",

@@ -1,0 +1,414 @@
+{
+  "domain": "TECHNOLOGY",
+  "userId": 1,
+  "sources": [
+    {
+      "id": "5ee2e38f-a2b2-44ad-bef6-09ecaf6b8677",
+      "title": "Playwright: 웹 애플리케이션의 크로스 브라우저 자동화를 지원",
+      "topics": [
+        "Playwright로 웹 브라우저 자동화 및 스크래핑 구현하기"
+      ],
+      "summary": "Playwright를 사용해 Chromium, Firefox, WebKit 기반 브라우저를 자동화하는 방법과 주요 기능을 설명한다. 동적 웹페이지 제어, 브라우저 컨텍스트, 네트워크 가로채기, Trace Viewer를 소개하고, 설치 방법과 동기 방식의 기본 사용 예제를 제공한다. 또한 MCP를 통한 AI 에이전트 연동과 웹 스크래핑, E2E 테스트, 문서 자동화 등의 활용 사례를 다룬다.",
+      "subjects": [
+        "크로스 브라우저 자동화",
+        "웹 스크래핑",
+        "E2E 테스트 자동화",
+        "Playwright"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-07T07:49:08.847388+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "Playwright 브라우저 테스트",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "c0fdaa92-778f-4608-9997-fc269854eb67",
+      "title": "How Tinder Is Using AI to Redesign Dating App Discovery",
+      "topics": [
+        "AI 기반 데이팅 앱 추천 시스템"
+      ],
+      "summary": "Tinder는 사용자의 스와이프, 프로필을 보는 시간, 재방문, 메시지 같은 행동 데이터를 분석해 더 의미 있는 만남을 추천하려 한다. 추천 시스템은 협업 필터링과 강화학습으로 사용자의 반응에 따라 프로필 순서를 조정하고, 사진 선택과 대화 시작 문구도 지원한다. 또한 이미지 인식, 자연어 처리, 신원 확인으로 유해 콘텐츠와 가짜 계정을 감지하지만, 추천 과정의 편향과 공정성 문제도 함께 다뤄야 한다.",
+      "subjects": [
+        "머신러닝",
+        "자연어 처리",
+        "추천 시스템",
+        "AI 콘텐츠 모더레이션"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-09T04:15:31.118599+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "추천 시스템 설계",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "81a8a7d8-a4e1-4193-b066-be6348ad878e",
+      "title": "I-have-ADHD - 코딩 에이전트가 답을 묻어두지 않게 하는 스킬",
+      "topics": [
+        "코딩 에이전트의 행동 우선 응답 설계"
+      ],
+      "summary": "i-have-adhd는 코딩 에이전트가 긴 설명보다 실행할 작업과 번호가 매겨진 절차를 먼저 제시하도록 응답 방식을 바꾸는 스킬이다. 불필요한 서두와 반복을 줄이고, 현재 상태와 완료한 일을 보여 주며, 오류가 발생했을 때 다음 행동을 구체적으로 안내하는 10가지 규칙을 적용한다. 규칙은 SKILL.md에서 수정할 수 있고, 설치 후 Claude Code에서 사용할 수 있다.",
+      "subjects": [
+        "프롬프트 엔지니어링",
+        "출력 스타일",
+        "AI 에이전트",
+        "Claude Code"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-09T05:39:13.92444+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "코딩 에이전트 응답 스타일",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "d010104e-5eda-4a0e-b7a9-bb3e97acbc96",
+      "title": "2026년 추천 AI 영상 생성 API 8선 – Apiframe",
+      "topics": [
+        "AI 영상 생성 API 비교"
+      ],
+      "summary": "AI 영상 생성 API는 텍스트나 이미지를 입력받아 짧은 영상 클립을 만들고, 개발자가 프로그래밍 방식으로 결과를 받을 수 있게 한다. 글에서는 Sora, Veo, Kling, Runway, Seedance, Pika, Luma 등의 API를 가격, 화질, 생성 속도, 오디오 지원, 캐릭터 일관성, 접근성 기준으로 비교한다. 여러 모델을 하나의 키와 요청 형식으로 사용할 수 있는 통합 API는 각 서비스에 따로 가입하지 않고 다양한 모델을 시험하려는 경우에 활용할 수 있다.",
+      "subjects": [
+        "네이티브 오디오 생성",
+        "AI 영상 생성",
+        "멀티모델 API",
+        "영상 생성 API"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-09T10:49:58.430009+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "AI 영상 생성 API",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "53a74ced-1b7d-4845-a92e-028a37b39959",
+      "title": "OptimizerZero Web Lite",
+      "topics": [
+        "이미지·문서 파일 압축"
+      ],
+      "summary": "이 도구는 이미지, PDF, ZIP·CBZ 파일을 다시 압축해 파일 크기를 줄인다. 이미지는 주로 WebP로 변환하고, PDF는 내부 이미지를 재압축하거나 필요할 때 페이지를 이미지로 재구성한다. 영상·오디오나 이미 최적화된 파일은 추가로 줄이기 어렵고, PDF를 재구성하면 텍스트 선택과 검색이 불가능해질 수 있다.",
+      "subjects": [
+        "이미지 압축",
+        "파일 재압축",
+        "PDF 압축",
+        "WebP"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-10T08:12:25.01055+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "PDF 압축",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "9241bfda-5bcb-4a19-bcb6-5fc1c272b091",
+      "title": "Appllama/appllama-skills: A builder, not just a researcher. Agent skills that turn top-grossing app patterns into native-quality mobile screens. · GitHub",
+      "topics": [
+        "AI 코딩 에이전트용 모바일 앱 디자인 스킬"
+      ],
+      "summary": "Appllama Skills는 인기 모바일 앱의 화면과 사용자 흐름을 연구해 AI 에이전트가 네이티브 품질의 앱 화면을 만들도록 돕는 도구 모음이다. `appllama-usage`는 Appllama MCP를 활용한 앱 디자인 연구 방법을 제공하고, `appllama-app-design-skill`은 Expo와 React Native 화면 구현, 네비게이션, 애니메이션, 이미지 자산 제작 기준을 다룬다. 완성 과정에서는 시뮬레이터에서 전체 흐름을 녹화하고 프레임 단위로 검토해 화면 품질을 확인한다.",
+      "subjects": [
+        "Expo",
+        "Human Interface Guidelines (HIG)",
+        "Model Context Protocol (MCP)",
+        "React Native"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-11T07:17:34.924996+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "모바일 앱 디자인 스킬",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "857956ef-2824-4b2b-8844-d39a49cd6a47",
+      "title": "AI 카페인 ☕️ (@AI_Caffeine) on X",
+      "topics": [
+        "Stirling PDF를 활용한 PDF 작업 및 자동화"
+      ],
+      "summary": "Stirling PDF는 PDF 병합, 분할, 압축, 변환, OCR, 서명, 암호화, 민감 정보 가리기 등 50개 이상의 작업을 한곳에서 처리하는 도구입니다. 여러 PDF 앱을 설치하지 않고도 자주 사용하는 문서 작업을 한 곳에서 수행할 수 있습니다. 파일 변환과 워터마크 추가, 압축 같은 단계를 드래그형 노드로 연결해 고정된 자동화 워크플로우로 만들 수도 있습니다.",
+      "subjects": [
+        "OCR",
+        "PDF 병합",
+        "PDF 워크플로우 자동화",
+        "Stirling PDF"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-12T10:00:38.345014+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "PDF 파일 처리",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "20b54b24-a1d3-4f47-b473-c71873aae3cb",
+      "title": "cathrynlavery/diagram-design: 38 editorial diagram types for Claude Code, Codex, and Pi. Self-contained HTML + SVG. No shadows. No Mermaid slop. · GitHub",
+      "topics": [
+        "AI 에이전트 기반 아키텍처 다이어그램 생성"
+      ],
+      "summary": "이 프로젝트는 Claude Code, Codex, Pi 등 AI 코딩 에이전트가 편집 품질의 다이어그램을 만들도록 돕는 디자인 스킬이다. HTML과 SVG로 39가지 다이어그램 유형을 제공하며, 브랜드 색상·글꼴 적용, 접근성 검사, draw.io·Mermaid·Excalidraw 가져오기를 지원한다. 정적 출력을 기본으로 하면서 의미 기반 패턴과 선택적 접근성 애니메이션을 사용해 동작과 시각적 레이아웃을 구분한다.",
+      "subjects": [
+        "Agent Skill",
+        "AI 에이전트",
+        "SVG",
+        "WCAG AA"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-12T10:00:54.175175+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "AI 다이어그램 디자인 스킬",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "641424fa-024d-4188-bb4e-0efcfddc5153",
+      "title": "전체 데이터를 브라우저에 두는 광고 대시보드 만들기",
+      "topics": [
+        "브라우저 기반 대시보드 데이터 처리"
+      ],
+      "summary": "광고 대시보드에서 필터링·정렬·검색·페이지네이션을 서버 호출 대신 브라우저에서 처리하도록 바꿔, 사용자가 여러 조건을 빠르게 탐색할 수 있게 한 과정을 설명합니다. 전체 데이터는 Worker에 보관하고 Metadata, 성과, 부가 컬럼을 나누어 받아 점진적으로 화면에 표시하며, 데이터가 도착할 때마다 화면이 갱신되도록 설계했습니다. 이 구조는 0 성과 항목 표시, 특정 ID의 페이지 이동, 새로운 정렬 기준, URL 선택 상태 검증을 가능하게 하지만 초기 로딩과 Worker 장애 복구라는 비용도 따릅니다.",
+      "subjects": [
+        "페이지네이션",
+        "점진적 렌더링",
+        "Structured Clone",
+        "Web Worker"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-12T10:15:40.880029+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "웹 애플리케이션 설계",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "9cef1ca2-b9b0-488c-96dd-1a57581ce32a",
+      "title": "GitHub - Mukesh-50/playwright-testing-on-cloud · GitHub",
+      "topics": [
+        "Playwright 클라우드 크로스 브라우저 테스트"
+      ],
+      "summary": "이 저장소는 Playwright 자동화 테스트를 클라우드에서 실행하는 방법을 설명한다. LambdaTest를 사용하면 다양한 브라우저, 기기, 운영체제 환경에서 테스트를 실행할 수 있다. 저장소를 복제한 뒤 인증 정보를 환경 변수로 설정하고 Playwright 테스트 명령을 실행한다.",
+      "subjects": [
+        "크로스 브라우저 테스트",
+        "웹 브라우저 자동화",
+        "LambdaTest",
+        "Playwright"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-14T02:10:04.710573+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "Playwright 클라우드 테스트",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "97e357aa-8eae-4deb-9072-88cc646e88a7",
+      "title": "이제 토스는 AI '딸깍'으로 만듭니다",
+      "topics": [
+        "AI 기반 어드민 개발 플랫폼"
+      ],
+      "summary": "토스는 반복적으로 만들어야 하는 어드민 개발 과정을 AI가 API와 정책을 바탕으로 자동화하는 플랫폼을 만들고 있다. AI 에이전트가 사용자의 요구를 확인한 뒤 계획을 세우고 코드를 작성하며, 보안·마스킹·암호화·접근 기록 같은 정책도 중앙에서 적용한다. 브라우저 안에서 코드를 실행하기 위해 가상 파일 시스템과 esbuild를 조합한 자체 프리뷰 환경을 구축해 초기 화면 표시 시간을 47초에서 1.3초로 줄였다.",
+      "subjects": [
+        "어드민 플랫폼",
+        "가상 파일 시스템",
+        "AI 코드 생성",
+        "esbuild"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-14T07:35:00.352932+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "브라우저 코드 실행 환경",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    },
+    {
+      "id": "ec1ebcb2-1b82-45d9-8580-67aea85aaf85",
+      "title": "asciimoo/hister: Your own search engine · GitHub",
+      "topics": [
+        "개인용 콘텐츠 검색 엔진"
+      ],
+      "summary": "Hister는 방문한 웹 페이지와 보관한 파일의 전체 내용을 색인해 다시 찾을 수 있게 하는 개인용 검색 엔진이다. 웹 인터페이스, 터미널, 브라우저 확장 프로그램, MCP에 연결된 AI assistant에서 검색할 수 있으며 로컬 서버나 직접 관리하는 인프라에서 실행된다. 브라우저 방문 기록과 로컬 디렉터리, 파일을 가져올 수 있고, 필요하면 임베딩 엔드포인트를 이용한 의미 기반 검색도 지원한다.",
+      "subjects": [
+        "시맨틱 검색",
+        "전문 검색",
+        "Hister",
+        "Model Context Protocol (MCP)"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-14T17:02:18.670284+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "개인용 검색 엔진",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "1f6ae465-52b6-48f4-9333-e76aae570e20",
+      "title": "Jev - 문장 대신 판단과 확률을 반환하는 AI 모델",
+      "topics": [
+        "구조화된 확률 판단 AI 모델"
+      ],
+      "summary": "TypeSafe AI의 Jev는 문장을 자유롭게 생성하는 대신, 소프트웨어 자동화에 필요한 정해진 형식의 판단값과 확률을 반환하는 모델이다. 여러 판단을 병렬로 처리하고 불확실성과 신뢰도를 함께 제공해 분류, 라우팅, 점수화, 조건 분기 같은 작업에 활용되도록 설계됐다. 공개 평가에서는 기존 LLM과 비슷한 판단 능력을 유지하면서 더 빠르고 저렴한 결과를 보였지만, 비교 조건과 평가 편향에 따른 한계도 제시됐다.",
+      "subjects": [
+        "Jev",
+        "RLCD",
+        "System One Model",
+        "Type safety"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-17T02:09:52.046423+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "AI 기반 의사결정",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "87a6364c-01cc-4b38-8c10-8c8b48ccfb73",
+      "title": "Stream Deck에 에이전트의 하루를 띄우다",
+      "topics": [
+        "AI 코딩 에이전트 세션 통합 관리"
+      ],
+      "summary": "이 글은 Claude Code, Codex, Pi 같은 AI 코딩 에이전트의 작업 상태를 Stream Deck과 웹 화면에 표시하는 Agent Deck의 구조와 구현 과정을 설명한다. 여러 CLI의 신호를 공통 스냅샷으로 모아 실행 중, 응답 대기, 종료, 미확인 상태와 전체 활성 작업 수를 두 화면에 일관되게 보여 준다. 공개 예제는 Linux의 Ghostty에서 실행한 로컬 에이전트를 대상으로 하며, 원격 작업 수집과 장치별 화면 배치, 오류 처리 방식도 함께 다룬다.",
+      "subjects": [
+        "AI 에이전트 모니터링",
+        "Server-Sent Events",
+        "Stream Deck",
+        "WebSocket"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-17T02:10:23.393424+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "에이전트 작업 모니터링",
+      "proposedCategoryTitleProvenance": "MANUAL_EXISTING_TITLE"
+    },
+    {
+      "id": "0d90a4cf-737f-4439-bf62-47c4add87679",
+      "title": "nacyot/agent-deck: Claude Code, Codex, Pi 작업 상태를 Stream Deck과 웹에 표시하는 로컬 모니터 · GitHub",
+      "topics": [
+        "AI 코딩 에이전트 세션 통합 관리"
+      ],
+      "summary": "agent-deck은 Linux의 Ghostty에서 실행 중인 Claude Code, Codex, Pi의 작업 상태를 웹과 Stream Deck에 표시하는 로컬 모니터다. 가상 데이터로 동작을 먼저 확인할 수 있으며, 실제 모드에서는 프로세스와 세션 신호를 수집해 실행 중·대기·차단·미확정 등의 상태를 보여 준다. 서버는 루프백에만 연결되고 프롬프트 본문이나 도구 입출력 같은 민감한 내용은 저장하거나 API로 내보내지 않는다.",
+      "subjects": [
+        "AI 코딩 에이전트",
+        "Process Monitoring",
+        "Server-Sent Events",
+        "Stream Deck"
+      ],
+      "folder_id": 1,
+      "created_at": "2026-09-17T05:10:18.188294+00:00",
+      "processing_status": "COMPLETED",
+      "proposedCategoryTitle": "에이전트 세션 모니터링",
+      "proposedCategoryTitleProvenance": "MANUAL_NARROW_TITLE"
+    }
+  ],
+  "version": "2026-09-18-user1-folder1-v2",
+  "folderId": 1,
+  "capturedAt": "2026-09-18T02:43:44.951418+00:00",
+  "categories": [
+    {
+      "id": "197de61d-80f4-4870-b2d1-20563226ac40",
+      "title": "AI 기반 의사결정",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "1f6ae465-52b6-48f4-9333-e76aae570e20"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "c0fdaa92-778f-4608-9997-fc269854eb67"
+        }
+      ]
+    },
+    {
+      "id": "19e19483-618d-4003-9920-15f63d6333c9",
+      "title": "에이전트 작업 모니터링",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "0d90a4cf-737f-4439-bf62-47c4add87679"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "87a6364c-01cc-4b38-8c10-8c8b48ccfb73"
+        }
+      ]
+    },
+    {
+      "id": "7d6e1848-8420-4abf-bc13-c5e63d50f2b7",
+      "title": "PDF 파일 처리",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "53a74ced-1b7d-4845-a92e-028a37b39959"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "857956ef-2824-4b2b-8844-d39a49cd6a47"
+        }
+      ]
+    },
+    {
+      "id": "90a76fae-6548-4839-b5af-34d77b7433c8",
+      "title": "개인용 검색 엔진",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "ec1ebcb2-1b82-45d9-8580-67aea85aaf85"
+        }
+      ]
+    },
+    {
+      "id": "af0af1aa-0d4d-4927-bfd7-5a076f8fb142",
+      "title": "AI 영상 생성 API",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "d010104e-5eda-4a0e-b7a9-bb3e97acbc96"
+        }
+      ]
+    },
+    {
+      "id": "be28de26-52e7-4a65-8f77-37c117a908ed",
+      "title": "Playwright 브라우저 테스트",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "5ee2e38f-a2b2-44ad-bef6-09ecaf6b8677"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "9cef1ca2-b9b0-488c-96dd-1a57581ce32a"
+        }
+      ]
+    },
+    {
+      "id": "e2b8baf2-fe03-4f85-a2f9-ceadddb4633e",
+      "title": "AI 개발 에이전트 스킬",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "20b54b24-a1d3-4f47-b473-c71873aae3cb"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "81a8a7d8-a4e1-4193-b066-be6348ad878e"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "9241bfda-5bcb-4a19-bcb6-5fc1c272b091"
+        }
+      ]
+    },
+    {
+      "id": "f5696c13-0aad-47e4-afb6-e0f767332b9d",
+      "title": "웹 애플리케이션 설계",
+      "assignments": [
+        {
+          "origin": "USER",
+          "sourceId": "641424fa-024d-4188-bb4e-0efcfddc5153"
+        },
+        {
+          "origin": "USER",
+          "sourceId": "97e357aa-8eae-4deb-9072-88cc646e88a7"
+        }
+      ]
+    }
+  ],
+  "folderName": "swimming",
+  "provenance": "LOCAL_DB_USER_RELATIONS",
+  "excludedSources": [
+    {
+      "id": "f27bcad8-63ce-4877-9078-83d2e70fb099",
+      "reason": "NO_USER_CATEGORY_ASSIGNMENT"
+    }
+  ],
+  "proposedCategoryTitleStatus": "MANUAL_CONTROLLED_FIXTURE",
+  "snapshotScope": "ACTIVE_USER_ASSIGNED_SOURCES_ONLY"
+}

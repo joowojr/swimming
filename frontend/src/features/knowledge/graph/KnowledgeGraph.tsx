@@ -23,7 +23,7 @@ import { categoryReachOf, neighborsOf, subjectReachOf, touchesNode, withoutRedun
 import { numberTopics } from './topicOrder'
 import type { GraphResponse } from './graphTypes'
 import type { NodeRef, SourceCard } from '../knowledgeTypes'
-import { updateNodeTitle } from '../knowledgeApi'
+import { useCategoryMergeGuard } from '../useCategoryMergeGuard'
 import type { CategoryReplaceResponse } from './categoryTypes'
 import styles from './KnowledgeGraph.module.css'
 
@@ -32,7 +32,8 @@ interface KnowledgeGraphProps {
   /** 목록에서 이미 받아 둔 카드. sourceId와 nodeId가 같아 SOURCE 노드에 붙는다. */
   sources: SourceCard[]
   onCategoriesReplaced: (response: CategoryReplaceResponse) => void
-  onNodeTitleChanged: (node: NodeRef) => void
+  /** 합쳐지면 node.nodeId가 previousNodeId와 달라진다. 가리키던 것을 옮겨 달라는 뜻이다. */
+  onNodeTitleChanged: (previousNodeId: string, node: NodeRef) => void
 }
 
 type GraphState =
@@ -102,19 +103,31 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
 
   const graph = state.status === 'ready' ? state.graph : null
 
+  const { saveTitle, dialog: categoryMergeDialog } = useCategoryMergeGuard()
+
   const saveNodeTitle = useCallback(async (nodeId: string, title: string) => {
-    const updated = await updateNodeTitle(nodeId, title)
-    setState((current) => current.status === 'ready' ? {
-      ...current,
-      graph: {
-        ...current.graph,
-        nodes: current.graph.nodes.map((node) => node.nodeId === updated.nodeId
-          ? { ...node, title: updated.title }
-          : node),
-      },
-    } : current)
-    onNodeTitleChanged(updated)
-  }, [onNodeTitleChanged])
+    const updated = await saveTitle(nodeId, title)
+    if (!updated) return
+
+    if (updated.nodeId === nodeId) {
+      setState((current) => current.status === 'ready' ? {
+        ...current,
+        graph: {
+          ...current.graph,
+          nodes: current.graph.nodes.map((node) => node.nodeId === nodeId
+            ? { ...node, title: updated.title }
+            : node),
+        },
+      } : current)
+    } else {
+      // 같은 이름의 묶음으로 합쳐졌다. 노드가 사라지고 간선이 옮겨 갔으므로 여기서
+      // 손으로 맞추지 않고 그래프를 다시 받는다. 고르고 있던 것이 사라진 쪽이면 푼다.
+      setSelectedNodeId((current) => current === nodeId ? null : current)
+      setRequestKey((key) => key + 1)
+    }
+
+    onNodeTitleChanged(nodeId, updated)
+  }, [saveTitle, onNodeTitleChanged])
 
   // 선택은 강조만 바꾼다. 전체 배치와 관계 전처리는 그래프·배치 설정이 바뀔 때만 계산한다.
   const drawnEdges = useMemo(() => graph ? withoutRedundantAbout(graph.edges) : [], [graph])
@@ -522,6 +535,8 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
           />
         )}
       </div>
+
+      {categoryMergeDialog}
     </div>
   )
 }

@@ -49,7 +49,7 @@ class SourceSearchUseCaseTest {
         useCase = new SourceSearchUseCase(
                 folderService,
                 relationService,
-                new KnowledgeSourceService(sources),
+                new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)),
                 new SourceGraphReader(relations, nodes)
         );
     }

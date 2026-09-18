@@ -64,7 +64,7 @@ class FolderUseCaseTest {
         );
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", targetDate,
-                FolderStatus.IN_PROGRESS, false, false, null, null, null
+                FolderStatus.IN_PROGRESS, false, 0, null, null, null
         );
         when(folderTagService.getOne(1L, 3L)).thenReturn(tag);
         when(folderService.create(any(Folder.class))).thenReturn(folder);
@@ -90,7 +90,7 @@ class FolderUseCaseTest {
         FolderTag tag = FolderTag.restore(4L, 1L, "포트폴리오", null, null);
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", null,
-                FolderStatus.IN_PROGRESS, false, false, null, null, null
+                FolderStatus.IN_PROGRESS, false, 0, null, null, null
         );
         CreateFolderRequest request = new CreateFolderRequest(
                 "프로젝트",
@@ -157,6 +157,19 @@ class FolderUseCaseTest {
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("프로젝트");
         assertThat(response.description()).isEqualTo("설명");
+        assertThat(response.sourceCount()).isZero();
+    }
+
+    @Test
+    void 폴더_상세에_저장된_링크_개수를_반환한다() {
+        Folder folder = folder(10L, "프로젝트", "설명", null);
+        folder.incrementSourceCount();
+        folder.incrementSourceCount();
+        when(folderService.getOne(1L, 10L)).thenReturn(folder);
+
+        FolderDetailResponse response = folderUseCase.getOne(1L, 10L);
+
+        assertThat(response.sourceCount()).isEqualTo(2);
     }
 
     @Test
@@ -210,7 +223,7 @@ class FolderUseCaseTest {
     ) {
         return Folder.restore(
                 id, 1L, null, name, description, targetDate,
-                FolderStatus.IN_PROGRESS, false, false, null, null, null
+                FolderStatus.IN_PROGRESS, false, 0, null, null, null
         );
     }
 }

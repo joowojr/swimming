@@ -338,13 +338,6 @@ public final class InMemoryKnowledgeRepositories {
         }
 
         @Override
-        public boolean existsInFolder(Long userId, Long folderId) {
-            return stored.values().stream().anyMatch(source -> source.getUserId().equals(userId)
-                    && !source.isDeleted()
-                    && source.getFolderId().equals(folderId));
-        }
-
-        @Override
         public List<KnowledgeSource> findPage(SourcePageQuery query) {
             Comparator<KnowledgeSource> recentFirst = Comparator
                     .comparing((KnowledgeSource source) -> source.getNode().getCreatedAt())
@@ -628,6 +621,17 @@ public final class InMemoryKnowledgeRepositories {
         @Override
         public void delete(UUID fromNodeId, UUID toNodeId, RelationType relationType) {
             stored.remove(key(fromNodeId, toNodeId, relationType));
+        }
+
+        @Override
+        public int deleteAllFrom(Collection<UUID> fromNodeIds, RelationType relationType) {
+            List<String> keys = stored.entrySet().stream()
+                    .filter(entry -> fromNodeIds.contains(entry.getValue().getFromNodeId())
+                            && entry.getValue().getRelationType() == relationType)
+                    .map(Map.Entry::getKey)
+                    .toList();
+            keys.forEach(stored::remove);
+            return keys.size();
         }
 
         static KnowledgeRelation copy(KnowledgeRelation relation) {

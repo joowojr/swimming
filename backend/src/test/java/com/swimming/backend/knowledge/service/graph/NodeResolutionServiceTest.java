@@ -67,7 +67,7 @@ class NodeResolutionServiceTest {
         service = new NodeResolutionService(
                 embeddingClient,
                 new ResolutionProperties(5, 0.5, 3),
-                new KnowledgeSourceService(sources),
+                new KnowledgeSourceService(sources, org.mockito.Mockito.mock(com.swimming.backend.folder.service.FolderService.class)),
                 new KnowledgeNodeService(nodes),
                 new KnowledgeVectorSearchService(
                         new InMemoryKnowledgeRepositories.VectorSearch(nodes, sources)),

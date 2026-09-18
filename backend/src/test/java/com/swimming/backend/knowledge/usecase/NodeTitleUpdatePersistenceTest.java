@@ -45,6 +45,50 @@ class NodeTitleUpdatePersistenceTest {
     @Autowired private EntityManager entityManager;
 
     @Test
+    void 단건_이동은_다른_문서의_카테고리를_유지하고_마지막_이동_후_빈_카테고리를_삭제한다() {
+        User user = userRepository.saveAndFlush(User.builder()
+                .email("category-move@example.com").googleSubject("category-move-google")
+                .nickname("카테고리 이동").timezone("Asia/Seoul").build());
+        FolderEntity folder = folderRepository.saveAndFlush(FolderEntity.from(
+                Folder.create(user.getId(), null, "폴더", "설명", null), user, null));
+        KnowledgeSource moving = sourceRepository.save(KnowledgeSource.create(
+                user.getId(), folder.getId(), "이동", "https://example.com/moving", "https://example.com/moving"));
+        KnowledgeSource staying = sourceRepository.save(KnowledgeSource.create(
+                user.getId(), folder.getId(), "유지", "https://example.com/staying", "https://example.com/staying"));
+        KnowledgeNode from = nodeRepository.create(KnowledgeNode.create(user.getId(), NodeType.CATEGORY, "이전 분류", null));
+        relationService.connectAll(from, java.util.List.of(moving.getNode(), staying.getNode()), RelationOrigin.USER);
+        KnowledgeSource existing = sourceRepository.save(KnowledgeSource.create(
+                user.getId(), folder.getId(), "대상 문서", "https://example.com/existing", "https://example.com/existing"));
+        KnowledgeNode into = nodeRepository.create(KnowledgeNode.create(user.getId(), NodeType.CATEGORY, "새 분류", null));
+        relationService.connect(into, existing.getNode(), RelationOrigin.USER);
+        entityManager.flush();
+        entityManager.clear();
+
+        var renamed = nodeUseCase.updateTitle(user.getId(), from.getId(), "변경한 분류");
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(renamed.nodeId()).isEqualTo(from.getId());
+        assertThat(sourceQueryUseCase.get(user.getId(), moving.getId()).category()).isEqualTo(renamed);
+        assertThat(sourceQueryUseCase.get(user.getId(), staying.getId()).category()).isEqualTo(renamed);
+
+        var target = nodeUseCase.merge(user.getId(), from.getId(), into.getId(), moving.getId());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(sourceQueryUseCase.get(user.getId(), moving.getId()).category()).isEqualTo(target);
+        assertThat(sourceQueryUseCase.get(user.getId(), staying.getId()).category().nodeId()).isEqualTo(from.getId());
+        assertThat(nodeRepository.findById(from.getId()).orElseThrow().getTitle()).isEqualTo("변경한 분류");
+
+        var existingTarget = nodeUseCase.merge(user.getId(), from.getId(), into.getId(), staying.getId());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(existingTarget).isEqualTo(target);
+        assertThat(nodeRepository.findById(from.getId())).isEmpty();
+        assertThat(sourceQueryUseCase.get(user.getId(), staying.getId()).category()).isEqualTo(target);
+        assertThat(graphUseCase.ofFolder(user.getId(), folder.getId(), 50).nodes())
+                .noneMatch(node -> node.nodeId().equals(from.getId()));
+    }
+
+    @Test
     void 제목_수정은_변경_감지로_저장되고_문서와_그래프에_반영된다() {
         User user = userRepository.saveAndFlush(User.builder()
                 .email("node-title@example.com").googleSubject("node-title-google")

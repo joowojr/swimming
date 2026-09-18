@@ -134,20 +134,6 @@ public interface KnowledgeSourceJpaRepository extends JpaRepository<KnowledgeSou
             @Param("embeddingModel") String embeddingModel
     );
 
-    @Query("""
-            select s
-            from KnowledgeSourceEntity s, KnowledgeNodeEntity n
-            where s.nodeId = n.id
-              and n.userId = :userId
-              and n.deleted = false
-              and s.folderId = :folderId
-            """)
-    List<KnowledgeSourceEntity> findAnyActiveInFolder(
-            @Param("userId") Long userId,
-            @Param("folderId") Long folderId,
-            Pageable pageable
-    );
-
     /**
      * 정렬 기준을 노드의 생성 시각으로 잡는다. 커서에 싣는 값과 같은 것을 써야 경계에서
      * 행이 겹치거나 빠지지 않는다.

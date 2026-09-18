@@ -1,5 +1,6 @@
 package com.swimming.backend.knowledge.service.graph;
 
+import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
@@ -41,16 +42,52 @@ class SourceGraphWriterTest {
         sources = new InMemoryKnowledgeRepositories.Sources();
         nodes = new InMemoryKnowledgeRepositories.Nodes().withFolderGraph(sources, relations);
         folderService = mock(FolderService.class);
+        org.mockito.Mockito.when(folderService.getSourceCount(USER_ID, FOLDER_ID)).thenReturn(6L);
 
         writer = new SourceGraphWriter(
                 new KnowledgeNodeService(nodes),
                 new KnowledgeRelationService(relations),
-                folderService
+                folderService,
+                new com.swimming.backend.knowledge.service.data.KnowledgeSourceService(sources, mock(FolderService.class))
         );
     }
 
     private KnowledgeSource source(String url) {
         return KnowledgeSource.create(USER_ID, FOLDER_ID, "Spring AI MCP Reference", url, url);
+    }
+
+    @Test
+    void 신규_소스를_저장하면_잠금으로_조회한_폴더의_개수를_증가시킨다() {
+        Folder folder = Folder.create(USER_ID, null, "폴더", "설명", null);
+        org.mockito.Mockito.when(folderService.lockOwned(USER_ID, FOLDER_ID)).thenReturn(folder);
+        KnowledgeSource candidate = source("https://example.com/new");
+
+        KnowledgeSource saved = writer.saveSourceInTransaction(candidate);
+
+        assertThat(saved.getId()).isEqualTo(candidate.getId());
+        assertThat(sources.findById(saved.getId())).isPresent();
+        assertThat(folder.getSourceCount()).isEqualTo(1);
+        verify(folderService).updateSourceCount(USER_ID, FOLDER_ID, 1);
+        verify(folderService, org.mockito.Mockito.never()).getOne(USER_ID, FOLDER_ID);
+    }
+
+    @Test
+    void 중복_소스는_기존_소스를_반환하고_폴더_개수를_변경하지_않는다() {
+        Folder folder = Folder.create(USER_ID, null, "폴더", "설명", null);
+        folder.incrementSourceCount();
+        org.mockito.Mockito.when(folderService.lockOwned(USER_ID, FOLDER_ID)).thenReturn(folder);
+        KnowledgeSource existing = source("https://example.com/duplicate");
+        sources.save(existing);
+        KnowledgeSource candidate = source("https://example.com/duplicate");
+
+        KnowledgeSource saved = writer.saveSourceInTransaction(candidate);
+
+        assertThat(saved.getId()).isEqualTo(existing.getId());
+        assertThat(sources.findById(candidate.getId())).isEmpty();
+        assertThat(folder.getSourceCount()).isEqualTo(1);
+        verify(folderService, org.mockito.Mockito.never()).updateSourceCount(
+                org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong());
     }
 
     private SourceDigestResult result(String topic, String... subjects) {
@@ -238,4 +275,15 @@ class SourceGraphWriterTest {
         assertThat(written).isFalse();
         assertThat(categoriesContaining(target)).isEmpty();
     }
+    @Test
+    void 저장_직전_링크가_5개면_카테고리와_관계를_저장하지_않는다() {
+        categoryInFolder("MCP 서버 구현");
+        KnowledgeSource target = sources.save(source("https://a.com/new"));
+        org.mockito.Mockito.when(folderService.getSourceCount(USER_ID, FOLDER_ID)).thenReturn(5L);
+        boolean written = writer.createCategoryAssignmentInTransaction(target, new CategoryAssignmentDecision.Create("WAL 정리"));
+        assertThat(written).isFalse();
+        assertThat(categoriesContaining(target)).isEmpty();
+        assertThat(nodes.findAllByUserIdAndNodeType(USER_ID, NodeType.CATEGORY)).hasSize(1);
+    }
+
 }

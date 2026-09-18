@@ -16,6 +16,7 @@ import {
 import type { TaskFilter } from '../tasks/taskFilter'
 import CreateTaskComposer from '../tasks/CreateTaskComposer'
 import { useTaskStore } from '../../store/taskStore'
+import { useSourceStore } from '../../store/sourceStore'
 import {deleteTasks, getFolderTasks} from '../tasks/taskApi'
 import type { TaskSummaryResponse } from '../tasks/taskTypes'
 import {getFolder} from './folderApi.ts'
@@ -71,6 +72,9 @@ const FolderBreadcrumb = memo(function FolderBreadcrumb({ folder }: { folder: Fo
 })
 
 export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps) {
+  const sourceFolderRevision = useSourceStore((state) => (
+    folderId === null ? 0 : state.folderRevisionById[folderId] ?? 0
+  ))
   const navigate = useNavigate()
   const removeTasksFromStore = useTaskStore((state) => state.remove)
   const isLinkView = useMatch('/folders/:folderId/links') !== null
@@ -113,6 +117,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
     setTasks({ status: 'loading' })
     setTaskRequestKey((key) => key + 1)
   }, [])
+
 
   const toggleTaskSelection = (taskId: number) => {
     setSelectedTaskIds((current) => {
@@ -212,7 +217,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
       })
 
     return () => { active = false }
-  }, [folderId, folderRequestKey])
+  }, [folderId, folderRequestKey, sourceFolderRevision])
 
   useEffect(() => {
     if (folderId === null || isLinkView || tasks.status !== 'loading') return
@@ -300,7 +305,7 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
 
       <FolderViewSwitch folderId={folder.id} current={isLinkView ? 'links' : 'tasks'} />
 
-      <FolderProgressToast folderId={folder.id} folderName={folder.name} />
+      <FolderProgressToast folderId={folder.id} folderName={folder.name} sourceCount={folder.sourceCount} />
 
       {/*<section className={styles.summary} aria-labelledby="folder-progress-title">*/}
       {/*  <span className={styles['journey-rail']} aria-hidden="true" style={progressStyle} />*/}

@@ -7,9 +7,15 @@ import type {
   SourceListResponse,
 } from './knowledgeTypes'
 
-/** Category 또는 Topic 제목만 바꾸고 수정한 노드 참조를 반환한다. */
+/** 노드 이름만 수정한다. */
 export async function updateNodeTitle(nodeId: string, title: string): Promise<NodeRef> {
   const response = await client.patch<NodeRef>(`/knowledge/nodes/${nodeId}/title`, { title })
+  return response.data
+}
+
+/** 지정한 기존 카테고리로 문서 한 건 또는 전체를 옮긴다. */
+export async function mergeCategory(nodeId: string, targetCategoryId: string, sourceId?: string): Promise<NodeRef> {
+  const response = await client.put<NodeRef>(`/knowledge/nodes/${nodeId}/merge`, { targetCategoryId, sourceId })
   return response.data
 }
 

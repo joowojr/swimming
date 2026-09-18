@@ -18,10 +18,10 @@ public class Folder {
     private boolean deleted;
 
     /**
-     * 이 폴더에 살아 있는 링크가 있는지. 링크 도메인이 갱신하는 파생 상태라 여기서는
-     * 읽기만 한다. {@link #update}가 건드리지 않는다.
+     * 이 폴더에 살아 있는 링크의 개수. 링크 저장·삭제 시 전용 메서드로 변경한다.
+     * 일반 폴더 정보 수정인 {@link #update}는 건드리지 않는다.
      */
-    private final boolean hasSource;
+    private long sourceCount;
 
     /**
      * 이 폴더를 고정한 시각. 고정하지 않았으면 null이다. 전용 API가 정하는 값이라
@@ -41,7 +41,7 @@ public class Folder {
             LocalDate targetDate,
             FolderStatus status,
             boolean deleted,
-            boolean hasSource,
+            long sourceCount,
             Instant pinnedAt,
             Instant createdAt,
             Instant updatedAt
@@ -54,7 +54,7 @@ public class Folder {
         this.targetDate = targetDate;
         this.status = status;
         this.deleted = deleted;
-        this.hasSource = hasSource;
+        this.sourceCount = sourceCount;
         this.pinnedAt = pinnedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -76,7 +76,7 @@ public class Folder {
                 targetDate,
                 FolderStatus.IN_PROGRESS,
                 false,
-                false,
+                0,
                 null,
                 null,
                 null
@@ -92,7 +92,7 @@ public class Folder {
             LocalDate targetDate,
             FolderStatus status,
             boolean deleted,
-            boolean hasSource,
+            long sourceCount,
             Instant pinnedAt,
             Instant createdAt,
             Instant updatedAt
@@ -106,11 +106,26 @@ public class Folder {
                 targetDate,
                 status,
                 deleted,
-                hasSource,
+                sourceCount,
                 pinnedAt,
                 createdAt,
                 updatedAt
         );
+    }
+
+    public boolean isHasSource() {
+        return sourceCount > 0;
+    }
+
+    public void incrementSourceCount() {
+        this.sourceCount++;
+    }
+
+    public void decrementSourceCount() {
+        if (sourceCount <= 0) {
+            throw new IllegalStateException("folder source count cannot be negative");
+        }
+        this.sourceCount--;
     }
 
     public void update(

@@ -1,6 +1,7 @@
 package com.swimming.backend.knowledge.service.graph;
 
 import com.swimming.backend.folder.service.FolderService;
+import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -13,6 +14,7 @@ import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,21 @@ public class SourceGraphWriter {
     private final KnowledgeNodeService nodeService;
     private final KnowledgeRelationService relationService;
     private final FolderService folderService;
+    private final KnowledgeSourceService sourceService;
+
+    /** 링크 저장과 폴더 개수 변경을 함께 커밋한다. 수집·AI 호출은 이 메서드 밖에서 실행한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public KnowledgeSource saveSourceInTransaction(KnowledgeSource candidate) {
+        Long userId = candidate.getUserId();
+        Long folderId = candidate.getFolderId();
+        Folder folder = folderService.lockOwned(userId, folderId);
+        KnowledgeSource saved = sourceService.create(candidate);
+        if (saved.getId().equals(candidate.getId())) {
+            folder.incrementSourceCount();
+            folderService.updateSourceCount(userId, folderId, folder.getSourceCount());
+        }
+        return saved;
+    }
 
     /**
      * Subject는 기존 노드를 먼저 찾아 재사용하고, Topic은 Source당 하나이므로 매번 만든다.
@@ -78,6 +95,7 @@ public class SourceGraphWriter {
     public boolean createCategoryAssignmentInTransaction(KnowledgeSource source, CategoryAssignmentDecision decision) {
         Long userId = source.getUserId();
         folderService.lockOwned(userId, source.getFolderId());
+        if (folderService.getSourceCount(userId, source.getFolderId()) < CategoryAssignmentService.MIN_SOURCE_COUNT) return false;
 
         // Confirm이 구성을 모두 걷어냈으면 축이 없다. 문서 하나로 축을 새로 세우지 않는다.
         List<KnowledgeNode> categories = nodeService.findCategoriesInFolder(userId, source.getFolderId());

@@ -1,0 +1,178 @@
+/* Hallmark · component: task-source-list · genre: modern-minimal · theme: Purposeful Journey
+ * states: default · focus · disabled · loading · error · empty
+ * contrast: pass
+ * 연결한 링크와 고를 수 있는 링크를 같은 줄 모양으로 둔다. 다른 것은 오른쪽 버튼뿐이다.
+ */
+
+.panel {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+}
+
+.section {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.title {
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+}
+
+.message {
+    margin: 0;
+    color: var(--color-mute);
+    font-size: var(--text-label-caps-size);
+    line-height: var(--text-label-caps-line-height);
+}
+
+.message[data-tone='error'] {
+    color: var(--color-error);
+}
+
+.empty {
+    margin: 0;
+    color: var(--color-mute);
+    font-size: var(--text-label-caps-size);
+    line-height: var(--text-label-caps-line-height);
+}
+
+.list {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--space-1);
+}
+
+.choice {
+    display: flex;
+    align-items: flex-start;
+    min-width: 0;
+    gap: var(--space-1);
+    padding: var(--space-1) 0;
+    border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.choice:first-child {
+    border-top: 0;
+}
+
+.choiceBody {
+    display: grid;
+    gap: var(--space-1);
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    min-width: 0;
+    padding-inline: var(--space-2);
+}
+
+.chip {
+    max-width: 100%;
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--color-border-subtle);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    color: var(--color-mute);
+    font-size: var(--text-label-caps-size);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.link {
+    display: flex;
+    align-items: baseline;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-default);
+    color: var(--color-primary);
+    font-size: var(--text-body-sm-size);
+    text-decoration: none;
+}
+
+.link:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--border-width);
+}
+
+.linkTitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status {
+    flex: 0 0 auto;
+    color: var(--color-mute);
+    font-size: var(--text-label-caps-size);
+    white-space: nowrap;
+}
+
+.status[data-tone='error'] {
+    color: var(--color-error);
+}
+
+.action {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    justify-content: center;
+    width: var(--space-8);
+    height: var(--space-8);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: transparent;
+    cursor: pointer;
+}
+
+.action:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--border-width);
+}
+
+.action:disabled {
+    cursor: default;
+    opacity: .55;
+}
+
+.spinner {
+    animation: task-source-spin calc(var(--dur-modal) * 3) linear infinite;
+}
+
+@keyframes task-source-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .link:hover {
+        background: var(--color-surface-container-high);
+    }
+
+    .action:hover:not(:disabled) {
+        color: var(--color-primary);
+        background: var(--color-surface-container-high);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation-duration: calc(var(--dur-modal) * 6); }
+}

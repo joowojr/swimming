@@ -1,0 +1,44 @@
+.dialog {
+    width: min(calc(100% - var(--space-8)), 28rem);
+}
+
+.modal {
+    width: 100%;
+}
+
+.header h2, .header p {
+    margin: 0;
+}
+
+.header p {
+    margin-top: var(--space-1);
+    overflow: hidden;
+    color: var(--color-mute);
+    font-size: var(--text-body-sm-size);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    color: var(--color-mute);
+    background: transparent;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-container-high);
+}
+
+.body {
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    overflow-y: auto;
+}

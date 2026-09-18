@@ -61,6 +61,13 @@ public class FolderService {
         return FolderReference.from(getOwnedFolderEntity(userId, folderId).toDomain());
     }
 
+    /** 호출자의 짧은 저장 트랜잭션에서 폴더별 변경을 직렬화한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void lockOwned(Long userId, Long folderId) {
+        folderRepository.findOwnedForUpdate(userId, folderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_NOT_FOUND));
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public void validateOwnership(Long userId, Long folderId) {
         getOwnedFolderEntity(userId, folderId);

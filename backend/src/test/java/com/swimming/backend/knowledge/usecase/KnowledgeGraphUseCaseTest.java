@@ -50,8 +50,8 @@ class KnowledgeGraphUseCaseTest {
     @BeforeEach
     void setUp() {
         sources = new InMemoryKnowledgeRepositories.Sources();
-        nodes = new InMemoryKnowledgeRepositories.Nodes();
         relations = new InMemoryKnowledgeRepositories.Relations();
+        nodes = new InMemoryKnowledgeRepositories.Nodes().withFolderGraph(sources, relations);
 
         relationService = new KnowledgeRelationService(relations);
         folderService = mock(FolderService.class);

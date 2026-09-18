@@ -1,13 +1,13 @@
-package com.swimming.backend.knowledge.experiment;
+package com.swimming.backend.knowledge.benchmark;
 
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.swimming.backend.knowledge.experiment.NodeResolutionEvalScenario.Domain.AI_PRODUCTIVITY;
-import static com.swimming.backend.knowledge.experiment.NodeResolutionEvalScenario.Domain.JOB_POSTING;
-import static com.swimming.backend.knowledge.experiment.NodeResolutionEvalScenario.Domain.KYOTO_TRAVEL;
-import static com.swimming.backend.knowledge.experiment.NodeResolutionEvalScenario.Domain.TECHNOLOGY;
+import static com.swimming.backend.knowledge.benchmark.NodeResolutionEvalScenario.Domain.AI_PRODUCTIVITY;
+import static com.swimming.backend.knowledge.benchmark.NodeResolutionEvalScenario.Domain.JOB_POSTING;
+import static com.swimming.backend.knowledge.benchmark.NodeResolutionEvalScenario.Domain.KYOTO_TRAVEL;
+import static com.swimming.backend.knowledge.benchmark.NodeResolutionEvalScenario.Domain.TECHNOLOGY;
 
 final class NodeResolutionEvalTestData {
 

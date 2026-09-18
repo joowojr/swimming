@@ -10,6 +10,7 @@ import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
 import com.swimming.backend.knowledge.dto.out.ResolvedNode;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.CategoryAssignmentService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class SourceDigestProcessor {
     private final SourceDigestService digestService;
     private final NodeResolutionService nodeResolutionService;
     private final SourceGraphWriter graphWriter;
+    private final CategoryAssignmentService categoryAssignmentService;
 
     public SourceDigestResponse digest(Long userId, UUID sourceId) {
         KnowledgeSource source = sourceService.getOwned(sourceId, userId);
@@ -109,6 +111,8 @@ public class SourceDigestProcessor {
         KnowledgeSource saved = sourceService.save(source);
 
         writeGraph(saved, result, resolvedSubjects);
+        // 배정 실패는 안에서 삼킨다. 소화 결과와 응답에 영향을 주지 않는다.
+        categoryAssignmentService.assign(saved, result);
 
         return SourceDigestResponse.of(saved, result);
     }

@@ -2,6 +2,7 @@ package com.swimming.backend.knowledge.service.llm;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
 import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -16,6 +17,7 @@ import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
 import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
+import com.swimming.backend.knowledge.service.graph.CategoryAssignmentService;
 import com.swimming.backend.knowledge.service.graph.NodeResolutionService;
 import com.swimming.backend.knowledge.service.graph.SourceGraphWriter;
 import com.swimming.backend.knowledge.service.llm.SourceDigestService;
@@ -49,6 +51,7 @@ class SourceDigestProcessorTest {
     private SourceDigestService digestService;
     private NodeResolutionService nodeResolutionService;
     private SourceGraphWriter graphWriter;
+    private CategoryAssignmentService categoryAssignmentService;
     private SourceDigestProcessor useCase;
 
     @BeforeEach
@@ -58,6 +61,7 @@ class SourceDigestProcessorTest {
         relations = new InMemoryKnowledgeRepositories.Relations();
         digestService = mock(SourceDigestService.class);
         nodeResolutionService = mock(NodeResolutionService.class);
+        categoryAssignmentService = mock(CategoryAssignmentService.class);
 
         when(nodeResolutionService.resolveSubjects(any(), any(), any())).thenAnswer(invocation -> {
             List<String> candidates = invocation.getArgument(2);
@@ -73,7 +77,8 @@ class SourceDigestProcessorTest {
 
         graphWriter = new SourceGraphWriter(
                 new KnowledgeNodeService(nodes),
-                new KnowledgeRelationService(relations)
+                new KnowledgeRelationService(relations),
+                mock(FolderService.class)
         );
 
         useCase = new SourceDigestProcessor(
@@ -81,7 +86,8 @@ class SourceDigestProcessorTest {
                 new KnowledgeNodeService(nodes),
                 digestService,
                 nodeResolutionService,
-                graphWriter
+                graphWriter,
+                categoryAssignmentService
         );
     }
 
@@ -297,7 +303,8 @@ class SourceDigestProcessorTest {
                 new KnowledgeNodeService(nodes),
                 digestService,
                 nodeResolutionService,
-                failing
+                failing,
+                mock(CategoryAssignmentService.class)
         );
 
         SourceDigestResponse response = useCase.digest(USER_ID, source.getId());
@@ -378,6 +385,33 @@ class SourceDigestProcessorTest {
         assertThat(input.title()).isEqualTo("Spring AI MCP Reference");
         assertThat(input.url()).isEqualTo("https://docs.spring.io/mcp.html");
         assertThat(input.content()).contains("MCP Server를 구성하는 방법");
+    }
+
+    @Test
+    @DisplayName("소화에 성공하면 완료 상태로 저장한 Source의 Category 배정을 요청한다")
+    void assignsCategoryAfterDigestion() {
+        KnowledgeSource source = savedSource();
+        when(digestService.digest(any())).thenReturn(digestResult());
+
+        useCase.digest(USER_ID, source.getId());
+
+        ArgumentCaptor<KnowledgeSource> assigned = ArgumentCaptor.forClass(KnowledgeSource.class);
+        ArgumentCaptor<SourceDigestResult> digested = ArgumentCaptor.forClass(SourceDigestResult.class);
+        verify(categoryAssignmentService).assign(assigned.capture(), digested.capture());
+        assertThat(assigned.getValue().getId()).isEqualTo(source.getId());
+        assertThat(assigned.getValue().getProcessingStatus()).isEqualTo(SourceProcessingStatus.COMPLETED);
+        assertThat(digested.getValue().category()).isEqualTo("백엔드");
+    }
+
+    @Test
+    @DisplayName("소화가 실패하면 Category 배정을 요청하지 않는다")
+    void doesNotAssignCategoryWhenDigestionFails() {
+        KnowledgeSource source = savedSource();
+        when(digestService.digest(any())).thenThrow(new RuntimeException("model timeout"));
+
+        useCase.digest(USER_ID, source.getId());
+
+        verify(categoryAssignmentService, never()).assign(any(), any());
     }
 
     @Test

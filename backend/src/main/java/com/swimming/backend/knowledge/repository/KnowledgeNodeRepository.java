@@ -29,6 +29,8 @@ public interface KnowledgeNodeRepository {
 
     List<KnowledgeNode> findAllByUserIdAndNodeType(Long userId, NodeType nodeType);
 
+    List<KnowledgeNode> findCategoriesInFolder(Long userId, Long folderId);
+
     /**
      * Subject / Topic resolution의 매칭 단계에서 사용한다.
      * 인자는 {@link com.swimming.backend.knowledge.domain.NodeTitleNormalizer}를 거친 값이다.

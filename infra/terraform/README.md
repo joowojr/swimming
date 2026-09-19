@@ -429,7 +429,7 @@ key: each assumes a role through the GitHub OIDC provider created in
 | --- | --- | --- | --- |
 | `ci.yml` | pull request, push to main | nothing - Gradle build and the Vite/tsc build only | none |
 | `deploy-backend.yml` | main touching `backend/**`, `compose.production.yaml`, the deploy script | ECR image, the container on EC2 | `swimming-prod-gha-deploy` |
-| `deploy-page-renderer.yml` | main touching `infra/lambda/page-renderer/**`, manual dispatch | ECR image, the renderer Lambda code | `swimming-prod-gha-deploy` |
+| `deploy-page-renderer.yml` | main touching `infra/lambda/page-renderer-node/**`, manual dispatch | ECR image, the renderer Lambda code | `swimming-prod-gha-deploy` |
 | `deploy-frontend.yml` | main touching `frontend/**` | web bucket objects, CloudFront cache | `swimming-prod-gha-deploy` |
 | `terraform.yml` | pull request touching `infra/terraform/**` | nothing - plan only, posted as a PR comment | `swimming-prod-gha-terraform` |
 

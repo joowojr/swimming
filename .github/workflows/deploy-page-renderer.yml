@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'infra/lambda/page-renderer/**'
+      - 'infra/lambda/page-renderer-node/**'
       - '.github/workflows/deploy-page-renderer.yml'
   workflow_dispatch:
 
@@ -62,7 +62,7 @@ jobs:
       - uses: docker/build-push-action@v6
         if: steps.exists.outputs.found == 'false'
         with:
-          context: ./infra/lambda/page-renderer
+          context: ./infra/lambda/page-renderer-node
           push: true
           platforms: linux/amd64
           tags: ${{ steps.image.outputs.uri }}

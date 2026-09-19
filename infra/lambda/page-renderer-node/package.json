@@ -2,6 +2,9 @@
   "name": "page-renderer-node-lambda-test",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
   "engines": {
     "node": ">=20"
   },

@@ -25,6 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: infra/lambda/page-renderer-node/package-lock.json
+
+      - name: Test page renderer
+        working-directory: infra/lambda/page-renderer-node
+        run: |
+          npm ci
+          npm test
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}

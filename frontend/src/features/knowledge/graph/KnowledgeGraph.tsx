@@ -44,7 +44,6 @@ type GraphState =
 const nodeTypes = { knowledge: GraphNodeCard }
 const edgeTypes = { flow: GraphFlowEdgeView }
 const CATEGORY_PREVIEW_MIN_SOURCES = 6
-const CATEGORY_PREVIEW_MAX_SOURCES = 50
 const CATEGORY_HINT_STORAGE_PREFIX = 'knowledge-category-hint-dismissed:'
 const SUBJECT_SUMMARY_NODE_PREFIX = '__subject-summary__:'
 const MAX_SOURCES_WITH_VISIBLE_SUBJECTS = 4
@@ -356,20 +355,13 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
     ?? (selectedNodeId === rootNodeId && graph
       ? { nodeId: rootNodeId, type: 'FOLDER' as const, title: graph.root.title, createdAt: null }
       : undefined)
-  // 묶을 대상은 그래프에 그려진 문서다. 화면에서 보고 있는 것과 모델이 보는 것을 맞춘다.
-  // 서버가 한 번에 받는 상한이 50이라 여기서 맞춰 자른다.
-  const graphSourceIds = useMemo(
-    () => (graph?.nodes ?? [])
-      .filter((node) => node.type === 'SOURCE')
-      .map((node) => node.nodeId)
-      .slice(0, CATEGORY_PREVIEW_MAX_SOURCES),
-    [graph],
-  )
+  // 서버가 판정한 분류 가능 범위를 안내, Preview 요청, 문서 개수 문구에 함께 쓴다.
+  const categorizableSourceIds = graph?.categorizableSourceIds ?? []
   // 테스트 중에는 카테고리가 있어도 안내를 표시한다. 테스트 후 아래 두 조건을 복원한다.
   // const hasCategories = graph?.nodes.some((node) => node.type === 'CATEGORY') === true
   const showCategoryHint = !isCategoryHintDismissed
     // && !hasCategories
-    && (graph?.categorizableCount ?? 0) >= CATEGORY_PREVIEW_MIN_SOURCES
+    && categorizableSourceIds.length >= CATEGORY_PREVIEW_MIN_SOURCES
 
   if (state.status === 'loading') {
     return (
@@ -514,7 +506,7 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
         {isOrganizingCategories ? (
           <CategoryOrganizer
             folderId={folderId}
-            sourceIds={graphSourceIds}
+            sourceIds={categorizableSourceIds}
             sourcesById={sourcesById}
             onClose={() => setIsOrganizingCategories(false)}
             onReplaced={(response) => {

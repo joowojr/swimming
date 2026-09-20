@@ -127,7 +127,7 @@ class KnowledgeGraphUseCaseTest {
                         tuple(topic.getId(), mcp.getId(), RelationType.INVOLVES)
                 );
         assertThat(response.truncated()).isFalse();
-        assertThat(response.categorizableCount()).isEqualTo(1);
+        assertThat(response.categorizableSourceIds()).containsExactly(source.getId());
         assertThat(response.nodes())
                 .as("노드마다 그래프에 생긴 시각을 함께 준다")
                 .extracting(GraphResponse.Node::createdAt)
@@ -146,7 +146,7 @@ class KnowledgeGraphUseCaseTest {
 
         assertThat(titlesOf(response)).containsExactly("아직");
         assertThat(response.edges()).isEmpty();
-        assertThat(response.categorizableCount()).isZero();
+        assertThat(response.categorizableSourceIds()).isEmpty();
     }
 
     @Test

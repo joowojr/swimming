@@ -67,10 +67,11 @@ public class KnowledgeGraphUseCase {
 
         boolean truncated = fetched.size() > limit;
         List<KnowledgeSource> sources = truncated ? fetched.subList(0, limit) : fetched;
-        int categorizableCount = (int) sources.stream()
+        List<UUID> categorizableSourceIds = sources.stream()
                 .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
                 .filter(source -> source.getSummary() != null)
-                .count();
+                .map(KnowledgeSource::getId)
+                .toList();
 
         List<KnowledgeRelation> fromSources = relationService.findOutgoing(
                 sources.stream().map(KnowledgeSource::getId).toList(),
@@ -95,7 +96,7 @@ public class KnowledgeGraphUseCase {
                 sources.stream().map(KnowledgeSource::getNode).toList(),
                 Stream.of(fromSources, fromTopics, fromCategories).flatMap(List::stream).toList(),
                 truncated,
-                categorizableCount
+                categorizableSourceIds
         );
     }
 
@@ -130,7 +131,7 @@ public class KnowledgeGraphUseCase {
                 List.of(root),
                 relations,
                 false,
-                0
+                List.of()
         );
     }
 

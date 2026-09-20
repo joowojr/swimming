@@ -17,15 +17,15 @@ import java.util.UUID;
  * 갈라질 이유가 없고, {@code root}만 Folder냐 노드냐로 달라진다.
  *
  * @param truncated 상한에 걸려 잘렸다는 뜻. 노드 확장에는 상한이 없어 항상 false다
- * @param categorizableCount 현재 Folder 그래프 범위에서 Category Preview에 넣을 수 있는 Source 수.
- *                           노드 확장 응답에는 0이다
+ * @param categorizableSourceIds 현재 Folder 그래프 범위에서 Category Preview에 넣을 수 있는
+ *                               Source id. 노드 확장 응답에는 빈 목록이다
  */
 public record GraphResponse(
         Root root,
         List<Node> nodes,
         List<Edge> edges,
         boolean truncated,
-        int categorizableCount
+        List<UUID> categorizableSourceIds
 ) {
 
     /**

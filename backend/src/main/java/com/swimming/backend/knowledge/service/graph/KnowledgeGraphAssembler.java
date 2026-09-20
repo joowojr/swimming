@@ -44,7 +44,7 @@ public class KnowledgeGraphAssembler {
             List<KnowledgeNode> seeds,
             Collection<KnowledgeRelation> relations,
             boolean truncated,
-            int categorizableCount
+            List<UUID> categorizableSourceIds
     ) {
         Map<UUID, GraphResponse.Node> nodes = new LinkedHashMap<>();
         for (KnowledgeNode seed : seeds) {
@@ -70,7 +70,7 @@ public class KnowledgeGraphAssembler {
                 List.copyOf(nodes.values()),
                 List.copyOf(edges),
                 truncated,
-                categorizableCount
+                List.copyOf(categorizableSourceIds)
         );
     }
 

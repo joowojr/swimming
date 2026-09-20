@@ -20,7 +20,7 @@ Analyze the `<source-digest-input>` and return a Summary, one Category, one Topi
 ## topic
 * Return exactly one short Korean topic phrase that best represents what the content is mainly about, such as `RAG 파이프라인 구조`.
 * Choose the topic with the most coverage across the content, not a minor detail or isolated example.
-* Return an empty string only when no usable content remains.
+* Include proper nouns or concept names in the Topic when they appear in the title or recur throughout the content.
 
 ## subjects
 * Return up to four durable, independently searchable technical or domain concepts that the content substantively explains, ordered by prominence.

@@ -19,7 +19,7 @@ public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
     Optional<FolderEntity> findOwnedForUpdate(@Param("userId") Long userId, @Param("folderId") Long folderId);
 
     /**
-     * 고정한 폴더가 먼저 오고, 그 안에서는 최근에 고정한 순이다. 고정하지 않은 폴더는
+     * 고른 상태의 폴더만 준다. 고정한 폴더가 먼저 오고, 그 안에서는 최근에 고정한 순이다. 고정하지 않은 폴더는
      * 뒤에서 기존대로 최근 생성 순이다. NULLS LAST는 메서드 이름으로 쓸 수 없어 쿼리로 둔다.
      */
     @EntityGraph(attributePaths = "tag")
@@ -27,13 +27,13 @@ public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
             SELECT folder
             FROM FolderEntity folder
             WHERE folder.user.id = :userId
-              AND folder.status <> :excludedStatus
+              AND folder.status IN :statuses
               AND folder.deleted = false
             ORDER BY folder.pinnedAt DESC NULLS LAST, folder.createdAt DESC
             """)
-    List<FolderEntity> findAllActiveOrderByPinnedAtDescCreatedAtDesc(
+    List<FolderEntity> findAllByStatusInOrderByPinnedAtDescCreatedAtDesc(
             @Param("userId") Long userId,
-            @Param("excludedStatus") FolderStatus excludedStatus
+            @Param("statuses") Set<FolderStatus> statuses
     );
 
     @EntityGraph(attributePaths = "tag")

@@ -4,6 +4,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
@@ -136,12 +137,12 @@ class FolderUseCaseTest {
     @Test
     @DisplayName("프로젝트 목록을 응답 DTO 목록으로 변환한다")
     void returnsFolderListAsResponses() {
-        when(folderService.getAll(1L)).thenReturn(List.of(
+        when(folderService.getAll(1L, FolderStatusFilter.ACTIVE)).thenReturn(List.of(
                 folder(10L, "첫 번째", "설명 1", null),
                 folder(11L, "두 번째", "설명 2", null)
         ));
 
-        List<FolderResponse> responses = folderUseCase.getAll(1L);
+        List<FolderResponse> responses = folderUseCase.getAll(1L, FolderStatusFilter.ACTIVE);
 
         assertThat(responses).extracting(FolderResponse::name)
                 .containsExactly("첫 번째", "두 번째");

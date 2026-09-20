@@ -5,6 +5,7 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.common.exception.GlobalExceptionHandler;
 import com.swimming.backend.common.security.AuthUser;
 import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
@@ -187,7 +188,7 @@ class FolderControllerTest {
     @Test
     @DisplayName("인증 사용자의 진행 중 프로젝트 목록을 반환한다")
     void returnsCurrentUsersActiveFolders() throws Exception {
-        when(folderUseCase.getAll(1L)).thenReturn(List.of(response(
+        when(folderUseCase.getAll(1L, FolderStatusFilter.ACTIVE)).thenReturn(List.of(response(
                 10L,
                 "프로젝트",
                 "설명",
@@ -200,6 +201,30 @@ class FolderControllerTest {
                 .andExpect(jsonPath("$[0].id").value(10))
                 .andExpect(jsonPath("$[0].name").value("프로젝트"))
                 .andExpect(jsonPath("$[0].hasSource").value(false));
+    }
+
+    @Test
+    @DisplayName("status 파라미터로 고른 상태의 폴더 목록을 반환한다")
+    void returnsFoldersFilteredByStatusParameter() throws Exception {
+        when(folderUseCase.getAll(1L, FolderStatusFilter.ARCHIVED)).thenReturn(List.of(response(
+                11L,
+                "보관한 프로젝트",
+                "설명",
+                null,
+                FolderStatus.ARCHIVED
+        )));
+
+        mockMvc.perform(get("/api/folders").param("status", "ARCHIVED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(11))
+                .andExpect(jsonPath("$[0].status").value("ARCHIVED"));
+    }
+
+    @Test
+    @DisplayName("status 파라미터가 알 수 없는 값이면 400을 반환한다")
+    void rejectsUnknownStatusParameter() throws Exception {
+        mockMvc.perform(get("/api/folders").param("status", "UNKNOWN"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

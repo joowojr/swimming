@@ -2,6 +2,7 @@ package com.swimming.backend.folder.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
@@ -50,9 +51,10 @@ public class FolderController {
 
     @GetMapping
     public ResponseEntity<List<FolderResponse>> getAll(
-            @AuthenticationPrincipal AuthUser authUser
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(defaultValue = "ACTIVE") FolderStatusFilter status
     ) {
-        return ResponseEntity.ok(folderUseCase.getAll(authUser.id()));
+        return ResponseEntity.ok(folderUseCase.getAll(authUser.id(), status));
     }
 
     @GetMapping("/{folderId}")

@@ -3,6 +3,7 @@ import type {
   CreateFolderRequest,
   Folder,
   FolderDetail,
+  FolderStatusFilter,
   FolderTag,
   FolderTagNameRequest,
   PinFolderRequest,
@@ -10,8 +11,10 @@ import type {
   UpdateFolderStatusRequest,
 } from './folderTypes.ts'
 
-export async function getFolders(): Promise<Folder[]> {
-  const response = await client.get<Folder[]>('/folders')
+export async function getFolders(
+  status: FolderStatusFilter = 'ACTIVE',
+): Promise<Folder[]> {
+  const response = await client.get<Folder[]>('/folders', { params: { status } })
   return response.data
 }
 

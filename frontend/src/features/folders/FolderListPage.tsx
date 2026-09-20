@@ -1,13 +1,20 @@
 import { IconFolders, IconPlus, IconTags } from '@tabler/icons-react'
+import FilterMenu from '../../components/FilterMenu'
+import filterMenuStyles from '../../components/FilterMenu.module.css'
 import ModalTriggerButton from '../../components/ModalTriggerButton'
 import FolderCard from './FolderCard.tsx'
-import type { Folder } from './folderTypes.ts'
+import { folderStatusFilterLabel } from './folderTypes.ts'
+import type { Folder, FolderStatusFilter } from './folderTypes.ts'
 import type { FolderLoadStatus } from './folderTypes.ts'
 import styles from './FolderListPage.module.css'
+
+const FOLDER_STATUS_FILTERS = Object.keys(folderStatusFilterLabel) as FolderStatusFilter[]
 
 interface ProjectListPageProps {
   folders: Folder[]
   status: FolderLoadStatus
+  filter: FolderStatusFilter
+  onFilterChange: (filter: FolderStatusFilter) => void
   onRetry: () => void
   onOpenCreate: () => void
   onOpenTagManage: () => void
@@ -16,6 +23,8 @@ interface ProjectListPageProps {
 export default function FolderListPage({
   folders,
   status,
+  filter,
+  onFilterChange,
   onRetry,
   onOpenCreate,
   onOpenTagManage,
@@ -27,13 +36,31 @@ export default function FolderListPage({
           <h1 id="folders-page-title">폴더</h1>
         </div>
         <div className={styles.actions}>
+          <FilterMenu
+            ariaLabel="폴더 필터"
+            triggerTitle="폴더 필터"
+            triggerClassName={styles.secondary}
+            activeCount={filter === 'ACTIVE' ? 0 : 1}
+          >
+            <label className={filterMenuStyles.field}>
+              <span>상태</span>
+              <select
+                value={filter}
+                onChange={(event) => onFilterChange(event.target.value as FolderStatusFilter)}
+              >
+                {FOLDER_STATUS_FILTERS.map((value) => (
+                  <option value={value} key={value}>{folderStatusFilterLabel[value]}</option>
+                ))}
+              </select>
+            </label>
+          </FilterMenu>
           <button type="button" className={styles.secondary} onClick={onOpenTagManage}>
             <IconTags size={17} aria-hidden="true" />
             태그 관리
           </button>
           <ModalTriggerButton
             dialogId="create-folder-dialog"
-            icon={<IconPlus size={18} aria-hidden="true" />}
+            icon={<IconPlus size={15} aria-hidden="true" />}
             onClick={onOpenCreate}
           >
             새 폴더
@@ -59,8 +86,17 @@ export default function FolderListPage({
           {folders.length === 0 ? (
             <div className={styles.empty}>
               <IconFolders size={28} stroke={1.5} aria-hidden="true" />
-              <h3>폴더를 시작할 준비가 되었습니다.</h3>
-              <p>새 폴더를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
+              {filter === 'ACTIVE' ? (
+                <>
+                  <h3>폴더를 시작할 준비가 되었습니다.</h3>
+                  <p>새 폴더를 만들면 이곳에서 한눈에 확인할 수 있습니다.</p>
+                </>
+              ) : (
+                <>
+                  <h3>{folderStatusFilterLabel[filter]} 폴더가 없습니다.</h3>
+                  <p>필터를 바꾸면 다른 상태의 폴더를 볼 수 있습니다.</p>
+                </>
+              )}
             </div>
           ) : (
             <div className={styles.grid}>

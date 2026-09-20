@@ -205,7 +205,7 @@
 | POST | /auth/google | Google 로그인(토큰 발급) |
 | POST | /auth/refresh | 토큰 갱신 |
 |  |  |  |
-| GET | /folders | 내 폴더 목록 |
+| GET | /folders | 내 폴더 목록(`status`=ACTIVE·ALL·NOT_STARTED·IN_PROGRESS·ARCHIVED, 기본 ACTIVE) |
 | POST | /folders | 폴더 생성 |
 | GET | /folders/{id} | 폴더 상세(폴더 정보·Task 진척·Task 목록) |
 | PATCH | /folders/{id} | 폴더 수정 |

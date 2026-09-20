@@ -3,7 +3,7 @@ package com.swimming.backend.folder.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
-import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.repository.FolderRepository;
@@ -40,11 +40,11 @@ public class FolderService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Folder> getAll(Long userId) {
+    public List<Folder> getAll(Long userId, FolderStatusFilter filter) {
         return folderRepository
-                .findAllActiveOrderByPinnedAtDescCreatedAtDesc(
+                .findAllByStatusInOrderByPinnedAtDescCreatedAtDesc(
                         userId,
-                        FolderStatus.ARCHIVED
+                        filter.getStatuses()
                 )
                 .stream()
                 .map(FolderEntity::toDomain)

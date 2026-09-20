@@ -5,6 +5,7 @@ import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.repository.FolderRepository;
 import com.swimming.backend.folder.repository.FolderTagRepository;
 import com.swimming.backend.folder.repository.entity.FolderEntity;
@@ -20,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -116,14 +118,30 @@ class FolderServiceTest {
     void returnsOnlyNonArchivedFoldersForUser() {
         FolderEntity newest = folderEntity(1L, "두 번째 프로젝트", null, null);
         FolderEntity oldest = folderEntity(1L, "첫 번째 프로젝트", LocalDate.of(2026, 10, 1), null);
-        when(folderRepository.findAllActiveOrderByPinnedAtDescCreatedAtDesc(
-                1L, FolderStatus.ARCHIVED
+        when(folderRepository.findAllByStatusInOrderByPinnedAtDescCreatedAtDesc(
+                1L, FolderStatusFilter.ACTIVE.getStatuses()
         )).thenReturn(List.of(newest, oldest));
 
-        List<Folder> folders = folderService.getAll(1L);
+        List<Folder> folders = folderService.getAll(1L, FolderStatusFilter.ACTIVE);
 
         assertThat(folders).extracting(Folder::getName)
                 .containsExactly("두 번째 프로젝트", "첫 번째 프로젝트");
+    }
+
+    @Test
+    @DisplayName("고른 필터의 상태만 저장소에 넘겨 조회한다")
+    void queriesOnlyStatusesOfGivenFilter() {
+        FolderEntity archived = folderEntity(1L, "보관한 프로젝트", null, null);
+        when(folderRepository.findAllByStatusInOrderByPinnedAtDescCreatedAtDesc(
+                1L, FolderStatusFilter.ARCHIVED.getStatuses()
+        )).thenReturn(List.of(archived));
+
+        List<Folder> folders = folderService.getAll(1L, FolderStatusFilter.ARCHIVED);
+
+        assertThat(folders).extracting(Folder::getName).containsExactly("보관한 프로젝트");
+        verify(folderRepository).findAllByStatusInOrderByPinnedAtDescCreatedAtDesc(
+                1L, Set.of(FolderStatus.ARCHIVED)
+        );
     }
 
     @Test

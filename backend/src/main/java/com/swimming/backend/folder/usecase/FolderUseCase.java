@@ -3,6 +3,7 @@ package com.swimming.backend.folder.usecase;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
@@ -50,8 +51,8 @@ public class FolderUseCase {
         return FolderResponse.from(folderService.create(folder));
     }
 
-    public List<FolderResponse> getAll(Long userId) {
-        return folderService.getAll(userId)
+    public List<FolderResponse> getAll(Long userId, FolderStatusFilter filter) {
+        return folderService.getAll(userId, filter)
                 .stream()
                 .map(FolderResponse::from)
                 .toList();

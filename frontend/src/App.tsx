@@ -45,6 +45,8 @@ function App() {
   const folders = useFolderStore((state) => state.folders)
   const folderStatus = useFolderStore((state) => state.status)
   const loadFolders = useFolderStore((state) => state.load)
+  const folderFilter = useFolderStore((state) => state.filter)
+  const changeFolderFilter = useFolderStore((state) => state.changeFilter)
   const addFolder = useFolderStore((state) => state.add)
   const removeFolder = useFolderStore((state) => state.remove)
   const resetFolders = useFolderStore((state) => state.reset)
@@ -146,6 +148,8 @@ function App() {
               <FolderListPage
                 folders={folders}
                 status={folderStatus}
+                filter={folderFilter}
+                onFilterChange={(filter) => void changeFolderFilter(filter)}
                 onOpenCreate={() => setIsCreateModalOpen(true)}
                 onOpenTagManage={() => setIsTagModalOpen(true)}
                 onRetry={retryLoadProjects}

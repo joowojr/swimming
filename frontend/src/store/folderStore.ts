@@ -1,14 +1,21 @@
 import { create } from 'zustand'
 import { getFolders } from '../features/folders/folderApi.ts'
-import type { Folder, FolderLoadStatus } from '../features/folders/folderTypes.ts'
+import type {
+  Folder,
+  FolderLoadStatus,
+  FolderStatusFilter,
+} from '../features/folders/folderTypes.ts'
 
 /** 역할: 폴더 목록의 조회와 변경을 한곳에서 관리해, 화면마다 콜백을 배선하지 않게 한다. */
 interface FolderStoreState {
   folders: Folder[]
   status: FolderLoadStatus
   ownerId: number | null
+  /** 목록을 어떤 상태로 좁혀 볼지. 서버 조회와 목록 유지 규칙이 함께 쓴다. */
+  filter: FolderStatusFilter
 
   load: (userId: number) => Promise<void>
+  changeFilter: (filter: FolderStatusFilter) => Promise<void>
   add: (folder: Folder) => void
   apply: (folder: Folder) => void
   updateHasSource: (folderId: number, hasSource: boolean) => void
@@ -32,6 +39,13 @@ function sortFolders(folders: Folder[]): Folder[] {
   })
 }
 
+/** 지금 보고 있는 목록에 남을 폴더인지 본다. 상태를 바꾼 뒤 목록을 다시 부르지 않아도 자리가 맞게 한다. */
+function matchesFilter(folder: Folder, filter: FolderStatusFilter): boolean {
+  if (filter === 'ALL') return true
+  if (filter === 'ACTIVE') return folder.status !== 'ARCHIVED'
+  return folder.status === filter
+}
+
 // 사용자가 빠르게 바뀔 때 늦게 도착한 응답이 최신 목록을 덮어쓰지 않게 한다.
 let latestRequestId = 0
 
@@ -39,6 +53,7 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
   folders: [],
   status: 'idle',
   ownerId: null,
+  filter: 'ACTIVE',
 
   load: async (userId) => {
     const requestId = ++latestRequestId
@@ -49,7 +64,7 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
       : { folders: [], status: 'loading', ownerId: userId })
 
     try {
-      const folders = await getFolders()
+      const folders = await getFolders(get().filter)
       if (requestId !== latestRequestId) return
       set({ folders, status: 'ready' })
     } catch {
@@ -58,15 +73,26 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
     }
   },
 
+  changeFilter: async (filter) => {
+    const { ownerId, filter: currentFilter } = get()
+    if (filter === currentFilter) return
+    set({ filter })
+    if (ownerId !== null) await get().load(ownerId)
+  },
+
   add: (folder) => set((current) => ({
-    folders: sortFolders([folder, ...current.folders]),
+    folders: matchesFilter(folder, current.filter)
+      ? sortFolders([folder, ...current.folders])
+      : current.folders,
     status: 'ready',
   })),
 
   apply: (folder) => set((current) => {
     const others = current.folders.filter((candidate) => candidate.id !== folder.id)
     return {
-      folders: folder.status === 'ARCHIVED' ? others : sortFolders([folder, ...others]),
+      folders: matchesFilter(folder, current.filter)
+        ? sortFolders([folder, ...others])
+        : others,
     }
   }),
 
@@ -82,6 +108,6 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
 
   reset: () => {
     latestRequestId += 1
-    set({ folders: [], status: 'idle', ownerId: null })
+    set({ folders: [], status: 'idle', ownerId: null, filter: 'ACTIVE' })
   },
 }))

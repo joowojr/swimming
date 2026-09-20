@@ -63,11 +63,12 @@ export const useFolderStore = create<FolderStoreState>((set, get) => ({
     status: 'ready',
   })),
 
-  apply: (folder) => set((current) => ({
-    folders: sortFolders(
-      current.folders.map((candidate) => candidate.id === folder.id ? folder : candidate),
-    ),
-  })),
+  apply: (folder) => set((current) => {
+    const others = current.folders.filter((candidate) => candidate.id !== folder.id)
+    return {
+      folders: folder.status === 'ARCHIVED' ? others : sortFolders([folder, ...others]),
+    }
+  }),
 
   updateHasSource: (folderId, hasSource) => set((current) => ({
     folders: current.folders.map((folder) => folder.id === folderId

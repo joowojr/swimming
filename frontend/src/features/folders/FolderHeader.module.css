@@ -52,10 +52,33 @@
   border-radius: var(--radius-full);
   color: var(--chip-doing-fg);
   background: var(--chip-doing-bg);
+  cursor: pointer;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+}
+
+.folder-status[data-status='NOT_STARTED'] {
+  border-color: var(--chip-todo-border);
+  color: var(--chip-todo-fg);
+  background: var(--chip-todo-bg);
+}
+
+.folder-status:focus-visible {
+  border-color: var(--color-primary);
+  outline-color: var(--color-primary);
+}
+
+.folder-status:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.folder-status option {
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
 }
 
 .folder-status[data-status='ARCHIVED'] {
-  border-style: dashed;
   border-color: var(--chip-hold-border);
   color: var(--chip-hold-fg);
   background: var(--chip-hold-bg);
@@ -136,7 +159,8 @@
   font-size: var(--text-label-caps-size);
 }
 
-.delete-error {
+.delete-error,
+.status-error {
   margin: var(--space-2) 0 0;
   color: var(--color-error);
   font-size: var(--text-body-sm-size);

@@ -91,8 +91,7 @@ public class FolderService {
             Long tagId,
             String name,
             String description,
-            LocalDate targetDate,
-            FolderStatus status
+            LocalDate targetDate
     ) {
         FolderEntity entity = getOwnedFolderEntity(userId, folderId);
         FolderTagEntity tagEntity = tagId == null
@@ -103,10 +102,18 @@ public class FolderService {
                 name,
                 description,
                 targetDate,
-                status,
                 tagEntity == null ? null : tagEntity.toDomain()
         );
         entity.apply(folder, tagEntity);
+        folderRepository.flush();
+        return entity.toDomain();
+    }
+
+    /** UseCase에서 변경한 도메인의 상태만 관리 Entity에 반영한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Folder updateStatus(Folder folder) {
+        FolderEntity entity = getOwnedFolderEntity(folder.getUserId(), folder.getId());
+        entity.updateStatus(folder.getStatus());
         folderRepository.flush();
         return entity.toDomain();
     }

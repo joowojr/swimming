@@ -1,5 +1,5 @@
 
-export type FolderStatus = 'IN_PROGRESS' | 'ARCHIVED'
+export type FolderStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'ARCHIVED'
 
 export type FolderLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -54,10 +54,19 @@ export interface UpdateFolderRequest {
   name: string
   description: string
   targetDate: string | null
-  status: FolderStatus
   tagId: number | null
+}
+
+export interface UpdateFolderStatusRequest {
+  status: FolderStatus
 }
 
 export type FolderFieldErrors = Partial<
   Record<keyof CreateFolderRequest | 'status', string>
 >
+
+export const folderStatusLabel: Record<FolderStatus, string> = {
+  NOT_STARTED: '시작 전',
+  IN_PROGRESS: '진행 중',
+  ARCHIVED: '보관됨',
+}

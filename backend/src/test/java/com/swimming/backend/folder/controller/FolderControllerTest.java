@@ -11,6 +11,7 @@ import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.FolderTagResponse;
 import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
+import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
 import com.swimming.backend.folder.usecase.FolderUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
@@ -76,7 +77,7 @@ class FolderControllerTest {
                 "프로젝트",
                 "설명",
                 LocalDate.of(2026, 9, 30),
-                FolderStatus.IN_PROGRESS,
+                FolderStatus.NOT_STARTED,
                 new FolderTagResponse(3L, "취준"),
                 false,
                 null,
@@ -97,7 +98,7 @@ class FolderControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/folders/10"))
                 .andExpect(jsonPath("$.id").value(10))
-                .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.status").value("NOT_STARTED"))
                 .andExpect(jsonPath("$.tag.id").value(3))
                 .andExpect(jsonPath("$.tag.name").value("취준"));
     }
@@ -117,7 +118,7 @@ class FolderControllerTest {
                 "프로젝트",
                 "설명",
                 null,
-                FolderStatus.IN_PROGRESS,
+                FolderStatus.NOT_STARTED,
                 new FolderTagResponse(4L, "포트폴리오"),
                 false,
                 null,
@@ -229,14 +230,8 @@ class FolderControllerTest {
     @Test
     @DisplayName("프로젝트 상태를 보관됨으로 수정한다")
     void updatesFolderStatus() throws Exception {
-        UpdateFolderRequest request = new UpdateFolderRequest(
-                "프로젝트",
-                "설명",
-                null,
-                FolderStatus.ARCHIVED,
-                null
-        );
-        when(folderUseCase.update(1L, 10L, request)).thenReturn(response(
+        UpdateFolderStatusRequest request = new UpdateFolderStatusRequest(FolderStatus.ARCHIVED);
+        when(folderUseCase.updateStatus(1L, 10L, request)).thenReturn(response(
                 10L,
                 "프로젝트",
                 "설명",
@@ -244,18 +239,26 @@ class FolderControllerTest {
                 FolderStatus.ARCHIVED
         ));
 
-        mockMvc.perform(patch("/api/folders/10")
+        mockMvc.perform(patch("/api/folders/10/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "name":"프로젝트",
-                                  "description":"설명",
-                                  "targetDate":null,
                                   "status":"ARCHIVED"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ARCHIVED"));
+        verify(folderUseCase).updateStatus(1L, 10L, request);
+    }
+
+    @Test
+    @DisplayName("프로젝트 상태를 빠뜨리면 400으로 반환한다")
+    void rejectsFolderStatusRequestWithoutStatus() throws Exception {
+        mockMvc.perform(patch("/api/folders/10/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.status").exists());
     }
 
     @Test

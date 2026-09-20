@@ -75,7 +75,7 @@ class FolderServiceTest {
         assertThat(folder.getName()).isEqualTo("새 프로젝트");
         assertThat(folder.getDescription()).isEqualTo("프로젝트 설명");
         assertThat(folder.getTargetDate()).isEqualTo(LocalDate.of(2026, 9, 30));
-        assertThat(folder.getStatus()).isEqualTo(FolderStatus.IN_PROGRESS);
+        assertThat(folder.getStatus()).isEqualTo(FolderStatus.NOT_STARTED);
     }
 
     @Test
@@ -145,14 +145,13 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
-                1L, 10L, null, " 수정 프로젝트 ", " 수정 설명 ", null,
-                FolderStatus.IN_PROGRESS
+                1L, 10L, null, " 수정 프로젝트 ", " 수정 설명 ", null
         );
 
         assertThat(result.getName()).isEqualTo("수정 프로젝트");
         assertThat(result.getDescription()).isEqualTo("수정 설명");
         assertThat(result.getTargetDate()).isNull();
-        assertThat(result.getStatus()).isEqualTo(FolderStatus.IN_PROGRESS);
+        assertThat(result.getStatus()).isEqualTo(FolderStatus.NOT_STARTED);
         verify(folderRepository).findByIdAndUser_IdAndDeletedFalse(10L, 1L);
         verify(folderRepository).flush();
     }
@@ -165,8 +164,7 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
-                1L, 10L, null, "프로젝트", "설명", null,
-                FolderStatus.IN_PROGRESS
+                1L, 10L, null, "프로젝트", "설명", null
         );
 
         assertThat(result.getTag()).isNull();
@@ -177,13 +175,13 @@ class FolderServiceTest {
     void archivesFolderWithoutDeletingIt() {
         FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+        Folder folder = entity.toDomain();
+        folder.updateStatus(FolderStatus.ARCHIVED);
 
-        Folder result = folderService.update(
-                1L, 10L, null, "프로젝트", "설명", null,
-                FolderStatus.ARCHIVED
-        );
+        Folder result = folderService.updateStatus(folder);
 
         assertThat(result.getStatus()).isEqualTo(FolderStatus.ARCHIVED);
+        verify(folderRepository).flush();
         verify(folderRepository, never()).delete(any(FolderEntity.class));
     }
 
@@ -220,8 +218,7 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
-                1L, 10L, null, "수정 프로젝트", "수정 설명", null,
-                FolderStatus.IN_PROGRESS
+                1L, 10L, null, "수정 프로젝트", "수정 설명", null
         );
 
         assertThat(result.getPinnedAt()).isEqualTo(Instant.parse("2026-09-01T00:00:00Z"));
@@ -285,7 +282,7 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder updated = folderService.update(
-                1L, 10L, null, "새 이름", "새 설명", null, FolderStatus.IN_PROGRESS
+                1L, 10L, null, "새 이름", "새 설명", null
         );
 
         assertThat(entity.hasSource()).isTrue();

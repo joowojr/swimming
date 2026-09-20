@@ -209,6 +209,7 @@
 | POST | /folders | 폴더 생성 |
 | GET | /folders/{id} | 폴더 상세(폴더 정보·Task 진척·Task 목록) |
 | PATCH | /folders/{id} | 폴더 수정 |
+| PATCH | /folders/{id}/status | 폴더 상태 수정 |
 | GET | /folder-tags | 내 폴더 태그 목록 |
 | POST | /folder-tags | 폴더 태그 생성 |
 | PATCH | /folder-tags/{id} | 폴더 태그 이름 수정 |

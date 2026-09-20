@@ -365,12 +365,11 @@ export default function KnowledgeGraph({ folderId, sources, onCategoriesReplaced
       .slice(0, CATEGORY_PREVIEW_MAX_SOURCES),
     [graph],
   )
-  const sourceCount = graphSourceIds.length
   // 테스트 중에는 카테고리가 있어도 안내를 표시한다. 테스트 후 아래 두 조건을 복원한다.
   // const hasCategories = graph?.nodes.some((node) => node.type === 'CATEGORY') === true
   const showCategoryHint = !isCategoryHintDismissed
     // && !hasCategories
-    && sourceCount >= CATEGORY_PREVIEW_MIN_SOURCES
+    && (graph?.categorizableCount ?? 0) >= CATEGORY_PREVIEW_MIN_SOURCES
 
   if (state.status === 'loading') {
     return (

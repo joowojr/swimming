@@ -37,6 +37,8 @@ export interface GraphResponse {
   nodes: GraphNode[]
   edges: GraphEdge[]
   truncated: boolean
+  /** 현재 Folder 그래프 범위에서 Category Preview에 넣을 수 있는 Source 수. */
+  categorizableCount: number
 }
 
 export interface GraphQuery {

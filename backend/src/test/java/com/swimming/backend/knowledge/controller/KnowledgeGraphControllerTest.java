@@ -71,7 +71,8 @@ class KnowledgeGraphControllerTest {
                         new GraphResponse.Edge(SOURCE_ID, TOPIC_ID, RelationType.SUPPORTS),
                         new GraphResponse.Edge(TOPIC_ID, SUBJECT_ID, RelationType.INVOLVES)
                 ),
-                true
+                true,
+                1
         );
     }
 
@@ -89,7 +90,8 @@ class KnowledgeGraphControllerTest {
                 .andExpect(jsonPath("$.nodes[0].createdAt").value("2026-09-01T09:00:00Z"))
                 .andExpect(jsonPath("$.edges[0].kind").value("ABOUT"))
                 .andExpect(jsonPath("$.edges[2].kind").value("INVOLVES"))
-                .andExpect(jsonPath("$.truncated").value(true));
+                .andExpect(jsonPath("$.truncated").value(true))
+                .andExpect(jsonPath("$.categorizableCount").value(1));
 
         verify(graphUseCase).ofFolder(1L, 10L, 20);
     }
@@ -112,7 +114,7 @@ class KnowledgeGraphControllerTest {
                 new GraphResponse.Root(null, GraphResponse.RootType.FOLDER, 10L, "Spring AI 공부"),
                 List.of(new GraphResponse.Node(categoryId, NodeType.CATEGORY, "API 설계", CREATED_AT),
                         new GraphResponse.Node(SOURCE_ID, NodeType.SOURCE, "문서", CREATED_AT)),
-                List.of(new GraphResponse.Edge(categoryId, SOURCE_ID, RelationType.CONTAINS)), false));
+                List.of(new GraphResponse.Edge(categoryId, SOURCE_ID, RelationType.CONTAINS)), false, 1));
 
         mockMvc.perform(get("/api/knowledge/graph").param("folderId", "10"))
                 .andExpect(status().isOk())
@@ -128,7 +130,7 @@ class KnowledgeGraphControllerTest {
         when(graphUseCase.ofNode(1L, categoryId, 1)).thenReturn(new GraphResponse(
                 new GraphResponse.Root(categoryId, GraphResponse.RootType.CATEGORY, null, "API 설계"),
                 List.of(new GraphResponse.Node(SOURCE_ID, NodeType.SOURCE, "문서", CREATED_AT)),
-                List.of(new GraphResponse.Edge(categoryId, SOURCE_ID, RelationType.CONTAINS)), false));
+                List.of(new GraphResponse.Edge(categoryId, SOURCE_ID, RelationType.CONTAINS)), false, 0));
 
         mockMvc.perform(get("/api/knowledge/nodes/" + categoryId + "/graph"))
                 .andExpect(status().isOk())
@@ -151,7 +153,7 @@ class KnowledgeGraphControllerTest {
     void expandsOneHopByDefault() throws Exception {
         when(graphUseCase.ofNode(anyLong(), any(), anyInt())).thenReturn(new GraphResponse(
                 new GraphResponse.Root(SUBJECT_ID, GraphResponse.RootType.SUBJECT, null, "MCP"),
-                List.of(), List.of(), false
+                List.of(), List.of(), false, 0
         ));
 
         mockMvc.perform(get("/api/knowledge/nodes/" + SUBJECT_ID + "/graph"))
@@ -167,7 +169,7 @@ class KnowledgeGraphControllerTest {
     void expandsTwoHops() throws Exception {
         when(graphUseCase.ofNode(anyLong(), any(), anyInt())).thenReturn(new GraphResponse(
                 new GraphResponse.Root(SUBJECT_ID, GraphResponse.RootType.SUBJECT, null, "MCP"),
-                List.of(), List.of(), false
+                List.of(), List.of(), false, 0
         ));
 
         mockMvc.perform(get("/api/knowledge/nodes/" + SUBJECT_ID + "/graph").param("depth", "2"))

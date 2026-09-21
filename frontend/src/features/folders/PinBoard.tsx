@@ -100,9 +100,7 @@ export default function PinBoard({
                   />
                 ) : (
                   <ModalTriggerButton
-                    className={styles['planner-add']}
                     dialogId="task-picker-dialog"
-                    variant="plain"
                     icon={<IconPlus size={15} aria-hidden="true" />}
                     isOpen={isTaskPickerOpen}
                     aria-label="할 일 추가"

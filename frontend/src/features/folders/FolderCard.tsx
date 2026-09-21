@@ -4,20 +4,12 @@ import { IconPin, IconPinFilled } from '@tabler/icons-react'
 import DdayChip from '../../components/DdayChip'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { pinFolder } from './folderApi.ts'
+import { folderStatusLabel } from './folderTypes.ts'
 import type { Folder } from './folderTypes.ts'
 import styles from './FolderCard.module.css'
 
 interface FolderCardProps {
   folder: Folder
-}
-
-const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  month: 'short',
-  day: 'numeric',
-})
-
-function formatTargetDate(targetDate: string) {
-  return dateFormatter.format(new Date(`${targetDate}T00:00:00`))
 }
 
 export default function FolderCard({ folder }: FolderCardProps) {
@@ -62,7 +54,7 @@ export default function FolderCard({ folder }: FolderCardProps) {
             <h3>{folder.name}</h3>
           </div>
           <span className={styles['heading-chips']}>
-            {/* 날짜는 아래 footer가 말한다. 위에서는 남은 일수만 본다. */}
+            {/* 카드는 날짜를 적지 않는다. 남은 일수만 본다. */}
             <DdayChip targetDate={folder.targetDate} thresholdDays={Number.POSITIVE_INFINITY} />
           </span>
         </div>
@@ -70,23 +62,18 @@ export default function FolderCard({ folder }: FolderCardProps) {
           {folder.description || '폴더 설명이 아직 없습니다.'}
         </p>
         <div className={styles['card-bottom']}>
+          <span className={styles.status} data-status={folder.status}>
+            {folderStatusLabel[folder.status]}
+          </span>
           {folder.hasSource && (
-            <div className={styles['source-row']}>
-              <span
-                className={styles['source-mark']}
-                title="저장된 링크 있음"
-                aria-hidden="true"
-              >
-                🔗
-              </span>
-            </div>
+            <span
+              className={styles['source-mark']}
+              title="저장된 링크 있음"
+              aria-hidden="true"
+            >
+              🔗
+            </span>
           )}
-          <div className={styles.footer}>
-            <span>목표일</span>
-            <strong>
-              {folder.targetDate ? formatTargetDate(folder.targetDate) : '설정하지 않음'}
-            </strong>
-          </div>
         </div>
       </Link>
       <button

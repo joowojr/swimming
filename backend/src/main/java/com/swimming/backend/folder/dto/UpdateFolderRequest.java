@@ -1,8 +1,6 @@
 package com.swimming.backend.folder.dto;
 
-import com.swimming.backend.folder.domain.FolderStatus;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -16,9 +14,6 @@ public record UpdateFolderRequest(
         String description,
 
         LocalDate targetDate,
-
-        @NotNull(message = "프로젝트 상태를 선택해 주세요")
-        FolderStatus status,
 
         Long tagId
 ) {

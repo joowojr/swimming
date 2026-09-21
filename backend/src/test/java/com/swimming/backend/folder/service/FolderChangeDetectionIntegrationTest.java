@@ -1,7 +1,6 @@
 package com.swimming.backend.folder.service;
 
 import com.swimming.backend.folder.domain.Folder;
-import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.repository.FolderRepository;
 import com.swimming.backend.folder.repository.FolderTagRepository;
@@ -76,8 +75,7 @@ class FolderChangeDetectionIntegrationTest {
                 tag.getId(),
                 "수정 프로젝트",
                 "수정 설명",
-                LocalDate.of(2026, 12, 31),
-                FolderStatus.IN_PROGRESS
+                LocalDate.of(2026, 12, 31)
         );
 
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(3);

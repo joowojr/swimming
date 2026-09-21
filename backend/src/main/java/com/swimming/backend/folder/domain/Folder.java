@@ -74,7 +74,7 @@ public class Folder {
                 name.trim(),
                 description.trim(),
                 targetDate,
-                FolderStatus.IN_PROGRESS,
+                FolderStatus.NOT_STARTED,
                 false,
                 0,
                 null,
@@ -132,14 +132,16 @@ public class Folder {
             String name,
             String description,
             LocalDate targetDate,
-            FolderStatus status,
             FolderTag tag
     ) {
         this.name = name.trim();
         this.description = description.trim();
         this.targetDate = targetDate;
-        this.status = status;
         this.tag = tag;
+    }
+
+    public void updateStatus(FolderStatus status) {
+        this.status = status;
     }
 
     public void delete() {

@@ -3,14 +3,18 @@ import type {
   CreateFolderRequest,
   Folder,
   FolderDetail,
+  FolderStatusFilter,
   FolderTag,
   FolderTagNameRequest,
   PinFolderRequest,
   UpdateFolderRequest,
+  UpdateFolderStatusRequest,
 } from './folderTypes.ts'
 
-export async function getFolders(): Promise<Folder[]> {
-  const response = await client.get<Folder[]>('/folders')
+export async function getFolders(
+  status: FolderStatusFilter = 'ACTIVE',
+): Promise<Folder[]> {
+  const response = await client.get<Folder[]>('/folders', { params: { status } })
   return response.data
 }
 
@@ -31,6 +35,15 @@ export async function updateFolder(
   request: UpdateFolderRequest,
 ): Promise<Folder> {
   const response = await client.patch<Folder>(`/folders/${folderId}`, request)
+  return response.data
+}
+
+export async function updateFolderStatus(
+  folderId: number,
+  status: UpdateFolderStatusRequest['status'],
+): Promise<Folder> {
+  const request: UpdateFolderStatusRequest = { status }
+  const response = await client.patch<Folder>(`/folders/${folderId}/status`, request)
   return response.data
 }
 

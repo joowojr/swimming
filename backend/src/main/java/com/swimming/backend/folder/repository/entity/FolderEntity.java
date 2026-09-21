@@ -99,8 +99,11 @@ public class FolderEntity extends BaseTimeEntity {
         this.name = folder.getName();
         this.description = folder.getDescription();
         this.targetDate = folder.getTargetDate();
-        this.status = folder.getStatus();
         this.deleted = folder.isDeleted();
+    }
+
+    public void updateStatus(FolderStatus status) {
+        this.status = status;
     }
 
     public void delete() {

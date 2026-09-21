@@ -2,11 +2,13 @@ package com.swimming.backend.folder.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.swimming.backend.common.security.AuthUser;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
+import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
 import com.swimming.backend.folder.usecase.FolderUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,9 +51,10 @@ public class FolderController {
 
     @GetMapping
     public ResponseEntity<List<FolderResponse>> getAll(
-            @AuthenticationPrincipal AuthUser authUser
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(defaultValue = "ACTIVE") FolderStatusFilter status
     ) {
-        return ResponseEntity.ok(folderUseCase.getAll(authUser.id()));
+        return ResponseEntity.ok(folderUseCase.getAll(authUser.id(), status));
     }
 
     @GetMapping("/{folderId}")
@@ -71,6 +74,15 @@ public class FolderController {
         return ResponseEntity.ok(
                 folderUseCase.update(authUser.id(), folderId, request)
         );
+    }
+
+    @PatchMapping("/{folderId}/status")
+    public ResponseEntity<FolderResponse> updateStatus(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long folderId,
+            @Valid @RequestBody UpdateFolderStatusRequest request
+    ) {
+        return ResponseEntity.ok(folderUseCase.updateStatus(authUser.id(), folderId, request));
     }
 
     @PatchMapping("/{folderId}/pin")

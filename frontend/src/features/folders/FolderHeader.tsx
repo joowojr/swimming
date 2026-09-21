@@ -7,7 +7,8 @@ import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
 import InlineEditableText from '../../components/InlineEditableText'
 import { useFolderStore } from '../../store/folderStore.ts'
-import { deleteFolder, pinFolder, updateFolder } from './folderApi.ts'
+import { deleteFolder, pinFolder, updateFolder, updateFolderStatus } from './folderApi.ts'
+import { folderStatusLabel } from './folderTypes.ts'
 import type { Folder, FolderStatus, FolderTag } from './folderTypes.ts'
 import styles from './FolderHeader.module.css'
 
@@ -32,11 +33,6 @@ interface FolderHeaderProps {
 }
 
 type EditableFolderTextField = 'name' | 'description'
-
-const folderStatusLabel: Record<FolderStatus, string> = {
-  IN_PROGRESS: '진행 중',
-  ARCHIVED: '보관됨',
-}
 
 const targetDateFormatter = new Intl.DateTimeFormat('ko-KR', {
   year: 'numeric',
@@ -74,6 +70,8 @@ const FolderHeader = memo(function FolderHeader({
   const [editError, setEditError] = useState<string | null>(null)
   const [isPinning, setIsPinning] = useState(false)
   const [pinError, setPinError] = useState<string | null>(null)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -90,7 +88,6 @@ const FolderHeader = memo(function FolderHeader({
         name: field === 'name' ? value : folder.name,
         description: field === 'description' ? value : folder.description,
         targetDate: folder.targetDate,
-        status: folder.status,
         tagId: folder.tag?.id ?? null,
       }))
     } finally {
@@ -132,7 +129,6 @@ const FolderHeader = memo(function FolderHeader({
         name: folder.name,
         description: folder.description,
         targetDate,
-        status: folder.status,
         tagId: folder.tag?.id ?? null,
       }))
       setIsEditingTargetDate(false)
@@ -158,6 +154,19 @@ const FolderHeader = memo(function FolderHeader({
         ?? (isPinned ? '고정을 해제하지 못했습니다.' : '고정하지 못했습니다.'))
     } finally {
       setIsPinning(false)
+    }
+  }
+
+  const changeStatus = async (status: FolderStatus) => {
+    if (isUpdatingStatus || status === folder.status) return
+    setIsUpdatingStatus(true)
+    setStatusError(null)
+    try {
+      applyUpdated(await updateFolderStatus(folder.id, status))
+    } catch (error: unknown) {
+      setStatusError(toApiError(error)?.message ?? '폴더 상태를 변경하지 못했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsUpdatingStatus(false)
     }
   }
 
@@ -198,9 +207,18 @@ const FolderHeader = memo(function FolderHeader({
       <div className={styles['header-top']}>
         <div className={styles.badges} data-tone={folder.id % 4}>
           {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
-          <span className={styles['folder-status']} data-status={folder.status}>
-            {folderStatusLabel[folder.status]}
-          </span>
+          <select
+            className={styles['folder-status']}
+            data-status={folder.status}
+            value={folder.status}
+            aria-label={`${folder.name} 상태`}
+            disabled={isUpdatingStatus}
+            onChange={(event) => void changeStatus(event.target.value as FolderStatus)}
+          >
+            {(Object.keys(folderStatusLabel) as FolderStatus[]).map((status) => (
+              <option value={status} key={status}>{folderStatusLabel[status]}</option>
+            ))}
+          </select>
           <DdayChip targetDate={folder.targetDate} />
         </div>
         <div className={styles['header-actions']}>
@@ -232,6 +250,7 @@ const FolderHeader = memo(function FolderHeader({
           </DeleteIconButton>
         </div>
       </div>
+      {statusError && <p className={styles['status-error']} role="alert">{statusError}</p>}
       {pinError && <p className={styles['delete-error']} role="alert">{pinError}</p>}
 
       {isConfirmingDelete && (

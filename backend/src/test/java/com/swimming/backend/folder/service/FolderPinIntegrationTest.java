@@ -1,6 +1,7 @@
 package com.swimming.backend.folder.service;
 
 import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.repository.FolderRepository;
 import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.user.domain.User;
@@ -57,7 +58,7 @@ class FolderPinIntegrationTest {
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
 
         // 고정 전에는 최근 생성 순이다.
-        assertThat(folderService.getAll(user.getId())).extracting(Folder::getName)
+        assertThat(folderService.getAll(user.getId(), FolderStatusFilter.ACTIVE)).extracting(Folder::getName)
                 .containsExactly("나중에 만든 폴더", "먼저 만든 폴더");
 
         statistics.clear();
@@ -66,18 +67,18 @@ class FolderPinIntegrationTest {
         // SELECT + UPDATE 두 번뿐이다. save를 부르지 않고 변경 감지로 쓴다.
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
         assertThat(pinned.getPinnedAt()).isNotNull();
-        assertThat(folderService.getAll(user.getId())).extracting(Folder::getName)
+        assertThat(folderService.getAll(user.getId(), FolderStatusFilter.ACTIVE)).extracting(Folder::getName)
                 .containsExactly("먼저 만든 폴더", "나중에 만든 폴더");
 
         folderService.pin(user.getId(), newer.getId(), true);
 
         // 둘 다 고정하면 최근에 고정한 폴더가 앞에 온다.
-        assertThat(folderService.getAll(user.getId())).extracting(Folder::getName)
+        assertThat(folderService.getAll(user.getId(), FolderStatusFilter.ACTIVE)).extracting(Folder::getName)
                 .containsExactly("나중에 만든 폴더", "먼저 만든 폴더");
 
         folderService.pin(user.getId(), newer.getId(), false);
 
-        assertThat(folderService.getAll(user.getId())).extracting(Folder::getName)
+        assertThat(folderService.getAll(user.getId(), FolderStatusFilter.ACTIVE)).extracting(Folder::getName)
                 .containsExactly("먼저 만든 폴더", "나중에 만든 폴더");
         assertThat(storedPinnedAt(user, newer)).isNull();
     }
@@ -91,7 +92,7 @@ class FolderPinIntegrationTest {
     }
 
     private java.time.Instant storedPinnedAt(User user, FolderEntity entity) {
-        List<Folder> folders = folderService.getAll(user.getId());
+        List<Folder> folders = folderService.getAll(user.getId(), FolderStatusFilter.ACTIVE);
         return folders.stream()
                 .filter(folder -> folder.getId().equals(entity.getId()))
                 .findFirst()

@@ -3,12 +3,14 @@ package com.swimming.backend.folder.usecase;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
+import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
 import com.swimming.backend.task.domain.TaskStatus;
@@ -49,8 +51,8 @@ public class FolderUseCase {
         return FolderResponse.from(folderService.create(folder));
     }
 
-    public List<FolderResponse> getAll(Long userId) {
-        return folderService.getAll(userId)
+    public List<FolderResponse> getAll(Long userId, FolderStatusFilter filter) {
+        return folderService.getAll(userId, filter)
                 .stream()
                 .map(FolderResponse::from)
                 .toList();
@@ -74,9 +76,15 @@ public class FolderUseCase {
                 request.tagId(),
                 request.name(),
                 request.description(),
-                request.targetDate(),
-                request.status()
+                request.targetDate()
         ));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public FolderResponse updateStatus(Long userId, Long folderId, UpdateFolderStatusRequest request) {
+        Folder folder = folderService.getOne(userId, folderId);
+        folder.updateStatus(request.status());
+        return FolderResponse.from(folderService.updateStatus(folder));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

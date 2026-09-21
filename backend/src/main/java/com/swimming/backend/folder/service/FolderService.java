@@ -3,7 +3,7 @@ package com.swimming.backend.folder.service;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
-import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.repository.FolderRepository;
@@ -40,11 +40,11 @@ public class FolderService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<Folder> getAll(Long userId) {
+    public List<Folder> getAll(Long userId, FolderStatusFilter filter) {
         return folderRepository
-                .findAllActiveOrderByPinnedAtDescCreatedAtDesc(
+                .findAllByStatusInOrderByPinnedAtDescCreatedAtDesc(
                         userId,
-                        FolderStatus.ARCHIVED
+                        filter.getStatuses()
                 )
                 .stream()
                 .map(FolderEntity::toDomain)
@@ -91,8 +91,7 @@ public class FolderService {
             Long tagId,
             String name,
             String description,
-            LocalDate targetDate,
-            FolderStatus status
+            LocalDate targetDate
     ) {
         FolderEntity entity = getOwnedFolderEntity(userId, folderId);
         FolderTagEntity tagEntity = tagId == null
@@ -103,10 +102,18 @@ public class FolderService {
                 name,
                 description,
                 targetDate,
-                status,
                 tagEntity == null ? null : tagEntity.toDomain()
         );
         entity.apply(folder, tagEntity);
+        folderRepository.flush();
+        return entity.toDomain();
+    }
+
+    /** UseCase에서 변경한 도메인의 상태만 관리 Entity에 반영한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Folder updateStatus(Folder folder) {
+        FolderEntity entity = getOwnedFolderEntity(folder.getUserId(), folder.getId());
+        entity.updateStatus(folder.getStatus());
         folderRepository.flush();
         return entity.toDomain();
     }

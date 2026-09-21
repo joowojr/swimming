@@ -4,11 +4,13 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.domain.Folder;
 import com.swimming.backend.folder.domain.FolderStatus;
+import com.swimming.backend.folder.domain.FolderStatusFilter;
 import com.swimming.backend.folder.domain.FolderTag;
 import com.swimming.backend.folder.dto.CreateFolderRequest;
 import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
+import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
 import com.swimming.backend.task.domain.Task;
@@ -64,7 +66,7 @@ class FolderUseCaseTest {
         );
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", targetDate,
-                FolderStatus.IN_PROGRESS, false, 0, null, null, null
+                FolderStatus.NOT_STARTED, false, 0, null, null, null
         );
         when(folderTagService.getOne(1L, 3L)).thenReturn(tag);
         when(folderService.create(any(Folder.class))).thenReturn(folder);
@@ -73,7 +75,7 @@ class FolderUseCaseTest {
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("프로젝트");
-        assertThat(response.status()).isEqualTo(FolderStatus.IN_PROGRESS);
+        assertThat(response.status()).isEqualTo(FolderStatus.NOT_STARTED);
         assertThat(response.tag().id()).isEqualTo(3L);
         assertThat(response.tag().name()).isEqualTo("취준");
         verify(folderTagService).getOne(1L, 3L);
@@ -90,7 +92,7 @@ class FolderUseCaseTest {
         FolderTag tag = FolderTag.restore(4L, 1L, "포트폴리오", null, null);
         Folder folder = Folder.restore(
                 10L, 1L, tag, "프로젝트", "설명", null,
-                FolderStatus.IN_PROGRESS, false, 0, null, null, null
+                FolderStatus.NOT_STARTED, false, 0, null, null, null
         );
         CreateFolderRequest request = new CreateFolderRequest(
                 "프로젝트",
@@ -135,12 +137,12 @@ class FolderUseCaseTest {
     @Test
     @DisplayName("프로젝트 목록을 응답 DTO 목록으로 변환한다")
     void returnsFolderListAsResponses() {
-        when(folderService.getAll(1L)).thenReturn(List.of(
+        when(folderService.getAll(1L, FolderStatusFilter.ACTIVE)).thenReturn(List.of(
                 folder(10L, "첫 번째", "설명 1", null),
                 folder(11L, "두 번째", "설명 2", null)
         ));
 
-        List<FolderResponse> responses = folderUseCase.getAll(1L);
+        List<FolderResponse> responses = folderUseCase.getAll(1L, FolderStatusFilter.ACTIVE);
 
         assertThat(responses).extracting(FolderResponse::name)
                 .containsExactly("첫 번째", "두 번째");
@@ -179,23 +181,39 @@ class FolderUseCaseTest {
                 "수정 프로젝트",
                 "수정 설명",
                 null,
-                FolderStatus.ARCHIVED,
                 null
         );
         Folder folder = folder(10L, "수정 프로젝트", "수정 설명", null);
-        folder.update("수정 프로젝트", "수정 설명", null, FolderStatus.ARCHIVED, null);
         when(folderService.update(
-                1L, 10L, null, "수정 프로젝트", "수정 설명", null,
-                FolderStatus.ARCHIVED
+                1L, 10L, null, "수정 프로젝트", "수정 설명", null
         )).thenReturn(folder);
 
         FolderResponse response = folderUseCase.update(1L, 10L, request);
 
-        assertThat(response.status()).isEqualTo(FolderStatus.ARCHIVED);
+        assertThat(response.name()).isEqualTo("수정 프로젝트");
         verify(folderService).update(
-                1L, 10L, null, "수정 프로젝트", "수정 설명", null,
-                FolderStatus.ARCHIVED
+                1L, 10L, null, "수정 프로젝트", "수정 설명", null
         );
+    }
+
+    @Test
+    @DisplayName("UseCase가 폴더 도메인의 상태를 변경한 뒤 Service에 전달한다")
+    void updatesFolderStatusThroughDomain() {
+        Folder folder = folder(10L, "프로젝트", "설명", null);
+        when(folderService.getOne(1L, 10L)).thenReturn(folder);
+        when(folderService.updateStatus(folder)).thenReturn(folder);
+
+        FolderResponse response = folderUseCase.updateStatus(
+                1L,
+                10L,
+                new UpdateFolderStatusRequest(FolderStatus.ARCHIVED)
+        );
+
+        assertThat(response.status()).isEqualTo(FolderStatus.ARCHIVED);
+        verify(folderService).getOne(1L, 10L);
+        verify(folderService).updateStatus(argThat(updated ->
+                updated == folder && updated.getStatus() == FolderStatus.ARCHIVED
+        ));
     }
 
     @Test

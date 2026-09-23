@@ -122,22 +122,20 @@ class AgentSessionControllerTest {
     }
 
     @Test
-    @DisplayName("진행·대기·완료·실패 보고는 204를 반환한다")
+    @DisplayName("완료·실패 보고는 204를 반환한다")
     void acceptsReports() throws Exception {
         String body = """
                 {"summary":"MCP Tool 구현 중","details":{"step":"controller"}}
                 """;
         AgentReportRequest request = new AgentReportRequest("MCP Tool 구현 중", Map.of("step", "controller"));
 
-        for (String action : new String[]{"progress", "wait", "complete", "fail"}) {
+        for (String action : new String[]{"complete", "fail"}) {
             mockMvc.perform(post("/api/agent-work/sessions/100/" + action)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isNoContent());
         }
 
-        verify(agentSessionReportUseCase).reportProgress(1L, 100L, request);
-        verify(agentSessionReportUseCase).waitForUser(1L, 100L, request);
         verify(agentSessionReportUseCase).complete(1L, 100L, request);
         verify(agentSessionReportUseCase).fail(1L, 100L, request);
     }
@@ -145,13 +143,13 @@ class AgentSessionControllerTest {
     @Test
     @DisplayName("요약이 비었거나 200자를 넘으면 입력 오류로 거부한다")
     void rejectsInvalidSummary() throws Exception {
-        mockMvc.perform(post("/api/agent-work/sessions/100/progress")
+        mockMvc.perform(post("/api/agent-work/sessions/100/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"summary\":\"\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.summary").exists());
 
-        mockMvc.perform(post("/api/agent-work/sessions/100/progress")
+        mockMvc.perform(post("/api/agent-work/sessions/100/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"summary\":\"" + "가".repeat(201) + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -162,9 +160,9 @@ class AgentSessionControllerTest {
     @DisplayName("끝난 세션에 보고하면 ProblemDetail 409를 반환한다")
     void rejectsReportOnEndedSession() throws Exception {
         doThrow(new BusinessException(AgentWorkErrorCode.AGENT_SESSION_ALREADY_ENDED))
-                .when(agentSessionReportUseCase).reportProgress(eq(1L), eq(100L), any());
+                .when(agentSessionReportUseCase).complete(eq(1L), eq(100L), any());
 
-        mockMvc.perform(post("/api/agent-work/sessions/100/progress")
+        mockMvc.perform(post("/api/agent-work/sessions/100/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"summary\":\"다시 시작\"}"))
                 .andExpect(status().isConflict())

@@ -31,12 +31,10 @@ import java.util.LinkedHashSet;
 /**
  * MCP Tool로 상태를 보고하는 경로. 상태 REST API도 같은 유스케이스를 호출한다.
  *
- * <p>start·complete는 구현되어 있으며 나머지 보고 메서드는 의사 코드다.
+ * <p>start·complete는 구현되어 있으며 fail은 의사 코드다.
  *
  * <pre>
  * 상태 전이 (끝난 세션 = COMPLETED·FAILED 에 보고하면 AGENT_SESSION_ALREADY_ENDED)
- *   progress : WORKING·WAITING·UNKNOWN → WORKING
- *   wait     : WORKING·WAITING·UNKNOWN → WAITING
  *   complete : WORKING·WAITING·UNKNOWN → COMPLETED (completedAt = now)
  *   fail     : WORKING·WAITING·UNKNOWN → FAILED    (completedAt = now)
  * 모든 보고: lastSeenAt = now, agent_session_events에 {summary, details}와 당시 agentType 기록
@@ -113,48 +111,6 @@ public class AgentSessionReportUseCase {
                 session.getId(), linkedIds, session.getAgentType(), session.getStatus(),
                 session.getStatusSource(), session.getInstruction(), session.summary(),
                 session.getStartedAt(), session.getLastSeenAt(), session.getCompletedAt()), created);
-    }
-
-    public void reportProgress(Long userId, Long sessionId, AgentReportRequest request) {
-        /**
-         * <pre>
-         * 트랜잭션 시작:
-         *     DB: session = AgentSessionWriteService가 (userId, sessionId)로 잠금 조회
-         *     없거나 타인 소유 → AGENT_SESSION_NOT_FOUND (404)
-         *     now = 현재 시각
-         *     session.reportProgress({summary, details}, now)
-         *         COMPLETED·FAILED → AGENT_SESSION_ALREADY_ENDED (409)
-         *         WORKING·WAITING·UNKNOWN → WORKING
-         *         progressSnapshot = {summary, details}, lastSeenAt = now, statusSource = MCP_REPORT
-         *     DB: AgentSessionWriteService가 도메인 전이 결과를 Entity에 반영 (변경 감지)
-         *     DB: AgentSessionEventWriteService가 PROGRESS_REPORTED 기록
-         *         sessionId, 기록 당시 agentType, payload = {summary, details},
-         *         source = MCP_REPORT, createdAt = now
-         *     세션 반영 또는 이벤트 기록 실패 시 함께 롤백
-         * </pre>
-         */
-        throw new UnsupportedOperationException("의사 코드: reportProgress");
-    }
-
-    public void waitForUser(Long userId, Long sessionId, AgentReportRequest request) {
-        /**
-         * <pre>
-         * 트랜잭션 시작:
-         *     DB: session = AgentSessionWriteService가 (userId, sessionId)로 잠금 조회
-         *     없거나 타인 소유 → AGENT_SESSION_NOT_FOUND (404)
-         *     now = 현재 시각
-         *     session.waitForUser({summary, details}, now)
-         *         COMPLETED·FAILED → AGENT_SESSION_ALREADY_ENDED (409)
-         *         WORKING·WAITING·UNKNOWN → WAITING
-         *         progressSnapshot = {summary, details}, lastSeenAt = now, statusSource = MCP_REPORT
-         *     DB: AgentSessionWriteService가 도메인 전이 결과를 Entity에 반영 (변경 감지)
-         *     DB: AgentSessionEventWriteService가 WAITING_FOR_USER 기록
-         *         sessionId, 기록 당시 agentType, payload = {summary, details},
-         *         source = MCP_REPORT, createdAt = now
-         *     세션 반영 또는 이벤트 기록 실패 시 함께 롤백
-         * </pre>
-         */
-        throw new UnsupportedOperationException("의사 코드: waitForUser");
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

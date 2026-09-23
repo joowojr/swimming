@@ -14,7 +14,9 @@ import com.swimming.backend.agentwork.dto.out.StartAgentWorkResult;
 import com.swimming.backend.agentwork.repository.AgentSessionEventReadRepository;
 import com.swimming.backend.agentwork.repository.AgentSessionReadRepository;
 import com.swimming.backend.agentwork.repository.AgentWorkItemReadRepository;
+import com.swimming.backend.agentwork.event.AgentWorkStatusChangedEvent;
 import com.swimming.backend.agentwork.service.AgentSessionEventWriteService;
+import com.swimming.backend.agentwork.service.AgentWorkSseService;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.task.domain.Task;
@@ -40,6 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:agent-session-start;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
@@ -62,6 +66,7 @@ class AgentSessionStartIntegrationTest {
     @Autowired private UserRepository users;
     @Autowired private PlatformTransactionManager transactionManager;
     @MockitoSpyBean private AgentSessionEventWriteService eventService;
+    @MockitoSpyBean private AgentWorkSseService sseService;
 
     private Long userId;
     private Task task;
@@ -153,6 +158,8 @@ class AgentSessionStartIntegrationTest {
         assertThat(workItems.count()).isEqualTo(beforeItems);
         assertThat(sessions.count()).isEqualTo(beforeSessions);
         assertThat(events.count()).isEqualTo(beforeEvents);
+        // 롤백된 변경은 SSE로 알리지 않는다.
+        verify(sseService, never()).publish(any());
     }
 
     @Test
@@ -175,6 +182,14 @@ class AgentSessionStartIntegrationTest {
         assertBusinessError(() -> useCase.start(userId, new StartAgentWorkRequest(java.util.List.of(new AddWorkItemRequest(WorkResourceType.SWIMMING_TASK, "00" + task.getId())), AgentType.CODEX, null)),
                 AgentWorkErrorCode.AGENT_WORK_ALREADY_IN_PROGRESS);
         assertThat(workItems.count()).isEqualTo(beforeItems);
+    }
+
+    @Test
+    @DisplayName("커밋된 시작은 소유 사용자에게 SSE 변경 알림을 한 번 보낸다")
+    void publishesAfterCommit() {
+        var result = useCase.start(userId, request(task.getId(), AgentType.CODEX, null));
+        verify(sseService).publish(new AgentWorkStatusChangedEvent(
+                userId, result.session().id(), AgentWorkStatus.WORKING, result.session().startedAt()));
     }
 
     @Test

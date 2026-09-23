@@ -7,6 +7,7 @@ import com.swimming.backend.agentwork.dto.in.StartAgentWorkRequest;
 import com.swimming.backend.agentwork.dto.out.AgentSessionResponse;
 import com.swimming.backend.agentwork.dto.out.StartAgentWorkResult;
 import com.swimming.backend.agentwork.domain.AgentSession;
+import com.swimming.backend.agentwork.event.AgentWorkStatusChangedEvent;
 import com.swimming.backend.agentwork.service.AgentWorkItemReadService;
 import com.swimming.backend.agentwork.service.AgentWorkItemWriteService;
 import com.swimming.backend.agentwork.service.AgentSessionWriteService;
@@ -17,6 +18,7 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +61,7 @@ public class AgentSessionReportUseCase {
     private final AgentSessionWriteService sessionWriteService;
     private final AgentSessionEventWriteService eventWriteService;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public StartAgentWorkResult start(Long userId, StartAgentWorkRequest request) {
@@ -102,6 +105,8 @@ public class AgentSessionReportUseCase {
         workItemWriteService.attachSession(userId, workItemIds, session.getId(), now);
         // DB: 연결·세션 상태·STARTED 이벤트를 같은 트랜잭션에서 저장한다.
         eventWriteService.recordStarted(session);
+        eventPublisher.publishEvent(new AgentWorkStatusChangedEvent(
+                userId, session.getId(), session.getStatus(), now));
         // DB: 응답에는 요청 목록뿐 아니라 세션에 연결된 전체 Work Item을 포함한다.
         List<Long> linkedIds = workItemReadService.findIdsBySession(userId, session.getId());
         return new StartAgentWorkResult(new AgentSessionResponse(
@@ -162,6 +167,8 @@ public class AgentSessionReportUseCase {
         sessionWriteService.applyState(session);
         // DB: COMPLETED 이벤트도 같은 트랜잭션에서 저장하여 실패하면 상태 변경을 롤백한다.
         eventWriteService.recordCompleted(session);
+        eventPublisher.publishEvent(new AgentWorkStatusChangedEvent(
+                userId, session.getId(), session.getStatus(), session.getLastSeenAt()));
         // 공유 세션의 모든 연결 카드가 COMPLETED를 따른다. Swimming Task 상태는 변경하지 않는다.
     }
 

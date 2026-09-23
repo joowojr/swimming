@@ -1,7 +1,6 @@
 package com.swimming.backend.agentwork.domain;
 
 import com.swimming.backend.common.exception.BusinessException;
-import com.swimming.backend.agentwork.exception.AgentWorkErrorCode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

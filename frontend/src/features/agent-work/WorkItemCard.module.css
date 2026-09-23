@@ -1,0 +1,174 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.875rem;
+  border: 0;
+  border-radius: var(--cb-radius-xl);
+  color: var(--cb-on-surface);
+  background: color-mix(in srgb, var(--cb-surface-low) 70%, transparent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--cb-transition),
+    box-shadow var(--cb-transition);
+}
+
+.card:hover {
+  background: var(--cb-surface-low);
+}
+
+.card[data-lane='WORKING'] {
+  background: color-mix(in srgb, var(--cb-surface-low) 80%, transparent);
+}
+
+.card[data-lane='WORKING']:hover {
+  background: var(--cb-surface-low);
+}
+
+.card[data-lane='WAITING'] {
+  background: var(--cb-surface-lowest);
+  box-shadow: var(--cb-shadow-sm);
+}
+
+.card[data-lane='WAITING']:hover {
+  box-shadow: var(--cb-shadow);
+}
+
+.card[data-lane='COMPLETED'] {
+  background: color-mix(in srgb, var(--cb-surface-low) 40%, transparent);
+}
+
+.card[aria-pressed='true'] {
+  outline: 2px solid var(--cb-primary);
+  outline-offset: 0;
+  background: var(--cb-surface-lowest);
+  box-shadow: var(--cb-shadow-sm);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--cb-working);
+  outline-offset: 2px;
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flags {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.important,
+.urgent {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--cb-radius-full);
+  font-size: var(--cb-micro-size);
+  font-weight: var(--cb-weight-medium);
+  line-height: 1rem;
+}
+
+.important {
+  color: var(--cb-on-primary);
+  background: var(--cb-primary);
+}
+
+.urgent {
+  color: var(--cb-on-secondary-fixed);
+  background: var(--cb-secondary-container);
+}
+
+.title {
+  display: -webkit-box;
+  min-height: 2.75em;
+  overflow: hidden;
+  color: var(--cb-on-surface);
+  font-size: var(--cb-card-title-size);
+  font-weight: var(--cb-weight-medium);
+  line-height: 1.375;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card[data-lane='COMPLETED'] .title {
+  color: var(--cb-on-surface-variant);
+}
+
+.session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--cb-meta-size);
+  line-height: 1rem;
+}
+
+.agent {
+  flex: 0 0 auto;
+  color: var(--cb-on-surface);
+}
+
+.card[data-lane='COMPLETED'] .session,
+.card[data-lane='COMPLETED'] .agent {
+  color: var(--cb-on-surface-variant);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--cb-radius-full);
+}
+
+.dot[data-status='WORKING'] {
+  background: var(--cb-working);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.dot[data-status='WAITING'] {
+  background: var(--cb-waiting);
+}
+
+.summary {
+  color: var(--cb-on-surface-variant);
+  font-size: var(--cb-summary-size);
+  line-height: 1.25rem;
+}
+
+.footer {
+  display: flex;
+  /* 카드 높이를 맞춰 남는 공간은 본문과 푸터 사이에 둔다. */
+  margin-top: auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--cb-surface-high) 60%, transparent);
+  color: var(--cb-secondary);
+  font-size: var(--cb-meta-size);
+  line-height: 1rem;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot[data-status='WORKING'] {
+    animation: none;
+  }
+}

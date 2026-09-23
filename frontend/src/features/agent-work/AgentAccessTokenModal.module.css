@@ -1,0 +1,41 @@
+.dialog { width: min(calc(100% - var(--space-8)), 34rem); }
+.modal { width: 100%; }
+.header { padding-bottom: var(--space-4); }
+.header h2 { margin-top: var(--space-1); }
+.header p:last-child { max-width: 27rem; }
+.eyebrow { display: flex; align-items: center; gap: var(--space-1); color: var(--color-primary-container); font-size: var(--text-label-caps-size); letter-spacing: .04em; text-transform: uppercase; }
+.close { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border: 0; border-radius: var(--radius-full); color: var(--color-mute); background: transparent; cursor: pointer; }
+.body { display: grid; gap: var(--space-3); padding: 0 var(--space-6) var(--space-6); overflow-y: auto; }
+.formSection, .issued, .existing { padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-container-lowest); }
+.sectionTitle { display: flex; gap: var(--space-3); align-items: flex-start; margin-bottom: var(--space-4); }
+.sectionTitle p { margin: var(--space-1) 0 0; color: var(--color-mute); font-size: var(--text-body-sm-size); }
+.step { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; flex: 0 0 auto; border-radius: var(--radius-full); color: var(--color-on-primary); background: var(--color-primary); font-size: var(--text-label-caps-size); }
+.label { display: block; margin: var(--space-4) 0 var(--space-2); color: var(--color-mute); font-size: var(--text-body-sm-size); }
+.input { box-sizing: border-box; width: 100%; min-height: 2.75rem; padding: 0 var(--space-3); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); color: var(--color-primary); background: var(--color-surface-container-lowest); font: inherit; }
+.input:focus { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: 1px; }
+.submit { width: 100%; margin-top: var(--space-5); }
+.issued { border: 1px solid var(--color-primary-container); background: #f3f6ff; }
+.issuedHeading { display: flex; align-items: center; gap: var(--space-2); color: var(--color-on-tertiary-container); }
+.issued p { margin: var(--space-2) 0 var(--space-3); color: var(--color-mute); font-size: var(--text-body-sm-size); }
+.issuedTokenRow { display: flex; align-items: center; gap: var(--space-2); width: 100%; max-width: 100%; margin-top: var(--space-3); min-width: 0; overflow: hidden; }
+.issuedTokenRow > button { width: 3rem; min-height: 0; height: auto; flex: 0 0 3rem; padding: 0; }
+.copyButton { align-self: stretch; }
+.token { display: block; width: 0; min-width: 0; max-width: 100%; flex: 1 1 0; box-sizing: border-box; padding: var(--space-3); overflow: hidden; border-radius: var(--radius-sm); color: var(--color-primary); background: var(--color-surface-container-lowest); font-family: var(--font-family-mono); font-size: var(--text-body-sm-size); text-overflow: ellipsis; white-space: nowrap; }
+.connectorHint { display: flex; gap: var(--space-2); margin-top: var(--space-4); color: var(--color-mute); font-size: var(--text-label-caps-size); }
+.sectionHeading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.sectionHeading span { color: var(--color-primary-container); }
+.sectionHeading small { color: var(--color-mute); }
+.muted { margin: var(--space-3) 0 0; color: var(--color-mute); font-size: var(--text-body-sm-size); }
+.tokenList { display: grid; gap: var(--space-1); margin: var(--space-2) 0 0; padding: 0; list-style: none; }
+.tokenRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface-container-lowest); }
+.tokenRow div { min-width: 0; display: grid; gap: var(--space-1); }
+.tokenRow span { color: var(--color-mute); font-size: var(--text-label-caps-size); white-space: nowrap; }
+.tokenSummary { display: block; min-width: 0; overflow: visible; }
+.tokenPrefix, .tokenSuffix { color: var(--color-primary); font-family: var(--font-family-mono); }
+.tokenMask { color: var(--color-mute); letter-spacing: .08em; }
+.tokenExpiry { color: var(--color-mute); }
+.tokenRow em { color: var(--color-mute); font-size: var(--text-label-caps-size); font-style: normal; }
+.revoke { display: inline-flex; align-items: center; gap: var(--space-1); flex: 0 0 auto; padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-full); color: var(--color-mute); background: transparent; cursor: pointer; font: inherit; font-size: var(--text-label-caps-size); }
+.revoke:hover { color: var(--color-primary); background: var(--color-surface-container-high); }
+.error { margin: 0; color: var(--color-error); font-size: var(--text-body-sm-size); }
+@media (max-width: 40rem) { .dialog { width: calc(100% - var(--space-4)); } .body { padding-inline: var(--space-4); } .header { padding-inline: var(--space-4); } .sectionHeading { align-items: flex-start; flex-direction: column; gap: var(--space-1); } }

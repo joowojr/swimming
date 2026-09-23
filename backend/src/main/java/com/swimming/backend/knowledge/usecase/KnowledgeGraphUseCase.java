@@ -9,6 +9,7 @@ import com.swimming.backend.knowledge.domain.KnowledgeRelation;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
 import com.swimming.backend.knowledge.domain.RelationType;
+import com.swimming.backend.knowledge.domain.SourceProcessingStatus;
 import com.swimming.backend.knowledge.dto.in.GraphResponse;
 import com.swimming.backend.knowledge.repository.SourcePageQuery;
 import com.swimming.backend.knowledge.service.graph.KnowledgeGraphAssembler;
@@ -66,6 +67,11 @@ public class KnowledgeGraphUseCase {
 
         boolean truncated = fetched.size() > limit;
         List<KnowledgeSource> sources = truncated ? fetched.subList(0, limit) : fetched;
+        List<UUID> categorizableSourceIds = sources.stream()
+                .filter(source -> source.getProcessingStatus() == SourceProcessingStatus.COMPLETED)
+                .filter(source -> source.getSummary() != null)
+                .map(KnowledgeSource::getId)
+                .toList();
 
         List<KnowledgeRelation> fromSources = relationService.findOutgoing(
                 sources.stream().map(KnowledgeSource::getId).toList(),
@@ -89,7 +95,8 @@ public class KnowledgeGraphUseCase {
                 GraphResponse.Root.of(folder),
                 sources.stream().map(KnowledgeSource::getNode).toList(),
                 Stream.of(fromSources, fromTopics, fromCategories).flatMap(List::stream).toList(),
-                truncated
+                truncated,
+                categorizableSourceIds
         );
     }
 
@@ -123,7 +130,8 @@ public class KnowledgeGraphUseCase {
                 GraphResponse.Root.of(root),
                 List.of(root),
                 relations,
-                false
+                false,
+                List.of()
         );
     }
 

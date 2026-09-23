@@ -3,7 +3,7 @@ package com.swimming.backend.knowledge.service.llm;
 import com.swimming.backend.common.client.TypeSafeClient;
 import com.swimming.backend.common.client.dto.SystemOneRequest;
 import com.swimming.backend.common.client.dto.SystemOneResponse;
-import com.swimming.backend.knowledge.dto.in.NodeRef;
+import com.swimming.backend.knowledge.dto.out.CategoryAssignmentCandidate;
 import com.swimming.backend.knowledge.dto.out.CategoryAssignmentDecision;
 import com.swimming.backend.knowledge.dto.out.CategoryAssignmentInput;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,8 +23,12 @@ import static org.mockito.Mockito.when;
 
 class JevCategoryAssignmentDeciderTest {
 
-    private static final NodeRef MCP = new NodeRef(UUID.randomUUID(), "MCP 서버 구현");
-    private static final NodeRef WAL = new NodeRef(UUID.randomUUID(), "WAL 정리");
+    private static final CategoryAssignmentCandidate MCP = new CategoryAssignmentCandidate(
+            UUID.randomUUID(), "MCP 서버 구현", List.of("Spring AI MCP 서버 구성", "MCP Tool 등록")
+    );
+    private static final CategoryAssignmentCandidate WAL = new CategoryAssignmentCandidate(
+            UUID.randomUUID(), "WAL 정리", List.of("PostgreSQL WAL 보관")
+    );
 
     private TypeSafeClient client;
     private JevCategoryAssignmentDecider decider;
@@ -65,6 +69,10 @@ class JevCategoryAssignmentDeciderTest {
         assertThat(decision).isEqualTo(new CategoryAssignmentDecision.Create("PDF 압축"));
         SystemOneRequest request = sentRequest();
         assertThat(criteriaOf(request).keySet()).containsExactly("1", "2", "NEW");
+        assertThat(criteriaOf(request).get("1")).isEqualTo(Map.of(
+                "categoryTitle", "MCP 서버 구현",
+                "topics", List.of("Spring AI MCP 서버 구성", "MCP Tool 등록")
+        ));
         assertThat(request.state()).isEqualTo(Map.of(
                 "proposedCategoryTitle", "PDF 압축", "summary", "MCP 서버를 구성하는 방법을 설명한다."));
     }

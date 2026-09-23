@@ -7,6 +7,7 @@ import FolderDetail from './features/folders/FolderDetail.tsx'
 import FolderListPage from './features/folders/FolderListPage.tsx'
 import PersonalSessionPage from './features/sessions/PersonalSessionPage'
 import TasksPage from './features/tasks/TasksPage'
+import CoworkBoardPage from './features/agent-work/CoworkBoardPage'
 import DiveSessionFeedPage from './features/sessions/DiveSessionFeedPage'
 import type { Folder } from './features/folders/folderTypes.ts'
 import AppShell from './layout/AppShell'
@@ -135,12 +136,14 @@ function App() {
     <AppShell
       userEmail={auth.user?.email ?? null}
       onLogin={() => navigate('/')}
+      chromeTone={location.pathname === '/agent-board' ? 'page' : 'default'}
     >
       <TimerEndSoundScheduler />
       <Routes>
         <Route path="/settings" element={<UserSettingsPage user={auth.user!} onLogout={handleLogout} />} />
         <Route path="/sessions" element={<DiveSessionFeedPage />} />
         <Route path="/tasks" element={<TasksPage folders={folders} />} />
+        <Route path="/agent-board" element={<CoworkBoardPage />} />
         <Route
           path="/folders"
           element={(

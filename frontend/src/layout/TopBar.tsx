@@ -7,9 +7,11 @@ import logoUrl from '../assets/logo.svg'
 interface TopBarProps {
   userEmail: string | null
   onLogin: () => void
+  /** page면 페이지 배경색을 그대로 써서 독립 앱처럼 보이게 한다. */
+  tone?: 'default' | 'page'
 }
 
-export default function TopBar({ userEmail, onLogin }: TopBarProps) {
+export default function TopBar({ userEmail, onLogin, tone = 'default' }: TopBarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   // const [searchQuery, setSearchQuery] = useState('')
 
@@ -26,7 +28,7 @@ export default function TopBar({ userEmail, onLogin }: TopBarProps) {
   }, [])
 
   return (
-    <header className={styles['top-bar']}>
+    <header className={`${styles['top-bar']} ${tone === 'page' ? styles['is-page-tone'] : ''}`}>
       <div className={styles['top-bar-primary']}>
         <Link className={styles.brand} to="/pinboard" aria-label="Swimming 핀보드">
           <span className={styles['brand-mark']} aria-hidden="true">

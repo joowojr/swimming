@@ -27,6 +27,7 @@ interface TaskInfoModalProps {
    * 카드가 다른 섹션으로 사라진다. 매트릭스에서는 드래그로 옮긴다.
    */
   canEditFlags?: boolean
+  onSaved?: () => void
   onClose: () => void
 }
 
@@ -49,6 +50,7 @@ export default function TaskInfoModal({
   currentUrgent,
   plan,
   canEditFlags = true,
+  onSaved,
   onClose,
 }: TaskInfoModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -107,6 +109,7 @@ export default function TaskInfoModal({
       })
       upsertTasks([updated.task])
       applyPlans(updated.plans)
+      onSaved?.()
       dialogRef.current?.close()
     } catch (error) {
       setMessage(requestErrorMessage(error, '수정하지 못했습니다. 잠시 후 다시 시도해 주세요.'))

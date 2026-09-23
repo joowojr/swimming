@@ -11,6 +11,11 @@
   background: var(--color-surface-container-lowest);
 }
 
+.top-bar.is-page-tone {
+  border-bottom-color: transparent;
+  background: var(--color-surface-bright);
+}
+
 .brand,
 .top-bar-primary,
 .top-bar-tools,

@@ -48,6 +48,8 @@ dependencies {
     implementation "org.springframework.ai:spring-ai-starter-model-openai"
     // Ollama (로컬 LLM)
     implementation "org.springframework.ai:spring-ai-starter-model-ollama"
+    // 현재 구현된 Agent Work UseCase만 노출하는 MCP 서버
+    implementation "org.springframework.ai:spring-ai-starter-mcp-server-webmvc"
 
     // devtools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'

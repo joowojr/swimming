@@ -5,6 +5,7 @@ import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
+import com.swimming.backend.task.dto.projection.TaskSummaryRow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -185,6 +186,27 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
             @Param("userId") Long userId,
             @Param("taskIds") List<Long> taskIds
     );
+
+    @Query("""
+            SELECT new com.swimming.backend.task.dto.projection.TaskSummaryRow(
+                task.id, folder.id, folder.name, task.title, task.status, task.priority, task.urgent, task.createdAt
+            )
+            FROM TaskEntity task
+            LEFT JOIN task.folder folder
+            WHERE task.user.id = :userId AND task.id IN :taskIds AND task.deleted = false
+            """)
+    List<TaskSummaryRow> findAllOwnedActiveSummariesByIds(
+            @Param("userId") Long userId, @Param("taskIds") List<Long> taskIds);
+
+    @Query("""
+            SELECT new com.swimming.backend.task.dto.projection.TaskSummaryRow(
+                task.id, folder.id, folder.name, task.title, task.status, task.priority, task.urgent, task.createdAt
+            )
+            FROM TaskEntity task LEFT JOIN task.folder folder
+            WHERE task.user.id = :userId AND task.deleted = false
+            ORDER BY task.id
+            """)
+    List<TaskSummaryRow> findAllOwnedActiveSummaries(@Param("userId") Long userId);
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskOrganizerContextRow(

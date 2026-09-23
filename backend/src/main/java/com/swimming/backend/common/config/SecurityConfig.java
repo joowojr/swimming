@@ -16,8 +16,13 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import com.swimming.backend.agentwork.interfaces.router.security.AgentAccessTokenFilter;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+import org.springframework.beans.factory.ObjectProvider;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -25,6 +30,7 @@ import java.util.List;
 
 @Configuration
 public class SecurityConfig {
+    private static final String AGENT_TOKEN_PREFIX = "swm_pat_";
 
     /**
      * API 문서는 인증 없이 연다. 문서를 보려면 토큰이 필요한 구조는 프런트가 계약을
@@ -38,6 +44,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtDecoder jwtDecoder,
+            ObjectProvider<AgentAccessTokenFilter> agentAccessTokenFilterProvider,
             ObjectMapper objectMapper
     ) throws Exception {
         http
@@ -52,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
+                        .bearerTokenResolver(agentAwareBearerTokenResolver())
                         .jwt(jwt -> jwt
                                 .decoder(jwtDecoder)
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter()))
@@ -73,7 +81,23 @@ public class SecurityConfig {
                                         "ACCESS_DENIED"
                                 )));
 
+        AgentAccessTokenFilter agentAccessTokenFilter = agentAccessTokenFilterProvider.getIfAvailable();
+        if (agentAccessTokenFilter != null) {
+            http.addFilterBefore(agentAccessTokenFilter, BearerTokenAuthenticationFilter.class);
+        }
         return http.build();
+    }
+
+    private BearerTokenResolver agentAwareBearerTokenResolver() {
+        DefaultBearerTokenResolver delegate = new DefaultBearerTokenResolver();
+        return request -> {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")
+                    && header.substring("Bearer ".length()).startsWith(AGENT_TOKEN_PREFIX)) {
+                return null;
+            }
+            return delegate.resolve(request);
+        };
     }
 
     @Bean

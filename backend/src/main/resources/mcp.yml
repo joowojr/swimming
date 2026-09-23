@@ -1,0 +1,17 @@
+# Agent Work MCP 서버 설정. 프로필과 무관하므로 application.yml 에서 spring.config.import 로 끌어다 쓴다.
+spring:
+  ai:
+    mcp:
+      server:
+        enabled: true
+        protocol: streamable
+        type: sync
+        instructions: |
+          Swimming Cowork Board에 에이전트 작업 상태를 보고하는 서버다.
+          사용자가 Swimming 할 일(Task)을 맡기면 다음 순서로 호출한다.
+          1. get_task: 사용자가 준 resourceType·resourceId로 할 일과 연결된 지식을 읽는다.
+          2. start_work: 작업을 시작하며 응답의 session.id를 보관한다.
+          3. 작업을 마치면 complete_work에 session.id와 결과 한 줄을 보고한다.
+          식별자는 Task 식별자(resourceType + resourceId)와 sessionId 두 가지만 쓴다.
+        streamable-http:
+          mcp-endpoint: /mcp

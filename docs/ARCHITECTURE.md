@@ -153,6 +153,8 @@ com.swimming.backend
 
 도메인별로 controller / usecase / service / repository / domain / dto 를 각 패키지 안에 둔다. 현재 기능에서 필요하지 않은 하위 패키지는 미리 만들지 않는다. 기능을 세로로 잘라 개발하는 방식(수직 슬라이스)과 맞춘다.
 
+예외로 `agentwork`는 독립 제품으로 분리될 수 있어 `interfaces/router`(외부 → 진입점), `interfaces/api`(외부 호출), `application`, `domain`, `infra` 계층 패키지를 쓴다. 자세한 구조는 `agentwork/AGENTS.md`에 둔다.
+
 ### 도메인 간 협업 규칙
 
 1. **도메인 간 호출은 UseCase가 상대 도메인의 Service를 불러 조율한다.** 예를 들어 `ProjectUseCase`는 `TaskService.getSummaries()`를 호출해 폴더 상세의 task 목록과 진척을 합친다. Service는 자기 도메인의 Repository만 다루고(`ProjectService`는 `ProjectRepository`·`ProjectTagRepository`만), 남의 Repository를 직접 주입하지 않는다. 소유권 검증 같은 규칙이 그 도메인의 Service 안에만 있어야 한 곳만 고치면 되기 때문이다.

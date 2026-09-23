@@ -2,9 +2,9 @@ package com.swimming.backend.mcp;
 
 import com.swimming.backend.agentwork.domain.AgentType;
 import com.swimming.backend.agentwork.domain.WorkResourceType;
-import com.swimming.backend.agentwork.usecase.AgentBoardUseCase;
-import com.swimming.backend.agentwork.usecase.AgentSessionReportUseCase;
-import com.swimming.backend.agentwork.usecase.AgentWorkItemUseCase;
+import com.swimming.backend.agentwork.application.usecase.AgentBoardUseCase;
+import com.swimming.backend.agentwork.application.usecase.AgentSessionReportUseCase;
+import com.swimming.backend.agentwork.application.usecase.AgentWorkItemUseCase;
 import com.swimming.backend.common.security.AuthUser;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;

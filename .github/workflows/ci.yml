@@ -20,6 +20,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      page_renderer: ${{ steps.filter.outputs.page_renderer }}
     steps:
       - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
@@ -35,6 +36,9 @@ jobs:
             frontend:
               - 'frontend/**'
               - '!**/*.md'
+              - '.github/workflows/ci.yml'
+            page_renderer:
+              - 'infra/lambda/page-renderer-node/**'
               - '.github/workflows/ci.yml'
 
   backend:
@@ -86,3 +90,34 @@ jobs:
       - run: npm run lint
       # npm run build is "tsc -b && vite build", so this is the type check too.
       - run: npm run build
+
+  page-renderer:
+    needs: changes
+    if: needs.changes.outputs.page_renderer == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/lambda/page-renderer-node
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: infra/lambda/page-renderer-node/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./infra/lambda/page-renderer-node
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=page-renderer-ci
+          cache-to: type=gha,mode=max,scope=page-renderer-ci
+          provenance: false
+          sbom: false

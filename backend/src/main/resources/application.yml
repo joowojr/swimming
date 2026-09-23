@@ -1,6 +1,9 @@
 spring:
   application:
     name: backend
+  config:
+    import:
+      - classpath:mcp.yml
   profiles:
     default: local
   jpa:

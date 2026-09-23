@@ -10,6 +10,7 @@ import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.projection.PlannedTaskRow;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
+import com.swimming.backend.task.dto.projection.TaskSummaryRow;
 import com.swimming.backend.task.dto.in.NewTaskSpec;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.repository.TaskRepository;
@@ -177,6 +178,19 @@ public class TaskService {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<TaskReference> getActiveReferences(Long userId, List<Long> taskIds) {
         return taskRepository.findAllOwnedActiveByIds(userId, taskIds);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskSummaryRow> getActiveSummaries(Long userId, List<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return List.of();
+        }
+        return taskRepository.findAllOwnedActiveSummariesByIds(userId, taskIds);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<TaskSummaryRow> getActiveSummaries(Long userId) {
+        return taskRepository.findAllOwnedActiveSummaries(userId);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

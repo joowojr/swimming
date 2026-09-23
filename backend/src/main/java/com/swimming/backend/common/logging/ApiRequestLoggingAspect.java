@@ -88,7 +88,7 @@ public class ApiRequestLoggingAspect {
             HttpServletResponse response
     ) {
         if (throwable instanceof BusinessException businessException) {
-            return businessException.getErrorCode().getStatus().value();
+            return businessException.getStatus().value();
         }
         if (response != null && response.getStatus() >= 400) {
             return response.getStatus();
@@ -135,7 +135,7 @@ public class ApiRequestLoggingAspect {
         StringBuilder suffix = new StringBuilder();
         if (throwable instanceof BusinessException businessException) {
             suffix.append(" error_code=")
-                    .append(businessException.getErrorCode().name());
+                    .append(businessException.getCode());
         }
         return suffix.append(" cause=").append(causeChain(throwable)).toString();
     }

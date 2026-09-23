@@ -14,12 +14,15 @@ interface AppShellProps {
   children: ReactNode
   userEmail: string | null
   onLogin: () => void
+  /** page면 탑바·사이드바가 페이지 배경색을 쓴다. Cowork Board처럼 독립 앱으로 보이는 화면에서 쓴다. */
+  chromeTone?: 'default' | 'page'
 }
 
 export default function AppShell({
   children,
   userEmail,
   onLogin,
+  chromeTone = 'default',
 }: AppShellProps) {
   const folders = useFolderStore((state) => state.folders)
   const isPinboard = useMatch('/pinboard') !== null
@@ -40,9 +43,9 @@ export default function AppShell({
 
   return (
     <div className={styles['app-shell']}>
-      <TopBar userEmail={userEmail} onLogin={onLogin} />
+      <TopBar userEmail={userEmail} onLogin={onLogin} tone={chromeTone} />
       <div className={styles['app-shell-body']}>
-        <SideNavigation />
+        <SideNavigation tone={chromeTone} />
         {hasMemo ? (
           // 라우트 바깥에 두어야 화면을 옮겨도 노트가 다시 마운트되지 않는다.
           // 폴더가 바뀔 때만 key로 새 인스턴스를 만들어 노트 맥락을 바꾼다.

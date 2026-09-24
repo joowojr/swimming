@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import { IconCheck, IconPencil, IconPlus, IconX } from '@tabler/icons-react'
+import { IconCheck, IconPlus, IconX } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
-import { getTags, setFolderTag } from './folderApi.ts'
+import { useFolderTagStore } from '../../store/folderTagStore.ts'
+import { setFolderTag } from './folderApi.ts'
 import type { Folder, FolderTag, UpdateFolderTagRequest } from './folderTypes.ts'
 import styles from './FolderTagPicker.module.css'
 
@@ -14,7 +15,6 @@ interface FolderTagPickerProps {
   onChanged: (folder: Folder) => void
 }
 
-type TagsStatus = 'loading' | 'ready' | 'error'
 
 function toApiError(error: unknown) {
   return typeof error === 'object' && error !== null ? error as ApiError : undefined
@@ -33,8 +33,10 @@ function sameName(left: string, right: string) {
 export default function FolderTagPicker({ folderId, tag, tone, onChanged }: FolderTagPickerProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [tags, setTags] = useState<FolderTag[]>([])
-  const [tagsStatus, setTagsStatus] = useState<TagsStatus>('loading')
+  const tags = useFolderTagStore((state) => state.tags)
+  const tagsStatus = useFolderTagStore((state) => state.status)
+  const ensureTagsLoaded = useFolderTagStore((state) => state.ensureLoaded)
+  const upsertTag = useFolderTagStore((state) => state.upsert)
   const [query, setQuery] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,23 +44,12 @@ export default function FolderTagPicker({ folderId, tag, tone, onChanged }: Fold
   const open = () => {
     setQuery('')
     setError(null)
-    setTagsStatus('loading')
     setIsOpen(true)
+    void ensureTagsLoaded()
   }
 
   useEffect(() => {
     if (!isOpen) return
-
-    let active = true
-    void getTags()
-      .then((loadedTags) => {
-        if (!active) return
-        setTags(loadedTags)
-        setTagsStatus('ready')
-      })
-      .catch(() => {
-        if (active) setTagsStatus('error')
-      })
 
     const closeOnOutside = (event: Event) => {
       const node = event.target instanceof Node ? event.target : null
@@ -71,7 +62,6 @@ export default function FolderTagPicker({ folderId, tag, tone, onChanged }: Fold
     document.addEventListener('focusin', closeOnOutside)
     document.addEventListener('keydown', closeOnEscape)
     return () => {
-      active = false
       document.removeEventListener('pointerdown', closeOnOutside)
       document.removeEventListener('focusin', closeOnOutside)
       document.removeEventListener('keydown', closeOnEscape)
@@ -86,7 +76,7 @@ export default function FolderTagPicker({ folderId, tag, tone, onChanged }: Fold
     ? tags.filter((candidate) =>
         candidate.name.toLocaleLowerCase().includes(normalizedQuery.toLocaleLowerCase()))
     : tags
-  const canCreate = normalizedQuery.length > 0 && !matchedTag && tagsStatus !== 'loading'
+  const canCreate = normalizedQuery.length > 0 && !matchedTag && tagsStatus !== 'idle' && tagsStatus !== 'loading'
 
   const save = async (request: UpdateFolderTagRequest) => {
     if (isSaving) return
@@ -98,7 +88,10 @@ export default function FolderTagPicker({ folderId, tag, tone, onChanged }: Fold
     setIsSaving(true)
     setError(null)
     try {
-      onChanged(await setFolderTag(folderId, request))
+      const updated = await setFolderTag(folderId, request)
+      // 새 이름으로 만든 태그도 다른 화면의 태그 목록에 바로 보이게 한다.
+      if (updated.tag) upsertTag(updated.tag)
+      onChanged(updated)
       setIsOpen(false)
     } catch (saveError: unknown) {
       const apiError = toApiError(saveError)
@@ -117,37 +110,29 @@ export default function FolderTagPicker({ folderId, tag, tone, onChanged }: Fold
 
   return (
     <div className={styles.wrap} ref={wrapRef}>
-      {tag ? (
-        <div className={styles.current}>
-          <span className={styles.tag} data-tone={tone}>
-            <span className="sr-only">태그 </span>
-            {tag.name}
-          </span>
-          <button
-            type="button"
-            className={styles['edit-tag']}
-            aria-label="태그 수정"
-            title="태그 수정"
-            aria-expanded={isOpen}
-            aria-haspopup="dialog"
-            onClick={() => (isOpen ? setIsOpen(false) : open())}
-          >
-            <IconPencil size={12} stroke={1.8} aria-hidden="true" />
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className={styles['add-tag']}
-          title="태그 달기"
-          aria-expanded={isOpen}
-          aria-haspopup="dialog"
-          onClick={() => (isOpen ? setIsOpen(false) : open())}
-        >
-          <IconPlus size={12} aria-hidden="true" />
-          태그
-        </button>
-      )}
+      <button
+        type="button"
+        className={tag ? styles.tag : styles['add-tag']}
+        data-tone={tone}
+        title={tag ? '태그 바꾸기' : '태그 달기'}
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
+        onClick={() => (isOpen ? setIsOpen(false) : open())}
+      >
+        {tag
+          ? (
+              <>
+                <span className="sr-only">태그 </span>
+                {tag.name}
+              </>
+            )
+          : (
+              <>
+                <IconPlus size={12} aria-hidden="true" />
+                태그
+              </>
+            )}
+      </button>
 
       {isOpen && (
         <div className={styles.panel} role="dialog" aria-label="폴더 태그 선택" aria-busy={isSaving}>
@@ -166,7 +151,7 @@ export default function FolderTagPicker({ folderId, tag, tone, onChanged }: Fold
             onKeyDown={handleInputKeyDown}
           />
 
-          {tagsStatus === 'loading' ? (
+          {tagsStatus === 'idle' || tagsStatus === 'loading' ? (
             <p className={styles.status} role="status">태그를 불러오는 중...</p>
           ) : tagsStatus === 'error' ? (
             <p className={styles.status}>태그 목록을 불러오지 못했습니다. 새 이름으로는 달 수 있습니다.</p>

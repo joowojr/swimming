@@ -34,10 +34,9 @@
   resize: vertical;
 }
 
-.name:focus-visible,
-.description:focus-visible {
-  border-color: var(--color-primary);
-  outline-color: var(--focus-ring-color);
+.name:focus,
+.description:focus {
+  outline: none;
 }
 
 .name[aria-invalid='true'],

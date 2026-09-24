@@ -39,6 +39,7 @@
 }
 
 .actions button,
+.section-heading button,
 .state button {
   display: inline-flex;
   align-items: center;
@@ -78,7 +79,8 @@
   font-weight: var(--text-button-weight);
 }
 
-.section-heading span {
+/* 필터 메뉴 안의 span까지 덮지 않게 직계 자식만 고른다. */
+.section-heading > span {
   color: var(--color-primary);
   font-family: var(--font-family-mono);
   font-size: var(--text-label-caps-size);

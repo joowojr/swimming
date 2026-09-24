@@ -43,6 +43,10 @@
   background: var(--color-surface-lowest);
 }
 
+.field select:focus {
+  outline: none;
+}
+
 .check {
   display: flex;
   align-items: center;

@@ -4,10 +4,10 @@ import { IconPencil, IconPlus, IconTrash, IconX } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import ActionButton from '../../components/ActionButton'
 import modalStyles from '../../components/ModalShell.module.css'
+import { useFolderTagStore } from '../../store/folderTagStore.ts'
 import {
   createFolderTag,
   deleteFolderTag,
-  getTags,
   updateFolderTag,
 } from './folderApi.ts'
 import type { FolderTag } from './folderTypes.ts'
@@ -20,10 +20,6 @@ interface ProjectTagModalProps {
 
 type PendingAction = 'create' | `update-${number}` | `delete-${number}` | null
 
-function sortTags(tags: FolderTag[]) {
-  return [...tags].sort((left, right) => left.name.localeCompare(right.name, 'ko'))
-}
-
 function requestErrorMessage(error: unknown, fallback: string) {
   const apiError = error as ApiError
   return apiError.errors?.name ?? apiError.message ?? fallback
@@ -31,8 +27,12 @@ function requestErrorMessage(error: unknown, fallback: string) {
 
 export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const [tags, setTags] = useState<FolderTag[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const tags = useFolderTagStore((state) => state.tags)
+  const tagsStatus = useFolderTagStore((state) => state.status)
+  const ensureTagsLoaded = useFolderTagStore((state) => state.ensureLoaded)
+  const upsertTag = useFolderTagStore((state) => state.upsert)
+  const removeTagFromStore = useFolderTagStore((state) => state.remove)
+  const isLoading = tagsStatus === 'idle' || tagsStatus === 'loading'
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -46,21 +46,7 @@ export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalPr
     return () => { document.body.style.overflow = previousOverflow }
   }, [])
 
-  useEffect(() => {
-    let active = true
-    void getTags()
-      .then((loadedTags) => {
-        if (!active) return
-        setTags(sortTags(loadedTags))
-        setIsLoading(false)
-      })
-      .catch(() => {
-        if (!active) return
-        setIsLoading(false)
-        setMessage('태그 목록을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.')
-      })
-    return () => { active = false }
-  }, [])
+  useEffect(() => { void ensureTagsLoaded() }, [ensureTagsLoaded])
 
   const requestClose = () => {
     if (pendingAction === null) dialogRef.current?.close()
@@ -79,7 +65,7 @@ export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalPr
     setMessage(null)
     try {
       const created = await createFolderTag({ name })
-      setTags((current) => sortTags([...current, created]))
+      upsertTag(created)
       setNewName('')
       onChanged()
     } catch (error) {
@@ -106,9 +92,7 @@ export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalPr
     setMessage(null)
     try {
       const updated = await updateFolderTag(tagId, { name })
-      setTags((current) => sortTags(
-        current.map((tag) => tag.id === tagId ? updated : tag),
-      ))
+      upsertTag(updated)
       setEditingId(null)
       setEditingName('')
       onChanged()
@@ -129,7 +113,7 @@ export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalPr
     setMessage(null)
     try {
       await deleteFolderTag(tag.id)
-      setTags((current) => current.filter((item) => item.id !== tag.id))
+      removeTagFromStore(tag.id)
       if (editingId === tag.id) {
         setEditingId(null)
         setEditingName('')
@@ -148,7 +132,7 @@ export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalPr
       <section className={`${styles.modal} ${modalStyles.surface}`} aria-labelledby="folder-tag-title">
         <header className={`${styles.header} ${modalStyles.header}`}>
           <div>
-            <h2 id="folder-tag-title">폴더 태그 관리</h2>
+            <h2 id="folder-tag-title">태그</h2>
             <p>폴더를 분류할 태그를 추가하고 정리하세요.</p>
           </div>
           <button type="button" className={styles.close} aria-label="태그 관리 닫기" onClick={requestClose} disabled={pendingAction !== null}>
@@ -164,6 +148,9 @@ export default function FolderTagModal({ onClose, onChanged }: ProjectTagModalPr
               isLoading={pendingAction === 'create'} disabled={pendingAction !== null}>추가</ActionButton>
           </div>
           {message && <p className={styles.message} role="alert">{message}</p>}
+          {tagsStatus === 'error' && (
+            <p className={styles.message} role="alert">태그 목록을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p>
+          )}
           {isLoading ? <p className={styles.message} role="status">태그를 불러오는 중…</p> : null}
           <ul className={styles.list}>
             {tags.map((tag) => (

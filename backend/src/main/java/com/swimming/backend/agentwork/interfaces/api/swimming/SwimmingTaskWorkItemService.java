@@ -4,7 +4,7 @@ import com.swimming.backend.agentwork.domain.WorkResourceType;
 import com.swimming.backend.agentwork.application.port.LinkedSource;
 import com.swimming.backend.agentwork.application.port.WorkItem;
 import com.swimming.backend.agentwork.application.port.WorkItemId;
-import com.swimming.backend.agentwork.application.port.WorkItemReader;
+import com.swimming.backend.agentwork.application.port.WorkItemPort;
 import com.swimming.backend.task.dto.projection.TaskSummaryRow;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class SwimmingTaskWorkItemReader implements WorkItemReader {
+public class SwimmingTaskWorkItemService implements WorkItemPort {
     private final TaskService taskService;
     // TODO(task-source): Task Source 커밋 후 복원
     // private final TaskSourceService taskSourceService;

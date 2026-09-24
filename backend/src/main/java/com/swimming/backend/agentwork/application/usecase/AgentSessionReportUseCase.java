@@ -13,7 +13,7 @@ import com.swimming.backend.agentwork.application.service.AgentWorkItemWriteServ
 import com.swimming.backend.agentwork.application.service.AgentSessionWriteService;
 import com.swimming.backend.agentwork.application.service.AgentSessionEventWriteService;
 import com.swimming.backend.agentwork.application.port.WorkItemId;
-import com.swimming.backend.agentwork.application.port.WorkItemReader;
+import com.swimming.backend.agentwork.application.port.WorkItemPort;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +53,7 @@ import java.util.LinkedHashSet;
 @Service
 @RequiredArgsConstructor
 public class AgentSessionReportUseCase {
-    private final WorkItemReader workItemReader;
+    private final WorkItemPort workItemPort;
     private final AgentWorkItemReadService workItemReadService;
     private final AgentWorkItemWriteService workItemWriteService;
     private final AgentSessionWriteService sessionWriteService;
@@ -66,7 +66,7 @@ public class AgentSessionReportUseCase {
         // Swimming: 모든 요청 Task의 소유권·삭제 여부를 한 번에 검증한다.
         List<WorkItemId> requestedIds = request.workItems().stream()
                 .map(item -> WorkItemId.builder().type(item.resourceType()).id(item.resourceId()).build()).distinct().toList();
-        var resources = workItemReader.readAll(userId, requestedIds);
+        var resources = workItemPort.readAll(userId, requestedIds);
         if (requestedIds.stream().anyMatch(id -> !resources.containsKey(id))) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }

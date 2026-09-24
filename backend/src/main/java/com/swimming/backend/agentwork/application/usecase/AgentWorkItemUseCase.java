@@ -17,7 +17,7 @@ import com.swimming.backend.agentwork.application.service.AgentWorkItemReadServi
 import com.swimming.backend.agentwork.application.service.AgentWorkItemWriteService;
 import com.swimming.backend.agentwork.application.port.WorkItem;
 import com.swimming.backend.agentwork.application.port.WorkItemId;
-import com.swimming.backend.agentwork.application.port.WorkItemReader;
+import com.swimming.backend.agentwork.application.port.WorkItemPort;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -27,9 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,12 +36,12 @@ public class AgentWorkItemUseCase {
     private final AgentWorkItemWriteService workItemWriteService;
     private final AgentSessionReadService sessionReadService;
     private final AgentSessionEventReadService sessionEventReadService;
-    private final WorkItemReader workItemReader;
+    private final WorkItemPort workItemPort;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public AddWorkItemResult addWorkItem(Long userId, AddWorkItemRequest request) {
         WorkItemId resourceId = WorkItemId.builder().type(request.resourceType()).id(request.resourceId()).build();
-        WorkItem resource = workItemReader.readAll(userId, List.of(resourceId)).get(resourceId);
+        WorkItem resource = workItemPort.readAll(userId, List.of(resourceId)).get(resourceId);
         if (resource == null) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
@@ -67,7 +65,7 @@ public class AgentWorkItemUseCase {
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(AgentWorkErrorCode.AGENT_WORK_ITEM_NOT_FOUND));
         WorkItemId resourceId = WorkItemId.builder().type(row.resourceType()).id(row.resourceId()).build();
-        WorkItem resource = workItemReader.readAll(userId, List.of(resourceId)).get(resourceId);
+        WorkItem resource = workItemPort.readAll(userId, List.of(resourceId)).get(resourceId);
         if (resource == null) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
@@ -78,7 +76,7 @@ public class AgentWorkItemUseCase {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public TaskContextResponse getTaskContext(Long userId, WorkItemId id) {
         // Swimming: 소유·삭제 여부를 확인하고 식별자를 정규화한다.
-        WorkItem resource = workItemReader.readAll(userId, List.of(id)).get(id);
+        WorkItem resource = workItemPort.readAll(userId, List.of(id)).get(id);
         if (resource == null) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
@@ -89,7 +87,7 @@ public class AgentWorkItemUseCase {
         AgentWorkItemResponse card = toResponse(userId, row, resource);
         WorkItemId resourceId = WorkItemId.builder().type(resource.type()).id(resource.id()).build();
         return new TaskContextResponse(card.id(), card.lane(), card.workItem(), card.session(),
-                workItemReader.readLinkedSources(userId, resourceId));
+                workItemPort.readLinkedSources(userId, resourceId));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)

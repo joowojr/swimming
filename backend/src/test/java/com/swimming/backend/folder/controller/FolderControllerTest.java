@@ -13,6 +13,7 @@ import com.swimming.backend.folder.dto.FolderTagResponse;
 import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
+import com.swimming.backend.folder.dto.UpdateFolderTagRequest;
 import com.swimming.backend.folder.usecase.FolderUseCase;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
@@ -40,6 +41,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -345,6 +347,45 @@ class FolderControllerTest {
                 .andExpect(content().string(""));
 
         verify(folderUseCase).delete(1L, 10L);
+    }
+
+    @Test
+    @DisplayName("폴더의 태그를 바꾸고 바뀐 폴더를 반환한다")
+    void updatesFolderTag() throws Exception {
+        UpdateFolderTagRequest request = new UpdateFolderTagRequest(null, "리서치");
+        when(folderUseCase.updateTag(1L, 10L, request)).thenReturn(new FolderResponse(
+                10L,
+                "프로젝트",
+                "설명",
+                null,
+                FolderStatus.IN_PROGRESS,
+                new FolderTagResponse(4L, "리서치"),
+                false,
+                null,
+                Instant.parse("2026-08-19T10:00:00Z"),
+                Instant.parse("2026-08-19T10:00:00Z")
+        ));
+
+        mockMvc.perform(put("/api/folders/10/tag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"newTagName":"리서치"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tag.id").value(4))
+                .andExpect(jsonPath("$.tag.name").value("리서치"));
+    }
+
+    @Test
+    @DisplayName("폴더 태그 변경에서 새 태그 이름이 공백이면 필드 오류를 반환한다")
+    void rejectsBlankNewTagNameOnTagUpdate() throws Exception {
+        mockMvc.perform(put("/api/folders/10/tag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"newTagName":" "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.newTagName").exists());
     }
 
     private FolderResponse response(

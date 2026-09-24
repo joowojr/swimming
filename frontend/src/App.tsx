@@ -18,6 +18,7 @@ import { authActions, useAuthStore } from './store/authStore'
 import { useFolderStore } from './store/folderStore.ts'
 import { useActiveSessionStore } from './store/activeSessionStore'
 import { useDailyPlanStore } from './store/dailyPlanStore'
+import { useFolderTagStore } from './store/folderTagStore.ts'
 import { useSourceStore } from './store/sourceStore'
 import { useTaskStore } from './store/taskStore'
 import HealthPage from './features/health/HealthPage'
@@ -56,6 +57,7 @@ function App() {
   const resetTasks = useTaskStore((state) => state.reset)
   const resetSources = useSourceStore((state) => state.reset)
   const resetDailyPlans = useDailyPlanStore((state) => state.reset)
+  const resetFolderTags = useFolderTagStore((state) => state.reset)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
 
@@ -68,6 +70,7 @@ function App() {
       resetTasks()
       resetSources()
       resetDailyPlans()
+      resetFolderTags()
       return
     }
 
@@ -75,7 +78,7 @@ function App() {
     if (auth.status !== 'authenticated' || userId === undefined) return
 
     void loadFolders(userId)
-  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetDailyPlans, resetFolders, resetSources, resetTasks])
+  }, [auth.status, auth.user?.id, clearActiveSession, loadFolders, resetDailyPlans, resetFolderTags, resetFolders, resetSources, resetTasks])
 
   // 진행 중인 세션은 로그인한 뒤 어느 화면으로 들어오든 한 번 불러온다. 이후 갱신은 세션을 다루는 화면이 맡는다.
   // 세션 화면은 AppShell 밖이라 셸 안의 위젯에 맡기면 세션 화면으로 바로 들어올 때 비어 있다.

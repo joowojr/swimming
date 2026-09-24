@@ -10,7 +10,6 @@ import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
-import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
@@ -108,7 +107,7 @@ public class TaskController {
     }
 
     @PatchMapping("/tasks/{taskId}/info")
-    public ResponseEntity<UpdateTaskInfoResponse> updateInfo(
+    public ResponseEntity<TaskResponse> updateInfo(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long taskId,
             @Valid @RequestBody UpdateTaskInfoRequest request

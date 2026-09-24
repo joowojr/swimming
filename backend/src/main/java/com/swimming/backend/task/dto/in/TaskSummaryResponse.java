@@ -3,16 +3,19 @@ package com.swimming.backend.task.dto.in;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 
+import java.time.LocalDate;
+
 public record TaskSummaryResponse(
         Long id,
         String title,
         TaskStatus status,
         boolean priority,
         boolean urgent,
-        int orderIdx
+        int orderIdx,
+        LocalDate planDate
 ) {
     public TaskSummaryResponse(Long id, String title, TaskStatus status, int orderIdx) {
-        this(id, title, status, false, false, orderIdx);
+        this(id, title, status, false, false, orderIdx, null);
     }
 
     public static TaskSummaryResponse from(Task task) {
@@ -22,7 +25,8 @@ public record TaskSummaryResponse(
                 task.getStatus(),
                 task.isPriority(),
                 task.isUrgent(),
-                task.getOrderIdx()
+                task.getOrderIdx(),
+                task.getPlanDate()
         );
     }
 }

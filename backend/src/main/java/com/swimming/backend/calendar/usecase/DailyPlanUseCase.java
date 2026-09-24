@@ -2,7 +2,6 @@ package com.swimming.backend.calendar.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.calendar.domain.DailyPlanItem;
 import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
 import com.swimming.backend.calendar.dto.in.NewDailyPlanTask;
 import com.swimming.backend.task.domain.Task;
@@ -10,8 +9,7 @@ import com.swimming.backend.task.domain.TaskMatrixSection;
 import com.swimming.backend.task.dto.in.NewTaskSpec;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
-import com.swimming.backend.calendar.service.DailyPlanService;
+import com.swimming.backend.task.dto.projection.PlannedTaskRow;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.task.service.TaskOrderingService;
@@ -32,16 +30,15 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DailyPlanUseCase {
-    private final DailyPlanService dailyPlanService;
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
     private final FolderService folderService;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<DailyPlanResponse> getRange(Long userId, LocalDate fromDate, LocalDate toDate) {
-        Map<LocalDate, List<DailyPlanItemQueryRow>> rowsByDate = dailyPlanService.getRows(userId, fromDate, toDate)
+        Map<LocalDate, List<PlannedTaskRow>> rowsByDate = taskService.getPlannedRows(userId, fromDate, toDate)
                 .stream()
-                .collect(Collectors.groupingBy(DailyPlanItemQueryRow::planDate));
+                .collect(Collectors.groupingBy(PlannedTaskRow::planDate));
 
         List<DailyPlanResponse> responses = new ArrayList<>();
         for (LocalDate date = fromDate; !date.isAfter(toDate); date = date.plusDays(1)) {
@@ -56,7 +53,7 @@ public class DailyPlanUseCase {
 
     /**
      * 날짜에 할 일을 담는다. 이미 있는 할 일(taskIds)이거나 새로 만들 할 일(tasks)이고, 둘 중 하나만 온다.
-     * 모달의 "모두 추가" 한 번이라 한 트랜잭션에서 끝낸다.
+     * 다른 날짜에 담겨 있던 할 일은 이 날짜로 옮겨진다. 모달의 "모두 추가" 한 번이라 한 트랜잭션에서 끝낸다.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public DailyPlanResponse addItems(Long userId, LocalDate date, CreateDailyPlanItemsRequest request) {
@@ -72,20 +69,15 @@ public class DailyPlanUseCase {
                 ? linkExistingTasks(userId, date, taskIds)
                 : createTasks(userId, drafts);
 
-        dailyPlanService.saveAll(userId, date, plannedTaskIds.stream()
-                .map(DailyPlanItem::createTask)
-                .toList());
+        taskService.plan(userId, plannedTaskIds, date);
         return loadPlanResponse(userId, date);
     }
 
     /** 이미 있는 할 일을 담는다. 같은 날짜에 같은 할 일을 두 번 담을 수 없다. */
     private List<Long> linkExistingTasks(Long userId, LocalDate date, List<Long> taskIds) {
         if (new HashSet<>(taskIds).size() != taskIds.size()
-                || dailyPlanService.containsAnyTasks(userId, date, taskIds)) {
+                || taskService.countPlannedOn(userId, date, taskIds) > 0) {
             throw new BusinessException(ErrorCode.INVALID_DAILY_PLAN_TASKS);
-        }
-        if (taskService.getReferences(userId, taskIds).size() != new HashSet<>(taskIds).size()) {
-            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
         return taskIds;
     }
@@ -114,13 +106,14 @@ public class DailyPlanUseCase {
         return taskService.createAll(userId, specs).stream().map(Task::getId).toList();
     }
 
+    /** 그 날짜의 캘린더에서 뺀다. 할 일 자체는 남는다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void deleteItem(Long userId, LocalDate date, Long itemId) {
-        dailyPlanService.delete(userId, date, itemId);
+    public void removeTask(Long userId, LocalDate date, Long taskId) {
+        taskService.unplan(userId, taskId, date);
     }
 
     private DailyPlanResponse loadPlanResponse(Long userId, LocalDate date) {
-        List<DailyPlanItemResponse> items = dailyPlanService.getRows(userId, date, date)
+        List<DailyPlanItemResponse> items = taskService.getPlannedRows(userId, date, date)
                 .stream()
                 .map(DailyPlanItemResponse::from)
                 .toList();

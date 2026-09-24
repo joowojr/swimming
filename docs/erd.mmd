@@ -5,8 +5,6 @@ erDiagram
     users ||--o{ tasks : owns
     folders o|--o{ tasks : contains
     notes o|--o{ tasks : sources
-    users ||--o{ daily_plan_items : owns
-    tasks ||--o{ daily_plan_items : "plans (delete cascades)"
     users ||--o{ sessions : runs
     users ||--o{ notes : owns
     users ||--o{ task_organizer_runs : owns
@@ -72,16 +70,8 @@ erDiagram
         boolean is_urgent "기본 false"
         int order_idx
         bigint matrix_rank "Matrix 영역 내 순서"
+        date plan_date "nullable, 캘린더 날짜(한 task는 최대 하나)"
         boolean is_deleted
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    daily_plan_items {
-        bigint id PK
-        bigint user_id FK
-        date plan_date
-        bigint task_id FK "ON DELETE CASCADE"
         timestamp created_at
         timestamp updated_at
     }

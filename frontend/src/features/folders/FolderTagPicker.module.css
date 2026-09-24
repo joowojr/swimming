@@ -1,0 +1,176 @@
+/* 폴더 상세 헤더의 태그 칩과 태그 선택 패널. 칩 모양은 FolderHeader에서 옮겨 왔다. */
+.wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.tag,
+.add-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-default);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-label-caps-weight);
+  line-height: var(--text-label-caps-line-height);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-short),
+    color var(--transition-short),
+    background-color var(--transition-short);
+}
+
+.tag {
+  color: var(--color-mute);
+  background: var(--project-tone-tint, var(--color-surface-container-highest));
+}
+
+.tag::before {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--project-tone, var(--color-mute));
+  content: '';
+}
+
+.add-tag {
+  gap: var(--space-1);
+  border-color: var(--color-border-subtle);
+  border-style: dashed;
+  color: var(--color-mute);
+  background: transparent;
+}
+
+.tag:focus,
+.add-tag:focus {
+  outline: none;
+}
+
+[data-tone='0'] { --project-tone: var(--color-tone-fountain); --project-tone-tint: var(--color-tone-fountain-tint); }
+[data-tone='1'] { --project-tone: var(--color-tone-indigo); --project-tone-tint: var(--color-tone-indigo-tint); }
+[data-tone='2'] { --project-tone: var(--color-tone-glorious); --project-tone-tint: var(--color-tone-glorious-tint); }
+[data-tone='3'] { --project-tone: var(--color-tone-wild-willow); --project-tone-tint: var(--color-tone-wild-willow-tint); }
+
+.panel {
+  position: absolute;
+  z-index: calc(var(--z-modal) - 1);
+  top: calc(100% + var(--space-2));
+  left: 0;
+  display: grid;
+  width: 16rem;
+  max-width: calc(100vw - var(--space-8));
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-floating);
+}
+
+.query {
+  min-height: var(--button-height);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-default);
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  background: var(--color-surface-container-lowest);
+}
+
+.query:focus {
+  outline: none;
+}
+
+.query[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.options {
+  display: grid;
+  max-height: 12rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.option,
+.remove {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--button-height);
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-default);
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.option > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option[aria-pressed='true'] {
+  font-weight: var(--text-label-caps-weight);
+}
+
+.remove {
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  border-radius: 0;
+  color: var(--color-mute);
+}
+
+.option:focus-visible,
+.remove:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--border-width) * -1);
+}
+
+.option:disabled,
+.remove:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.status,
+.error {
+  margin: 0;
+  padding: 0 var(--space-2);
+  font-size: var(--text-body-sm-size);
+}
+
+.status {
+  color: var(--color-mute);
+}
+
+.error {
+  color: var(--color-error);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tag:hover,
+  .add-tag:hover {
+    border-color: var(--color-hairline);
+    color: var(--color-primary);
+  }
+
+  .option:hover:not(:disabled),
+  .remove:hover:not(:disabled) {
+    background: var(--color-surface-soft);
+  }
+}

@@ -6,7 +6,6 @@ import type {
   TaskResponse,
   UpdateTaskStatusRequest,
   UpdateTaskInfoRequest,
-  UpdateTaskInfoResponse,
   UpdateTaskTitleRequest,
   UpdateTaskPriorityRequest,
   UpdateTaskUrgentRequest,
@@ -126,8 +125,8 @@ export async function updateTaskUrgent(
 export async function updateTaskInfo(
   taskId: number,
   request: UpdateTaskInfoRequest,
-): Promise<UpdateTaskInfoResponse> {
-  const response = await client.patch<UpdateTaskInfoResponse>(`/tasks/${taskId}/info`, request)
+): Promise<TaskResponse> {
+  const response = await client.patch<TaskResponse>(`/tasks/${taskId}/info`, request)
   return response.data
 }
 

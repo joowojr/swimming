@@ -10,6 +10,7 @@ import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.PinFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
+import com.swimming.backend.folder.dto.UpdateFolderTagRequest;
 import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
@@ -30,17 +31,7 @@ public class FolderUseCase {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public FolderResponse create(Long userId, CreateFolderRequest request) {
-        if (request.tagId() != null && request.newTagName() != null) {
-            throw new BusinessException(ErrorCode.FOLDER_TAG_SELECTION_CONFLICT);
-        }
-
-        FolderTag tag = null;
-        if (request.newTagName() != null) {
-            tag = folderTagService.create(FolderTag.create(userId, request.newTagName()));
-        } else if (request.tagId() != null) {
-            tag = folderTagService.getOne(userId, request.tagId());
-        }
-
+        FolderTag tag = resolveTag(userId, request.tagId(), request.newTagName());
         Folder folder = Folder.create(
                 userId,
                 tag,
@@ -73,11 +64,17 @@ public class FolderUseCase {
         return FolderResponse.from(folderService.update(
                 userId,
                 folderId,
-                request.tagId(),
                 request.name(),
                 request.description(),
                 request.targetDate()
         ));
+    }
+
+    /** 새 태그를 만들 때도 같은 트랜잭션이라, 폴더 반영이 실패하면 태그도 남지 않는다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public FolderResponse updateTag(Long userId, Long folderId, UpdateFolderTagRequest request) {
+        FolderTag tag = resolveTag(userId, request.tagId(), request.newTagName());
+        return FolderResponse.from(folderService.updateTag(userId, folderId, tag));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -97,5 +94,19 @@ public class FolderUseCase {
     @Transactional(propagation = Propagation.REQUIRED)
     public void delete(Long userId, Long folderId) {
         folderService.delete(userId, folderId);
+    }
+
+    /** 기존 태그(tagId)나 새 태그(newTagName) 중 하나를 고른다. 둘 다 없으면 태그가 없다. */
+    private FolderTag resolveTag(Long userId, Long tagId, String newTagName) {
+        if (tagId != null && newTagName != null) {
+            throw new BusinessException(ErrorCode.FOLDER_TAG_SELECTION_CONFLICT);
+        }
+        if (newTagName != null) {
+            return folderTagService.create(FolderTag.create(userId, newTagName));
+        }
+        if (tagId != null) {
+            return folderTagService.getOne(userId, tagId);
+        }
+        return null;
     }
 }

@@ -422,7 +422,8 @@ export default function FolderDetail({ folderId, onDeleted }: FolderDetailProps)
               }}
           />
           <TaskList
-            tasks={visibleTasks}
+            // 폴더 할 일 목록 응답에는 folderId가 없다. 없으면 수정 모달이 미분류로 알고 저장해 폴더에서 빠진다.
+            tasks={visibleTasks.map((task) => ({ ...task, folderId: folder.id }))}
             emptyTitle={emptyCopy.title}
             emptyDescription={emptyCopy.description}
             connected

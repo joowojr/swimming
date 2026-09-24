@@ -12,9 +12,7 @@ import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
-import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
-import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.usecase.TaskUseCase;
@@ -224,24 +222,20 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("수정하기는 Task와 바뀐 날짜의 계획을 함께 반환한다")
+    @DisplayName("수정하기는 캘린더 날짜까지 반영한 Task를 반환한다")
     void updatesTaskInfo() throws Exception {
         LocalDate date = LocalDate.of(2026, 9, 5);
-        UpdateTaskInfoRequest request = new UpdateTaskInfoRequest(
-                "API 구현", 10L, true, false, new UpdateTaskInfoRequest.PlanMove(7L, date));
-        when(taskUseCase.updateInfo(1L, 1L, request)).thenReturn(new UpdateTaskInfoResponse(
-                response(1L, "API 구현", TaskStatus.TODO, 0),
-                List.of(new DailyPlanResponse(date, List.of()))
-        ));
+        UpdateTaskInfoRequest request = new UpdateTaskInfoRequest("API 구현", 10L, true, false, date);
+        when(taskUseCase.updateInfo(1L, 1L, request)).thenReturn(response(1L, "API 구현", TaskStatus.TODO, 0));
 
         mockMvc.perform(patch("/api/tasks/1/info")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"API 구현","folderId":10,"priority":true,"urgent":false,"plan":{"itemId":7,"date":"2026-09-05"}}
+                                {"title":"API 구현","folderId":10,"priority":true,"urgent":false,"planDate":"2026-09-05"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.task.title").value("API 구현"))
-                .andExpect(jsonPath("$.plans[0].date").value("2026-09-05"));
+                .andExpect(jsonPath("$.title").value("API 구현"))
+                .andExpect(jsonPath("$.plans").doesNotExist());
     }
 
     @Test

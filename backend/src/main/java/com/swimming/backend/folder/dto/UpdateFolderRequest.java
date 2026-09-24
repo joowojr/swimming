@@ -13,8 +13,6 @@ public record UpdateFolderRequest(
         @NotBlank(message = "프로젝트 설명을 입력해 주세요")
         String description,
 
-        LocalDate targetDate,
-
-        Long tagId
+        LocalDate targetDate
 ) {
 }

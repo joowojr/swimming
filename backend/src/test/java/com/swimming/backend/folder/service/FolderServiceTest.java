@@ -163,7 +163,7 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
-                1L, 10L, null, " 수정 프로젝트 ", " 수정 설명 ", null
+                1L, 10L, " 수정 프로젝트 ", " 수정 설명 ", null
         );
 
         assertThat(result.getName()).isEqualTo("수정 프로젝트");
@@ -175,17 +175,56 @@ class FolderServiceTest {
     }
 
     @Test
-    @DisplayName("프로젝트에서 선택한 태그를 해제할 수 있다")
-    void removesTagFromFolder() {
+    @DisplayName("폴더 정보를 수정해도 폴더의 태그는 그대로 둔다")
+    void keepsTagWhenFolderIsUpdated() {
         FolderTagEntity tag = tagEntity(3L, 1L, "취준");
         FolderEntity entity = folderEntity(1L, "프로젝트", null, tag);
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
-        Folder result = folderService.update(
-                1L, 10L, null, "프로젝트", "설명", null
-        );
+        Folder result = folderService.update(1L, 10L, "수정 프로젝트", "설명", null);
+
+        assertThat(result.getTag().getId()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("폴더의 태그를 다른 태그로 바꾼다")
+    void changesFolderTag() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, tagEntity(3L, 1L, "취준"));
+        FolderTagEntity nextTag = tagEntity(4L, 1L, "리서치");
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+        when(folderTagRepository.findByIdAndUserId(4L, 1L)).thenReturn(Optional.of(nextTag));
+
+        Folder result = folderService.updateTag(1L, 10L, nextTag.toDomain());
+
+        assertThat(result.getTag().getId()).isEqualTo(4L);
+        assertThat(result.getTag().getName()).isEqualTo("리서치");
+        verify(folderRepository).flush();
+    }
+
+    @Test
+    @DisplayName("폴더에서 태그를 뗀다")
+    void removesTagFromFolder() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, tagEntity(3L, 1L, "취준"));
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+
+        Folder result = folderService.updateTag(1L, 10L, null);
 
         assertThat(result.getTag()).isNull();
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 태그는 폴더에 달 수 없다")
+    void rejectsAttachingAnotherUsersTag() {
+        FolderEntity entity = folderEntity(1L, "프로젝트", null, null);
+        when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
+        when(folderTagRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> folderService.updateTag(
+                1L, 10L, FolderTag.restore(5L, 2L, "남의 태그", null, null)
+        ))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_TAG_NOT_FOUND));
+        assertThat(entity.toDomain().getTag()).isNull();
     }
 
     @Test
@@ -236,7 +275,7 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder result = folderService.update(
-                1L, 10L, null, "수정 프로젝트", "수정 설명", null
+                1L, 10L, "수정 프로젝트", "수정 설명", null
         );
 
         assertThat(result.getPinnedAt()).isEqualTo(Instant.parse("2026-09-01T00:00:00Z"));
@@ -300,7 +339,7 @@ class FolderServiceTest {
         when(folderRepository.findByIdAndUser_IdAndDeletedFalse(10L, 1L)).thenReturn(Optional.of(entity));
 
         Folder updated = folderService.update(
-                1L, 10L, null, "새 이름", "새 설명", null
+                1L, 10L, "새 이름", "새 설명", null
         );
 
         assertThat(entity.hasSource()).isTrue();

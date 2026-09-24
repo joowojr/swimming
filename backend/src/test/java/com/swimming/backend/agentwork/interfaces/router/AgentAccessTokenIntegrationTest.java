@@ -49,17 +49,21 @@ class AgentAccessTokenIntegrationTest {
     @Autowired private AgentAccessTokenRepository repository;
 
     @Test
-    @DisplayName("발급한 PAT로 Agent Work API와 MCP 초기화를 인증하고 마지막 사용 시각을 남긴다")
+    @DisplayName("발급한 PAT로 Agent Work API와 MCP 초기화를 인증하고 서버 안내와 마지막 사용 시각을 남긴다")
     void authenticatesAgentPaths() throws Exception {
         var issued = issue(USER_IDS.incrementAndGet());
 
         mockMvc.perform(get("/api/agent-work/board").header("Authorization", bearer(issued.token())))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/mcp").header("Authorization", bearer(issued.token()))
+        var initialized = mockMvc.perform(post("/mcp").header("Authorization", bearer(issued.token()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
                         .content(MCP_INITIALIZE))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+        // 서버 instructions는 자바 코드에서 넣는다.
+        assertThat(initialized.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+                .contains("Swimming Cowork Board");
 
         assertThat(repository.findByTokenHash(tokenService.hash(issued.token())).orElseThrow().getLastUsedAt())
                 .isNotNull();

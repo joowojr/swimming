@@ -10,7 +10,8 @@ import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.task.service.TaskService;
-import com.swimming.backend.task.service.TaskSourceService;
+// TODO(task-source): Task Source 커밋 후 복원
+// import com.swimming.backend.task.service.TaskSourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SwimmingTaskWorkItemReader implements WorkItemReader {
     private final TaskService taskService;
-    private final TaskSourceService taskSourceService;
+    // TODO(task-source): Task Source 커밋 후 복원
+    // private final TaskSourceService taskSourceService;
     private final KnowledgeSourceService knowledgeSourceService;
 
     @Override
@@ -74,7 +76,9 @@ public class SwimmingTaskWorkItemReader implements WorkItemReader {
         if (task == null) {
             return List.of();
         }
-        List<UUID> sourceIds = taskSourceService.getSourceIds(Long.parseLong(task.id()));
+        // TODO(task-source): Task Source 커밋 후 복원. 그 전까지는 연결된 지식이 없는 것으로 본다.
+        // List<UUID> sourceIds = taskSourceService.getSourceIds(Long.parseLong(task.id()));
+        List<UUID> sourceIds = List.of();
         if (sourceIds.isEmpty()) {
             return List.of();
         }

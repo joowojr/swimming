@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +38,7 @@ public class AgentWorkItemUseCase {
     private final AgentSessionReadService sessionReadService;
     private final AgentSessionEventReadService sessionEventReadService;
     private final WorkItemPort workItemPort;
+    private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public AddWorkItemResult addWorkItem(Long userId, AddWorkItemRequest request) {
@@ -50,7 +52,7 @@ public class AgentWorkItemUseCase {
                 .filter(item -> item.resourceType() == request.resourceType()
                         && item.resourceId().equals(request.resourceId()))
                 .findFirst();
-        Long workItemId = workItemWriteService.registerAndLock(userId, request.resourceType(), request.resourceId(), Instant.now());
+        Long workItemId = workItemWriteService.registerAndLock(userId, request.resourceType(), request.resourceId(), clock.instant());
         var row = workItemReadService.findBoardItems(userId).stream()
                 .filter(item -> Objects.equals(item.id(), workItemId))
                 .findFirst()

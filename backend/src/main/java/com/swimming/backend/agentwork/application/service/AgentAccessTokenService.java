@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -35,12 +36,13 @@ public class AgentAccessTokenService {
             .map(AgentAccessTokenScope::value).collect(Collectors.toUnmodifiableSet());
 
     private final AgentAccessTokenRepository repository;
+    private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public IssuedAgentAccessTokenResponse issue(Long userId, CreateAgentAccessTokenRequest request) {
         String token = PREFIX + randomPart();
         Instant expiresAt = request.expiresInDays() == null
-                ? null : Instant.now().plus(request.expiresInDays(), ChronoUnit.DAYS);
+                ? null : clock.instant().plus(request.expiresInDays(), ChronoUnit.DAYS);
         AgentAccessTokenEntity entity = AgentAccessTokenEntity.issue(
                 userId, request.name(), token.substring(0, Math.min(token.length(), 8)), token.substring(token.length() - 6),
                 hash(token), String.join(",", DEFAULT_SCOPES), expiresAt);
@@ -57,15 +59,15 @@ public class AgentAccessTokenService {
     public void revoke(Long userId, Long tokenId) {
         AgentAccessTokenEntity token = repository.findByIdAndUserId(tokenId, userId)
                 .orElseThrow(() -> new BusinessException(AgentWorkErrorCode.AGENT_ACCESS_TOKEN_NOT_FOUND));
-        token.revoke(Instant.now());
+        token.revoke(clock.instant());
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public AgentAccessTokenEntity authenticate(String rawToken) {
         AgentAccessTokenEntity token = repository.findByTokenHash(hash(rawToken))
-                .filter(entity -> entity.isActive(Instant.now()))
+                .filter(entity -> entity.isActive(clock.instant()))
                 .orElseThrow(() -> new BusinessException(AgentWorkErrorCode.AGENT_ACCESS_TOKEN_INVALID));
-        token.markUsed(Instant.now());
+        token.markUsed(clock.instant());
         return token;
     }
 

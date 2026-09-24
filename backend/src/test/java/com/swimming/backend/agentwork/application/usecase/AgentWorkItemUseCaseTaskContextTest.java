@@ -16,7 +16,9 @@ import com.swimming.backend.common.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +36,8 @@ class AgentWorkItemUseCaseTaskContextTest {
     private final WorkItemPort workItemService = mock(WorkItemPort.class);
     private final AgentWorkItemUseCase useCase = new AgentWorkItemUseCase(workItemReadService,
             mock(AgentWorkItemWriteService.class), mock(AgentSessionReadService.class),
-            mock(AgentSessionEventReadService.class), workItemService);
+            mock(AgentSessionEventReadService.class), workItemService,
+            Clock.fixed(CREATED_AT, ZoneOffset.UTC));
 
     @Test
     @DisplayName("보드에 없는 Task도 연결된 지식과 함께 시작 전 맥락으로 돌려준다")

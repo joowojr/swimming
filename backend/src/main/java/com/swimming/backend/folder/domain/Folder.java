@@ -131,13 +131,11 @@ public class Folder {
     public void update(
             String name,
             String description,
-            LocalDate targetDate,
-            FolderTag tag
+            LocalDate targetDate
     ) {
         this.name = name.trim();
         this.description = description.trim();
         this.targetDate = targetDate;
-        this.tag = tag;
     }
 
     public void updateStatus(FolderStatus status) {

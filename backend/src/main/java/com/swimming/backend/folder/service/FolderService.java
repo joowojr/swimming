@@ -88,23 +88,23 @@ public class FolderService {
     public Folder update(
             Long userId,
             Long folderId,
-            Long tagId,
             String name,
             String description,
             LocalDate targetDate
     ) {
         FolderEntity entity = getOwnedFolderEntity(userId, folderId);
-        FolderTagEntity tagEntity = tagId == null
-                ? null
-                : getOwnedTagEntity(userId, tagId);
         Folder folder = entity.toDomain();
-        folder.update(
-                name,
-                description,
-                targetDate,
-                tagEntity == null ? null : tagEntity.toDomain()
-        );
-        entity.apply(folder, tagEntity);
+        folder.update(name, description, targetDate);
+        entity.apply(folder);
+        folderRepository.flush();
+        return entity.toDomain();
+    }
+
+    /** 이 폴더의 태그만 바꾼다. tag가 null이면 태그를 뗀다. pin과 같은 방식으로 반영한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public Folder updateTag(Long userId, Long folderId, FolderTag tag) {
+        FolderEntity entity = getOwnedFolderEntity(userId, folderId);
+        entity.updateTag(getOwnedTagEntity(userId, tag));
         folderRepository.flush();
         return entity.toDomain();
     }
@@ -174,11 +174,6 @@ public class FolderService {
             return null;
         }
         return folderTagRepository.findByIdAndUserId(tag.getId(), userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND));
-    }
-
-    private FolderTagEntity getOwnedTagEntity(Long userId, Long tagId) {
-        return folderTagRepository.findByIdAndUserId(tagId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FOLDER_TAG_NOT_FOUND));
     }
 }

@@ -50,17 +50,16 @@ class FolderTest {
     @Test
     @DisplayName("프로젝트가 자신의 기본 정보를 수정한다")
     void updatesFolderState() {
-        Folder folder = Folder.create(1L, null, "프로젝트", "설명", null);
         FolderTag tag = FolderTag.restore(3L, 1L, "취준", null, null);
+        Folder folder = Folder.create(1L, tag, "프로젝트", "설명", null);
 
-        folder.update(
-                " 수정 프로젝트 ", " 수정 설명 ", LocalDate.of(2026, 10, 1),
-                tag
-        );
+        folder.update(" 수정 프로젝트 ", " 수정 설명 ", LocalDate.of(2026, 10, 1));
 
         assertThat(folder.getName()).isEqualTo("수정 프로젝트");
         assertThat(folder.getDescription()).isEqualTo("수정 설명");
-        assertThat(folder.getTag()).isSameAs(tag);
+        assertThat(folder.getTag())
+                .as("태그는 폴더 태그 API만 바꾼다")
+                .isSameAs(tag);
     }
 
     @Test

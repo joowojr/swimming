@@ -62,9 +62,9 @@ class FolderChangeDetectionIntegrationTest {
                 FolderTagEntity.from(FolderTag.create(user.getId(), "업무"))
         );
         FolderEntity entity = folderRepository.saveAndFlush(FolderEntity.from(
-                Folder.create(user.getId(), null, "기존 프로젝트", "기존 설명", null),
+                Folder.create(user.getId(), tag.toDomain(), "기존 프로젝트", "기존 설명", null),
                 user,
-                null
+                tag
         ));
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
 
@@ -72,13 +72,13 @@ class FolderChangeDetectionIntegrationTest {
         Folder updated = folderService.update(
                 user.getId(),
                 entity.getId(),
-                tag.getId(),
                 "수정 프로젝트",
                 "수정 설명",
                 LocalDate.of(2026, 12, 31)
         );
 
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(3);
+        // 폴더 조회 + update. 태그는 폴더 태그 API가 맡아 여기서 조회하지 않는다.
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
         assertThat(updated.getUpdatedAt()).isNotNull();
         Folder stored = folderRepository
                 .findByIdAndUser_IdAndDeletedFalse(entity.getId(), user.getId())

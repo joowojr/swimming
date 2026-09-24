@@ -1,0 +1,64 @@
+/* 폴더 제목·설명 묶음 수정 폼. 보기 모드의 글자 크기를 그대로 써서 편집 중에도 자리가 튀지 않게 한다. */
+.form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.name,
+.description {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-lowest);
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+}
+
+.name {
+  color: var(--color-primary);
+  font-size: var(--text-headline-lg-size);
+  font-weight: var(--text-headline-lg-weight);
+  letter-spacing: var(--text-headline-xl-letter-spacing);
+  line-height: var(--text-headline-lg-line-height);
+}
+
+.description {
+  color: var(--color-mute);
+  font: inherit;
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-lg-line-height);
+  resize: vertical;
+}
+
+.name:focus-visible,
+.description:focus-visible {
+  border-color: var(--color-primary);
+  outline-color: var(--focus-ring-color);
+}
+
+.name[aria-invalid='true'],
+.description[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.name:disabled,
+.description:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

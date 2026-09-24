@@ -13,7 +13,7 @@ import com.swimming.backend.agentwork.application.service.AgentWorkItemReadServi
 import com.swimming.backend.agentwork.application.service.AgentSessionReadService;
 import com.swimming.backend.agentwork.application.service.AgentSessionEventReadService;
 import com.swimming.backend.agentwork.application.port.WorkItemId;
-import com.swimming.backend.agentwork.application.port.WorkItemReader;
+import com.swimming.backend.agentwork.application.port.WorkItemPort;
 import com.swimming.backend.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,7 +42,7 @@ public class AgentBoardUseCase {
     private final AgentWorkItemReadService workItemReadService;
     private final AgentSessionReadService sessionReadService;
     private final AgentSessionEventReadService sessionEventReadService;
-    private final WorkItemReader workItemReader;
+    private final WorkItemPort workItemPort;
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public AgentBoardResponse getBoard(Long userId) {
@@ -52,7 +52,7 @@ public class AgentBoardUseCase {
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public AgentBoardResponse getBoard(Long userId, BoardSort sort) {
         // Swimming: 등록·세션 존재 여부와 관계없이 소유한 삭제되지 않은 Task 전체를 배치 조회한다.
-        var resources = workItemReader.readAllOwned(userId);
+        var resources = workItemPort.readAllOwned(userId);
         Map<BoardLane, List<AgentWorkItemResponse>> lanes = new EnumMap<>(BoardLane.class);
         for (BoardLane lane : BoardLane.values()) {
             lanes.put(lane, new ArrayList<>());

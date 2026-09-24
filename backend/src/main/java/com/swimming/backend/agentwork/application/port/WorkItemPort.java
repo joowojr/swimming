@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.List;
 
-public interface WorkItemReader {
+public interface WorkItemPort {
     /** 사용자가 소유한 삭제되지 않은 업무 리소스를 모두 반환한다. */
     List<WorkItem> readAllOwned(Long userId);
 

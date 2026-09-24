@@ -19,13 +19,13 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-class SwimmingTaskWorkItemReaderTest {
+class SwimmingTaskWorkItemPortTest {
     private final TaskService taskService = mock(TaskService.class);
     // TODO(task-source): Task Source 커밋 후 복원
     // private final TaskSourceService taskSourceService = mock(TaskSourceService.class);
     private final KnowledgeSourceService knowledgeSourceService = mock(KnowledgeSourceService.class);
-    private final SwimmingTaskWorkItemReader reader =
-            new SwimmingTaskWorkItemReader(taskService, knowledgeSourceService);
+    private final SwimmingTaskWorkItemService service =
+            new SwimmingTaskWorkItemService(taskService, knowledgeSourceService);
 
     @Test
     @DisplayName("Task 표시 정보를 배치 조회하고 리소스 식별자를 정규화한다")
@@ -34,7 +34,7 @@ class SwimmingTaskWorkItemReaderTest {
                 .thenReturn(List.of(new TaskSummaryRow(7L, 3L, "업무", "구현", com.swimming.backend.task.domain.TaskStatus.TODO,
                         true, false, java.time.Instant.parse("2026-09-18T00:00:00Z"))));
         WorkItemId first = id("007");
-        var result = reader.readAll(1L, List.of(first, id("7"), id("8")));
+        var result = service.readAll(1L, List.of(first, id("7"), id("8")));
         assertThat(result).containsOnlyKeys(first, id("7"));
         assertThat(result.get(first).id()).isEqualTo("7");
         assertThat(result.get(first).containerName()).isEqualTo("업무");
@@ -46,15 +46,15 @@ class SwimmingTaskWorkItemReaderTest {
     @DisplayName("존재하지 않거나 타인·삭제된 Task는 조회 결과에서 제외한다")
     void excludesUnavailableTasks() {
         when(taskService.getActiveSummaries(1L, List.of(7L))).thenReturn(List.of());
-        assertThat(reader.readAll(1L, List.of(id("7")))).isEmpty();
+        assertThat(service.readAll(1L, List.of(id("7")))).isEmpty();
     }
 
     @Test
     @DisplayName("잘못된 Task 식별자와 빈 목록은 DB 조회 없이 제외한다")
     void excludesInvalidIds() {
-        assertThat(reader.readAll(1L, List.of(id("abc"), id("0"), id("-1"), id("9223372036854775808"))))
+        assertThat(service.readAll(1L, List.of(id("abc"), id("0"), id("-1"), id("9223372036854775808"))))
                 .isEmpty();
-        assertThat(reader.readAll(1L, List.of())).isEmpty();
+        assertThat(service.readAll(1L, List.of())).isEmpty();
         verifyNoInteractions(taskService);
     }
 
@@ -70,7 +70,7 @@ class SwimmingTaskWorkItemReaderTest {
     //     List<KnowledgeSource> owned = List.of(source(first, "첫 문서"), source(second, "둘째 문서"));
     //     when(knowledgeSourceService.getOwnedAll(1L, List.of(second, deleted, first))).thenReturn(owned);
 
-    //     assertThat(reader.readLinkedSources(1L, id("7"))).extracting(LinkedSource::id, LinkedSource::title)
+    //     assertThat(service.readLinkedSources(1L, id("7"))).extracting(LinkedSource::id, LinkedSource::title)
     //             .containsExactly(org.assertj.core.groups.Tuple.tuple(second, "둘째 문서"),
     //                     org.assertj.core.groups.Tuple.tuple(first, "첫 문서"));
     // }
@@ -80,7 +80,7 @@ class SwimmingTaskWorkItemReaderTest {
     void skipsLinkedSourcesOfUnownedTask() {
         when(taskService.getActiveSummaries(1L, List.of(7L))).thenReturn(List.of());
 
-        assertThat(reader.readLinkedSources(1L, id("7"))).isEmpty();
+        assertThat(service.readLinkedSources(1L, id("7"))).isEmpty();
         // TODO(task-source): taskSourceService도 함께 확인한다.
         verifyNoInteractions(knowledgeSourceService);
     }

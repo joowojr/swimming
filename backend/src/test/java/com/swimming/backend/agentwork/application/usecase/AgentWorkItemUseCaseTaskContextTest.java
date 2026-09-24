@@ -10,7 +10,7 @@ import com.swimming.backend.agentwork.application.service.AgentWorkItemWriteServ
 import com.swimming.backend.agentwork.application.port.LinkedSource;
 import com.swimming.backend.agentwork.application.port.WorkItem;
 import com.swimming.backend.agentwork.application.port.WorkItemId;
-import com.swimming.backend.agentwork.application.port.WorkItemReader;
+import com.swimming.backend.agentwork.application.port.WorkItemPort;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -31,18 +31,18 @@ class AgentWorkItemUseCaseTaskContextTest {
     private static final Instant CREATED_AT = Instant.parse("2026-09-18T00:00:00Z");
 
     private final AgentWorkItemReadService workItemReadService = mock(AgentWorkItemReadService.class);
-    private final WorkItemReader workItemReader = mock(WorkItemReader.class);
+    private final WorkItemPort workItemService = mock(WorkItemPort.class);
     private final AgentWorkItemUseCase useCase = new AgentWorkItemUseCase(workItemReadService,
             mock(AgentWorkItemWriteService.class), mock(AgentSessionReadService.class),
-            mock(AgentSessionEventReadService.class), workItemReader);
+            mock(AgentSessionEventReadService.class), workItemService);
 
     @Test
     @DisplayName("보드에 없는 Task도 연결된 지식과 함께 시작 전 맥락으로 돌려준다")
     void readsUnregisteredTask() {
         LinkedSource source = new LinkedSource(UUID.randomUUID(), "설계 문서", "https://example.com", "요약");
-        when(workItemReader.readAll(1L, List.of(id("007")))).thenReturn(Map.of(id("007"), task()));
+        when(workItemService.readAll(1L, List.of(id("007")))).thenReturn(Map.of(id("007"), task()));
         when(workItemReadService.findBoardItems(1L)).thenReturn(List.of());
-        when(workItemReader.readLinkedSources(1L, id("7"))).thenReturn(List.of(source));
+        when(workItemService.readLinkedSources(1L, id("7"))).thenReturn(List.of(source));
 
         var context = useCase.getTaskContext(1L, id("007"));
 
@@ -57,22 +57,22 @@ class AgentWorkItemUseCaseTaskContextTest {
     @Test
     @DisplayName("보드에 등록된 Task는 카드 식별자를 함께 돌려준다")
     void readsRegisteredTask() {
-        when(workItemReader.readAll(1L, List.of(id("7")))).thenReturn(Map.of(id("7"), task()));
+        when(workItemService.readAll(1L, List.of(id("7")))).thenReturn(Map.of(id("7"), task()));
         when(workItemReadService.findBoardItems(1L)).thenReturn(List.of(
                 new AgentWorkItemRow(30L, WorkResourceType.SWIMMING_TASK, "7", null, CREATED_AT)));
-        when(workItemReader.readLinkedSources(1L, id("7"))).thenReturn(List.of());
+        when(workItemService.readLinkedSources(1L, id("7"))).thenReturn(List.of());
 
         var context = useCase.getTaskContext(1L, id("7"));
 
         assertThat(context.workItemId()).isEqualTo(30L);
         assertThat(context.lane()).isEqualTo(BoardLane.NOT_STARTED);
-        verify(workItemReader).readLinkedSources(1L, id("7"));
+        verify(workItemService).readLinkedSources(1L, id("7"));
     }
 
     @Test
     @DisplayName("타인·삭제·존재하지 않는 Task는 TASK_NOT_FOUND로 거절한다")
     void rejectsUnavailableTask() {
-        when(workItemReader.readAll(1L, List.of(id("7")))).thenReturn(Map.of());
+        when(workItemService.readAll(1L, List.of(id("7")))).thenReturn(Map.of());
 
         assertThatThrownBy(() -> useCase.getTaskContext(1L, id("7")))
                 .isInstanceOfSatisfying(BusinessException.class,

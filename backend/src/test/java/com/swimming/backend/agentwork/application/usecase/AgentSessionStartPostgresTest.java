@@ -21,10 +21,9 @@ import com.swimming.backend.agentwork.application.service.AgentWorkItemWriteServ
 import com.swimming.backend.agentwork.application.service.AgentWorkItemReadService;
 import com.swimming.backend.agentwork.application.port.WorkItem;
 import com.swimming.backend.agentwork.application.port.WorkItemId;
-import com.swimming.backend.agentwork.application.port.WorkItemReader;
+import com.swimming.backend.agentwork.application.port.WorkItemPort;
 import com.swimming.backend.common.config.TimeConfig;
 import com.swimming.backend.common.exception.BusinessException;
-import com.swimming.backend.common.exception.ErrorCode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -116,14 +115,14 @@ class AgentSessionStartPostgresTest {
     @Autowired private AgentSessionEventWriteRepository eventWrites;
     @Autowired private AgentSessionReadRepository sessions;
     @Autowired private AgentSessionEventReadRepository events;
-    @MockitoBean private WorkItemReader reader;
+    @MockitoBean private WorkItemPort workItemService;
 
     @BeforeEach
     void cleanRows() {
         eventWrites.deleteAllInBatch();
         workItemWrites.deleteAllInBatch();
         sessionWrites.deleteAllInBatch();
-        when(reader.readAll(eq(1L), anyCollection())).thenReturn(resources("7"));
+        when(workItemService.readAll(eq(1L), anyCollection())).thenReturn(resources("7"));
     }
 
     @Test
@@ -142,7 +141,7 @@ class AgentSessionStartPostgresTest {
     @DisplayName("동시 최초 시작은 카드·세션·이벤트를 하나만 만들고 다른 요청은 409 오류를 낸다")
     void serializesConcurrentFirstStarts() throws Exception {
         CyclicBarrier barrier = new CyclicBarrier(2);
-        when(reader.readAll(eq(1L), anyCollection())).thenAnswer(invocation -> {
+        when(workItemService.readAll(eq(1L), anyCollection())).thenAnswer(invocation -> {
             barrier.await(10, TimeUnit.SECONDS);
             return resources("7");
         });
@@ -186,7 +185,7 @@ class AgentSessionStartPostgresTest {
     @DisplayName("순서가 반대인 겹친 Task 묶음의 동시 시작도 하나의 세션만 생성한다")
     void serializesOverlappingGroups() throws Exception {
         var barrier = new CyclicBarrier(2);
-        when(reader.readAll(eq(1L), anyCollection())).thenAnswer(invocation -> {
+        when(workItemService.readAll(eq(1L), anyCollection())).thenAnswer(invocation -> {
             barrier.await(10, TimeUnit.SECONDS);
             var resourceMap = new java.util.HashMap<>(resources("7"));
             resourceMap.putAll(resources("8"));
@@ -213,7 +212,7 @@ class AgentSessionStartPostgresTest {
     void serializesRestartsThroughDifferentCards() throws Exception {
         var map = new java.util.HashMap<>(resources("7"));
         map.putAll(resources("8"));
-        when(reader.readAll(eq(1L), anyCollection())).thenReturn(map);
+        when(workItemService.readAll(eq(1L), anyCollection())).thenReturn(map);
         var group = new StartAgentWorkRequest(java.util.List.of(
                 new AddWorkItemRequest(WorkResourceType.SWIMMING_TASK, "7"),
                 new AddWorkItemRequest(WorkResourceType.SWIMMING_TASK, "8")), AgentType.CODEX, null);
@@ -223,7 +222,7 @@ class AgentSessionStartPostgresTest {
             statement.executeUpdate("UPDATE agent_sessions SET status='COMPLETED', completed_at=CURRENT_TIMESTAMP");
         }
         var barrier = new CyclicBarrier(2);
-        when(reader.readAll(eq(1L), anyCollection())).thenAnswer(invocation -> {
+        when(workItemService.readAll(eq(1L), anyCollection())).thenAnswer(invocation -> {
             barrier.await(10, TimeUnit.SECONDS);
             return map;
         });

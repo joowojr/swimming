@@ -8,7 +8,8 @@ import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.task.dto.projection.TaskSummaryRow;
 import com.swimming.backend.task.service.TaskService;
-import com.swimming.backend.task.service.TaskSourceService;
+// TODO(task-source): Task Source 커밋 후 복원
+// import com.swimming.backend.task.service.TaskSourceService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,10 +21,11 @@ import static org.mockito.Mockito.*;
 
 class SwimmingTaskWorkItemReaderTest {
     private final TaskService taskService = mock(TaskService.class);
-    private final TaskSourceService taskSourceService = mock(TaskSourceService.class);
+    // TODO(task-source): Task Source 커밋 후 복원
+    // private final TaskSourceService taskSourceService = mock(TaskSourceService.class);
     private final KnowledgeSourceService knowledgeSourceService = mock(KnowledgeSourceService.class);
     private final SwimmingTaskWorkItemReader reader =
-            new SwimmingTaskWorkItemReader(taskService, taskSourceService, knowledgeSourceService);
+            new SwimmingTaskWorkItemReader(taskService, knowledgeSourceService);
 
     @Test
     @DisplayName("Task 표시 정보를 배치 조회하고 리소스 식별자를 정규화한다")
@@ -56,21 +58,22 @@ class SwimmingTaskWorkItemReaderTest {
         verifyNoInteractions(taskService);
     }
 
-    @Test
-    @DisplayName("연결된 지식을 붙인 순서대로 돌려주고 지워졌거나 타인의 문서는 뺀다")
-    void readsLinkedSourcesInOrder() {
-        UUID first = UUID.randomUUID();
-        UUID deleted = UUID.randomUUID();
-        UUID second = UUID.randomUUID();
-        when(taskService.getActiveSummaries(1L, List.of(7L))).thenReturn(List.of(task(7L)));
-        when(taskSourceService.getSourceIds(7L)).thenReturn(List.of(second, deleted, first));
-        List<KnowledgeSource> owned = List.of(source(first, "첫 문서"), source(second, "둘째 문서"));
-        when(knowledgeSourceService.getOwnedAll(1L, List.of(second, deleted, first))).thenReturn(owned);
+    // TODO(task-source): Task Source 커밋 후 복원
+    // @Test
+    // @DisplayName("연결된 지식을 붙인 순서대로 돌려주고 지워졌거나 타인의 문서는 뺀다")
+    // void readsLinkedSourcesInOrder() {
+    //     UUID first = UUID.randomUUID();
+    //     UUID deleted = UUID.randomUUID();
+    //     UUID second = UUID.randomUUID();
+    //     when(taskService.getActiveSummaries(1L, List.of(7L))).thenReturn(List.of(task(7L)));
+    //     when(taskSourceService.getSourceIds(7L)).thenReturn(List.of(second, deleted, first));
+    //     List<KnowledgeSource> owned = List.of(source(first, "첫 문서"), source(second, "둘째 문서"));
+    //     when(knowledgeSourceService.getOwnedAll(1L, List.of(second, deleted, first))).thenReturn(owned);
 
-        assertThat(reader.readLinkedSources(1L, id("7"))).extracting(LinkedSource::id, LinkedSource::title)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple(second, "둘째 문서"),
-                        org.assertj.core.groups.Tuple.tuple(first, "첫 문서"));
-    }
+    //     assertThat(reader.readLinkedSources(1L, id("7"))).extracting(LinkedSource::id, LinkedSource::title)
+    //             .containsExactly(org.assertj.core.groups.Tuple.tuple(second, "둘째 문서"),
+    //                     org.assertj.core.groups.Tuple.tuple(first, "첫 문서"));
+    // }
 
     @Test
     @DisplayName("소유하지 않은 Task의 연결 지식은 조회하지 않는다")
@@ -78,7 +81,8 @@ class SwimmingTaskWorkItemReaderTest {
         when(taskService.getActiveSummaries(1L, List.of(7L))).thenReturn(List.of());
 
         assertThat(reader.readLinkedSources(1L, id("7"))).isEmpty();
-        verifyNoInteractions(taskSourceService, knowledgeSourceService);
+        // TODO(task-source): taskSourceService도 함께 확인한다.
+        verifyNoInteractions(knowledgeSourceService);
     }
 
     private TaskSummaryRow task(Long id) {

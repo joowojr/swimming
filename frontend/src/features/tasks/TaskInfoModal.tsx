@@ -16,12 +16,8 @@ interface TaskInfoModalProps {
   currentFolderId: number | null
   currentPriority: boolean
   currentUrgent: boolean
-  /**
-   * 날짜를 다룰 수 있는 화면만 넘긴다.
-   * itemId가 있으면 그 캘린더 항목을 옮기고, 없으면 고른 날짜의 캘린더에 새로 담는다.
-   * date는 지금 담긴 날짜이고, 모르면 빈 문자열이다.
-   */
-  plan?: { itemId?: number; date: string }
+  /** 지금 담긴 캘린더 날짜. 담지 않았으면 null이다. */
+  currentPlanDate: string | null
   /**
    * 중요·즉시 수정 허용 여부. 매트릭스는 이 두 값이 곧 섹션이라 여기서 바꾸면
    * 카드가 다른 섹션으로 사라진다. 매트릭스에서는 드래그로 옮긴다.
@@ -36,10 +32,9 @@ function requestErrorMessage(error: unknown, fallback: string) {
 }
 
 /**
- * 역할: 할 일의 날짜·폴더·표시를 한 화면에서 고친다.
+ * 역할: 할 일의 제목·날짜·폴더·표시를 한 화면에서 고친다.
  * 서버가 한 트랜잭션으로 처리하므로 일부만 반영되는 중간 상태가 없다.
- * TODO(task-owns-plan-date): 캘린더 날짜가 task 컬럼이 되면 plan prop과 응답의 plans가 사라지고
- *   날짜도 폴더와 같은 평범한 필드가 된다. docs/backlog/task-owns-plan-date.md
+ * 날짜를 비우면 캘린더에서 빠진다.
  */
 export default function TaskInfoModal({
   taskId,
@@ -47,17 +42,17 @@ export default function TaskInfoModal({
   currentFolderId,
   currentPriority,
   currentUrgent,
-  plan,
+  currentPlanDate,
   canEditFlags = true,
   onClose,
 }: TaskInfoModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const folders = useFolderStore((state) => state.folders)
   const upsertTasks = useTaskStore((state) => state.upsert)
-  const applyPlans = useDailyPlanStore((state) => state.applyPlans)
+  const applyTaskDate = useDailyPlanStore((state) => state.applyTaskDate)
 
   const [title, setTitle] = useState(taskTitle)
-  const [planDate, setPlanDate] = useState(plan?.date ?? '')
+  const [planDate, setPlanDate] = useState(currentPlanDate ?? '')
   const [folderId, setFolderId] = useState<number | null>(currentFolderId)
   const [priority, setPriority] = useState(currentPriority)
   const [urgent, setUrgent] = useState(currentUrgent)
@@ -80,7 +75,7 @@ export default function TaskInfoModal({
 
   const trimmedTitle = title.trim()
   const isTitleChanged = trimmedTitle !== taskTitle
-  const isDateChanged = plan !== undefined && planDate !== '' && planDate !== plan.date
+  const isDateChanged = (planDate || null) !== currentPlanDate
   const isFolderChanged = folderId !== currentFolderId
   const isPriorityChanged = canEditFlags && priority !== currentPriority
   const isUrgentChanged = canEditFlags && urgent !== currentUrgent
@@ -94,19 +89,16 @@ export default function TaskInfoModal({
     setMessage(null)
 
     try {
-      // folderId는 null이 "미분류"라 생략과 구분되지 않으므로 세 값을 항상 보낸다.
-      // 날짜만 바뀌지 않았을 때 보내지 않아, 캘린더 항목을 건드리지 않는다.
+      // folderId·planDate는 null이 "미분류"·"캘린더에 없음"이라 생략과 구분되지 않으므로 항상 보낸다.
       const updated = await updateTaskInfo(taskId, {
         title: trimmedTitle,
         folderId,
         priority: canEditFlags ? priority : currentPriority,
         urgent: canEditFlags ? urgent : currentUrgent,
-        ...(plan && isDateChanged
-          ? { plan: { ...(plan.itemId === undefined ? {} : { itemId: plan.itemId }), date: planDate } }
-          : {}),
+        planDate: planDate || null,
       })
-      upsertTasks([updated.task])
-      applyPlans(updated.plans)
+      upsertTasks([updated])
+      if (isDateChanged) applyTaskDate(updated.id, updated.planDate)
       dialogRef.current?.close()
     } catch (error) {
       setMessage(requestErrorMessage(error, '수정하지 못했습니다. 잠시 후 다시 시도해 주세요.'))
@@ -143,13 +135,11 @@ export default function TaskInfoModal({
               onChange={(event) => setTitle(event.target.value)} />
           </label>
 
-          {plan && (
-            <label className={styles.field}>
-              <span>날짜</span>
-              <input type="date" value={planDate} disabled={isSaving}
-                onChange={(event) => setPlanDate(event.target.value)} />
-            </label>
-          )}
+          <label className={styles.field}>
+            <span>날짜</span>
+            <input type="date" value={planDate} disabled={isSaving}
+              onChange={(event) => setPlanDate(event.target.value)} />
+          </label>
 
           <label className={styles.field}>
             <span>폴더</span>

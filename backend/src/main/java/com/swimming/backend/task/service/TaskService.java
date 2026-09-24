@@ -7,6 +7,7 @@ import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.folder.repository.entity.FolderEntity;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.dto.projection.PlannedTaskRow;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import com.swimming.backend.task.dto.in.NewTaskSpec;
@@ -22,10 +23,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -230,13 +233,22 @@ public class TaskService {
                 .toList();
     }
 
+    /** 지워지지 않은 내 할 일들. 순서는 보장하지 않는다. */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<Task> getAllByIds(Long userId, List<Long> taskIds) {
+        return taskRepository.findAllByUser_IdAndDeletedFalseAndIdIn(userId, taskIds)
+                .stream()
+                .map(TaskEntity::toDomain)
+                .toList();
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public Task getOne(Long userId, Long taskId) {
         return getOwnedEntity(userId, taskId).toDomain();
     }
 
     /**
-     * 제목·폴더·중요·즉시를 한 번에 바꾼다. 엔티티를 한 번만 읽고 변경 감지로 반영한다.
+     * 제목·폴더·중요·즉시·캘린더 날짜를 한 번에 바꾼다. 엔티티를 한 번만 읽고 변경 감지로 반영한다.
      * matrixRank는 중요·즉시가 바뀔 때만 필요하고 그 판단과 계산은 유스케이스가 한다.
      * null이면 순서를 건드리지 않는다.
      */
@@ -248,9 +260,11 @@ public class TaskService {
             Long folderId,
             boolean priority,
             boolean urgent,
-            Long matrixRank
+            Long matrixRank,
+            LocalDate planDate
     ) {
         TaskEntity entity = getOwnedEntity(userId, taskId);
+        entity.updatePlanDate(planDate);
         entity.updateTitle(title.trim());
         entity.updateFolder(folderId == null
                 ? null
@@ -262,6 +276,49 @@ public class TaskService {
         }
         taskRepository.flush();
         return entity.toDomain();
+    }
+
+    /** 기간 안의 캘린더에 담긴 할 일. 날짜순이고, 하루 안에서는 최근에 만든 할 일이 먼저다. */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<PlannedTaskRow> getPlannedRows(Long userId, LocalDate fromDate, LocalDate toDate) {
+        return taskRepository.findPlannedRows(userId, fromDate, toDate);
+    }
+
+    /** 그 날짜에 담긴 할 일의 수. 같은 id는 한 번만 센다. */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public long countPlannedOn(Long userId, LocalDate planDate, List<Long> taskIds) {
+        Set<Long> uniqueTaskIds = Set.copyOf(taskIds);
+        if (uniqueTaskIds.isEmpty()) {
+            return 0;
+        }
+        return taskRepository.countPlannedOn(userId, planDate, uniqueTaskIds);
+    }
+
+    /**
+     * 할 일들을 그 날짜의 캘린더에 담는다. 다른 날짜에 담겨 있던 할 일은 이 날짜로 옮겨진다.
+     * 한 task는 최대 하나의 날짜를 갖는다.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void plan(Long userId, List<Long> taskIds, LocalDate planDate) {
+        if (taskIds.isEmpty()) {
+            return;
+        }
+        List<TaskEntity> entities = taskRepository.findAllByUser_IdAndDeletedFalseAndIdIn(userId, taskIds);
+        if (entities.size() != Set.copyOf(taskIds).size()) {
+            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
+        }
+        entities.forEach(entity -> entity.updatePlanDate(planDate));
+        taskRepository.flush();
+    }
+
+    /** 그 날짜의 캘린더에서 뺀다. 다른 날짜에 담긴 할 일이면 캘린더 항목이 없는 것으로 본다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void unplan(Long userId, Long taskId, LocalDate planDate) {
+        TaskEntity entity = taskRepository.findByIdAndUser_IdAndDeletedFalse(taskId, userId)
+                .filter(candidate -> planDate.equals(candidate.getPlanDate()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.DAILY_PLAN_ITEM_NOT_FOUND));
+        entity.updatePlanDate(null);
+        taskRepository.flush();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)

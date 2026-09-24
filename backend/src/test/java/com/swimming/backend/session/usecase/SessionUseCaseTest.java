@@ -2,7 +2,6 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.place.domain.BackgroundAssetType;
 import com.swimming.backend.place.domain.City;
 import com.swimming.backend.place.domain.Place;
@@ -49,7 +48,6 @@ class SessionUseCaseTest {
     private static final Instant NOW = Instant.parse("2026-08-19T15:30:00Z");
 
     private SessionService sessionService;
-    private DailyPlanService dailyPlanService;
     private UserService userService;
     private TaskService taskService;
     private PlaceService placeService;
@@ -59,14 +57,12 @@ class SessionUseCaseTest {
     @BeforeEach
     void setUp() {
         sessionService = mock(SessionService.class);
-        dailyPlanService = mock(DailyPlanService.class);
         userService = mock(UserService.class);
         taskService = mock(TaskService.class);
         placeService = mock(PlaceService.class);
         placeVideoService = mock(PlaceVideoService.class);
         sessionUseCase = new SessionUseCase(
                 sessionService,
-                dailyPlanService,
                 userService,
                 taskService,
                 placeService,
@@ -83,11 +79,11 @@ class SessionUseCaseTest {
         );
         Session session = startedSession(NOW);
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
-        when(dailyPlanService.containsAllTasks(
+        when(taskService.countPlannedOn(
                 1L,
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
-        )).thenReturn(true);
+        )).thenReturn(2L);
         Place place = place();
         when(placeService.getOne(20L)).thenReturn(place);
         when(sessionService.create(any(Session.class))).thenReturn(session);
@@ -116,7 +112,7 @@ class SessionUseCaseTest {
         assertThat(response.place().backgroundAsset().thumbnailUrl())
                 .isEqualTo("https://cdn.example.com/places/thumbnails/alfama.mp4");
         assertThat(response.status()).isEqualTo(SessionStatus.IN_PROGRESS);
-        verify(dailyPlanService).containsAllTasks(
+        verify(taskService).countPlannedOn(
                 1L,
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
@@ -130,11 +126,11 @@ class SessionUseCaseTest {
                 List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
-        when(dailyPlanService.containsAllTasks(
+        when(taskService.countPlannedOn(
                 1L,
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
-        )).thenReturn(true);
+        )).thenReturn(2L);
         Session session = startedSession(NOW);
         Place place = place();
         when(placeService.getOne(20L)).thenReturn(place);
@@ -160,11 +156,11 @@ class SessionUseCaseTest {
                 List.of(10L, 11L), 20L, 1500, 1500, 0, 1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
-        when(dailyPlanService.containsAllTasks(
+        when(taskService.countPlannedOn(
                 1L,
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
-        )).thenReturn(false);
+        )).thenReturn(1L);
 
         assertThatThrownBy(() -> sessionUseCase.startPersonal(1L, request))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -354,11 +350,11 @@ class SessionUseCaseTest {
                 List.of(10L, 11L), 99L, 1500, 1500, 0, 1
         );
         when(userService.getTimezone(1L)).thenReturn("Asia/Seoul");
-        when(dailyPlanService.containsAllTasks(
+        when(taskService.countPlannedOn(
                 1L,
                 LocalDate.of(2026, 8, 20),
                 List.of(10L, 11L)
-        )).thenReturn(true);
+        )).thenReturn(2L);
         when(placeService.getOne(99L))
                 .thenThrow(new BusinessException(ErrorCode.PLACE_NOT_FOUND));
 

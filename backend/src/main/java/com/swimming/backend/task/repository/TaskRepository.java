@@ -3,6 +3,7 @@ package com.swimming.backend.task.repository;
 import com.swimming.backend.task.repository.entity.TaskEntity;
 import com.swimming.backend.folder.domain.FolderStatus;
 import com.swimming.backend.task.domain.TaskStatus;
+import com.swimming.backend.task.dto.projection.PlannedTaskRow;
 import com.swimming.backend.task.dto.projection.TaskOrganizerContextRow;
 import com.swimming.backend.task.dto.projection.TaskReference;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,8 +14,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
@@ -142,6 +145,41 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     );
 
     List<TaskEntity> findAllByUser_IdAndDeletedFalseAndIdIn(Long userId, List<Long> taskIds);
+
+    /** 기간 안의 캘린더. 날짜순이고, 하루 안에서는 최근에 만든 할 일이 먼저다. */
+    @Query("""
+            SELECT new com.swimming.backend.task.dto.projection.PlannedTaskRow(
+                task.id,
+                task.planDate,
+                folder.id,
+                folder.name,
+                folder.deleted,
+                task.title,
+                task.status,
+                task.priority,
+                task.urgent
+            )
+            FROM TaskEntity task
+            LEFT JOIN task.folder folder
+            WHERE task.user.id = :userId
+              AND task.deleted = false
+              AND task.planDate BETWEEN :fromDate AND :toDate
+            ORDER BY task.planDate ASC, task.createdAt DESC, task.id DESC
+            """)
+    List<PlannedTaskRow> findPlannedRows(@Param("userId") Long userId,
+                                         @Param("fromDate") LocalDate fromDate,
+                                         @Param("toDate") LocalDate toDate);
+
+    @Query("""
+            SELECT count(task) FROM TaskEntity task
+            WHERE task.user.id = :userId
+              AND task.deleted = false
+              AND task.planDate = :planDate
+              AND task.id IN :taskIds
+            """)
+    long countPlannedOn(@Param("userId") Long userId,
+                        @Param("planDate") LocalDate planDate,
+                        @Param("taskIds") Set<Long> taskIds);
 
     Optional<TaskEntity> findTopByFolder_IdAndDeletedFalseOrderByIdDesc(Long folderId);
 

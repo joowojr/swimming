@@ -62,7 +62,8 @@ class DailyPlanControllerTest {
                         .queryParam("to_date", "2026-08-21"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].date").value("2026-08-21"))
-                .andExpect(jsonPath("$[0].items[0].id").value(1))
+                .andExpect(jsonPath("$[0].items[0].taskId").value(10))
+                .andExpect(jsonPath("$[0].items[0].id").doesNotExist())
                 .andExpect(jsonPath("$[0].items[0].itemType").value("TASK"));
     }
 
@@ -73,7 +74,7 @@ class DailyPlanControllerTest {
                 List.of(new NewDailyPlanTask("장보기", null)));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
-        mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
+        mockMvc.perform(post("/api/daily-plans/2026-08-21/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tasks\":[{\"title\":\"장보기\"}]}"))
                 .andExpect(status().isCreated())
@@ -89,7 +90,7 @@ class DailyPlanControllerTest {
         CreateDailyPlanItemsRequest request = CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 20L));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
-        mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
+        mockMvc.perform(post("/api/daily-plans/2026-08-21/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"taskIds\":[10,20]}"))
                 .andExpect(status().isCreated())
@@ -105,7 +106,7 @@ class DailyPlanControllerTest {
                 List.of(new NewDailyPlanTask("API 문서 작성", 100L)));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
-        mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
+        mockMvc.perform(post("/api/daily-plans/2026-08-21/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tasks\":[{\"title\":\"API 문서 작성\",\"folderId\":100}]}"))
                 .andExpect(status().isCreated());
@@ -120,7 +121,7 @@ class DailyPlanControllerTest {
                 List.of(new NewDailyPlanTask("자격증 접수", null)));
         when(useCase.addItems(1L, DATE, request)).thenReturn(planResponse());
 
-        mockMvc.perform(post("/api/daily-plans/2026-08-21/items")
+        mockMvc.perform(post("/api/daily-plans/2026-08-21/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tasks\":[{\"title\":\"자격증 접수\"}]}"))
                 .andExpect(status().isCreated());
@@ -129,19 +130,19 @@ class DailyPlanControllerTest {
     }
 
     @Test
-    @DisplayName("날짜별 계획에서 항목을 제거한다")
-    void deletesItem() throws Exception {
-        mockMvc.perform(delete("/api/daily-plans/2026-08-21/items/2"))
+    @DisplayName("날짜별 계획에서 할 일을 뺀다")
+    void removesTask() throws Exception {
+        mockMvc.perform(delete("/api/daily-plans/2026-08-21/tasks/10"))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        verify(useCase).deleteItem(1L, DATE, 2L);
+        verify(useCase).removeTask(1L, DATE, 10L);
     }
 
     private DailyPlanResponse planResponse() {
         return new DailyPlanResponse(DATE, List.of(new DailyPlanItemResponse(
-                1L, 10L, DailyPlanItemType.TASK,
-                100L, "폴더", "API 구현", TaskStatus.DOING
+                10L, DailyPlanItemType.TASK,
+                100L, "폴더", "API 구현", TaskStatus.DOING, false, false
         )));
     }
 

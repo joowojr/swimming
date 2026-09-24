@@ -243,7 +243,7 @@ export default function TaskList({
           currentFolderId={moveTarget.folderId ?? null}
           currentPriority={moveTarget.priority}
           currentUrgent={moveTarget.urgent}
-          plan={{ date: '' }}
+          currentPlanDate={moveTarget.planDate}
           onClose={() => setMoveTarget(null)}
         />
       )}

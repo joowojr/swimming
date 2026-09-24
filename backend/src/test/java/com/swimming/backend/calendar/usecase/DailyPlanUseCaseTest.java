@@ -2,36 +2,31 @@ package com.swimming.backend.calendar.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.calendar.domain.DailyPlanItem;
 import com.swimming.backend.calendar.dto.in.CreateDailyPlanItemsRequest;
 import com.swimming.backend.calendar.dto.in.NewDailyPlanTask;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
 import com.swimming.backend.calendar.dto.in.DailyPlanItemType;
 import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
-import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
-import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.TaskStatus;
 import com.swimming.backend.task.domain.Task;
-import com.swimming.backend.task.dto.projection.TaskReference;
+import com.swimming.backend.task.dto.projection.PlannedTaskRow;
 import com.swimming.backend.task.service.TaskService;
 import com.swimming.backend.task.service.TaskOrderingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -41,7 +36,6 @@ class DailyPlanUseCaseTest {
 
     private static final LocalDate DATE = LocalDate.of(2026, 8, 21);
 
-    private DailyPlanService dailyPlanService;
     private TaskService taskService;
     private TaskOrderingService taskOrderingService;
     private FolderService folderService;
@@ -49,19 +43,18 @@ class DailyPlanUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        dailyPlanService = mock(DailyPlanService.class);
         taskService = mock(TaskService.class);
         taskOrderingService = mock(TaskOrderingService.class);
         folderService = mock(FolderService.class);
-        useCase = new DailyPlanUseCase(dailyPlanService, taskService, taskOrderingService, folderService);
+        useCase = new DailyPlanUseCase(taskService, taskOrderingService, folderService);
     }
 
     @Test
     @DisplayName("조회 기간에 폴더 Task와 폴더 없는 Task의 UI 타입을 함께 반환한다")
     void returnsMixedItemsAndEmptyDates() {
-        when(dailyPlanService.getRows(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(
-                folderRow(1L, 10L),
-                adHocRow(2L, 20L, "장보기")
+        when(taskService.getPlannedRows(1L, DATE, DATE.plusDays(1))).thenReturn(List.of(
+                folderRow(10L),
+                adHocRow(20L, "장보기")
         ));
 
         List<DailyPlanResponse> responses = useCase.getRange(1L, DATE, DATE.plusDays(1));
@@ -79,7 +72,7 @@ class DailyPlanUseCaseTest {
     @Test
     @DisplayName("조회 기간에 계획이 하나도 없어도 날짜마다 빈 목록을 채워 반환한다")
     void fillsEveryDateInRange() {
-        when(dailyPlanService.getRows(1L, DATE, DATE.plusDays(2))).thenReturn(List.of());
+        when(taskService.getPlannedRows(1L, DATE, DATE.plusDays(2))).thenReturn(List.of());
 
         List<DailyPlanResponse> responses = useCase.getRange(1L, DATE, DATE.plusDays(2));
 
@@ -95,8 +88,8 @@ class DailyPlanUseCaseTest {
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(Task.restore(20L, 1L, null, null, "장보기", TaskStatus.TODO,
                         false, false, 0, 1024L, null, null)));
-        when(dailyPlanService.getRows(1L, DATE, DATE))
-                .thenReturn(List.of(adHocRow(1L, 20L, "장보기")));
+        when(taskService.getPlannedRows(1L, DATE, DATE))
+                .thenReturn(List.of(adHocRow(20L, "장보기")));
 
         DailyPlanResponse response = useCase.addItems(1L, DATE,
                 CreateDailyPlanItemsRequest.ofNewTasks(List.of(new NewDailyPlanTask("  장보기  ", null))));
@@ -107,54 +100,46 @@ class DailyPlanUseCaseTest {
             assertThat(item.title()).isEqualTo("장보기");
             assertThat(item.status()).isEqualTo(TaskStatus.TODO);
         });
-        verify(dailyPlanService).saveAll(eq(1L), eq(DATE), anyList());
+        verify(taskService).plan(1L, List.of(20L), DATE);
     }
 
     @Test
-    @DisplayName("소유한 여러 Task를 기존 항목 뒤에 담은 순서대로 이어 붙인다")
-    void addsOwnedTasksAfterExistingItems() {
-        when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(false);
-        when(taskService.getReferences(1L, List.of(10L, 20L)))
-                .thenReturn(List.of(taskReference(10L), taskReference(20L)));
-        when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(
-                adHocRow(1L, 30L, "기존"), folderRow(2L, 10L), folderRow(3L, 20L)));
+    @DisplayName("소유한 여러 Task를 그날 캘린더에 담는다")
+    void plansOwnedTasks() {
+        when(taskService.countPlannedOn(1L, DATE, List.of(10L, 20L))).thenReturn(0L);
+        when(taskService.getPlannedRows(1L, DATE, DATE)).thenReturn(List.of(
+                folderRow(20L), folderRow(10L), adHocRow(30L, "기존")));
 
         DailyPlanResponse response = useCase.addItems(
                 1L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 20L)));
 
         assertThat(response.items()).extracting(DailyPlanItemResponse::taskId)
-                .containsExactly(30L, 10L, 20L);
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DailyPlanItem>> captor = ArgumentCaptor.forClass(List.class);
-        verify(dailyPlanService).saveAll(eq(1L), eq(DATE), captor.capture());
-        assertThat(captor.getValue()).extracting(DailyPlanItem::getTaskId).containsExactly(10L, 20L);
+                .containsExactly(20L, 10L, 30L);
+        verify(taskService).plan(1L, List.of(10L, 20L), DATE);
     }
 
     @Test
     @DisplayName("일괄 요청 안에 중복된 Task가 있으면 항목을 저장하지 않는다")
     void rejectsDuplicatedTasksInBatch() {
-        when(dailyPlanService.getItems(1L, DATE)).thenReturn(List.of());
-
         assertThatThrownBy(() -> useCase.addItems(
                 1L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 10L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_TASKS));
 
-        verify(dailyPlanService, never()).save(any(), any(), any());
+        verify(taskService, never()).plan(any(), anyList(), any());
     }
 
     @Test
     @DisplayName("이미 그날 계획에 있는 Task가 일괄 요청에 포함되면 항목을 저장하지 않는다")
     void rejectsAlreadyPlannedTaskInBatch() {
-        when(dailyPlanService.containsAnyTasks(1L, DATE, List.of(10L, 20L))).thenReturn(true);
+        when(taskService.countPlannedOn(1L, DATE, List.of(10L, 20L))).thenReturn(1L);
 
         assertThatThrownBy(() -> useCase.addItems(
                 1L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L, 20L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_TASKS));
 
-        verify(dailyPlanService, never()).save(any(), any(), any());
+        verify(taskService, never()).plan(any(), anyList(), any());
     }
 
     @Test
@@ -166,7 +151,7 @@ class DailyPlanUseCaseTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_DAILY_PLAN_ITEM));
 
         verify(taskService, never()).createAll(any(), anyList());
-        verify(dailyPlanService, never()).saveAll(any(), any(), anyList());
+        verify(taskService, never()).plan(any(), anyList(), any());
     }
 
     @Test
@@ -181,16 +166,14 @@ class DailyPlanUseCaseTest {
     @Test
     @DisplayName("다른 사용자의 Task는 계획에 추가하지 않는다")
     void rejectsAnotherUsersTask() {
-        when(dailyPlanService.getItems(2L, DATE)).thenReturn(List.of());
-        when(dailyPlanService.containsAnyTasks(2L, DATE, List.of(10L))).thenReturn(false);
-        when(taskService.getReferences(2L, List.of(10L))).thenReturn(List.of());
+        when(taskService.countPlannedOn(2L, DATE, List.of(10L))).thenReturn(0L);
+        doThrow(new BusinessException(ErrorCode.TASK_NOT_FOUND))
+                .when(taskService).plan(2L, List.of(10L), DATE);
 
         assertThatThrownBy(() -> useCase.addItems(
                 2L, DATE, CreateDailyPlanItemsRequest.ofTaskIds(List.of(10L))))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
-
-        verify(dailyPlanService, never()).save(any(), any(), any());
     }
 
     @Test
@@ -200,8 +183,8 @@ class DailyPlanUseCaseTest {
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(Task.restore(20L, 1L, 100L, null, "API 문서 작성", TaskStatus.TODO,
                         false, false, 0, 1024L, null, null)));
-        when(dailyPlanService.getRows(1L, DATE, DATE)).thenReturn(List.of(new DailyPlanItemQueryRow(
-                1L, DATE, 20L, 100L, "폴더", false, "API 문서 작성", TaskStatus.TODO)));
+        when(taskService.getPlannedRows(1L, DATE, DATE)).thenReturn(List.of(new PlannedTaskRow(
+                20L, DATE, 100L, "폴더", false, "API 문서 작성", TaskStatus.TODO, false, false)));
 
         DailyPlanResponse response = useCase.addItems(1L, DATE,
                 CreateDailyPlanItemsRequest.ofNewTasks(
@@ -217,22 +200,18 @@ class DailyPlanUseCaseTest {
     }
 
     @Test
-    @DisplayName("항목 삭제를 사용자·날짜와 함께 위임한다")
-    void deletesItem() {
-        useCase.deleteItem(1L, DATE, 2L);
+    @DisplayName("그날 캘린더에서 할 일을 뺀다")
+    void removesTaskFromPlan() {
+        useCase.removeTask(1L, DATE, 20L);
 
-        verify(dailyPlanService).delete(1L, DATE, 2L);
+        verify(taskService).unplan(1L, 20L, DATE);
     }
 
-    private DailyPlanItemQueryRow folderRow(Long id, Long taskId) {
-        return new DailyPlanItemQueryRow(id, DATE, taskId, 100L, "폴더", false, "API 구현", TaskStatus.DOING);
+    private PlannedTaskRow folderRow(Long taskId) {
+        return new PlannedTaskRow(taskId, DATE, 100L, "폴더", false, "API 구현", TaskStatus.DOING, false, false);
     }
 
-    private DailyPlanItemQueryRow adHocRow(Long id, Long taskId, String title) {
-        return new DailyPlanItemQueryRow(id, DATE, taskId, null, null, null, title, TaskStatus.TODO);
-    }
-
-    private TaskReference taskReference(Long id) {
-        return new TaskReference(id, 100L, "폴더", "API 구현", TaskStatus.DOING);
+    private PlannedTaskRow adHocRow(Long taskId, String title) {
+        return new PlannedTaskRow(taskId, DATE, null, null, null, title, TaskStatus.TODO, false, false);
     }
 }

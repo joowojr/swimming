@@ -210,6 +210,7 @@
 | GET | /folders/{id} | 폴더 상세(폴더 정보·Task 진척·Task 목록) |
 | PATCH | /folders/{id} | 폴더 수정 |
 | PATCH | /folders/{id}/status | 폴더 상태 수정 |
+| PUT | /folders/{id}/tag | 이 폴더의 태그만 바꾸기(기존 태그 `tagId`, 새 태그 `newTagName`, 둘 다 없으면 떼기) |
 | GET | /folder-tags | 내 폴더 태그 목록 |
 | POST | /folder-tags | 폴더 태그 생성 |
 | PATCH | /folder-tags/{id} | 폴더 태그 이름 수정 |
@@ -220,12 +221,12 @@
 | PUT | /folders/{id}/tasks/order | task 순서 저장 |
 |  |  |  |
 | PATCH | /tasks/{id} | task 수정(제목·상태) |
+| PATCH | /tasks/{id}/info | task 정보 한 번에 수정(제목·폴더·중요·즉시·캘린더 날짜 `planDate`, null이면 캘린더에서 뺌) |
 | DELETE | /tasks/{id} | task 삭제 |
 |  |  |  |
 | GET | /daily-plans?from_date=&to_date= | 날짜 범위의 계획 조회 |
-| POST | /daily-plans/{date}/items | 기존 `taskIds`를 연결하거나 선택적 `projectId`와 제목으로 Task 생성 |
-| PUT | /daily-plans/{date} | 계획 항목 순서 저장 |
-| DELETE | /daily-plans/{date}/items/{itemId} | 계획 항목 제거 |
+| POST | /daily-plans/{date}/tasks | 기존 `taskIds`를 담거나 새 Task를 만들어 담기. 다른 날짜에 있던 Task는 이 날짜로 옮겨진다 |
+| DELETE | /daily-plans/{date}/tasks/{taskId} | 그 날짜의 캘린더에서 Task 빼기 |
 |  |  |  |
 | POST | /sessions | 개인 세션 시작 |
 | GET | /sessions/{id} | 개인 세션 상세 조회 |

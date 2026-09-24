@@ -40,7 +40,7 @@ public class DailyPlanController {
         return ResponseEntity.ok(dailyPlanUseCase.getRange(authUser.id(), fromDate, toDate));
     }
 
-    @PostMapping("/{date}/items")
+    @PostMapping("/{date}/tasks")
     public ResponseEntity<DailyPlanResponse> addItems(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -50,13 +50,13 @@ public class DailyPlanController {
         return ResponseEntity.created(URI.create("/api/daily-plans/" + date)).body(response);
     }
 
-    @DeleteMapping("/{date}/items/{itemId}")
-    public ResponseEntity<Void> deleteItem(
+    @DeleteMapping("/{date}/tasks/{taskId}")
+    public ResponseEntity<Void> removeTask(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @PathVariable Long itemId
+            @PathVariable Long taskId
     ) {
-        dailyPlanUseCase.deleteItem(authUser.id(), date, itemId);
+        dailyPlanUseCase.removeTask(authUser.id(), date, taskId);
         return ResponseEntity.noContent().build();
     }
 }

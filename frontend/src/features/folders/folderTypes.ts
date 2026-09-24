@@ -54,7 +54,12 @@ export interface UpdateFolderRequest {
   name: string
   description: string
   targetDate: string | null
+}
+
+/** 이 폴더가 가리키는 태그만 바꾼다. 둘 다 null이면 태그를 뗀다. */
+export interface UpdateFolderTagRequest {
   tagId: number | null
+  newTagName: string | null
 }
 
 export interface UpdateFolderStatusRequest {

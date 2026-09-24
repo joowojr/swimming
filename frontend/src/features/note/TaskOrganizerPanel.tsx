@@ -220,8 +220,8 @@ export default function TaskOrganizerPanel({
           title: item.title.trim(),
         })),
       })
-      // 응답 순서를 목록 맨 앞에 그대로 두려면 역순으로 넣는다.
-      response.createdTasks.slice().reverse().forEach(addTask)
+      // 응답 순서를 목록 맨 앞에 그대로 두려면 역순으로 넣는다. 막 만든 할 일은 아직 캘린더에 없다.
+      response.createdTasks.slice().reverse().forEach((task) => addTask({ ...task, planDate: null }))
       const today = formatLocalDate(new Date())
       setState({
         kind: 'plan-link',

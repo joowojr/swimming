@@ -11,6 +11,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "tasks")
 @Getter
@@ -54,6 +56,10 @@ public class TaskEntity extends BaseTimeEntity {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted;
+
+    /** 캘린더에 담긴 날짜. 담지 않았으면 null이다. */
+    @Column(name = "plan_date")
+    private LocalDate planDate;
 
     private TaskEntity(
             Task task,
@@ -112,6 +118,11 @@ public class TaskEntity extends BaseTimeEntity {
         this.matrixRank = task.getMatrixRank();
     }
 
+    /** 캘린더 날짜를 정한다. null이면 캘린더에서 뺀다. */
+    public void updatePlanDate(LocalDate planDate) {
+        this.planDate = planDate;
+    }
+
     public void delete() {
         this.deleted = true;
     }
@@ -128,6 +139,7 @@ public class TaskEntity extends BaseTimeEntity {
                 urgent,
                 orderIdx,
                 matrixRank,
+                planDate,
                 getCreatedAt(),
                 getUpdatedAt()
         );

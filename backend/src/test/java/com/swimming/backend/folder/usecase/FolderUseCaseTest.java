@@ -11,6 +11,7 @@ import com.swimming.backend.folder.dto.FolderDetailResponse;
 import com.swimming.backend.folder.dto.FolderResponse;
 import com.swimming.backend.folder.dto.UpdateFolderRequest;
 import com.swimming.backend.folder.dto.UpdateFolderStatusRequest;
+import com.swimming.backend.folder.dto.UpdateFolderTagRequest;
 import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.folder.service.FolderTagService;
 import com.swimming.backend.task.domain.Task;
@@ -180,20 +181,69 @@ class FolderUseCaseTest {
         UpdateFolderRequest request = new UpdateFolderRequest(
                 "수정 프로젝트",
                 "수정 설명",
-                null,
                 null
         );
         Folder folder = folder(10L, "수정 프로젝트", "수정 설명", null);
         when(folderService.update(
-                1L, 10L, null, "수정 프로젝트", "수정 설명", null
+                1L, 10L, "수정 프로젝트", "수정 설명", null
         )).thenReturn(folder);
 
         FolderResponse response = folderUseCase.update(1L, 10L, request);
 
         assertThat(response.name()).isEqualTo("수정 프로젝트");
         verify(folderService).update(
-                1L, 10L, null, "수정 프로젝트", "수정 설명", null
+                1L, 10L, "수정 프로젝트", "수정 설명", null
         );
+    }
+
+    @Test
+    @DisplayName("기존 태그를 골라 폴더에 단다")
+    void attachesExistingTagToFolder() {
+        FolderTag tag = FolderTag.restore(3L, 1L, "취준", null, null);
+        when(folderTagService.getOne(1L, 3L)).thenReturn(tag);
+        when(folderService.updateTag(1L, 10L, tag)).thenReturn(folder(10L, "폴더", "설명", null));
+
+        folderUseCase.updateTag(1L, 10L, new UpdateFolderTagRequest(3L, null));
+
+        verify(folderService).updateTag(1L, 10L, tag);
+        verify(folderTagService, never()).create(any());
+    }
+
+    @Test
+    @DisplayName("새 태그 이름이면 태그를 만들어 이 폴더에만 단다")
+    void createsNewTagAndAttachesOnlyToFolder() {
+        FolderTag created = FolderTag.restore(4L, 1L, "리서치", null, null);
+        when(folderTagService.create(argThat(tag ->
+                tag.getUserId().equals(1L) && tag.getName().equals("리서치")
+        ))).thenReturn(created);
+        when(folderService.updateTag(1L, 10L, created)).thenReturn(folder(10L, "폴더", "설명", null));
+
+        folderUseCase.updateTag(1L, 10L, new UpdateFolderTagRequest(null, "리서치"));
+
+        verify(folderService).updateTag(1L, 10L, created);
+        verify(folderTagService, never()).updateName(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("태그를 고르지 않으면 폴더에서 태그를 뗀다")
+    void removesTagWhenNothingSelected() {
+        when(folderService.updateTag(1L, 10L, null)).thenReturn(folder(10L, "폴더", "설명", null));
+
+        folderUseCase.updateTag(1L, 10L, new UpdateFolderTagRequest(null, null));
+
+        verify(folderService).updateTag(1L, 10L, null);
+    }
+
+    @Test
+    @DisplayName("기존 태그와 새 태그를 함께 고르면 거절한다")
+    void rejectsBothExistingAndNewTag() {
+        assertThatThrownBy(() -> folderUseCase.updateTag(
+                1L, 10L, new UpdateFolderTagRequest(3L, "리서치")
+        ))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode())
+                                .isEqualTo(ErrorCode.FOLDER_TAG_SELECTION_CONFLICT));
+        verify(folderService, never()).updateTag(any(), any(), any());
     }
 
     @Test

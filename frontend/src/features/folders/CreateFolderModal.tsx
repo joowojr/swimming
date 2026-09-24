@@ -3,11 +3,11 @@ import type { FormEvent, MouseEvent } from 'react'
 import { IconX } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import ActionButton from '../../components/ActionButton'
-import { createFolder, getTags } from './folderApi.ts'
+import { useFolderTagStore } from '../../store/folderTagStore.ts'
+import { createFolder } from './folderApi.ts'
 import type {
   CreateFolderRequest,
   Folder,
-  FolderTag,
 } from './folderTypes.ts'
 import styles from './CreateFolder.module.css'
 import modalStyles from '../../components/ModalShell.module.css'
@@ -18,7 +18,6 @@ interface CreateProjectModalProps {
   onCreated: (folder: Folder) => void
 }
 
-type TagsStatus = 'loading' | 'ready' | 'error'
 type ProjectFormField = 'name' | 'description' | 'targetDate' | 'newTagName'
 type FieldErrors = Partial<Record<ProjectFormField, string>>
 type TouchedFields = Partial<Record<ProjectFormField, boolean>>
@@ -61,8 +60,10 @@ export default function CreateFolderModal({
   const [targetDate, setTargetDate] = useState('')
 
   const [tagName, setTagName] = useState('')
-  const [tags, setTags] = useState<FolderTag[]>([])
-  const [tagsStatus, setTagsStatus] = useState<TagsStatus>('loading')
+  const tags = useFolderTagStore((state) => state.tags)
+  const tagsStatus = useFolderTagStore((state) => state.status)
+  const ensureTagsLoaded = useFolderTagStore((state) => state.ensureLoaded)
+  const upsertTag = useFolderTagStore((state) => state.upsert)
   const [touchedFields, setTouchedFields] = useState<TouchedFields>({})
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -85,24 +86,7 @@ export default function CreateFolderModal({
     }
   }, [])
 
-  useEffect(() => {
-    let active = true
-
-    void getTags()
-      .then((response) => {
-        if (!active) return
-        setTags(response)
-        setTagsStatus('ready')
-      })
-      .catch(() => {
-        if (!active) return
-        setTagsStatus('error')
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
+  useEffect(() => { void ensureTagsLoaded() }, [ensureTagsLoaded])
 
   const requestClose = () => {
     if (!isSubmitting) dialogRef.current?.close()
@@ -156,7 +140,10 @@ export default function CreateFolderModal({
 
     setIsSubmitting(true)
     try {
-      onCreated(await createFolder(request))
+      const created = await createFolder(request)
+      // 새 이름으로 만든 태그도 다른 화면의 태그 목록에 바로 보이게 한다.
+      if (created.tag) upsertTag(created.tag)
+      onCreated(created)
     } catch (error) {
       if (isApiError(error) && error.errors) {
         const apiErrors = {
@@ -376,7 +363,7 @@ export default function CreateFolderModal({
                   </p>
                 )}
 
-                {tagsStatus === 'loading' ? (
+                {tagsStatus === 'idle' || tagsStatus === 'loading' ? (
                   <p className={styles['tag-status']} role="status">태그를 불러오는 중...</p>
                 ) : tagsStatus === 'error' ? (
                   <p className={styles['tag-status']}>

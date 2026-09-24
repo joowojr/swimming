@@ -1,7 +1,5 @@
 package com.swimming.backend.task.usecase;
 
-import com.swimming.backend.calendar.domain.DailyPlanItem;
-import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.service.FolderService;
@@ -41,7 +39,6 @@ class TaskBatchCreateTest {
     private TaskService taskService;
     private TaskOrderingService taskOrderingService;
     private FolderService folderService;
-    private DailyPlanService dailyPlanService;
     private TaskUseCase taskUseCase;
 
     @BeforeEach
@@ -49,8 +46,7 @@ class TaskBatchCreateTest {
         taskService = mock(TaskService.class);
         taskOrderingService = mock(TaskOrderingService.class);
         folderService = mock(FolderService.class);
-        dailyPlanService = mock(DailyPlanService.class);
-        taskUseCase = new TaskUseCase(taskService, taskOrderingService, folderService, dailyPlanService);
+        taskUseCase = new TaskUseCase(taskService, taskOrderingService, folderService);
     }
 
     @Test
@@ -98,7 +94,7 @@ class TaskBatchCreateTest {
                         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FOLDER_NOT_FOUND));
 
         verify(taskService, never()).createAll(any(), anyList());
-        verify(dailyPlanService, never()).saveAll(any(), any(), anyList());
+        verify(taskService, never()).plan(any(), anyList(), any());
     }
 
     @Test
@@ -130,6 +126,8 @@ class TaskBatchCreateTest {
         when(taskOrderingService.nextRanks(eq(1L), anyList())).thenAnswer(ranks());
         when(taskService.createAll(eq(1L), anyList()))
                 .thenReturn(List.of(task(101L, "가"), task(102L, "나"), task(103L, "날짜 없음")));
+        when(taskService.getAllByIds(1L, List.of(101L, 102L, 103L)))
+                .thenReturn(List.of(task(101L, "가"), task(102L, "나"), task(103L, "날짜 없음")));
 
         taskUseCase.createBatch(1L, new CreateTasksBatchRequest(List.of(
                 draft("가", null, DATE),
@@ -137,10 +135,7 @@ class TaskBatchCreateTest {
                 draft("날짜 없음", null, null)
         )));
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DailyPlanItem>> captor = ArgumentCaptor.forClass(List.class);
-        verify(dailyPlanService).saveAll(eq(1L), eq(DATE), captor.capture());
-        assertThat(captor.getValue()).extracting(DailyPlanItem::getTaskId).containsExactly(101L, 102L);
+        verify(taskService).plan(1L, List.of(101L, 102L), DATE);
     }
 
     @Test
@@ -151,7 +146,7 @@ class TaskBatchCreateTest {
 
         taskUseCase.createBatch(1L, new CreateTasksBatchRequest(List.of(draft("가", null, null))));
 
-        verify(dailyPlanService, never()).saveAll(any(), any(), anyList());
+        verify(taskService, never()).plan(any(), anyList(), any());
     }
 
     @Test

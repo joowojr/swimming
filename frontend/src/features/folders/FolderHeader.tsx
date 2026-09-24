@@ -1,15 +1,16 @@
 import type { KeyboardEvent } from 'react'
 import { memo, useState } from 'react'
-import { IconCalendarDue, IconPin, IconPinFilled } from '@tabler/icons-react'
+import { IconCalendarDue, IconPencil, IconPin, IconPinFilled } from '@tabler/icons-react'
 import type { ApiError } from '../../api/client'
 import DdayChip from '../../components/DdayChip'
 import DeleteConfirmation from '../../components/DeleteConfirmation'
 import DeleteIconButton from '../../components/DeleteIconButton'
-import InlineEditableText from '../../components/InlineEditableText'
 import { useFolderStore } from '../../store/folderStore.ts'
 import { deleteFolder, pinFolder, updateFolder, updateFolderStatus } from './folderApi.ts'
 import { folderStatusLabel } from './folderTypes.ts'
 import type { Folder, FolderStatus, FolderTag } from './folderTypes.ts'
+import FolderInfoForm from './FolderInfoForm.tsx'
+import FolderTagPicker from './FolderTagPicker.tsx'
 import styles from './FolderHeader.module.css'
 
 /** 폴더 화면들이 공통으로 쓰는 만큼만 받는다. Folder와 FolderDetail 둘 다 이 모양을 만족한다. */
@@ -32,8 +33,6 @@ interface FolderHeaderProps {
   onDeleted: (folderId: number) => void
 }
 
-type EditableFolderTextField = 'name' | 'description'
-
 const targetDateFormatter = new Intl.DateTimeFormat('ko-KR', {
   year: 'numeric',
   month: 'long',
@@ -51,7 +50,7 @@ function toApiError(error: unknown) {
 }
 
 /**
- * 폴더의 정보와 폴더 자체를 다루는 기능. 이름·설명·목표일 수정과 폴더 삭제를 갖는다.
+ * 폴더의 정보와 폴더 자체를 다루는 기능. 이름·설명·목표일·태그 수정과 폴더 삭제를 갖는다.
  *
  * 할 일 폴더와 링크 폴더가 같은 폴더를 서로 다른 화면에서 보는 것이라, 폴더를 다루는 자리는
  * 하나여야 한다. 한쪽에서 고친 수정 규칙이 다른 쪽에 반영되지 않는 일을 막는다.
@@ -65,6 +64,7 @@ const FolderHeader = memo(function FolderHeader({
 }: FolderHeaderProps) {
   const applyFolderToStore = useFolderStore((state) => state.apply)
   const [isSaving, setIsSaving] = useState(false)
+  const [isEditingInfo, setIsEditingInfo] = useState(false)
   const [isEditingTargetDate, setIsEditingTargetDate] = useState(false)
   const [editValue, setEditValue] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
@@ -81,23 +81,19 @@ const FolderHeader = memo(function FolderHeader({
     onUpdated?.(updated)
   }
 
-  const saveTextField = async (field: EditableFolderTextField, value: string) => {
+  /** 실패하면 에러를 그대로 던져 폼이 필드별로 보여 주게 한다. */
+  const saveInfo = async (name: string, description: string) => {
     setIsSaving(true)
     try {
       applyUpdated(await updateFolder(folder.id, {
-        name: field === 'name' ? value : folder.name,
-        description: field === 'description' ? value : folder.description,
+        name,
+        description,
         targetDate: folder.targetDate,
-        tagId: folder.tag?.id ?? null,
       }))
+      setIsEditingInfo(false)
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const getFieldError = (error: unknown, field: EditableFolderTextField) => {
-    const apiError = toApiError(error)
-    return apiError?.errors?.[field] ?? apiError?.message ?? '폴더 정보를 저장하지 못했습니다.'
   }
 
   const startEditingTargetDate = () => {
@@ -129,7 +125,6 @@ const FolderHeader = memo(function FolderHeader({
         name: folder.name,
         description: folder.description,
         targetDate,
-        tagId: folder.tag?.id ?? null,
       }))
       setIsEditingTargetDate(false)
       setEditValue('')
@@ -205,8 +200,7 @@ const FolderHeader = memo(function FolderHeader({
   return (
     <header className={styles.header}>
       <div className={styles['header-top']}>
-        <div className={styles.badges} data-tone={folder.id % 4}>
-          {folder.tag && <span className={styles.tag}>{folder.tag.name}</span>}
+        <div className={styles.badges}>
           <select
             className={styles['folder-status']}
             data-status={folder.status}
@@ -264,34 +258,42 @@ const FolderHeader = memo(function FolderHeader({
       )}
       {deleteError && <p className={styles['delete-error']} role="alert">{deleteError}</p>}
 
-      <div className={styles['editable-group']}>
-        <h1 id={titleId}>
-          <InlineEditableText
-            value={folder.name}
-            ariaLabel="폴더 제목"
-            maxLength={255}
-            requiredMessage="폴더 이름을 입력해 주세요."
-            disabled={isSaving}
-            onSave={(value) => saveTextField('name', value)}
-            getErrorMessage={(error) => getFieldError(error, 'name')}
+      {isEditingInfo ? (
+        <>
+          <h1 id={titleId} className="sr-only">{folder.name}</h1>
+          <FolderInfoForm
+            name={folder.name}
+            description={folder.description}
+            onSave={saveInfo}
+            onCancel={() => setIsEditingInfo(false)}
           />
-        </h1>
-      </div>
-      <div className={styles['editable-group']}>
-        <p>
-          <InlineEditableText
-            value={folder.description}
-            emptyText="폴더 설명이 아직 없습니다."
-            ariaLabel="폴더 설명"
-            requiredMessage="폴더 설명을 입력해 주세요."
-            disabled={isSaving}
-            onSave={(value) => saveTextField('description', value)}
-            getErrorMessage={(error) => getFieldError(error, 'description')}
-          />
-        </p>
-      </div>
+        </>
+      ) : (
+        <div className={styles.info}>
+          <div className={styles['title-row']}>
+            <h1 id={titleId}>{folder.name}</h1>
+            <button
+              type="button"
+              className={styles['edit-button']}
+              aria-label="폴더 제목과 설명 수정"
+              title="제목과 설명 수정"
+              disabled={isSaving}
+              onClick={() => setIsEditingInfo(true)}
+            >
+              <IconPencil size={12} stroke={1.8} aria-hidden="true" />
+            </button>
+          </div>
+          <p>{folder.description || '폴더 설명이 아직 없습니다.'}</p>
+        </div>
+      )}
 
       <div className={styles['header-bottom']}>
+        <FolderTagPicker
+          folderId={folder.id}
+          tag={folder.tag}
+          tone={folder.id % 4}
+          onChanged={applyUpdated}
+        />
         {isEditingTargetDate ? (
           <span className={styles['date-editor']}>
             <input

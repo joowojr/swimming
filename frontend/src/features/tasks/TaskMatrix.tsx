@@ -608,7 +608,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
           currentPriority={moveTarget.priority}
           currentUrgent={moveTarget.urgent}
           canEditFlags={false}
-          plan={{ date: '' }}
+          currentPlanDate={moveTarget.planDate}
           onClose={() => setMoveTarget(null)}
         />
       )}

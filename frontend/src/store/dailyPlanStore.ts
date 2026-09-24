@@ -1,10 +1,22 @@
 import { create } from 'zustand'
-import { addDailyPlanItems, deleteDailyPlanItem, getDailyPlans } from '../features/calendar/dailyPlanApi'
+import { addDailyPlanTasks, getDailyPlans, removeDailyPlanTask } from '../features/calendar/dailyPlanApi'
 import { parseLocalDate } from '../lib/date'
 import { monthKeyOf, monthRange } from '../features/calendar/planDate'
 import { toPlanEntries, toTaskEntries } from '../features/calendar/planItems'
-import type { CreateDailyPlanItemsRequest, DailyPlan, PlanEntry } from '../features/calendar/dailyPlanTypes'
+import type { CreateDailyPlanItemsRequest, PlanEntry } from '../features/calendar/dailyPlanTypes'
 import { useTaskStore } from './taskStore'
+
+/** 한 할 일은 날짜 하나에만 담기므로, 다른 날짜로 옮겨 간 할 일을 나머지 날짜에서 뺀다. */
+function withoutTasks(
+  entriesByDate: Record<string, PlanEntry[]>,
+  taskIds: Set<number>,
+  exceptDate?: string,
+): Record<string, PlanEntry[]> {
+  return Object.fromEntries(Object.entries(entriesByDate).map(([date, entries]) => [
+    date,
+    date === exceptDate ? entries : entries.filter((entry) => !taskIds.has(entry.taskId)),
+  ]))
+}
 
 /**
  * 역할: 날짜별 캘린더 항목의 단일 출처. 어느 화면에서 캘린더에 담아도 캘린더을 보는 화면이 같은 목록을 본다.
@@ -21,8 +33,8 @@ interface DailyPlanStoreState {
 
   loadMonth: (monthKey: string, fromDate: string, toDate: string) => Promise<void>
   addItems: (date: string, request: CreateDailyPlanItemsRequest) => Promise<void>
-  removeItem: (date: string, itemId: number) => Promise<void>
-  applyPlans: (plans: DailyPlan[]) => void
+  removeTask: (date: string, taskId: number) => Promise<void>
+  applyTaskDate: (taskId: number, planDate: string | null) => void
   ensureItem: (date: string, taskId: number) => Promise<void>
   invalidateDate: (date: string) => void
   reset: () => void
@@ -44,7 +56,7 @@ export const useDailyPlanStore = create<DailyPlanStoreState>((set, get) => ({
       const plans = await getDailyPlans(fromDate, toDate)
       if (requestId !== latestRequestId) return
 
-      useTaskStore.getState().upsert(plans.flatMap((plan) => toTaskEntries(plan.items)))
+      useTaskStore.getState().upsert(plans.flatMap(toTaskEntries))
       set((current) => ({
         entriesByDate: {
           ...current.entriesByDate,
@@ -60,43 +72,48 @@ export const useDailyPlanStore = create<DailyPlanStoreState>((set, get) => ({
     }
   },
 
+  // 다른 날짜에 담겨 있던 할 일은 이 날짜로 옮겨지므로 원래 날짜에서도 뺀다.
   addItems: async (date, request) => {
-    const plan = await addDailyPlanItems(date, request)
+    const plan = await addDailyPlanTasks(date, request)
 
-    useTaskStore.getState().upsert(toTaskEntries(plan.items))
-    set((current) => ({
-      entriesByDate: { ...current.entriesByDate, [plan.date]: toPlanEntries(plan.items) },
-      status: 'ready',
-    }))
-  },
-
-  removeItem: async (date, itemId) => {
-    await deleteDailyPlanItem(date, itemId)
-
+    useTaskStore.getState().upsert(toTaskEntries(plan))
+    const plannedIds = new Set(plan.items.map((item) => item.taskId))
     set((current) => ({
       entriesByDate: {
-        ...current.entriesByDate,
-        [date]: (current.entriesByDate[date] ?? []).filter((entry) => entry.id !== itemId),
-      },
-    }))
-  },
-
-  // 캘린더 밖에서 일어난 변경(할 일 이동)이 돌려준 날짜들을 그대로 반영한다.
-  // 이동은 원본과 대상 두 날짜를 함께 바꾸므로 서버가 둘 다 실어 보낸다.
-  // TODO(task-owns-plan-date): 캘린더 날짜가 task 컬럼이 되면 이동 응답에 plans가 없어지고
-  //   task 하나만 반영하면 된다. docs/backlog/task-owns-plan-date.md
-  applyPlans: (plans) => {
-    if (plans.length === 0) return
-
-    useTaskStore.getState().upsert(plans.flatMap((plan) => toTaskEntries(plan.items)))
-    set((current) => ({
-      entriesByDate: {
-        ...current.entriesByDate,
-        ...Object.fromEntries(plans.map((plan) => [plan.date, toPlanEntries(plan.items)])),
+        ...withoutTasks(current.entriesByDate, plannedIds, plan.date),
+        [plan.date]: toPlanEntries(plan.items),
       },
       status: 'ready',
     }))
   },
+
+  removeTask: async (date, taskId) => {
+    await removeDailyPlanTask(date, taskId)
+
+    const task = useTaskStore.getState().byId[taskId]
+    if (task) useTaskStore.getState().upsert([{ ...task, planDate: null }])
+    set((current) => ({
+      entriesByDate: {
+        ...current.entriesByDate,
+        [date]: (current.entriesByDate[date] ?? []).filter((entry) => entry.taskId !== taskId),
+      },
+    }))
+  },
+
+  // 캘린더 밖에서 할 일의 날짜를 바꿨을 때(수정 모달) 반영한다. 원래 날짜에서는 바로 빼고,
+  // 새 날짜는 하루 안의 순서를 서버가 정하므로 그 달을 다시 받게 한다.
+  applyTaskDate: (taskId, planDate) => set((current) => {
+    const alreadyThere = planDate !== null
+      && (current.entriesByDate[planDate] ?? []).some((entry) => entry.taskId === taskId)
+    if (alreadyThere) return {}
+
+    const loadedMonths = new Set(current.loadedMonths)
+    if (planDate !== null) loadedMonths.delete(monthKeyOf(planDate))
+    return {
+      entriesByDate: withoutTasks(current.entriesByDate, new Set([taskId])),
+      loadedMonths,
+    }
+  }),
 
   // 세션은 캘린더에 담긴 Task로만 시작할 수 있어, 캘린더에 없으면 먼저 담는다.
   ensureItem: async (date, taskId) => {

@@ -93,13 +93,17 @@ public class FolderEntity extends BaseTimeEntity {
         return new FolderEntity(folder, user, tag);
     }
 
-    /** sourceCount와 pinnedAt은 옮기지 않는다. 폴더 수정이 다른 API의 값을 덮으면 안 된다. */
-    public void apply(Folder folder, FolderTagEntity tag) {
-        this.tag = tag;
+    /** sourceCount, pinnedAt, tag는 옮기지 않는다. 폴더 수정이 다른 API의 값을 덮으면 안 된다. */
+    public void apply(Folder folder) {
         this.name = folder.getName();
         this.description = folder.getDescription();
         this.targetDate = folder.getTargetDate();
         this.deleted = folder.isDeleted();
+    }
+
+    /** 이 폴더가 가리키는 태그만 바꾼다. null이면 태그를 뗀다. */
+    public void updateTag(FolderTagEntity tag) {
+        this.tag = tag;
     }
 
     public void updateStatus(FolderStatus status) {

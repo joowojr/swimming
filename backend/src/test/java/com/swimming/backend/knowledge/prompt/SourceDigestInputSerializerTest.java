@@ -67,8 +67,8 @@ class SourceDigestInputSerializerTest {
     }
 
     @Test
-    @DisplayName("이미 만든 Topic 이름을 참고 목록으로 함께 넘긴다")
-    void serializesExistingTopics() {
+    @DisplayName("이미 만든 Topic 이름은 소화 입력에 포함하지 않는다")
+    void doesNotSerializeExistingTopics() {
         String xml = SourceDigestInputSerializer.serialize(new SourceDigestInput(
                 "제목",
                 "https://example.com",
@@ -76,21 +76,7 @@ class SourceDigestInputSerializerTest {
                 List.of("MCP 서버 구현하기", "RAG 파이프라인 구현하기")
         ));
 
-        assertThat(xml).contains(
-                "<existing-topics>"
-                        + "<topic>MCP 서버 구현하기</topic>"
-                        + "<topic>RAG 파이프라인 구현하기</topic>"
-                        + "</existing-topics>"
-        );
-    }
-
-    @Test
-    @DisplayName("참고할 Topic이 없으면 목록 자체를 넣지 않는다")
-    void omitsEmptyExistingTopics() {
-        String xml = SourceDigestInputSerializer.serialize(new SourceDigestInput(
-                "제목", "https://example.com", "본문", List.of()
-        ));
-
         assertThat(xml).doesNotContain("existing-topics");
+        assertThat(xml).doesNotContain("MCP 서버 구현하기", "RAG 파이프라인 구현하기");
     }
 }

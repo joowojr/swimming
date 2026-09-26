@@ -1,5 +1,5 @@
 
-export type FolderStatus = 'IN_PROGRESS' | 'ARCHIVED'
+export type FolderStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'ARCHIVED'
 
 export type FolderLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -54,10 +54,35 @@ export interface UpdateFolderRequest {
   name: string
   description: string
   targetDate: string | null
-  status: FolderStatus
+}
+
+/** 이 폴더가 가리키는 태그만 바꾼다. 둘 다 null이면 태그를 뗀다. */
+export interface UpdateFolderTagRequest {
   tagId: number | null
+  newTagName: string | null
+}
+
+export interface UpdateFolderStatusRequest {
+  status: FolderStatus
 }
 
 export type FolderFieldErrors = Partial<
   Record<keyof CreateFolderRequest | 'status', string>
 >
+
+/** 폴더 목록 조회의 `status` 파라미터. ACTIVE는 보관을 뺀 나머지, ALL은 보관까지 모두다. */
+export type FolderStatusFilter = 'ACTIVE' | 'ALL' | FolderStatus
+
+export const folderStatusFilterLabel: Record<FolderStatusFilter, string> = {
+  ACTIVE: '보관 제외',
+  ALL: '전체',
+  NOT_STARTED: '시작 전',
+  IN_PROGRESS: '진행 중',
+  ARCHIVED: '보관됨',
+}
+
+export const folderStatusLabel: Record<FolderStatus, string> = {
+  NOT_STARTED: '시작 전',
+  IN_PROGRESS: '진행 중',
+  ARCHIVED: '보관됨',
+}

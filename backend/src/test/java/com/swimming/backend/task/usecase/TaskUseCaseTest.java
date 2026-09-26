@@ -4,7 +4,6 @@ import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
 import com.swimming.backend.folder.dto.FolderReference;
 import com.swimming.backend.folder.service.FolderService;
-import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.domain.Task;
@@ -13,9 +12,7 @@ import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSort;
-import com.swimming.backend.calendar.dto.projection.DailyPlanItemQueryRow;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
-import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.service.TaskService;
@@ -27,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,7 +40,6 @@ class TaskUseCaseTest {
     private TaskService taskService;
     private TaskOrderingService taskOrderingService;
     private FolderService folderService;
-    private DailyPlanService dailyPlanService;
     private TaskUseCase taskUseCase;
 
     @BeforeEach
@@ -50,8 +47,7 @@ class TaskUseCaseTest {
         taskService = mock(TaskService.class);
         taskOrderingService = mock(TaskOrderingService.class);
         folderService = mock(FolderService.class);
-        dailyPlanService = mock(DailyPlanService.class);
-        taskUseCase = new TaskUseCase(taskService, taskOrderingService, folderService, dailyPlanService);
+        taskUseCase = new TaskUseCase(taskService, taskOrderingService, folderService);
     }
 
     @Test
@@ -170,103 +166,69 @@ class TaskUseCaseTest {
     }
 
     @Test
-    @DisplayName("수정하기는 폴더·중요·즉시를 한 번에 반영하고 계획을 옮기지 않으면 빈 계획 목록을 돌려준다")
-    void updatesTaskInfoWithoutPlanMove() {
+    @DisplayName("수정하기는 제목·폴더·중요·즉시·캘린더 날짜를 한 번에 반영한다")
+    void updatesTaskInfo() {
+        LocalDate planDate = LocalDate.of(2026, 9, 5);
         when(folderService.getReference(1L, 10L))
                 .thenReturn(new FolderReference(10L, "폴더", null));
         when(taskService.getOne(1L, 41L)).thenReturn(task(41L, 10L, "Task", 0));
         when(taskOrderingService.nextRank(1L, true, true)).thenReturn(2048L);
-        when(taskService.updateInfo(1L, 41L, "Task", 10L, true, true, 2048L)).thenReturn(task(41L, 10L, "Task", 0));
+        when(taskService.updateInfo(1L, 41L, "Task", true, 10L, true, true, 2048L, planDate))
+                .thenReturn(task(41L, 10L, "Task", 0));
 
-        UpdateTaskInfoResponse response = taskUseCase.updateInfo(
+        TaskResponse response = taskUseCase.updateInfo(
                 1L,
                 41L,
-                new UpdateTaskInfoRequest("Task", 10L, true, true, null)
+                new UpdateTaskInfoRequest("Task", Optional.of(10L), true, true, planDate)
         );
 
-        verify(taskService).updateInfo(1L, 41L, "Task", 10L, true, true, 2048L);
-        assertThat(response.task().id()).isEqualTo(41L);
-        assertThat(response.plans()).isEmpty();
+        verify(taskService).updateInfo(1L, 41L, "Task", true, 10L, true, true, 2048L, planDate);
+        assertThat(response.id()).isEqualTo(41L);
     }
 
     @Test
     @DisplayName("미분류로 옮기면 폴더 소유권을 확인하지 않고 폴더를 비운다")
     void updatesTaskInfoToUnclassified() {
         when(taskService.getOne(1L, 41L)).thenReturn(task(41L, null, "Task", 0));
-        when(taskService.updateInfo(1L, 41L, "Task", null, false, false, null)).thenReturn(task(41L, null, "Task", 0));
+        when(taskService.updateInfo(1L, 41L, "Task", true, null, false, false, null, null))
+                .thenReturn(task(41L, null, "Task", 0));
 
-        taskUseCase.updateInfo(1L, 41L, new UpdateTaskInfoRequest("Task", null, false, false, null));
+        taskUseCase.updateInfo(1L, 41L, new UpdateTaskInfoRequest("Task", Optional.empty(), false, false, null));
 
         verify(folderService, never()).getReference(any(), any());
         // 중요·즉시가 그대로면 새 rank를 계산하지 않는다.
         verify(taskOrderingService, never()).nextRank(any(), anyBoolean(), anyBoolean());
-        verify(taskService).updateInfo(1L, 41L, "Task", null, false, false, null);
+        verify(taskService).updateInfo(1L, 41L, "Task", true, null, false, false, null, null);
     }
 
     @Test
-    @DisplayName("계획 날짜를 옮기면 원본과 대상 두 날짜의 계획을 함께 돌려준다")
-    void updatesTaskInfoWithPlanMove() {
-        LocalDate fromDate = LocalDate.of(2026, 9, 1);
-        LocalDate toDate = LocalDate.of(2026, 9, 5);
+    @DisplayName("folderId를 보내지 않으면 폴더 소유권을 확인하지 않고 폴더를 그대로 둔다")
+    void keepsFolderWhenFolderIdMissing() {
+        LocalDate planDate = LocalDate.of(2026, 9, 5);
+        when(taskService.getOne(1L, 41L)).thenReturn(task(41L, 10L, "Task", 0));
+        when(taskOrderingService.nextRank(1L, true, true)).thenReturn(2048L);
+        when(taskService.updateInfo(1L, 41L, "Task", false, null, true, true, 2048L, planDate))
+                .thenReturn(task(41L, 10L, "Task", 0));
+
+        taskUseCase.updateInfo(1L, 41L, new UpdateTaskInfoRequest("Task", null, true, true, planDate));
+
+        verify(folderService, never()).getReference(any(), any());
+        verify(taskService).updateInfo(1L, 41L, "Task", false, null, true, true, 2048L, planDate);
+    }
+
+    @Test
+    @DisplayName("할 일을 만들며 날짜를 고르면 그 날짜의 캘린더에 담는다")
+    void plansCreatedTaskWhenPlanDateGiven() {
+        LocalDate planDate = LocalDate.of(2026, 9, 5);
         when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
-        when(taskService.getOne(1L, 41L)).thenReturn(task(41L, null, "Task", 0));
-        when(taskService.updateInfo(1L, 41L, "Task", null, false, false, null)).thenReturn(task(41L, null, "Task", 0));
-        when(dailyPlanService.moveItemDate(1L, 7L, 41L, toDate)).thenReturn(fromDate);
-        when(dailyPlanService.getRows(1L, fromDate, fromDate)).thenReturn(List.of());
-        when(dailyPlanService.getRows(1L, toDate, toDate)).thenReturn(List.of(row(7L, toDate, 41L)));
-
-        UpdateTaskInfoResponse response = taskUseCase.updateInfo(
-                1L,
-                41L,
-                new UpdateTaskInfoRequest("Task", null, false, false, new UpdateTaskInfoRequest.PlanMove(7L, toDate))
-        );
-
-        assertThat(response.plans()).hasSize(2);
-        assertThat(response.plans().get(0).date()).isEqualTo(fromDate);
-        assertThat(response.plans().get(0).items()).isEmpty();
-        assertThat(response.plans().get(1).date()).isEqualTo(toDate);
-        assertThat(response.plans().get(1).items()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("같은 날짜로 옮기면 그 날짜의 계획만 돌려준다")
-    void keepsSingleDateWhenPlanDateUnchanged() {
-        LocalDate date = LocalDate.of(2026, 9, 1);
-        when(taskOrderingService.nextRank(1L, false, false)).thenReturn(1024L);
-        when(taskService.getOne(1L, 41L)).thenReturn(task(41L, null, "Task", 0));
-        when(taskService.updateInfo(1L, 41L, "Task", null, false, false, null)).thenReturn(task(41L, null, "Task", 0));
-        when(dailyPlanService.moveItemDate(1L, 7L, 41L, date)).thenReturn(date);
-        when(dailyPlanService.getRows(1L, date, date)).thenReturn(List.of(row(7L, date, 41L)));
-
-        UpdateTaskInfoResponse response = taskUseCase.updateInfo(
-                1L,
-                41L,
-                new UpdateTaskInfoRequest("Task", null, false, false, new UpdateTaskInfoRequest.PlanMove(7L, date))
-        );
-
-        assertThat(response.plans()).hasSize(1);
-        assertThat(response.plans().get(0).date()).isEqualTo(date);
-    }
-
-    @Test
-    @DisplayName("계획 항목 id 없이 날짜만 고르면 그 날짜의 계획에 담는다")
-    void addsToPlanWhenItemIdIsMissing() {
-        LocalDate date = LocalDate.of(2026, 9, 5);
-        when(taskService.getOne(1L, 41L)).thenReturn(task(41L, null, "Task", 0));
-        when(taskService.updateInfo(1L, 41L, "Task", null, false, false, null))
+        when(taskService.create(1L, null, "Task", false, false, 1024L))
                 .thenReturn(task(41L, null, "Task", 0));
-        when(dailyPlanService.getRows(1L, date, date)).thenReturn(List.of(row(7L, date, 41L)));
+        when(taskService.getOne(1L, 41L)).thenReturn(task(41L, null, "Task", 0));
 
-        UpdateTaskInfoResponse response = taskUseCase.updateInfo(
-                1L,
-                41L,
-                new UpdateTaskInfoRequest("Task", null, false, false,
-                        new UpdateTaskInfoRequest.PlanMove(null, date))
-        );
+        taskUseCase.createWithOptionalPlan(
+                1L, new CreateTaskWithPlanRequest("Task", null, false, false, planDate));
 
-        verify(dailyPlanService).addTaskIfAbsent(1L, date, 41L);
-        assertThat(response.plans()).hasSize(1);
-        assertThat(response.plans().get(0).date()).isEqualTo(date);
+        verify(taskService).plan(1L, List.of(41L), planDate);
     }
 
     @Test
@@ -316,11 +278,6 @@ class TaskUseCaseTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.FOLDER_NOT_FOUND);
-    }
-
-    private DailyPlanItemQueryRow row(Long itemId, LocalDate planDate, Long taskId) {
-        return new DailyPlanItemQueryRow(
-                itemId, planDate, taskId, null, null, null, "Task", TaskStatus.TODO);
     }
 
     /** 커서를 만들려면 생성 시각이 있어야 한다. */

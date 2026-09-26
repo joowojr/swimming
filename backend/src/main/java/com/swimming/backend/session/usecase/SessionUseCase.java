@@ -2,7 +2,6 @@ package com.swimming.backend.session.usecase;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
-import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.place.domain.Place;
 import com.swimming.backend.place.service.PlaceService;
 import com.swimming.backend.place.service.PlaceVideoService;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 public class SessionUseCase {
 
     private final SessionService sessionService;
-    private final DailyPlanService dailyPlanService;
     private final UserService userService;
     private final TaskService taskService;
     private final PlaceService placeService;
@@ -64,7 +62,7 @@ public class SessionUseCase {
         if (taskIds.isEmpty() || new HashSet<>(taskIds).size() != taskIds.size()) {
             throw new BusinessException(ErrorCode.INVALID_SESSION_TASKS);
         }
-        if (!dailyPlanService.containsAllTasks(userId, today, taskIds)) {
+        if (taskService.countPlannedOn(userId, today, taskIds) != taskIds.size()) {
             throw new BusinessException(ErrorCode.DAILY_PLAN_TASK_NOT_FOUND);
         }
         Place place = placeService.getOne(request.placeId());

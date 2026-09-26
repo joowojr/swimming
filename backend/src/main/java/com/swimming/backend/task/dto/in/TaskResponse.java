@@ -4,6 +4,7 @@ import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.domain.TaskStatus;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 public record TaskResponse(
         Long id,
@@ -13,6 +14,7 @@ public record TaskResponse(
         boolean priority,
         boolean urgent,
         int orderIdx,
+        LocalDate planDate,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -25,7 +27,7 @@ public record TaskResponse(
             Instant createdAt,
             Instant updatedAt
     ) {
-        this(id, folderId, title, status, false, false, orderIdx, createdAt, updatedAt);
+        this(id, folderId, title, status, false, false, orderIdx, null, createdAt, updatedAt);
     }
 
     public static TaskResponse from(Task task) {
@@ -37,6 +39,7 @@ public record TaskResponse(
                 task.isPriority(),
                 task.isUrgent(),
                 task.getOrderIdx(),
+                task.getPlanDate(),
                 task.getCreatedAt(),
                 task.getUpdatedAt()
         );

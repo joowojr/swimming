@@ -61,7 +61,19 @@ export default function NodeInspector({
     <aside className={styles.inspector} aria-label={`${node.title} 상세`}>
       <header className={styles.header}>
         <div className={styles['header-top']}>
-          <span className={styles.badge} data-type={node.type}>{NODE_TYPE_LABEL[node.type]}</span>
+          <div className={styles['header-labels']}>
+            <span className={styles.badge} data-type={node.type}>{NODE_TYPE_LABEL[node.type]}</span>
+            {node.type === 'SOURCE' && categories.map((category) => (
+              <button
+                key={category.nodeId}
+                type="button"
+                className={styles['category-chip']}
+                onClick={() => onSelect(category.nodeId)}
+              >
+                {category.title}
+              </button>
+            ))}
+          </div>
           <button type="button" className={styles.close} aria-label="패널 닫기" onClick={onClose}>
             <IconX size={15} stroke={1.8} aria-hidden="true" />
           </button>
@@ -127,7 +139,7 @@ export default function NodeInspector({
         </section>
       )}
 
-      {categories.length > 0 && (
+      {categories.length > 0 && node.type !== 'SOURCE' && (
         <section className={styles.section}>
           <h5>카테고리</h5>
           <ul>

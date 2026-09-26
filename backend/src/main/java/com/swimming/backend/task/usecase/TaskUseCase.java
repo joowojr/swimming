@@ -7,18 +7,13 @@ import com.swimming.backend.task.domain.TaskMatrixSection;
 import com.swimming.backend.task.dto.in.CreateTaskWithPlanRequest;
 import com.swimming.backend.task.dto.in.CreateTasksBatchRequest;
 import com.swimming.backend.task.dto.in.NewTaskSpec;
-import com.swimming.backend.calendar.domain.DailyPlanItem;
-import com.swimming.backend.calendar.service.DailyPlanService;
 import com.swimming.backend.task.dto.in.DeleteTasksRequest;
 import com.swimming.backend.common.dto.CursorPage;
 import com.swimming.backend.task.dto.in.TaskResponse;
 import com.swimming.backend.task.dto.in.TaskSummaryResponse;
 import com.swimming.backend.task.service.TaskCursorCodec;
 import com.swimming.backend.task.dto.in.TaskSort;
-import com.swimming.backend.calendar.dto.in.DailyPlanItemResponse;
-import com.swimming.backend.calendar.dto.in.DailyPlanResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskInfoRequest;
-import com.swimming.backend.task.dto.in.UpdateTaskInfoResponse;
 import com.swimming.backend.task.dto.in.UpdateTaskStatusRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskTitleRequest;
 import com.swimming.backend.task.dto.in.UpdateTaskPriorityRequest;
@@ -33,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +41,6 @@ public class TaskUseCase {
     private final TaskService taskService;
     private final TaskOrderingService taskOrderingService;
     private final FolderService folderService;
-    private final DailyPlanService dailyPlanService;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public TaskResponse createWithOptionalPlan(Long userId, CreateTaskWithPlanRequest request) {
@@ -56,7 +51,8 @@ public class TaskUseCase {
         Task task = taskService.create(
                 userId, folderId, request.title().trim(), request.priority(), request.urgent(), matrixRank);
         if (request.planDate() != null) {
-            dailyPlanService.save(userId, request.planDate(), DailyPlanItem.createTask(task.getId()));
+            taskService.plan(userId, List.of(task.getId()), request.planDate());
+            task = taskService.getOne(userId, task.getId());
         }
         return TaskResponse.from(task);
     }
@@ -95,18 +91,27 @@ public class TaskUseCase {
         // 넘긴 순서 그대로 돌아오므로 요청 항목과 같은 자리에서 짝지을 수 있다.
         List<Task> created = taskService.createAll(userId, specs);
 
-        Map<LocalDate, List<DailyPlanItem>> itemsByDate = new LinkedHashMap<>();
+        Map<LocalDate, List<Long>> taskIdsByDate = new LinkedHashMap<>();
         for (int index = 0; index < drafts.size(); index++) {
             LocalDate planDate = drafts.get(index).planDate();
             if (planDate == null) {
                 continue;
             }
-            itemsByDate.computeIfAbsent(planDate, date -> new ArrayList<>())
-                    .add(DailyPlanItem.createTask(created.get(index).getId()));
+            taskIdsByDate.computeIfAbsent(planDate, date -> new ArrayList<>())
+                    .add(created.get(index).getId());
         }
-        itemsByDate.forEach((date, items) -> dailyPlanService.saveAll(userId, date, items));
+        if (taskIdsByDate.isEmpty()) {
+            return created.stream().map(TaskResponse::from).toList();
+        }
+        taskIdsByDate.forEach((date, taskIds) -> taskService.plan(userId, taskIds, date));
 
-        return created.stream().map(TaskResponse::from).toList();
+        // 캘린더 날짜까지 담긴 값으로 돌려준다. 순서는 요청 순서 그대로다.
+        Map<Long, Task> plannedById = new HashMap<>();
+        taskService.getAllByIds(userId, created.stream().map(Task::getId).toList())
+                .forEach(task -> plannedById.put(task.getId(), task));
+        return created.stream()
+                .map(task -> TaskResponse.from(plannedById.get(task.getId())))
+                .toList();
     }
 
     /**
@@ -162,48 +167,22 @@ public class TaskUseCase {
         return TaskResponse.from(taskService.updateStatus(userId, taskId, request.status()));
     }
 
-    /**
-     * 수정 모달의 저장 하나를 처리한다. 폴더·중요·즉시는 Task의 속성이고 계획 날짜는 별도 테이블이지만
-     * 사용자에게는 한 번의 저장이므로 한 트랜잭션에서 끝낸다.
-     * TODO(task-owns-plan-date): date가 Task 테이블의 컬럼이 되면 plan 분기와 응답의 plans가 사라진다.
-     *   docs/backlog/task-owns-plan-date.md
-     */
+    /** 수정 모달의 저장 하나를 처리한다. 제목·폴더·중요·즉시·캘린더 날짜를 한 트랜잭션에서 바꾼다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public UpdateTaskInfoResponse updateInfo(Long userId, Long taskId, UpdateTaskInfoRequest request) {
-        Long folderId = request.folderId() == null
+    public TaskResponse updateInfo(Long userId, Long taskId, UpdateTaskInfoRequest request) {
+        // 폴더를 바꿀 때만 소유권을 확인한다. 바꾸지 않으면 삭제된 폴더에 걸린 할 일도 연결을 그대로 둔다.
+        Long folderId = request.targetFolderId() == null
                 ? null
-                : folderService.getReference(userId, request.folderId()).id();
+                : folderService.getReference(userId, request.targetFolderId()).id();
 
         Task current = taskService.getOne(userId, taskId);
         Long matrixRank = current.isPriority() != request.priority() || current.isUrgent() != request.urgent()
                 ? taskOrderingService.nextRank(userId, request.priority(), request.urgent())
                 : null;
-        Task task = taskService.updateInfo(
-                userId, taskId, request.title(), folderId, request.priority(), request.urgent(), matrixRank);
-
-        List<DailyPlanResponse> plans = new ArrayList<>();
-        if (request.plan() != null) {
-            LocalDate toDate = request.plan().date();
-            if (request.plan().itemId() == null) {
-                // 계획 항목 id를 모르는 화면에서 날짜를 고른 것이라 새로 담는다.
-                dailyPlanService.addTaskIfAbsent(userId, toDate, taskId);
-                plans.add(loadPlanResponse(userId, toDate));
-            } else {
-                LocalDate fromDate = dailyPlanService.moveItemDate(userId, request.plan().itemId(), taskId, toDate);
-                plans.add(loadPlanResponse(userId, fromDate));
-                if (!fromDate.equals(toDate)) {
-                    plans.add(loadPlanResponse(userId, toDate));
-                }
-            }
-        }
-        return new UpdateTaskInfoResponse(TaskResponse.from(task), plans);
-    }
-
-    private DailyPlanResponse loadPlanResponse(Long userId, LocalDate date) {
-        return new DailyPlanResponse(date, dailyPlanService.getRows(userId, date, date)
-                .stream()
-                .map(DailyPlanItemResponse::from)
-                .toList());
+        return TaskResponse.from(taskService.updateInfo(
+                userId, taskId, request.title(), request.changesFolder(), folderId, request.priority(), request.urgent(),
+                matrixRank,
+                request.planDate()));
     }
 
     /** @deprecated updateInfo의 priority를 쓴다. */

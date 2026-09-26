@@ -43,7 +43,8 @@ public class KnowledgeGraphAssembler {
             GraphResponse.Root root,
             List<KnowledgeNode> seeds,
             Collection<KnowledgeRelation> relations,
-            boolean truncated
+            boolean truncated,
+            List<UUID> categorizableSourceIds
     ) {
         Map<UUID, GraphResponse.Node> nodes = new LinkedHashMap<>();
         for (KnowledgeNode seed : seeds) {
@@ -64,7 +65,13 @@ public class KnowledgeGraphAssembler {
             }
         }
 
-        return new GraphResponse(root, List.copyOf(nodes.values()), List.copyOf(edges), truncated);
+        return new GraphResponse(
+                root,
+                List.copyOf(nodes.values()),
+                List.copyOf(edges),
+                truncated,
+                List.copyOf(categorizableSourceIds)
+        );
     }
 
     /** 관계의 양끝 중 아직 읽지 않은 노드. 이름을 찾으러 한 번만 나간다. */

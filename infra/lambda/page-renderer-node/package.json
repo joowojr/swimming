@@ -2,8 +2,11 @@
   "name": "page-renderer-node-lambda-test",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "dependencies": {
     "@sparticuz/chromium": "143.0.0",

@@ -1,4 +1,4 @@
-/* 할 일 목록을 좁히는 필터 메뉴. 트리거 버튼 모양은 화면이 정하고, 패널만 공유한다. */
+/* 목록을 좁히는 필터 메뉴. 트리거 버튼 모양은 화면이 정하고, 패널과 그 안의 항목 모양만 공유한다. */
 .wrap {
   position: relative;
   flex: 0 0 auto;
@@ -41,6 +41,10 @@
   color: var(--color-primary);
   font-size: var(--text-body-sm-size);
   background: var(--color-surface-lowest);
+}
+
+.field select:focus {
+  outline: none;
 }
 
 .check {

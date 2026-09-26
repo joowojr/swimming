@@ -111,7 +111,7 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
     const status = useDailyPlanStore((state) => state.status)
     const loadMonth = useDailyPlanStore((state) => state.loadMonth)
     const addItems = useDailyPlanStore((state) => state.addItems)
-    const removePlanItem = useDailyPlanStore((state) => state.removeItem)
+    const removePlanTask = useDailyPlanStore((state) => state.removeTask)
     const tasksById = useTaskStore((state) => state.byId)
     const upsertTasks = useTaskStore((state) => state.upsert)
     const folders = useFolderStore((state) => state.folders)
@@ -190,12 +190,14 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
     }
 
     /** 모달에서 담은 것을 한 번에 캘린더에 넣는다. 이미 있는 할 일과 새로 만들 할 일은 경로가 다르다. */
-    const addPickedTasks = async ({existingTaskIds, newTasks}: TaskPickerSubmission) => {
-        if (existingTaskIds.length > 0) {
-            await addItems(selectedDate, {taskIds: existingTaskIds})
+    /** 모달에서 고른 날짜에 담는다. 날짜가 필수인 모달이라 날짜 없이 제출되지 않는다. */
+    const addPickedTasks = async ({existingTasks, newTasks, planDate}: TaskPickerSubmission) => {
+        if (!planDate) return
+        if (existingTasks.length > 0) {
+            await addItems(planDate, {taskIds: existingTasks.map((task) => task.taskId)})
         }
         if (newTasks.length > 0) {
-            await addItems(selectedDate, {
+            await addItems(planDate, {
                 tasks: newTasks.map(({title, folderId, priority, urgent}) => ({
                     title,
                     priority,
@@ -223,9 +225,9 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
         }
     }
 
-    const removeItem = async (itemId: number) => {
+    const removeItem = async (taskId: number) => {
         try {
-            await removePlanItem(selectedDate, itemId)
+            await removePlanTask(selectedDate, taskId)
         } catch (error: unknown) {
             const apiMessage = typeof error === 'object' && error !== null ? (error as ApiError).message : undefined
             setMessage(apiMessage ?? '캘린더에서 할 일을 제거하지 못했습니다.')
@@ -326,7 +328,7 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
                     <>
                         <ol className={styles.todoList}>
                             {items.map((item) => (
-                                <li key={item.id} className={styles[`is-${item.status.toLowerCase()}`]}>
+                                <li key={item.taskId} className={styles[`is-${item.status.toLowerCase()}`]}>
                                     <ChecklistCard
                                         status={item.status}
                                         title={
@@ -372,7 +374,7 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
                                                     isOpen: sessionTaskId === item.taskId,
                                                 } : undefined}
                                                 onMove={() => setMoveTarget(item)}
-                                                onDelete={() => void removeItem(item.id)}
+                                                onDelete={() => void removeItem(item.taskId)}
                                             />
                                         </TaskMenu>
                                           </>
@@ -387,7 +389,7 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
 
             </div>
 
-            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={onPickerClose} />}
+            {isPickerOpen && <TaskPickerModal canMoveFromOtherDates planDateRequired initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={onPickerClose} />}
             {moveTarget && (
                 <TaskInfoModal
                     taskId={moveTarget.taskId}
@@ -395,7 +397,7 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
                     currentFolderId={moveTarget.folderId}
                     currentPriority={moveTarget.priority}
                     currentUrgent={moveTarget.urgent}
-                    plan={{itemId: moveTarget.id, date: selectedDate}}
+                    currentPlanDate={selectedDate}
                     onClose={() => setMoveTarget(null)}
                 />
             )}

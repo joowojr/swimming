@@ -3,6 +3,7 @@ package com.swimming.backend.task.domain;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 public class Task {
@@ -17,6 +18,8 @@ public class Task {
     private boolean urgent;
     private int orderIdx;
     private long matrixRank;
+    /** 캘린더에 담긴 날짜. 한 task는 최대 하나의 날짜를 갖고, 담지 않았으면 null이다. */
+    private final LocalDate planDate;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -31,6 +34,7 @@ public class Task {
             boolean urgent,
             int orderIdx,
             long matrixRank,
+            LocalDate planDate,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -44,6 +48,7 @@ public class Task {
         this.urgent = urgent;
         this.orderIdx = orderIdx;
         this.matrixRank = matrixRank;
+        this.planDate = planDate;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -70,6 +75,7 @@ public class Task {
                 urgent,
                 orderIdx,
                 matrixRank,
+                null,
                 null,
                 null
         );
@@ -119,6 +125,7 @@ public class Task {
                 orderIdx,
                 matrixRank,
                 null,
+                null,
                 null
         );
     }
@@ -150,6 +157,15 @@ public class Task {
             TaskStatus status, boolean priority, boolean urgent, int orderIdx, long matrixRank,
             Instant createdAt, Instant updatedAt
     ) {
+        return restore(id, userId, folderId, sourceNoteId, title, status, priority, urgent, orderIdx, matrixRank,
+                null, createdAt, updatedAt);
+    }
+
+    public static Task restore(
+            Long id, Long userId, Long folderId, Long sourceNoteId, String title,
+            TaskStatus status, boolean priority, boolean urgent, int orderIdx, long matrixRank,
+            LocalDate planDate, Instant createdAt, Instant updatedAt
+    ) {
         return new Task(
                 id,
                 userId,
@@ -161,6 +177,7 @@ public class Task {
                 urgent,
                 orderIdx,
                 matrixRank,
+                planDate,
                 createdAt,
                 updatedAt
         );

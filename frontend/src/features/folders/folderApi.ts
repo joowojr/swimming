@@ -3,14 +3,19 @@ import type {
   CreateFolderRequest,
   Folder,
   FolderDetail,
+  FolderStatusFilter,
   FolderTag,
   FolderTagNameRequest,
   PinFolderRequest,
   UpdateFolderRequest,
+  UpdateFolderStatusRequest,
+  UpdateFolderTagRequest,
 } from './folderTypes.ts'
 
-export async function getFolders(): Promise<Folder[]> {
-  const response = await client.get<Folder[]>('/folders')
+export async function getFolders(
+  status: FolderStatusFilter = 'ACTIVE',
+): Promise<Folder[]> {
+  const response = await client.get<Folder[]>('/folders', { params: { status } })
   return response.data
 }
 
@@ -31,6 +36,24 @@ export async function updateFolder(
   request: UpdateFolderRequest,
 ): Promise<Folder> {
   const response = await client.patch<Folder>(`/folders/${folderId}`, request)
+  return response.data
+}
+
+/** 태그 이름은 그대로 두고 이 폴더가 가리키는 태그만 바꾼다. 같은 태그를 쓰는 다른 폴더는 영향이 없다. */
+export async function setFolderTag(
+  folderId: number,
+  request: UpdateFolderTagRequest,
+): Promise<Folder> {
+  const response = await client.put<Folder>(`/folders/${folderId}/tag`, request)
+  return response.data
+}
+
+export async function updateFolderStatus(
+  folderId: number,
+  status: UpdateFolderStatusRequest['status'],
+): Promise<Folder> {
+  const request: UpdateFolderStatusRequest = { status }
+  const response = await client.patch<Folder>(`/folders/${folderId}/status`, request)
   return response.data
 }
 

@@ -24,8 +24,16 @@
 
 .header-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.header-labels {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
 }
 
@@ -57,6 +65,25 @@
 .badge[data-type='TOPIC'] {
   color: var(--color-primary);
   background: var(--color-tone-indigo-tint);
+}
+
+/* Link Feed의 Category pill과 같은 시각 언어로 문서 소속을 제목 가까이에 둔다. */
+.category-chip {
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 100%;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-label-caps-size);
+  font-weight: var(--text-label-caps-weight);
+  line-height: var(--text-label-caps-line-height);
+  overflow-wrap: anywhere;
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
 }
 
 .close {
@@ -204,6 +231,7 @@
 .close:focus-visible,
 .origin:focus-visible,
 .section li button:focus-visible,
+.category-chip:focus-visible,
 .chip:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--border-width);
@@ -223,6 +251,10 @@
 
   .chip:hover {
     border-color: var(--color-tone-fountain);
+  }
+
+  .category-chip:hover {
+    background: var(--color-surface-soft);
   }
 }
 

@@ -1,6 +1,6 @@
 import type { Folder } from '../folders/folderTypes.ts'
 import type { TaskCacheEntry } from '../tasks/taskTypes'
-import type { DailyPlanItem, PlanEntry } from './dailyPlanTypes'
+import type { DailyPlan, DailyPlanItem, PlanEntry } from './dailyPlanTypes'
 
 /**
  * 캘린더 항목(멤버십) + task(가변 속성) + 폴더(이름)를 화면이 쓰는 한 줄로 합친다.
@@ -16,7 +16,6 @@ export function joinPlanItems(
     if (!task) return []
 
     const base = {
-      id: entry.id,
       taskId: entry.taskId,
       title: task.title,
       status: task.status,
@@ -36,17 +35,17 @@ export function joinPlanItems(
 
 export function toPlanEntries(items: DailyPlanItem[]): PlanEntry[] {
   return items.map((item) => ({
-    id: item.id,
     taskId: item.taskId,
     itemType: item.itemType,
     folderName: item.folderName,
   }))
 }
 
-/** 캘린더 응답에 실려 온 task 정보를 taskStore가 받을 모양으로 바꾼다. */
-export function toTaskEntries(items: DailyPlanItem[]): TaskCacheEntry[] {
-  return items.map((item) => ({
+/** 캘린더 응답에 실려 온 task 정보를 taskStore가 받을 모양으로 바꾼다. 날짜는 그 캘린더의 날짜다. */
+export function toTaskEntries(plan: DailyPlan): TaskCacheEntry[] {
+  return plan.items.map((item) => ({
     id: item.taskId,
+    planDate: plan.date,
     folderId: item.folderId,
     title: item.title,
     status: item.status,

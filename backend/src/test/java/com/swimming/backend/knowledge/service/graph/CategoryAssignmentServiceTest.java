@@ -1,12 +1,20 @@
 package com.swimming.backend.knowledge.service.graph;
 
 import com.swimming.backend.knowledge.domain.KnowledgeNode;
+import com.swimming.backend.knowledge.domain.KnowledgeRelation;
+import com.swimming.backend.knowledge.domain.RelationOrigin;
+import com.swimming.backend.knowledge.domain.RelationType;
 import com.swimming.backend.knowledge.domain.KnowledgeSource;
 import com.swimming.backend.knowledge.domain.NodeType;
+import com.swimming.backend.knowledge.dto.in.NodeRef;
+import com.swimming.backend.knowledge.dto.in.SourceConcepts;
 import com.swimming.backend.knowledge.dto.out.CategoryAssignmentDecision;
 import com.swimming.backend.knowledge.dto.out.CategoryAssignmentInput;
 import com.swimming.backend.knowledge.dto.out.SourceDigestResult;
+import com.swimming.backend.knowledge.service.SourceGraphReader;
 import com.swimming.backend.knowledge.service.data.KnowledgeNodeService;
+import com.swimming.backend.knowledge.service.data.KnowledgeRelationService;
+import com.swimming.backend.knowledge.service.data.KnowledgeSourceService;
 import com.swimming.backend.knowledge.service.llm.CategoryAssignmentDecider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +40,9 @@ class CategoryAssignmentServiceTest {
 
     private com.swimming.backend.folder.service.FolderService folderService;
     private KnowledgeNodeService nodeService;
+    private KnowledgeRelationService relationService;
+    private KnowledgeSourceService sourceService;
+    private SourceGraphReader sourceGraphReader;
     private CategoryAssignmentDecider decider;
     private SourceGraphWriter graphWriter;
     private CategoryAssignmentService service;
@@ -38,11 +50,22 @@ class CategoryAssignmentServiceTest {
     @BeforeEach
     void setUp() {
         nodeService = mock(KnowledgeNodeService.class);
+        relationService = mock(KnowledgeRelationService.class);
+        sourceService = mock(KnowledgeSourceService.class);
+        sourceGraphReader = mock(SourceGraphReader.class);
         decider = mock(CategoryAssignmentDecider.class);
         graphWriter = mock(SourceGraphWriter.class);
         folderService = mock(com.swimming.backend.folder.service.FolderService.class);
         when(folderService.getSourceCount(USER_ID, FOLDER_ID)).thenReturn(6L);
-        service = new CategoryAssignmentService(folderService, nodeService, decider, graphWriter);
+        service = new CategoryAssignmentService(
+                folderService,
+                nodeService,
+                relationService,
+                sourceService,
+                sourceGraphReader,
+                decider,
+                graphWriter
+        );
         when(nodeService.findCategoriesInFolder(USER_ID, FOLDER_ID)).thenReturn(List.of(mcp));
     }
 
@@ -81,6 +104,49 @@ class CategoryAssignmentServiceTest {
         verify(decider).decide(input.capture());
         assertThat(input.getValue().proposedCategoryTitle()).isEqualTo("WAL 정리");
         verify(graphWriter).createCategoryAssignmentInTransaction(source, new CategoryAssignmentDecision.Create("WAL 정리"));
+    }
+
+    @Test
+    @DisplayName("기존 Category에 포함된 Source의 고유 Topic을 최대 세 개 전달한다")
+    void 기존_Category의_Topic을_세_개까지_전달한다() {
+        KnowledgeSource target = completedSource();
+        KnowledgeSource first = completedSource();
+        KnowledgeSource second = completedSource();
+        KnowledgeSource third = completedSource();
+        KnowledgeSource fourth = completedSource();
+        List<KnowledgeSource> containedSources = List.of(first, second, third, fourth);
+        List<KnowledgeRelation> contains = containedSources.stream()
+                .map(item -> KnowledgeRelation.create(
+                        mcp, item.getNode(), RelationType.CONTAINS, RelationOrigin.AI, null, null
+                ))
+                .toList();
+
+        when(relationService.findOutgoing(List.of(mcp.getId()), List.of(RelationType.CONTAINS)))
+                .thenReturn(contains);
+        when(sourceService.getOwnedAll(org.mockito.ArgumentMatchers.eq(USER_ID), any()))
+                .thenReturn(containedSources);
+        when(sourceGraphReader.readAll(containedSources)).thenReturn(Map.of(
+                first.getId(), concepts(first, "MCP 서버 구성"),
+                second.getId(), concepts(second, "mcp서버 구성"),
+                third.getId(), concepts(third, "Tool Calling 구현"),
+                fourth.getId(), concepts(fourth, "에이전트 도구 연결")
+        ));
+        when(decider.decide(any())).thenReturn(new CategoryAssignmentDecision.Reuse(mcp.getId()));
+
+        service.assign(target, digest("AI 개발"));
+
+        ArgumentCaptor<CategoryAssignmentInput> input = ArgumentCaptor.forClass(CategoryAssignmentInput.class);
+        verify(decider).decide(input.capture());
+        assertThat(input.getValue().categories().getFirst().topics())
+                .containsExactly("MCP 서버 구성", "Tool Calling 구현", "에이전트 도구 연결");
+    }
+
+    private SourceConcepts concepts(KnowledgeSource source, String topicTitle) {
+        return new SourceConcepts(
+                new NodeRef(source.getId(), topicTitle),
+                List.of(),
+                new NodeRef(mcp.getId(), mcp.getTitle())
+        );
     }
 
     @Test

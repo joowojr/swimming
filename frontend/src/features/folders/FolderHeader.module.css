@@ -28,7 +28,6 @@
   margin-bottom: var(--space-3);
 }
 
-.tag,
 .folder-status {
   padding: var(--space-1) var(--space-2);
   font-family: var(--font-family-mono);
@@ -38,42 +37,43 @@
   white-space: nowrap;
 }
 
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-default);
-  color: var(--color-mute);
-  background: var(--project-tone-tint, var(--color-surface-container-highest));
-}
-
 .folder-status {
   border: var(--border-width) solid var(--chip-doing-border);
   border-radius: var(--radius-full);
   color: var(--chip-doing-fg);
   background: var(--chip-doing-bg);
+  cursor: pointer;
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: var(--border-width);
+}
+
+.folder-status[data-status='NOT_STARTED'] {
+  border-color: var(--chip-todo-border);
+  color: var(--chip-todo-fg);
+  background: var(--chip-todo-bg);
+}
+
+.folder-status:focus-visible {
+  border-color: var(--color-primary);
+  outline-color: var(--color-primary);
+}
+
+.folder-status:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.folder-status option {
+  color: var(--color-primary);
+  background: var(--color-surface-container-lowest);
 }
 
 .folder-status[data-status='ARCHIVED'] {
-  border-style: dashed;
   border-color: var(--chip-hold-border);
   color: var(--chip-hold-fg);
   background: var(--chip-hold-bg);
 }
 
-.badges[data-tone='0'] { --project-tone: var(--color-tone-fountain); --project-tone-tint: var(--color-tone-fountain-tint); }
-.badges[data-tone='1'] { --project-tone: var(--color-tone-indigo); --project-tone-tint: var(--color-tone-indigo-tint); }
-.badges[data-tone='2'] { --project-tone: var(--color-tone-glorious); --project-tone-tint: var(--color-tone-glorious-tint); }
-.badges[data-tone='3'] { --project-tone: var(--color-tone-wild-willow); --project-tone-tint: var(--color-tone-wild-willow-tint); }
-
-.tag::before {
-  width: var(--space-2);
-  height: var(--space-2);
-  flex: 0 0 auto;
-  border-radius: var(--radius-full);
-  background: var(--project-tone, var(--color-mute));
-  content: '';
-}
 
 .header-actions {
   display: flex;
@@ -136,7 +136,8 @@
   font-size: var(--text-label-caps-size);
 }
 
-.delete-error {
+.delete-error,
+.status-error {
   margin: var(--space-2) 0 0;
   color: var(--color-error);
   font-size: var(--text-body-sm-size);
@@ -162,24 +163,49 @@
   line-height: var(--text-body-lg-line-height);
 }
 
-.editable-group {
+.info {
   display: grid;
-  max-width: 100%;
   min-width: 0;
-  justify-items: start;
 }
 
-.editable-group > h1,
-.editable-group > p {
-  width: 100%;
+/* 제목 바로 뒤에 연필을 둔다. 제목이 길면 줄바꿈되고 연필은 첫 줄 높이에 맞춘다. */
+.title-row {
+  display: flex;
+  align-items: center;
   min-width: 0;
+  gap: var(--space-2);
+}
+
+/* InlineEditableText의 edit-button과 같은 모양이다. */
+.edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--space-5);
+  height: var(--space-5);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+}
+
+.edit-button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.edit-button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--border-width);
 }
 
 .header-bottom {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
@@ -189,6 +215,12 @@
   color: var(--color-error);
   font-size: var(--text-body-sm-size);
   text-align: right;
+}
+
+/* 태그가 없어도 목표일은 오른쪽 끝에 둔다. */
+.target-date-chip,
+.date-editor {
+  margin-left: auto;
 }
 
 .target-date-chip {
@@ -256,9 +288,20 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .edit-button:hover:not(:disabled) {
+    background: var(--color-surface-container-high);
+  }
+
   .target-date-chip:hover:not(:disabled) {
     border-color: var(--color-hairline);
     color: var(--color-primary);
     background: var(--color-surface-soft);
+  }
+}
+
+@media (pointer: coarse) {
+  .edit-button {
+    min-width: var(--button-height);
+    min-height: var(--button-height);
   }
 }

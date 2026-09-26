@@ -170,16 +170,18 @@ public class TaskUseCase {
     /** 수정 모달의 저장 하나를 처리한다. 제목·폴더·중요·즉시·캘린더 날짜를 한 트랜잭션에서 바꾼다. */
     @Transactional(propagation = Propagation.REQUIRED)
     public TaskResponse updateInfo(Long userId, Long taskId, UpdateTaskInfoRequest request) {
-        Long folderId = request.folderId() == null
+        // 폴더를 바꿀 때만 소유권을 확인한다. 바꾸지 않으면 삭제된 폴더에 걸린 할 일도 연결을 그대로 둔다.
+        Long folderId = request.targetFolderId() == null
                 ? null
-                : folderService.getReference(userId, request.folderId()).id();
+                : folderService.getReference(userId, request.targetFolderId()).id();
 
         Task current = taskService.getOne(userId, taskId);
         Long matrixRank = current.isPriority() != request.priority() || current.isUrgent() != request.urgent()
                 ? taskOrderingService.nextRank(userId, request.priority(), request.urgent())
                 : null;
         return TaskResponse.from(taskService.updateInfo(
-                userId, taskId, request.title(), folderId, request.priority(), request.urgent(), matrixRank,
+                userId, taskId, request.title(), request.changesFolder(), folderId, request.priority(), request.urgent(),
+                matrixRank,
                 request.planDate()));
     }
 

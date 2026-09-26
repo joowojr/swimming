@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -172,16 +173,16 @@ class TaskUseCaseTest {
                 .thenReturn(new FolderReference(10L, "폴더", null));
         when(taskService.getOne(1L, 41L)).thenReturn(task(41L, 10L, "Task", 0));
         when(taskOrderingService.nextRank(1L, true, true)).thenReturn(2048L);
-        when(taskService.updateInfo(1L, 41L, "Task", 10L, true, true, 2048L, planDate))
+        when(taskService.updateInfo(1L, 41L, "Task", true, 10L, true, true, 2048L, planDate))
                 .thenReturn(task(41L, 10L, "Task", 0));
 
         TaskResponse response = taskUseCase.updateInfo(
                 1L,
                 41L,
-                new UpdateTaskInfoRequest("Task", 10L, true, true, planDate)
+                new UpdateTaskInfoRequest("Task", Optional.of(10L), true, true, planDate)
         );
 
-        verify(taskService).updateInfo(1L, 41L, "Task", 10L, true, true, 2048L, planDate);
+        verify(taskService).updateInfo(1L, 41L, "Task", true, 10L, true, true, 2048L, planDate);
         assertThat(response.id()).isEqualTo(41L);
     }
 
@@ -189,15 +190,30 @@ class TaskUseCaseTest {
     @DisplayName("미분류로 옮기면 폴더 소유권을 확인하지 않고 폴더를 비운다")
     void updatesTaskInfoToUnclassified() {
         when(taskService.getOne(1L, 41L)).thenReturn(task(41L, null, "Task", 0));
-        when(taskService.updateInfo(1L, 41L, "Task", null, false, false, null, null))
+        when(taskService.updateInfo(1L, 41L, "Task", true, null, false, false, null, null))
                 .thenReturn(task(41L, null, "Task", 0));
 
-        taskUseCase.updateInfo(1L, 41L, new UpdateTaskInfoRequest("Task", null, false, false, null));
+        taskUseCase.updateInfo(1L, 41L, new UpdateTaskInfoRequest("Task", Optional.empty(), false, false, null));
 
         verify(folderService, never()).getReference(any(), any());
         // 중요·즉시가 그대로면 새 rank를 계산하지 않는다.
         verify(taskOrderingService, never()).nextRank(any(), anyBoolean(), anyBoolean());
-        verify(taskService).updateInfo(1L, 41L, "Task", null, false, false, null, null);
+        verify(taskService).updateInfo(1L, 41L, "Task", true, null, false, false, null, null);
+    }
+
+    @Test
+    @DisplayName("folderId를 보내지 않으면 폴더 소유권을 확인하지 않고 폴더를 그대로 둔다")
+    void keepsFolderWhenFolderIdMissing() {
+        LocalDate planDate = LocalDate.of(2026, 9, 5);
+        when(taskService.getOne(1L, 41L)).thenReturn(task(41L, 10L, "Task", 0));
+        when(taskOrderingService.nextRank(1L, true, true)).thenReturn(2048L);
+        when(taskService.updateInfo(1L, 41L, "Task", false, null, true, true, 2048L, planDate))
+                .thenReturn(task(41L, 10L, "Task", 0));
+
+        taskUseCase.updateInfo(1L, 41L, new UpdateTaskInfoRequest("Task", null, true, true, planDate));
+
+        verify(folderService, never()).getReference(any(), any());
+        verify(taskService).updateInfo(1L, 41L, "Task", false, null, true, true, 2048L, planDate);
     }
 
     @Test

@@ -23,11 +23,12 @@ export interface UpdateTaskUrgentRequest {
 
 /**
  * 할 일의 정보를 한 번에 바꾼다. 사용자에게는 모달 하나의 저장이라 서버가 한 트랜잭션으로 처리한다.
- * folderId와 planDate는 null이 "미분류"·"캘린더에 없음"을 뜻해 생략과 구분되지 않으므로 항상 보낸다.
+ * folderId는 빼면 폴더를 바꾸지 않고, null이면 미분류로 옮긴다.
+ * planDate는 null이 "캘린더에 없음"을 뜻해 생략과 구분되지 않으므로 항상 보낸다.
  */
 export interface UpdateTaskInfoRequest {
   title: string
-  folderId: number | null
+  folderId?: number | null
   priority: boolean
   urgent: boolean
   planDate: string | null

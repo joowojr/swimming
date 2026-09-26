@@ -2,6 +2,8 @@ package com.swimming.backend.task.service;
 
 import com.swimming.backend.common.exception.BusinessException;
 import com.swimming.backend.common.exception.ErrorCode;
+import com.swimming.backend.folder.domain.Folder;
+import com.swimming.backend.folder.service.FolderService;
 import com.swimming.backend.task.domain.Task;
 import com.swimming.backend.task.dto.projection.PlannedTaskRow;
 import com.swimming.backend.user.domain.User;
@@ -43,6 +45,9 @@ class TaskPlanIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FolderService folderService;
 
     private Long userId;
 
@@ -119,6 +124,20 @@ class TaskPlanIntegrationTest {
 
         assertThat(taskService.countPlannedOn(userId, MONDAY, List.of(monday.getId(), tuesday.getId())))
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("폴더를 바꾸지 않는 수정은 날짜와 중요·즉시만 바꾸고 폴더 연결을 그대로 둔다")
+    void keepsFolderWhenInfoUpdateDoesNotChangeFolder() {
+        Folder folder = folderService.create(Folder.create(userId, null, "폴더", "설명", null));
+        Task task = taskService.create(userId, folder.getId(), "보고서 작성");
+
+        Task updated = taskService.updateInfo(userId, task.getId(), "보고서 작성", false, null, true, true, 2048L, MONDAY);
+
+        assertThat(updated.getFolderId()).isEqualTo(folder.getId());
+        assertThat(updated.isPriority()).isTrue();
+        assertThat(updated.isUrgent()).isTrue();
+        assertThat(updated.getPlanDate()).isEqualTo(MONDAY);
     }
 
     @Test

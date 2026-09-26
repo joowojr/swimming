@@ -40,7 +40,7 @@ import { useFolderStore } from '../../store/folderStore.ts'
 import { useDailyPlanStore } from '../../store/dailyPlanStore'
 import { useTaskStore } from '../../store/taskStore'
 import { createTasksBatch } from './taskApi'
-import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskStatus, updateTaskTitle } from './taskApi'
+import { deleteTasks, getTaskMatrixPage, moveTask, updateTaskInfo, updateTaskStatus, updateTaskTitle } from './taskApi'
 import type { TaskFilter } from './taskFilter'
 import { TASK_STATUS_LABEL, TASK_STATUS_VALUES } from './taskLabels'
 import type { TaskMatrixItem, TaskMatrixSection, TaskResponse, TaskStatus } from './taskTypes'
@@ -199,6 +199,7 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
   const upsertTasks = useTaskStore((state) => state.upsert)
   const removeTasks = useTaskStore((state) => state.remove)
   const invalidatePlanDate = useDailyPlanStore((state) => state.invalidateDate)
+  const applyTaskDate = useDailyPlanStore((state) => state.applyTaskDate)
 
   const replaceTask = (updatedTask: TaskResponse) => {
     // 다른 화면도 같은 task를 보고 있으므로 단일 출처를 먼저 갱신한다.
@@ -625,16 +626,27 @@ export default function TaskMatrix({ statusFilter = 'ALL' }: TaskMatrixProps) {
       )}
       {addDraft && (
         <TaskPickerModal
-          selectedTaskIds={new Set()}
+          canMoveFromOtherDates
+          applyAttributesToExisting
           initialPriority={addDraft.priority}
           initialUrgent={addDraft.urgent}
-          onAddTasks={async ({ newTasks, planDate }) => {
-            if (newTasks.length === 0) return
-            await createTasksBatch({
-              tasks: newTasks.map((task) => ({ ...task, planDate })),
-            })
-            // 생성 응답에 캘린더 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
-            if (planDate) invalidatePlanDate(planDate)
+          onAddTasks={async ({ existingTasks, newTasks, planDate }) => {
+            // 이미 있는 할 일은 담을 날짜와 이 영역의 즉시·중요로 바꾼다. 모달은 날짜 없이 이미 있는 할 일을 제출하지 않는다.
+            // folderId를 빼서 보내 폴더는 건드리지 않는다(삭제된 폴더에 걸린 할 일도 연결을 유지한다).
+            if (existingTasks.length > 0 && planDate) {
+              const updated = await Promise.all(existingTasks.map(({ taskId, title, priority, urgent }) => (
+                updateTaskInfo(taskId, { title, priority, urgent, planDate })
+              )))
+              upsertTasks(updated)
+              updated.forEach((task) => applyTaskDate(task.id, task.planDate))
+            }
+            if (newTasks.length > 0) {
+              await createTasksBatch({
+                tasks: newTasks.map((task) => ({ ...task, planDate })),
+              })
+              // 생성 응답에 캘린더 항목이 없어 로컬 패치가 안 된다. 그 달을 다시 받게 한다.
+              if (planDate) invalidatePlanDate(planDate)
+            }
             await loadTasks()
           }}
           onClose={() => setAddDraft(null)}

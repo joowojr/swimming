@@ -190,12 +190,14 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
     }
 
     /** 모달에서 담은 것을 한 번에 캘린더에 넣는다. 이미 있는 할 일과 새로 만들 할 일은 경로가 다르다. */
-    const addPickedTasks = async ({existingTaskIds, newTasks}: TaskPickerSubmission) => {
-        if (existingTaskIds.length > 0) {
-            await addItems(selectedDate, {taskIds: existingTaskIds})
+    /** 모달에서 고른 날짜에 담는다. 날짜가 필수인 모달이라 날짜 없이 제출되지 않는다. */
+    const addPickedTasks = async ({existingTasks, newTasks, planDate}: TaskPickerSubmission) => {
+        if (!planDate) return
+        if (existingTasks.length > 0) {
+            await addItems(planDate, {taskIds: existingTasks.map((task) => task.taskId)})
         }
         if (newTasks.length > 0) {
-            await addItems(selectedDate, {
+            await addItems(planDate, {
                 tasks: newTasks.map(({title, folderId, priority, urgent}) => ({
                     title,
                     priority,
@@ -387,7 +389,7 @@ export default function DailyPlanner({isPickerOpen, onPickerClose}: DailyPlanner
 
             </div>
 
-            {isPickerOpen && <TaskPickerModal selectedTaskIds={new Set(items.map((item) => item.taskId))} initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={onPickerClose} />}
+            {isPickerOpen && <TaskPickerModal canMoveFromOtherDates planDateRequired initialPlanDate={selectedDate} onAddTasks={addPickedTasks} onClose={onPickerClose} />}
             {moveTarget && (
                 <TaskInfoModal
                     taskId={moveTarget.taskId}

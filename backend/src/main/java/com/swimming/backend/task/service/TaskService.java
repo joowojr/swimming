@@ -250,13 +250,14 @@ public class TaskService {
     /**
      * 제목·폴더·중요·즉시·캘린더 날짜를 한 번에 바꾼다. 엔티티를 한 번만 읽고 변경 감지로 반영한다.
      * matrixRank는 중요·즉시가 바뀔 때만 필요하고 그 판단과 계산은 유스케이스가 한다.
-     * null이면 순서를 건드리지 않는다.
+     * null이면 순서를 건드리지 않는다. changesFolder가 false면 폴더를 그대로 둔다(folderId는 무시).
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public Task updateInfo(
             Long userId,
             Long taskId,
             String title,
+            boolean changesFolder,
             Long folderId,
             boolean priority,
             boolean urgent,
@@ -266,9 +267,11 @@ public class TaskService {
         TaskEntity entity = getOwnedEntity(userId, taskId);
         entity.updatePlanDate(planDate);
         entity.updateTitle(title.trim());
-        entity.updateFolder(folderId == null
-                ? null
-                : entityManager.getReference(FolderEntity.class, folderId));
+        if (changesFolder) {
+            entity.updateFolder(folderId == null
+                    ? null
+                    : entityManager.getReference(FolderEntity.class, folderId));
+        }
         entity.updatePriority(priority);
         entity.updateUrgent(urgent);
         if (matrixRank != null) {

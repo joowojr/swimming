@@ -26,7 +26,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
-const ACCESS_TOKEN_KEY = 'accessToken'
+export const ACCESS_TOKEN_KEY = 'accessToken'
 export const API_BASE_URL = import.meta.env.API_BASE_URL
 
 if (!API_BASE_URL) {
@@ -47,7 +47,8 @@ const refreshClient = axios.create({
 
 let refreshRequest: Promise<string> | null = null
 
-function refreshAccessToken(): Promise<string> {
+/** 동시에 여러 번 불려도 갱신 요청은 하나만 보낸다. axios 밖의 요청(SSE)도 이 정책을 공유한다. */
+export function refreshAccessToken(): Promise<string> {
   if (!refreshRequest) {
     refreshRequest = refreshClient
       .post<RefreshResponse>('/auth/refresh')

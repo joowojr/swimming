@@ -6,6 +6,22 @@
   background: var(--color-surface-lowest);
 }
 
+.side-navigation.is-page-tone {
+  border-right-color: transparent;
+  background: var(--color-surface-bright);
+}
+
+.side-navigation.is-page-tone .navigation-item.is-active {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.navigation-divider {
+  margin: var(--space-3);
+  border: 0;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
 .workspace-switcher-wrap {
   padding: var(--space-4);
   border-bottom: var(--border-width) solid var(--color-border-subtle);

@@ -27,6 +27,61 @@ erDiagram
     knowledge_node ||--o{ knowledge_relation : "connects (meaning)"
 
     users {
+    agent_sessions o|--o{ agent_work_items : "shared by work items"
+    agent_sessions ||--o{ agent_session_events : records
+
+    agent_work_items {
+        bigint id PK
+        bigint user_id "Swimming FK 없음"
+        varchar resource_type "SWIMMING_TASK"
+        varchar resource_id "사용자·타입·리소스 복합 UK, Swimming FK 없음"
+        bigint agent_session_id FK "nullable, 시작 전에는 세션 없음"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    agent_sessions {
+        bigint id PK
+        bigint user_id "Swimming FK 없음"
+        varchar agent_type
+        varchar status "WORKING | WAITING | COMPLETED | FAILED | UNKNOWN"
+        varchar status_source "MCP_REPORT"
+        varchar instruction "nullable"
+        jsonb progress_snapshot "nullable"
+        jsonb result_snapshot "nullable"
+        jsonb error_snapshot "nullable"
+        timestamp started_at
+        timestamp last_seen_at
+        timestamp completed_at "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    agent_session_events {
+        bigint id PK
+        bigint agent_session_id FK
+        varchar agent_type "기록 당시 Agent"
+        varchar event_type
+        jsonb payload
+        varchar source
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    agent_access_tokens {
+        bigint id PK
+        bigint user_id "Swimming FK 없음"
+        varchar name
+        varchar token_prefix "표시용 앞부분"
+        varchar token_suffix "표시용 끝 6자"
+        varchar token_hash UK "SHA-256, 원문은 저장하지 않음"
+        varchar scopes "agent-work:read,agent-work:write"
+        timestamp expires_at "nullable, 없으면 만료 없음"
+        timestamp last_used_at "nullable"
+        timestamp revoked_at "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }
         bigint id PK
         varchar email UK
         varchar google_subject UK

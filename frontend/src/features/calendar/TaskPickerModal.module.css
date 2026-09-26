@@ -217,6 +217,64 @@
   min-width: 0;
 }
 
+/* 다른 날짜 탭: 날짜마다 묶고, 묶음마다 한 번에 담는 버튼을 둔다. */
+.other-dates {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+  color: var(--color-mute);
+}
+
+.other-dates .group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.group-heading h3 {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+.group-heading button {
+  flex: 0 0 auto;
+  min-height: var(--button-height);
+  padding: 0 var(--button-padding-inline);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: transparent;
+  font-size: var(--text-button-size);
+  font-weight: var(--text-button-weight);
+  line-height: var(--text-button-line-height);
+  cursor: pointer;
+  transition:
+    color var(--transition-short) var(--ease-in-out),
+    background-color var(--transition-short) var(--ease-in-out),
+    opacity var(--dur-micro) var(--ease-in-out);
+}
+
+.group-heading button:disabled {
+  color: var(--color-mute);
+  cursor: not-allowed;
+}
+
 .quick-add,
 .task-select {
   display: grid;
@@ -224,18 +282,27 @@
   margin: 0;
 }
 
-.quick-add label,
-.task-select > label,
+/*
+ * 위계: 필드 라벨(담을 날짜·속성·새 할 일·폴더·조회 기간) > 날짜 묶음 제목 > 할 일 한 줄.
+ * 필드 라벨은 무엇을 정하는지 알려 주므로 본문색으로 가장 또렷하게 둔다.
+ */
+.field-label {
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+  line-height: var(--text-body-sm-line-height);
+}
+
+/* 담을 날짜와 속성은 모든 탭에 공통인 "어디에·어떻게 담을지"라서 탭 패널 위에 한 줄로 둔다. */
+.planning-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4) var(--space-6);
+}
 
 .planning-option-group {
   display: grid;
-  gap: var(--space-2);
-}
-
-.planning-option-field {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: var(--space-2);
 }
 
@@ -270,13 +337,6 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-1) var(--space-2);
-}
-
-.planning-option-label {
-  color: var(--color-mute);
-  font-size: var(--text-body-sm-size);
-  font-weight: var(--text-label-strong-weight);
-  line-height: var(--text-body-sm-line-height);
 }
 
 .planning-option-help {
@@ -511,6 +571,13 @@
   border-radius: var(--radius-md);
 }
 
+.footer-hint {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-line-height);
+}
+
 .error {
   margin: 0;
   color: var(--color-error);
@@ -523,6 +590,7 @@
 .quick-add input:focus-visible,
 .task-select select:focus-visible,
 .group li button:focus-visible,
+.group-heading button:focus-visible,
 .stage li button:focus-visible,
 .submit-action:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
@@ -566,7 +634,8 @@
     background: var(--color-surface-container-high);
   }
 
-  .group li button:hover:not(:disabled) {
+  .group li button:hover:not(:disabled),
+  .group-heading button:hover:not(:disabled) {
     background: var(--color-surface-container-high);
   }
 
@@ -626,6 +695,7 @@
   .task-select select,
   .group li,
   .group li button,
+  .group-heading button,
   .stage li button,
 
 

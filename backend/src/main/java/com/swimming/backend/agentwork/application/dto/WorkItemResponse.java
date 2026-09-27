@@ -1,6 +1,7 @@
 package com.swimming.backend.agentwork.application.dto;
 
 import com.swimming.backend.agentwork.domain.WorkResourceType;
+import java.time.LocalDate;
 
 /**
  * 출처와 무관한 Work Item 모양. Swimming Task는 폴더를 container로 담는다.
@@ -14,6 +15,7 @@ public record WorkItemResponse(
         String containerName,
         Integer status,
         boolean important,
-        boolean urgent
+        boolean urgent,
+        LocalDate planDate
 ) {
 }

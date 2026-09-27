@@ -115,7 +115,8 @@ public class AgentWorkItemUseCase {
             lastActivityAt = domain.getLastSeenAt();
         }
         return new AgentWorkItemResponse(row.id(), lane, new WorkItemResponse(resource.type(), resource.id(), resource.title(),
-                resource.containerId(), resource.containerName(), resource.status(), resource.important(), resource.urgent()),
+                resource.containerId(), resource.containerName(), resource.status(), resource.important(), resource.urgent(),
+                resource.planDate()),
                 session, lastActivityAt);
     }
 }

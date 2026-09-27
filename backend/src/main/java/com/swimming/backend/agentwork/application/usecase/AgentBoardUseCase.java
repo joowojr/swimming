@@ -93,7 +93,7 @@ public class AgentBoardUseCase {
             BoardLane lane = session == null ? BoardLane.NOT_STARTED : session.boardLane();
             var card = new AgentWorkItemResponse(item == null ? null : item.id(), lane, new WorkItemResponse(
                     resource.type(), resource.id(), resource.title(), resource.containerId(),
-                    resource.containerName(), resource.status(), resource.important(), resource.urgent()),
+                    resource.containerName(), resource.status(), resource.important(), resource.urgent(), resource.planDate()),
                     sessionResponses.get(sessionId), session == null ? resource.createdAt() : session.getLastSeenAt());
             lanes.get(lane).add(card);
         }

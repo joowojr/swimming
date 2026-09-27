@@ -227,7 +227,8 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskSummaryRow(
-                task.id, folder.id, folder.name, task.title, task.status, task.priority, task.urgent, task.createdAt
+                task.id, folder.id, folder.name, task.title, task.status, task.priority, task.urgent,
+                task.planDate, task.createdAt
             )
             FROM TaskEntity task
             LEFT JOIN task.folder folder
@@ -238,7 +239,8 @@ public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
 
     @Query("""
             SELECT new com.swimming.backend.task.dto.projection.TaskSummaryRow(
-                task.id, folder.id, folder.name, task.title, task.status, task.priority, task.urgent, task.createdAt
+                task.id, folder.id, folder.name, task.title, task.status, task.priority, task.urgent,
+                task.planDate, task.createdAt
             )
             FROM TaskEntity task LEFT JOIN task.folder folder
             WHERE task.user.id = :userId AND task.deleted = false

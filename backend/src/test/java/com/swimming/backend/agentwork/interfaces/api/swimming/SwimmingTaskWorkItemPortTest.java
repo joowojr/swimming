@@ -32,13 +32,15 @@ class SwimmingTaskWorkItemPortTest {
     void readsOwnedTasksInBatch() {
         when(taskService.getActiveSummaries(1L, List.of(7L, 8L)))
                 .thenReturn(List.of(new TaskSummaryRow(7L, 3L, "업무", "구현", com.swimming.backend.task.domain.TaskStatus.TODO,
-                        true, false, java.time.Instant.parse("2026-09-18T00:00:00Z"))));
+                        true, false, java.time.LocalDate.parse("2026-09-27"),
+                        java.time.Instant.parse("2026-09-18T00:00:00Z"))));
         WorkItemId first = id("007");
         var result = service.readAll(1L, List.of(first, id("7"), id("8")));
         assertThat(result).containsOnlyKeys(first, id("7"));
         assertThat(result.get(first).id()).isEqualTo("7");
         assertThat(result.get(first).containerName()).isEqualTo("업무");
         assertThat(result.get(first).important()).isTrue();
+        assertThat(result.get(first).planDate()).isEqualTo(java.time.LocalDate.parse("2026-09-27"));
         verify(taskService).getActiveSummaries(1L, List.of(7L, 8L));
     }
 
@@ -87,7 +89,7 @@ class SwimmingTaskWorkItemPortTest {
 
     private TaskSummaryRow task(Long id) {
         return new TaskSummaryRow(id, 3L, "업무", "구현", com.swimming.backend.task.domain.TaskStatus.TODO,
-                false, false, java.time.Instant.parse("2026-09-18T00:00:00Z"));
+                false, false, null, java.time.Instant.parse("2026-09-18T00:00:00Z"));
     }
 
     private KnowledgeSource source(UUID id, String title) {

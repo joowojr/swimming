@@ -153,7 +153,7 @@ class AgentBoardControllerTest {
                 id,
                 lane,
                 new WorkItemResponse(WorkResourceType.SWIMMING_TASK, "7", "MCP 서버 구현하기",
-                        3L, "Spring AI 공부", 0, true, true),
+                        3L, "Spring AI 공부", 0, true, true, java.time.LocalDate.parse("2026-09-27")),
                 session,
                 NOW
         );

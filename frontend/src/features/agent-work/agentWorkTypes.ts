@@ -30,6 +30,7 @@ export interface WorkItem {
   status: TaskBoardStatus
   important: boolean
   urgent: boolean
+  planDate: string | null
 }
 
 export interface AgentSession {

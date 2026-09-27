@@ -223,6 +223,7 @@ export default function WorkItemInspector({ item, onClear, onUpdated }: WorkItem
           currentFolderId={workItem.containerId}
           currentPriority={workItem.important}
           currentUrgent={workItem.urgent}
+          currentPlanDate={workItem.planDate}
           onSaved={() => { setIsEditOpen(false); onUpdated?.() }}
           onClose={() => setIsEditOpen(false)}
         />

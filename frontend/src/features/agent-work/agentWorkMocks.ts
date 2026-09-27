@@ -29,7 +29,10 @@ function minutesAgo(minutes: number) {
 let nextId = 1000
 
 function task(id: string, title: string, important = false, urgent = false): WorkItem {
-  return { type: 'SWIMMING_TASK', id, title, containerId: null, containerName: null, status: 0, important, urgent }
+  return {
+    type: 'SWIMMING_TASK', id, title, containerId: null, containerName: null,
+    status: 0, important, urgent, planDate: null,
+  }
 }
 
 /** [이벤트, 몇 분 전, 요약, 기록 당시 Agent(생략하면 세션의 Agent)] */

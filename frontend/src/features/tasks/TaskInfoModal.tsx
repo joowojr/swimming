@@ -101,6 +101,7 @@ export default function TaskInfoModal({
       })
       upsertTasks([updated])
       if (isDateChanged) applyTaskDate(updated.id, updated.planDate)
+      onSaved?.()
       dialogRef.current?.close()
     } catch (error) {
       setMessage(requestErrorMessage(error, '수정하지 못했습니다. 잠시 후 다시 시도해 주세요.'))

@@ -95,7 +95,7 @@ public class SwimmingTaskWorkItemService implements WorkItemPort {
         return WorkItem.builder().type(WorkResourceType.SWIMMING_TASK).id(task.id().toString())
                 .title(task.title()).containerId(task.folderId()).containerName(task.folderName())
                 .status(toBoardStatus(task.status())).important(task.priority()).urgent(task.urgent())
-                .createdAt(task.createdAt()).build();
+                .planDate(task.planDate()).createdAt(task.createdAt()).build();
     }
 
     private int toBoardStatus(TaskStatus status) {

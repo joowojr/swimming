@@ -1,0 +1,113 @@
+.lane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--cb-radius-xl);
+  background: var(--cb-surface-lowest);
+  box-shadow: var(--cb-shadow-sm);
+}
+
+.lane[data-lane='WAITING'] {
+  background: color-mix(in srgb, var(--cb-secondary-container) 20%, transparent);
+}
+
+.lane[data-lane='COMPLETED'] {
+  background: color-mix(in srgb, var(--cb-surface-lowest) 60%, transparent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header h3 {
+  margin: 0;
+  color: var(--cb-primary);
+  font-size: 1rem;
+  font-weight: var(--cb-weight-medium);
+  line-height: 1.5625rem;
+  letter-spacing: -0.0313rem;
+}
+
+.lane[data-lane='NOT_STARTED'] .header h3,
+.lane[data-lane='ATTENTION'] .header h3 {
+  color: var(--cb-on-surface);
+}
+
+.lane[data-lane='COMPLETED'] .header h3 {
+  color: var(--cb-secondary);
+}
+
+.count {
+  color: var(--cb-secondary);
+  font-size: var(--cb-caption-size);
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: var(--cb-radius-full);
+  background: var(--cb-stone);
+}
+
+.dot-waiting {
+  width: 0.625rem;
+  height: 0.625rem;
+  background: var(--cb-waiting);
+}
+
+.icon-working {
+  color: var(--cb-working);
+}
+
+.icon-muted {
+  color: var(--cb-secondary);
+}
+
+.grid {
+  display: grid;
+  /* 두 행을 같은 높이로 두어 Lane 안의 카드 높이를 맞춘다. */
+  grid-template-rows: repeat(2, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(15rem, 18rem);
+  box-sizing: border-box;
+  align-items: stretch;
+  gap: 0.75rem;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0;
+  padding: 0.125rem 0.25rem 0.375rem;
+  list-style: none;
+  scroll-padding-inline: 0.25rem;
+  scrollbar-color: var(--cb-stone) transparent;
+  scrollbar-width: thin;
+}
+
+.grid:has(> li:only-child) {
+  grid-template-rows: max-content;
+}
+
+.grid > li {
+  min-width: 0;
+  min-height: 0;
+}
+
+.lane[data-lane='COMPLETED'] .grid {
+  opacity: 0.8;
+  transition: opacity var(--cb-transition);
+}
+
+.lane[data-lane='COMPLETED'] .grid:hover,
+.lane[data-lane='COMPLETED'] .grid:focus-within {
+  opacity: 1;
+}
+
+.empty {
+  margin: 0;
+  color: var(--cb-secondary);
+  font-size: var(--cb-meta-size);
+}

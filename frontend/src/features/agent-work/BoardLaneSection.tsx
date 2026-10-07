@@ -1,13 +1,15 @@
 import { IconCircleCheck, IconHelp, IconRefresh } from '@tabler/icons-react'
 import type { LaneDefinition } from './agentWorkLabels'
-import type { AgentWorkItem, BoardLane } from './agentWorkTypes'
+import type { BoardLane } from './agentWorkTypes'
+import type { BoardEntry } from './agentWorkBoard'
 import { workItemKey } from './agentWorkKeys'
+import SessionCard from './SessionCard'
 import WorkItemCard from './WorkItemCard'
 import styles from './BoardLaneSection.module.css'
 
 interface BoardLaneSectionProps {
   definition: LaneDefinition
-  items: AgentWorkItem[]
+  entries: BoardEntry[]
   selectedKey: string | null
   onSelect: (key: string) => void
 }
@@ -27,7 +29,7 @@ function LaneMarker({ lane }: { lane: BoardLane }) {
   }
 }
 
-export default function BoardLaneSection({ definition, items, selectedKey, onSelect }: BoardLaneSectionProps) {
+export default function BoardLaneSection({ definition, entries, selectedKey, onSelect }: BoardLaneSectionProps) {
   const headingId = `lane-${definition.lane.toLowerCase()}`
 
   return (
@@ -35,15 +37,30 @@ export default function BoardLaneSection({ definition, items, selectedKey, onSel
       <header className={styles.header}>
         <LaneMarker lane={definition.lane} />
         <h3 id={headingId}>{definition.title}</h3>
-        <span className={styles.count}>{items.length}</span>
+        <span className={styles.count}>{entries.length}</span>
       </header>
-      {items.length === 0 ? (
+      {entries.length === 0 ? (
         <p className={styles.empty}>비어 있어요</p>
       ) : (
         <ul className={styles.grid}>
-          {items.map((item) => (
-            <li key={workItemKey(item)}>
-              <WorkItemCard item={item} isSelected={workItemKey(item) === selectedKey} onSelect={onSelect} />
+          {entries.map((entry) => (
+            <li key={entry.key}>
+              {entry.kind === 'session' ? (
+                <SessionCard
+                  session={entry.session}
+                  cards={entry.cards}
+                  entryKey={entry.key}
+                  isSelected={entry.key === selectedKey
+                    || entry.cards.some((card) => workItemKey(card) === selectedKey)}
+                  onSelect={onSelect}
+                />
+              ) : (
+                <WorkItemCard
+                  item={entry.card}
+                  isSelected={entry.key === selectedKey}
+                  onSelect={onSelect}
+                />
+              )}
             </li>
           ))}
         </ul>

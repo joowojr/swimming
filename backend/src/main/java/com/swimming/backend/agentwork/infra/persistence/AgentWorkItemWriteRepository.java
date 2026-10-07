@@ -38,9 +38,29 @@ public interface AgentWorkItemWriteRepository extends Repository<AgentWorkItemEn
             WHERE item.userId = :userId AND item.id IN :workItemIds
               AND (item.session IS NULL OR item.session.id = :sessionId)
             """)
-    int attachSession(@Param("userId") Long userId, @Param("workItemIds") List<Long> workItemIds,
+    int linkSession(@Param("userId") Long userId, @Param("workItemIds") List<Long> workItemIds,
                       @Param("sessionId") Long sessionId, @Param("session") AgentSessionEntity session,
                       @Param("updatedAt") Instant updatedAt);
+    /** 다른 세션에 연결돼 있어도 옮긴다. 붙이기는 사용자가 고른 세션을 그대로 따른다. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            UPDATE AgentWorkItemEntity item
+            SET item.session = :session, item.updatedAt = :updatedAt
+            WHERE item.userId = :userId AND item.id IN :workItemIds
+            """)
+    int relinkSession(@Param("userId") Long userId, @Param("workItemIds") List<Long> workItemIds,
+                    @Param("session") AgentSessionEntity session, @Param("updatedAt") Instant updatedAt);
+
+    /** 그 세션에 연결된 할 일만 떼어 시작 전으로 되돌린다. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            UPDATE AgentWorkItemEntity item
+            SET item.session = NULL, item.updatedAt = :updatedAt
+            WHERE item.userId = :userId AND item.id IN :workItemIds AND item.session.id = :sessionId
+            """)
+    int unlinkSession(@Param("userId") Long userId, @Param("workItemIds") List<Long> workItemIds,
+                      @Param("sessionId") Long sessionId, @Param("updatedAt") Instant updatedAt);
+
     void deleteAllInBatch();
 
 }

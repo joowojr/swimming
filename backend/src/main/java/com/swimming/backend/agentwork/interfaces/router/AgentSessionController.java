@@ -1,6 +1,7 @@
 package com.swimming.backend.agentwork.interfaces.router;
 
 import com.swimming.backend.agentwork.interfaces.router.dto.AgentReportRequest;
+import com.swimming.backend.agentwork.interfaces.router.dto.LinkWorkItemsRequest;
 import com.swimming.backend.agentwork.interfaces.router.dto.StartAgentWorkRequest;
 import com.swimming.backend.agentwork.application.dto.AgentSessionResponse;
 import com.swimming.backend.agentwork.application.dto.StartAgentWorkResult;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +52,30 @@ public class AgentSessionController {
                 .buildAndExpand(result.session().id())
                 .toUri();
         return ResponseEntity.created(location).body(result.session());
+    }
+
+    /**
+     * 진행 중인 세션에 할 일을 붙인다. 다른 세션에 연결된 할 일은 이 세션으로 옮긴다.
+     * 끝난 세션에 붙이면 409다. 작업 중 관련 할 일을 찾은 에이전트와 보드의 사용자가 같은 경로를 쓴다.
+     */
+    @PostMapping("/{sessionId}/work-items")
+    public ResponseEntity<AgentSessionResponse> linkWorkItems(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody LinkWorkItemsRequest request
+    ) {
+        return ResponseEntity.ok(agentSessionReportUseCase.link(authUser.id(), sessionId, request));
+    }
+
+    /** 세션에서 할 일을 뗀다. 떼어 낸 할 일은 시작 전으로 돌아가고 세션의 다른 할 일은 그대로 진행한다. */
+    @DeleteMapping("/{sessionId}/work-items/{workItemId}")
+    public ResponseEntity<Void> unlinkWorkItem(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long sessionId,
+            @PathVariable Long workItemId
+    ) {
+        agentSessionReportUseCase.unlink(authUser.id(), sessionId, workItemId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{sessionId}/complete")

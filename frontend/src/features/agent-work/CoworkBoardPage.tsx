@@ -10,9 +10,12 @@ import { ACCESS_TOKEN_KEY, AUTH_SESSION_EXPIRED_EVENT, refreshAccessToken } from
 import { addNewWorkItem, addWorkItem, getBoard, openAgentWorkEvents } from './agentWorkApi'
 import { workItemKey } from './agentWorkKeys'
 import { LANES, UNCATEGORIZED_LABEL } from './agentWorkLabels'
-import type { AgentBoard, AgentBoardSort, AgentWorkItem } from './agentWorkTypes'
+import type { AgentBoard, AgentBoardSort, AgentWorkItem, BoardLane } from './agentWorkTypes'
 import BoardLaneSection from './BoardLaneSection'
+import SessionInspector from './SessionInspector'
 import WorkItemInspector from './WorkItemInspector'
+import { toBoardEntries } from './agentWorkBoard'
+import type { BoardEntry } from './agentWorkBoard'
 import styles from './CoworkBoardPage.module.css'
 import AgentAccessTokenModal from './AgentAccessTokenModal'
 
@@ -135,7 +138,6 @@ export default function CoworkBoardPage() {
   }
 
   const cards = useMemo(() => allCards(board), [board])
-  const selected = cards.find((card) => workItemKey(card) === selectedKey) ?? null
 
   const normalizedQuery = query.trim().toLowerCase()
   const matches = (card: AgentWorkItem) => {
@@ -146,6 +148,25 @@ export default function CoworkBoardPage() {
     return containerId === Number(containerFilter)
   }
 
+  // Lane마다 카드를 만든다. 시작 전은 할 일이, 그 밖의 Lane은 Agent 세션이 카드다.
+  const laneEntries = useMemo(() => {
+    const entries = {} as Record<BoardLane, BoardEntry[]>
+    LANES.forEach(({ lane, key }) => {
+      entries[lane] = toBoardEntries(lane, (board?.[key] ?? []).filter(matches))
+    })
+    return entries
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board, normalizedQuery, containerFilter])
+
+  const selectedEntry = useMemo<BoardEntry | null>(() => {
+    const entry = LANES.flatMap(({ lane }) => laneEntries[lane]).find((candidate) => candidate.key === selectedKey)
+    if (entry) return entry
+
+    // 세션 카드로 묶인 할 일은 Lane 카드가 아니다. 세션 목록에서 고른 할 일을 그대로 연다.
+    const card = cards.find((candidate) => workItemKey(candidate) === selectedKey)
+    return card ? { kind: 'workItem', key: workItemKey(card), card } : null
+  }, [laneEntries, selectedKey, cards])
+
   // 보드에 이미 있는 Swimming 할 일은 모달에서 "추가됨"으로 보인다.
   const boardTaskIds = useMemo(() => new Set(
     cards.flatMap(({ workItem }) => (
@@ -153,10 +174,10 @@ export default function CoworkBoardPage() {
     )),
   ), [cards])
 
-  const handleAddTasks = async ({ existingTaskIds, newTasks, planDate }: TaskPickerSubmission) => {
+  const handleAddTasks = async ({ existingTasks, newTasks, planDate }: TaskPickerSubmission) => {
     const folderNameById = new Map(folders.map((folder) => [folder.id, folder.name]))
     const added = await Promise.all([
-      ...existingTaskIds.map((taskId) => addWorkItem({ resourceType: 'SWIMMING_TASK', resourceId: String(taskId) })),
+      ...existingTasks.map(({ taskId }) => addWorkItem({ resourceType: 'SWIMMING_TASK', resourceId: String(taskId) })),
       ...newTasks.map((draft) => addNewWorkItem({
         title: draft.title,
         containerId: draft.folderId,
@@ -225,12 +246,29 @@ export default function CoworkBoardPage() {
         </div>
       ) : (
         <div className={styles.container}>
-          <WorkItemInspector
-            key={selected ? workItemKey(selected) : 'none'}
-            item={selected}
-            onClear={() => setSelectedKey(null)}
-            onUpdated={() => void reload()}
-          />
+          {selectedEntry === null ? (
+            <aside className={styles.placeholder} aria-label="선택한 카드">
+              <p>카드를 선택하면 Agent 세션과 할 일을 자세히 볼 수 있어요.</p>
+            </aside>
+          ) : selectedEntry.kind === 'session' ? (
+            <SessionInspector
+              key={selectedEntry.key}
+              session={selectedEntry.session}
+              cards={cards}
+              onSelect={setSelectedKey}
+              onClear={() => setSelectedKey(null)}
+              onUpdated={() => void reload()}
+            />
+          ) : (
+            <WorkItemInspector
+              key={selectedEntry.key}
+              item={selectedEntry.card}
+              cards={cards}
+              onSelect={setSelectedKey}
+              onClear={() => setSelectedKey(null)}
+              onUpdated={() => void reload()}
+            />
+          )}
 
           <section className={styles.board} aria-label="Cowork Board Lane">
             <div className={styles.toolbar}>
@@ -280,7 +318,7 @@ export default function CoworkBoardPage() {
                 <BoardLaneSection
                   key={definition.lane}
                   definition={definition}
-                  items={board[definition.key].filter(matches)}
+                  entries={laneEntries[definition.lane]}
                   selectedKey={selectedKey}
                   onSelect={setSelectedKey}
                 />

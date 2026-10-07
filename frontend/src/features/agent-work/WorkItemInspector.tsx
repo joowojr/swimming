@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { IconArrowLeft, IconCheck, IconCopy, IconFolder, IconPencil } from '@tabler/icons-react'
-import { getSessionEvents } from './agentWorkApi'
-import AgentIcon from './AgentIcon'
+import { IconArrowLeft, IconCheck, IconCopy, IconFolder, IconPencil, IconPlus } from '@tabler/icons-react'
+import { getSessionEvents, linkWorkItems } from './agentWorkApi'
+import AgentLabel from './AgentLabel'
 import {
   EVENT_LABELS,
   LANES,
@@ -10,8 +10,9 @@ import {
   formatClockTime,
 } from './agentWorkLabels'
 import type { AgentSessionEvent, AgentWorkItem } from './agentWorkTypes'
+import { sessionKey, sessionTitle } from './agentWorkBoard'
 import TaskInfoModal from '../tasks/TaskInfoModal'
-import styles from './WorkItemInspector.module.css'
+import styles from './Inspector.module.css'
 
 type InspectorTab = 'work' | 'knowledge' | 'activity' | 'proposal'
 
@@ -29,9 +30,13 @@ type EventsState =
   | { status: 'error' }
 
 interface WorkItemInspectorProps {
-  item: AgentWorkItem | null
+  item: AgentWorkItem
   onClear: () => void
   onUpdated?: () => void
+  /** 보드의 모든 카드. 붙일 수 있는 세션을 여기서 고른다. 필터로 걸러지지 않은 목록이어야 한다. */
+  cards?: AgentWorkItem[]
+  /** 속한 세션 카드로 건너간다. */
+  onSelect?: (key: string) => void
 }
 
 /** 에이전트는 아이콘으로 보이므로 문구에는 이름을 넣지 않는다. */
@@ -55,11 +60,20 @@ function agentPrompt(workItem: AgentWorkItem['workItem']) {
 }
 
 /** 카드가 바뀌면 부모가 key로 새로 마운트하므로 탭과 이벤트 상태는 카드마다 처음부터 시작한다. */
-export default function WorkItemInspector({ item, onClear, onUpdated }: WorkItemInspectorProps) {
+export default function WorkItemInspector({
+  item,
+  onClear,
+  onUpdated,
+  cards = [],
+  onSelect,
+}: WorkItemInspectorProps) {
   const [tab, setTab] = useState<InspectorTab>('work')
   const [eventsState, setEventsState] = useState<EventsState>({ status: 'loading' })
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [linkTarget, setLinkTarget] = useState('')
+  const [isLinking, setIsLinking] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
   const sessionId = item?.session?.id ?? null
 
   useEffect(() => {
@@ -71,16 +85,35 @@ export default function WorkItemInspector({ item, onClear, onUpdated }: WorkItem
     return () => { active = false }
   }, [sessionId, tab])
 
-  if (!item) {
-    return (
-      <aside className={`${styles.inspector} ${styles.placeholder}`} aria-label="선택한 할 일">
-        <p>카드를 선택하면 Agent 작업 내용과 활동을 볼 수 있어요.</p>
-      </aside>
-    )
-  }
-
   const { workItem, session } = item
   const laneTitle = LANES.find((definition) => definition.lane === item.lane)?.title
+
+  // 세션이 없는 카드는 진행 중인 세션을 골라 붙인다. 세션마다 카드 하나로 중복을 없앤다.
+  const runningSessions = (() => {
+    const bySessionId = new Map<number, AgentWorkItem>()
+    cards.forEach((card) => {
+      if (!card.session || card.session.status === 'COMPLETED' || card.session.status === 'FAILED') return
+      if (!bySessionId.has(card.session.id)) bySessionId.set(card.session.id, card)
+    })
+    return [...bySessionId.values()]
+  })()
+
+  /** 세션이 없는 카드를 고른 세션에 붙인다. */
+  const linkToSelectedSession = async () => {
+    const targetSessionId = Number(linkTarget)
+    if (!Number.isSafeInteger(targetSessionId) || targetSessionId <= 0 || isLinking) return
+
+    setIsLinking(true)
+    setLinkError(null)
+    try {
+      await linkWorkItems(targetSessionId, [{ resourceType: workItem.type, resourceId: workItem.id }])
+      onUpdated?.()
+    } catch {
+      setLinkError('세션에 붙이지 못했어요. 세션이 끝났을 수 있어요.')
+    } finally {
+      setIsLinking(false)
+    }
+  }
 
   const copyPrompt = async () => {
     await navigator.clipboard.writeText(agentPrompt(workItem))
@@ -168,26 +201,57 @@ export default function WorkItemInspector({ item, onClear, onUpdated }: WorkItem
             <div className={styles.sessions}>
               <span className={styles['section-label']}>Agent 세션</span>
               {!session ? (
-                <p className={styles.meta}>아직 이 할 일로 작업을 시작한 Agent가 없어요.</p>
+                <>
+                  <p className={styles.meta}>아직 이 할 일로 작업을 시작한 Agent가 없어요.</p>
+                  {runningSessions.length === 0 ? (
+                    <p className={styles.meta}>진행 중인 세션이 없어요. 에이전트가 작업을 시작하면 여기에서 붙일 수 있어요.</p>
+                  ) : (
+                    <div className={styles['link-row']}>
+                      <select
+                        aria-label="붙일 세션"
+                        value={linkTarget}
+                        disabled={isLinking}
+                        onChange={(event) => setLinkTarget(event.target.value)}
+                      >
+                        <option value="">진행 중인 세션 고르기</option>
+                        {runningSessions.map((candidate) => (
+                          <option key={candidate.session!.id} value={candidate.session!.id}>
+                            {sessionTitle(candidate.session!)}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className={styles['link-action']}
+                        aria-label="고른 세션에 이 할 일 붙이기"
+                        title="이 세션에 붙이기"
+                        disabled={linkTarget === '' || isLinking}
+                        onClick={() => void linkToSelectedSession()}
+                      >
+                        <IconPlus size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className={styles.session}>
-                  <div className={styles['session-heading']}>
-                    <AgentIcon className={styles['session-agent']} agentType={session.agentType} size={18} />
+                // 세션이 주인공인 화면은 세션 카드에 있다. 여기서는 어느 세션에 속했는지만 알리고 건너간다.
+                <button
+                  type="button"
+                  className={styles['session-link']}
+                  onClick={() => onSelect?.(sessionKey(session.id))}
+                >
+                  <span className={styles['session-heading']}>
+                    <AgentLabel className={styles['session-agent']} agentType={session.agentType} size={18} />
                     <span className={styles['session-status']}>
                       <span className={styles['status-dot']} data-status={session.status} aria-hidden="true" />
                       {STATUS_LABELS[session.status]}
                     </span>
-                  </div>
-                  {session.summary && (
-                    <p className={styles['session-summary']}>
-                      {session.status === 'WAITING' ? `"${session.summary}"` : session.summary}
-                    </p>
-                  )}
-                  <span className={styles.meta}>
-                    시작 {formatClockTime(session.startedAt)} · 상태 수집 MCP
                   </span>
-                </div>
+                  <span className={styles.truncate}>{sessionTitle(session)}</span>
+                  <span className={styles.meta}>세션 카드에서 함께 진행 중인 할 일을 다룹니다</span>
+                </button>
               )}
+              {linkError && <p className={styles.meta} role="alert">{linkError}</p>}
             </div>
           </div>
         )}
@@ -205,7 +269,7 @@ export default function WorkItemInspector({ item, onClear, onUpdated }: WorkItem
                   <li key={event.id}>
                     <time dateTime={event.createdAt}>{formatClockTime(event.createdAt)}</time>
                     <span className={styles.event}>
-                      <AgentIcon className={styles['event-agent']} agentType={event.agentType} />
+                      <AgentLabel className={styles['event-agent']} agentType={event.agentType} />
                       <span>{describeEvent(event)}</span>
                     </span>
                   </li>

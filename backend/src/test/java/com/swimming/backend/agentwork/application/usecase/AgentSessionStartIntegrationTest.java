@@ -370,7 +370,7 @@ class AgentSessionStartIntegrationTest {
         var other = useCase.start(userId, request(second.getId(), AgentType.CODEX, null));
         Long firstItem = first.session().workItemIds().getFirst();
         Instant previous = workItems.findById(firstItem).orElseThrow().getUpdatedAt();
-        assertBusinessError(() -> workItemService.attachSession(userId,
+        assertBusinessError(() -> workItemService.linkSession(userId,
                 java.util.List.of(firstItem, other.session().workItemIds().getFirst()), first.session().id(), previous.plusSeconds(60)),
                 AgentWorkErrorCode.AGENT_SESSION_CONFLICT);
         assertThat(workItems.findById(firstItem).orElseThrow().getUpdatedAt()).isEqualTo(previous);
@@ -385,9 +385,9 @@ class AgentSessionStartIntegrationTest {
         Long otherUser = newUser();
         var otherTask = taskService.create(otherUser, null, "타인 Task");
         var other = useCase.start(otherUser, request(otherTask.getId(), AgentType.CODEX, null));
-        assertBusinessError(() -> workItemService.attachSession(userId, other.session().workItemIds(), first.session().id(), Instant.now()),
+        assertBusinessError(() -> workItemService.linkSession(userId, other.session().workItemIds(), first.session().id(), Instant.now()),
                 AgentWorkErrorCode.AGENT_SESSION_CONFLICT);
-        assertBusinessError(() -> workItemService.attachSession(userId, first.session().workItemIds(), other.session().id(), Instant.now()),
+        assertBusinessError(() -> workItemService.linkSession(userId, first.session().workItemIds(), other.session().id(), Instant.now()),
                 AgentWorkErrorCode.AGENT_SESSION_NOT_FOUND);
         assertThat(workItems.findById(other.session().workItemIds().getFirst()).orElseThrow().getSession().getId()).isEqualTo(other.session().id());
     }

@@ -4,6 +4,7 @@ import { createTaskWithOptionalPlan } from '../tasks/taskApi'
 import type {
   AddWorkItemRequest,
   AgentBoard,
+  AgentSession,
   AgentBoardSort,
   AgentSessionEvent,
   AgentWorkItem,
@@ -69,6 +70,23 @@ export function openAgentWorkEvents(): EventSource {
 export async function addWorkItem(request: AddWorkItemRequest): Promise<AgentWorkItem> {
   const response = await client.post<AgentWorkItem>('/agent-work/work-items', request)
   return response.data
+}
+
+/**
+ * 진행 중인 세션에 할 일을 붙인다. 다른 세션에 붙어 있던 할 일은 이 세션으로 옮긴다.
+ * 끝난 세션에는 붙일 수 없다.
+ */
+export async function linkWorkItems(
+  sessionId: number,
+  workItems: AddWorkItemRequest[],
+): Promise<AgentSession> {
+  const response = await client.post<AgentSession>(`/agent-work/sessions/${sessionId}/work-items`, { workItems })
+  return response.data
+}
+
+/** 세션에서 할 일을 뗀다. 떼어 낸 할 일은 시작 전으로 돌아간다. */
+export async function unlinkWorkItem(sessionId: number, workItemId: number): Promise<void> {
+  await client.delete(`/agent-work/sessions/${sessionId}/work-items/${workItemId}`)
 }
 
 /** 새 할 일 생성은 아직 API 계약이 없다. */

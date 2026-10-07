@@ -111,8 +111,11 @@
 }
 
 .agent {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  overflow: hidden;
   color: var(--cb-on-surface);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card[data-lane='COMPLETED'] .session,
@@ -147,12 +150,19 @@
   line-height: 1.25rem;
 }
 
+.bundle {
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--cb-radius-full);
+  color: var(--cb-on-surface-variant);
+  background: var(--cb-secondary-container);
+}
+
 .footer {
   display: flex;
   /* 카드 높이를 맞춰 남는 공간은 본문과 푸터 사이에 둔다. */
   margin-top: auto;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid color-mix(in srgb, var(--cb-surface-high) 60%, transparent);

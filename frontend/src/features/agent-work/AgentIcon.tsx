@@ -11,11 +11,27 @@ interface AgentIconProps {
   agentType: AgentType
   size?: number
   className?: string
+  /** 이름을 글로 함께 보여줄 때는 로고를 장식으로 둔다. */
+  hideLabel?: boolean
 }
 
-/** 에이전트 이름 대신 쓰는 로고. 스크린리더와 툴팁에는 이름을 알린다. */
-export default function AgentIcon({ agentType, size = 16, className }: AgentIconProps) {
+/** 에이전트 로고. 이름을 글로 적지 않는 자리에서는 스크린리더와 툴팁에 이름을 알린다. */
+export default function AgentIcon({ agentType, size = 16, className, hideLabel = false }: AgentIconProps) {
   const name = AGENT_NAMES[agentType]
+  if (hideLabel) {
+    return (
+      <svg
+        className={className}
+        aria-hidden="true"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d={PATHS[agentType]} />
+      </svg>
+    )
+  }
   return (
     <svg
       className={className}

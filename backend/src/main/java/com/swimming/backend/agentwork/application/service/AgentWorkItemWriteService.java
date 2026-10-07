@@ -34,14 +34,36 @@ public class AgentWorkItemWriteService {
 
     /** 잠긴 Work Item 목록을 한 번의 JPQL로 연결한다. 세션 교체·소유권 우회를 허용하지 않는다. */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void attachSession(Long userId, List<Long> workItemIds, Long sessionId, Instant now) {
+    public void linkSession(Long userId, List<Long> workItemIds, Long sessionId, Instant now) {
         var session = entityManager.getReference(AgentSessionEntity.class, sessionId);
         if (!userId.equals(session.getUserId())) {
             throw new BusinessException(AgentWorkErrorCode.AGENT_SESSION_NOT_FOUND);
         }
-        int affected = repository.attachSession(userId, workItemIds, sessionId, session, now);
+        int affected = repository.linkSession(userId, workItemIds, sessionId, session, now);
         if (affected != workItemIds.size()) {
             throw new BusinessException(AgentWorkErrorCode.AGENT_SESSION_CONFLICT);
+        }
+    }
+
+    /** 다른 세션에 연결된 할 일도 요청한 세션으로 옮긴다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void relinkSession(Long userId, List<Long> workItemIds, Long sessionId, Instant now) {
+        var session = entityManager.getReference(AgentSessionEntity.class, sessionId);
+        if (!userId.equals(session.getUserId())) {
+            throw new BusinessException(AgentWorkErrorCode.AGENT_SESSION_NOT_FOUND);
+        }
+        int affected = repository.relinkSession(userId, workItemIds, session, now);
+        if (affected != workItemIds.size()) {
+            throw new BusinessException(AgentWorkErrorCode.AGENT_WORK_ITEM_NOT_FOUND);
+        }
+    }
+
+    /** 세션에서 할 일을 떼어 시작 전으로 되돌린다. 그 세션에 연결된 할 일이 아니면 거부한다. */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void unlinkSession(Long userId, List<Long> workItemIds, Long sessionId, Instant now) {
+        int affected = repository.unlinkSession(userId, workItemIds, sessionId, now);
+        if (affected != workItemIds.size()) {
+            throw new BusinessException(AgentWorkErrorCode.AGENT_WORK_ITEM_NOT_FOUND);
         }
     }
 }

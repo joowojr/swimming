@@ -1,4 +1,4 @@
-import AgentIcon from './AgentIcon'
+import AgentLabel from './AgentLabel'
 import { STATUS_LABELS, UNCATEGORIZED_LABEL, formatRelativeTime } from './agentWorkLabels'
 import type { AgentSession, AgentWorkItem } from './agentWorkTypes'
 import { workItemKey } from './agentWorkKeys'
@@ -38,6 +38,7 @@ function SessionStatus({ session }: { session: AgentSession }) {
 export default function WorkItemCard({ item, isSelected, onSelect }: WorkItemCardProps) {
   const { workItem, session, lastActivityAt } = item
   const summary = formatSummary(session)
+  const bundleSize = session?.workItemIds.length ?? 0
 
   return (
     <button
@@ -61,7 +62,7 @@ export default function WorkItemCard({ item, isSelected, onSelect }: WorkItemCar
 
       {session && (
         <span className={styles.session}>
-          <AgentIcon className={styles.agent} agentType={session.agentType} />
+          <AgentLabel className={styles.agent} agentType={session.agentType} />
           <SessionStatus session={session} />
         </span>
       )}
@@ -69,6 +70,8 @@ export default function WorkItemCard({ item, isSelected, onSelect }: WorkItemCar
       {summary && <span className={styles.summary}>{summary}</span>}
 
       <span className={styles.footer}>
+        {/* 한 세션을 여러 할 일이 공유하면 카드들이 함께 Lane을 옮긴다. 그 이유를 카드에서 밝힌다. */}
+        {bundleSize > 1 && <span className={styles.bundle}>함께 진행 중 {bundleSize}개</span>}
         <span>{workItem.containerName ?? UNCATEGORIZED_LABEL} · {formatRelativeTime(lastActivityAt)}</span>
       </span>
     </button>

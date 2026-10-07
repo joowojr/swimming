@@ -23,6 +23,12 @@ public class AgentWorkItemReadService {
         return repository.findSessionId(userId, workItemId);
     }
 
+    /** 떼어 낸 할 일을 이벤트에 남길 때 쓰는 자원 식별자. */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public Optional<String> findResourceId(Long userId, Long workItemId) {
+        return repository.findResourceId(userId, workItemId);
+    }
+
     public List<Long> findIdsBySession(Long userId, Long sessionId) {
         return repository.findIdsBySession(userId, sessionId);
     }

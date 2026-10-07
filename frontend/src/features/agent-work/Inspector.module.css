@@ -253,8 +253,9 @@
 }
 
 .session-agent {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   color: var(--cb-on-surface);
+  font-weight: var(--cb-weight-medium);
 }
 
 .session-status {
@@ -269,6 +270,100 @@
   color: var(--cb-on-surface-variant);
   font-size: var(--cb-summary-size);
   line-height: 1.25rem;
+}
+
+.session-title {
+  color: var(--cb-on-surface);
+  font-weight: var(--cb-weight-medium);
+}
+
+.member-label {
+  margin-top: 0.5rem;
+  color: var(--cb-secondary);
+  font-size: var(--cb-meta-size);
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.members li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  color: var(--cb-on-surface-variant);
+}
+
+.member-current {
+  color: var(--cb-secondary);
+  font-size: var(--cb-micro-size);
+}
+
+.link-open {
+  align-self: flex-start;
+  min-height: 2rem;
+  border-radius: var(--cb-radius-full);
+  border-color: var(--cb-surface-high);
+  color: var(--cb-on-surface);
+  font-size: var(--cb-caption-size);
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.link-row select {
+  flex: 1;
+  min-width: 0;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--cb-surface-high);
+  border-radius: var(--cb-radius-lg);
+  color: var(--cb-on-surface);
+  background: var(--cb-surface-lowest);
+  font: inherit;
+}
+
+/* 붙이기·떼기는 같은 모양의 + · − 버튼으로 다룬다. */
+.link-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--cb-surface-high);
+  border-radius: var(--cb-radius-full);
+  color: var(--cb-on-surface-variant);
+  background: var(--cb-surface-lowest);
+  cursor: pointer;
+  transition:
+    color var(--cb-transition),
+    background-color var(--cb-transition);
+}
+
+.link-action:hover:not(:disabled) {
+  color: var(--cb-on-surface);
+  background: var(--cb-surface-low);
+}
+
+.link-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.session .link-action {
+  margin-top: 0.25rem;
 }
 
 .meta {
@@ -301,8 +396,6 @@
 
 .event-agent {
   flex: 0 0 auto;
-  /* 첫 줄 글자 높이 가운데에 맞춘다. */
-  margin-top: 0.125rem;
   color: var(--cb-on-surface);
 }
 

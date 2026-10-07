@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -49,19 +50,38 @@ public class AgentAccessTokenEntity extends BaseTimeEntity {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
+    @Builder(access = AccessLevel.PRIVATE)
+    private AgentAccessTokenEntity(
+            Long userId,
+            String name,
+            String tokenPrefix,
+            String tokenSuffix,
+            String tokenHash,
+            String scopes,
+            Instant expiresAt
+    ) {
+        this.userId = userId;
+        this.name = name;
+        this.tokenPrefix = tokenPrefix;
+        this.tokenSuffix = tokenSuffix;
+        this.tokenHash = tokenHash;
+        this.scopes = scopes;
+        this.expiresAt = expiresAt;
+    }
+
     public static AgentAccessTokenEntity issue(
             Long userId, String name, String tokenPrefix, String tokenSuffix, String tokenHash,
             String scopes, Instant expiresAt
     ) {
-        AgentAccessTokenEntity entity = new AgentAccessTokenEntity();
-        entity.userId = userId;
-        entity.name = name;
-        entity.tokenPrefix = tokenPrefix;
-        entity.tokenSuffix = tokenSuffix;
-        entity.tokenHash = tokenHash;
-        entity.scopes = scopes;
-        entity.expiresAt = expiresAt;
-        return entity;
+        return AgentAccessTokenEntity.builder()
+                .userId(userId)
+                .name(name)
+                .tokenPrefix(tokenPrefix)
+                .tokenSuffix(tokenSuffix)
+                .tokenHash(tokenHash)
+                .scopes(scopes)
+                .expiresAt(expiresAt)
+                .build();
     }
 
     public boolean isActive(Instant now) {

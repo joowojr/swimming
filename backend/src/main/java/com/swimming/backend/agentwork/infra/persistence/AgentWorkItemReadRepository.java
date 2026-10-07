@@ -21,6 +21,12 @@ public interface AgentWorkItemReadRepository extends Repository<AgentWorkItemEnt
     @Query("SELECT item.session.id FROM AgentWorkItemEntity item WHERE item.userId = :userId AND item.id = :workItemId")
     Optional<Long> findSessionId(@Param("userId") Long userId, @Param("workItemId") Long workItemId);
 
+    @Query("""
+            SELECT item.resourceId FROM AgentWorkItemEntity item
+            WHERE item.userId = :userId AND item.id = :workItemId
+            """)
+    Optional<String> findResourceId(@Param("userId") Long userId, @Param("workItemId") Long workItemId);
+
     @Query("SELECT item.id FROM AgentWorkItemEntity item WHERE item.userId = :userId AND item.session.id = :sessionId ORDER BY item.id")
     List<Long> findIdsBySession(@Param("userId") Long userId, @Param("sessionId") Long sessionId);
     Optional<AgentWorkItemEntity> findById(Long id);

@@ -14,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -70,11 +71,47 @@ public class AgentSessionEntity extends BaseTimeEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Builder(access = AccessLevel.PRIVATE)
+    private AgentSessionEntity(
+            Long userId,
+            AgentType agentType,
+            AgentWorkStatus status,
+            StatusSource statusSource,
+            String instruction,
+            Map<String, Object> progressSnapshot,
+            Map<String, Object> resultSnapshot,
+            Map<String, Object> errorSnapshot,
+            Instant startedAt,
+            Instant lastSeenAt,
+            Instant completedAt
+    ) {
+        this.userId = userId;
+        this.agentType = agentType;
+        this.status = status;
+        this.statusSource = statusSource;
+        this.instruction = instruction;
+        this.progressSnapshot = progressSnapshot;
+        this.resultSnapshot = resultSnapshot;
+        this.errorSnapshot = errorSnapshot;
+        this.startedAt = startedAt;
+        this.lastSeenAt = lastSeenAt;
+        this.completedAt = completedAt;
+    }
+
     public static AgentSessionEntity from(AgentSession session) {
-        AgentSessionEntity entity = new AgentSessionEntity();
-        entity.userId = session.getUserId();
-        entity.apply(session);
-        return entity;
+        return AgentSessionEntity.builder()
+                .userId(session.getUserId())
+                .agentType(session.getAgentType())
+                .status(session.getStatus())
+                .statusSource(session.getStatusSource())
+                .instruction(session.getInstruction())
+                .progressSnapshot(session.getProgressSnapshot())
+                .resultSnapshot(session.getResultSnapshot())
+                .errorSnapshot(session.getErrorSnapshot())
+                .startedAt(session.getStartedAt())
+                .lastSeenAt(session.getLastSeenAt())
+                .completedAt(session.getCompletedAt())
+                .build();
     }
 
     public void apply(AgentSession session) {

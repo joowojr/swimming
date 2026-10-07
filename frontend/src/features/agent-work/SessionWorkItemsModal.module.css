@@ -1,0 +1,194 @@
+.dialog {
+  width: min(var(--modal-width-wide), calc(100vw - var(--space-8)));
+}
+
+.modal {
+  gap: var(--space-4);
+}
+
+.header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: transparent;
+  cursor: pointer;
+}
+
+.header button:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+}
+
+/* 왼쪽에서 담고 오른쪽에서 확인한 뒤 한 번에 붙인다. 할 일 추가 모달과 같은 흐름이다. */
+.panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+  gap: var(--space-4);
+  min-height: 0;
+  padding: 0 var(--space-6);
+  overflow: hidden;
+}
+
+.body,
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.stage {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.group-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.group-heading h3,
+.stage-heading h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-label-strong-weight);
+}
+
+.group-heading span {
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+}
+
+.body ul,
+.stage ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.body li,
+.stage li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-body-sm-size);
+}
+
+.stage li {
+  background: var(--color-surface-container-lowest);
+}
+
+.body li.selected {
+  background: var(--color-surface-container-high);
+}
+
+.body li button,
+.stage li button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-mute);
+  background: var(--color-surface-container-lowest);
+  cursor: pointer;
+}
+
+.body li button:hover:not(:disabled),
+.stage li button:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+}
+
+.card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  color: var(--color-on-surface);
+}
+
+.card-title small,
+.stage li small {
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+}
+
+.stage li span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.stage li strong {
+  overflow: hidden;
+  font-weight: var(--text-label-strong-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-mute);
+  font-size: var(--text-label-caps-size);
+}
+
+.stage-empty,
+.state {
+  margin: 0;
+  color: var(--color-mute);
+  font-size: var(--text-body-sm-size);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-6) var(--space-6);
+}
+
+.error {
+  margin: 0;
+  margin-right: auto;
+  color: var(--color-error);
+  font-size: var(--text-body-sm-size);
+}
+
+@media (max-width: 48rem) {
+  .panes {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+}

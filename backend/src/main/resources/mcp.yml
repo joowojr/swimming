@@ -1,0 +1,10 @@
+# Agent Work MCP 서버 설정. 프로필과 무관하므로 application.yml 에서 spring.config.import 로 끌어다 쓴다.
+spring:
+  ai:
+    mcp:
+      server:
+        enabled: true
+        protocol: streamable
+        type: sync
+        streamable-http:
+          mcp-endpoint: /mcp
